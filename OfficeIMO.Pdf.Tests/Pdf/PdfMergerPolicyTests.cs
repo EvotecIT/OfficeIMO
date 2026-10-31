@@ -241,7 +241,7 @@ public class PdfMergerPolicyTests {
     [Fact]
     public void Merge_DefaultAttachmentPolicyReportsIncomingMetadataWithoutDecodingPayload() {
         byte[] first = PdfDocument.Create().Paragraph(p => p.Text("Primary without attachments")).ToBytes();
-        var incomingOptions = new PdfOptions().AddEmbeddedFile(
+        var incomingOptions = new PdfCreateOptions().AddEmbeddedFile(
             "oversized.bin",
             Enumerable.Repeat((byte)0x41, 128).ToArray(),
             "application/octet-stream");
@@ -553,7 +553,7 @@ public class PdfMergerPolicyTests {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Source")).ToBytes();
         byte[] sourceSnapshot = (byte[])source.Clone();
         var options = new PdfMergeOptions {
-            ResizePages = new PdfPageResizeOptions(PageSizes.A4) { Mode = PdfPageResizeMode.Fit }
+            ResizePages = new PdfPageResizeOptions(PdfPageSizes.A4) { Mode = PdfPageResizeMode.Fit }
         };
 
         PdfMergeResult result = PdfDocument.MergeBytesResult(options, new[] { source });
@@ -565,7 +565,7 @@ public class PdfMergerPolicyTests {
     }
 
     private static byte[] BuildStructuredPdf(string title, string? author, string? subject, string heading, string attachmentPayload) {
-        var options = new PdfOptions { CreateOutlineFromHeadings = true };
+        var options = new PdfCreateOptions { CreateOutlineFromHeadings = true };
         options.AddEmbeddedFile("evidence.txt", Encoding.UTF8.GetBytes(attachmentPayload), "text/plain", PdfAssociatedFileRelationship.Data, heading);
         return PdfDocument.Create(options)
             .Meta(title: title, author: author, subject: subject)
@@ -575,7 +575,7 @@ public class PdfMergerPolicyTests {
     }
 
     private static byte[] BuildNavigationPdf(string text, PdfPageNumberStyle labelStyle, string labelPrefix) {
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         options.AddPageLabelRange(1, labelStyle, 1, labelPrefix);
         return PdfDocument.Create(options)
             .Paragraph(p => p.LinkToBookmark("Jump", "Shared"))

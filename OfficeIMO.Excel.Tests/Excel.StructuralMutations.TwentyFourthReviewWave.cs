@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_MutationDiagnostics_ObserveCancellation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            document.AddWorksheet("Data").CellValue(1, 1, "value");
+            document.AddSheet("Data").CellValue(1, 1, "value");
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
 
@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_QueryBackedTable_RefreshPreservesTotalsRow() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "TotalsQuery",
                 WorksheetName = sheet.Name,
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
         public void Test_ModernChart_GrowingUpdatesReuseAndReleaseOwnedDataRows() {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddWorksheet("Dashboard");
+                ExcelSheet sheet = document.AddSheet("Dashboard");
                 ExcelModernChart chart = sheet.AddModernChart(
                     CreateModernChartData(1),
                     row: 2,
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMutationsAndClearResolveImplicitCellAddressesWithoutMutatingDryRun() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             SheetData sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             var row = new Row(
                 new Cell { CellValue = new CellValue("A"), DataType = CellValues.String },

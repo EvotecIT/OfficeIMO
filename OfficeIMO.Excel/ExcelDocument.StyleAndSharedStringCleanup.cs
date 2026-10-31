@@ -190,11 +190,11 @@ namespace OfficeIMO.Excel {
 
         private static void EnsureStylesheetPrimitives(Stylesheet stylesheet) {
             if (stylesheet.Fonts == null || !stylesheet.Fonts.Elements<Font>().Any()) {
-                stylesheet.Fonts = new Fonts(new Font(new FontSize { Val = 11D }, new FontName { Val = "Calibri" }));
+                stylesheet.Fonts = new Fonts(CreateDefaultFont());
             } else {
                 var defaultFont = stylesheet.Fonts.Elements<Font>().First();
-                defaultFont.FontSize ??= new FontSize { Val = 11D };
-                defaultFont.FontName ??= new FontName { Val = "Calibri" };
+                defaultFont.FontSize ??= new FontSize { Val = OfficeTheme.Default.TypeScale.Body.ToPoints() };
+                defaultFont.FontName ??= new FontName { Val = OfficeTheme.Default.Fonts.Body.Family };
             }
             stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
 

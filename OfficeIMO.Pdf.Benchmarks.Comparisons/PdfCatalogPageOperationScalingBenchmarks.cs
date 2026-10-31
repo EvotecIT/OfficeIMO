@@ -25,7 +25,7 @@ public class PdfCatalogPageOperationScalingBenchmarks {
     [GlobalSetup]
     public void Setup() {
         bool hasPageLabels = FeatureMode == PdfCatalogFeatureMode.SingleRange || FeatureMode == PdfCatalogFeatureMode.PerPageRange;
-        var options = new PdfOptions { IncludePageLabels = FeatureMode == PdfCatalogFeatureMode.SingleRange };
+        var options = new PdfCreateOptions { IncludePageLabels = FeatureMode == PdfCatalogFeatureMode.SingleRange };
         if (FeatureMode == PdfCatalogFeatureMode.PerPageRange) {
             for (int page = 1; page <= PageCount; page++) {
                 options.AddPageLabelRange(page, PdfPageNumberStyle.Arabic, startNumber: page);
@@ -46,7 +46,9 @@ public class PdfCatalogPageOperationScalingBenchmarks {
         }), options);
 
         _source = document.ToBytes();
-        PdfDocumentPreflight preflight = PdfDocument.Preflight(_source);
+        using var input = new MemoryStream(_source, writable: false);
+        using PdfDocument loaded = PdfDocument.Load(input);
+        PdfDocumentPreflight preflight = loaded.Analyze().Preflight;
         if (!preflight.CanRewrite || preflight.DocumentInfo?.PageCount != PageCount ||
             preflight.Probe.HasPageLabels != hasPageLabels ||
             preflight.Probe.HasNamedDestinations != (FeatureMode == PdfCatalogFeatureMode.PerPageBookmark)) {
@@ -59,15 +61,17 @@ public class PdfCatalogPageOperationScalingBenchmarks {
         }
 
         for (int index = 0; index < outputs.Length; index++) {
-            PdfReadDocument readback = PdfReadDocument.Open(outputs[index]);
+            using var readbackStream = new MemoryStream(outputs[index], writable: false);
+            using PdfDocument readback = PdfDocument.Load(readbackStream);
+            PdfDocumentInfo readbackInfo = readback.Inspect();
             if (readback.Pages.Count != 1 ||
                 !readback.ExtractText().Contains(Marker(index + 1), StringComparison.Ordinal) ||
-                (readback.PageLabels.Count != 0) != hasPageLabels ||
-                (hasPageLabels && readback.PageLabels[0].StartNumber != index + 1)) {
+                (readbackInfo.PageLabels.Count != 0) != hasPageLabels ||
+                (hasPageLabels && readbackInfo.PageLabels[0].StartNumber != index + 1)) {
                 throw new InvalidOperationException("Catalog split did not preserve page content and labels at page " + (index + 1) + ".");
             }
             if (FeatureMode == PdfCatalogFeatureMode.PerPageBookmark) {
-                PdfDocumentInfo outputInfo = PdfDocument.Load(outputs[index]).Inspect();
+                PdfDocumentInfo outputInfo = readbackInfo;
                 if (outputInfo.NamedDestinations.Count != 1 ||
                     outputInfo.NamedDestinations[0].Name != "Bookmark " + (index + 1).ToString("D4", System.Globalization.CultureInfo.InvariantCulture) ||
                     outputInfo.NamedDestinations[0].PageNumber != 1) {
@@ -82,7 +86,9 @@ public class PdfCatalogPageOperationScalingBenchmarks {
             _selectedPages[index] = PageCount - (int)Math.Round(index * (PageCount - 1D) / (selectedCount - 1D));
         }
 
-        PdfReadDocument selected = PdfReadDocument.Open(Select());
+        using var selectedStream = new MemoryStream(Select(), writable: false);
+        using PdfDocument selected = PdfDocument.Load(selectedStream);
+        PdfDocumentInfo selectedInfo = selected.Inspect();
         if (selected.Pages.Count != selectedCount) {
             throw new InvalidOperationException("Catalog selection output count differs from the planned page count.");
         }
@@ -91,11 +97,11 @@ public class PdfCatalogPageOperationScalingBenchmarks {
                 throw new InvalidOperationException("Catalog selection changed page content or order at output page " + (index + 1) + ".");
             }
         }
-        if (hasPageLabels && (selected.PageLabels.Count != selectedCount ||
-            selected.PageLabels.Where((label, index) => label.StartPageIndex != index || label.StartNumber != _selectedPages[index]).Any())) {
+        if (hasPageLabels && (selectedInfo.PageLabels.Count != selectedCount ||
+            selectedInfo.PageLabels.Where((label, index) => label.StartPageIndex != index || label.StartNumber != _selectedPages[index]).Any())) {
             throw new InvalidOperationException("Catalog selection did not preserve the selected page labels.");
         }
-        if (!hasPageLabels && selected.PageLabels.Count != 0) {
+        if (!hasPageLabels && selectedInfo.PageLabels.Count != 0) {
             throw new InvalidOperationException("Catalog selection added page labels to an unlabelled source.");
         }
         if (FeatureMode == PdfCatalogFeatureMode.PerPageBookmark) {
@@ -110,10 +116,24 @@ public class PdfCatalogPageOperationScalingBenchmarks {
     }
 
     [Benchmark]
-    public byte[][] Split() => PdfDocument.Load(_source).Pages.Split().Select(static page => page.ToBytes()).ToArray();
+    public byte[][] Split() {
+        using var input = new MemoryStream(_source, writable: false);
+        using PdfDocument source = PdfDocument.Load(input);
+        IReadOnlyList<PdfDocument> pages = source.Pages.Split();
+        try {
+            return pages.Select(static page => page.ToBytes()).ToArray();
+        } finally {
+            foreach (PdfDocument page in pages) page.Dispose();
+        }
+    }
 
     [Benchmark]
-    public byte[] Select() => PdfDocument.Load(_source).Pages.Extract(_selectedPages).ToBytes();
+    public byte[] Select() {
+        using var input = new MemoryStream(_source, writable: false);
+        using PdfDocument source = PdfDocument.Load(input);
+        using PdfDocument output = source.Pages.Extract(_selectedPages);
+        return output.ToBytes();
+    }
 
     private static string Marker(int page) => "Catalog split page " + page.ToString("D4", System.Globalization.CultureInfo.InvariantCulture);
 }

@@ -117,8 +117,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText[] words = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Visuals))
             .OfType<HtmlRenderText>().Where(text => text.Text.Contains("AA", StringComparison.Ordinal)).ToArray();
         Assert.Equal(2, words.Length);
-        Assert.Equal(OfficeIMO.Drawing.OfficeColor.Blue, words[0].Color);
-        Assert.Equal(OfficeIMO.Drawing.OfficeColor.Black, words[1].Color);
+        Assert.Equal(OfficeIMO.OfficeColor.Blue, words[0].Color);
+        Assert.Equal(OfficeIMO.OfficeColor.Black, words[1].Color);
         Assert.True(words[1].Y > words[0].Y);
         HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }

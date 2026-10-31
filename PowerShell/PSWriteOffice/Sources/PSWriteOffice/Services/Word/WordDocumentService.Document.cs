@@ -23,7 +23,7 @@ public static partial class WordDocumentService
 
     /// <summary>Creates an editable detached copy without modifying the template.</summary>
     public static WordDocument CreateFromTemplate(string templatePath) =>
-        RegisterDocument(WordDocument.CreateFromTemplate(templatePath));
+        RegisterDocument(WordDocument.Create(new WordCreateOptions { Template = templatePath }));
 
     /// <summary>Loads an existing Word document.</summary>
     public static WordDocument LoadDocument(string filePath, bool readOnly, bool autoSave, string? password = null)
@@ -34,14 +34,11 @@ public static partial class WordDocumentService
             throw new FileNotFoundException($"File {resolvedPath} doesn't exist.", resolvedPath);
         }
 
-        if (!string.IsNullOrEmpty(password))
-        {
-            var document = RegisterDocument(OfficeEncryptedPackageService.LoadWord(resolvedPath, password!, readOnly, autoSave));
-            UpdateSaveAssociation(document, resolvedPath, encrypted: true);
-            return document;
-        }
-
-        return RegisterDocument(WordDocument.Load(resolvedPath, CreateLoadOptions(readOnly, autoSave)));
+        var options = CreateLoadOptions(readOnly, autoSave);
+        options.Password = password;
+        var document = RegisterDocument(WordDocument.Load(resolvedPath, options));
+        UpdateSaveAssociation(document, resolvedPath, encrypted: password != null);
+        return document;
     }
 
     /// <summary>Creates a new Word document at the specified path.</summary>
@@ -114,7 +111,7 @@ public static partial class WordDocumentService
                 throw new InvalidOperationException("Provide -Password when saving a document loaded from an encrypted package.");
             }
 
-            document.Save(associatedPath!);
+            document.Save(associatedPath!, new WordSaveOptions { Password = null });
         }
 
         var savedPath = associatedPath ?? throw new InvalidOperationException("No saved file path was available.");
@@ -134,7 +131,7 @@ public static partial class WordDocumentService
             return;
         }
 
-        document.Save(path);
+        document.Save(path, new WordSaveOptions { Password = null });
     }
 
     private static WordLoadOptions CreateLoadOptions(bool readOnly, bool autoSave) => new()

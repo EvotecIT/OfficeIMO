@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         internal void QualifyBorrowedUtf8() {
             if (_format == ComparisonWorkbookFormat.Xls)
                 throw new InvalidOperationException("The XLS comparison has no public borrowed UTF8 lane.");
-            foreach (ExcelReaderOptions? options in new ExcelReaderOptions?[] { null, PrefetchOptions }) {
+            foreach (ExcelReader.Core.Reader.ExcelReaderOptions? options in new ExcelReader.Core.Reader.ExcelReaderOptions?[] { null, PrefetchOptions }) {
                 (long raw, long materialized, _) = QualifyValues(options, borrowedUtf8: true);
                 if (raw != _spanChecksum || materialized != _stringChecksum)
                     throw new InvalidDataException("Borrowed UTF8 qualification changed the native field checksum.");
@@ -37,8 +37,8 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         /// <summary>Consumes borrowed text and native values without converting unsupported text.</summary>
         internal long OfficeIMOBorrowedUtf8() {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(_bytes,
-                new ExcelReadOptions { HasHeaderRow = false, SheetIndex = 0 });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(new MemoryStream(_bytes, writable: false),
+                new OfficeIMO.Excel.ExcelReaderOptions { HasHeaderRow = false, SheetIndex = 0 });
             long sum = 0;
             int rows = 0;
             while (reader.Read()) {

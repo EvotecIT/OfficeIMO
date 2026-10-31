@@ -27,7 +27,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
     private string CreatePdf(int pages = 2) {
         string path = Path.Combine(_root, "source.pdf");
         PdfDocument.Create(document => {
-            for (int page = 0; page < pages; page++) document.Page(content => content.Size(300, 400));
+            for (int page = 0; page < pages; page++) document.Page(content => content.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)));
         }).Save(path);
         return path;
     }
@@ -88,7 +88,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
     private string CreatePagesOfWidthsAt(string name, params double[] widths) {
         string path = Path.Combine(_root, name);
         PdfDocument.Create(document => {
-            foreach (double width in widths) document.Page(content => content.Size(width, 400));
+            foreach (double width in widths) document.Page(content => content.Size(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(400)));
         }).Save(path);
         return path;
     }
@@ -141,7 +141,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
     public async Task Printing_follows_the_document_permissions(string password, bool allowed) {
         string path = Path.Combine(_root, "no-print.pdf");
         var encryption = new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.CopyContents };
-        File.WriteAllBytes(path, PdfDocument.Load(File.ReadAllBytes(CreatePagesOfWidths(300))).Security.Encrypt(encryption).Pdf);
+        File.WriteAllBytes(path, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(CreatePagesOfWidths(300)))).Security.Encrypt(encryption).Pdf);
 
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, password, default);
         Assert.Equal(allowed, (await document.GetInfoAsync(default)).CanPrint);
@@ -170,7 +170,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePagesOfWidths(300), null, default);
         string plain = CreatePagesOfWidthsAt("plain.pdf", 400);
         string locked = Path.Combine(_root, "locked.pdf");
-        File.WriteAllBytes(locked, PdfDocument.Load(File.ReadAllBytes(CreatePagesOfWidthsAt("unlocked.pdf", 500)))
+        File.WriteAllBytes(locked, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(CreatePagesOfWidthsAt("unlocked.pdf", 500))))
             .Security.Encrypt(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" }).Pdf);
 
         var missing = await Assert.ThrowsAsync<PdfImportPasswordException>(() => document.ImportPagesAsync(new StudioNativeImportRequest(
@@ -203,7 +203,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
         string target = CreatePagesOfWidths(300);
         string plain = CreatePagesOfWidthsAt("plain.pdf", 400);
         string locked = Path.Combine(_root, "locked.pdf");
-        File.WriteAllBytes(locked, PdfDocument.Load(File.ReadAllBytes(plain)).Security.Encrypt(new PdfStandardEncryptionOptions("open")).Pdf);
+        File.WriteAllBytes(locked, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(plain))).Security.Encrypt(new PdfStandardEncryptionOptions("open")).Pdf);
         delegate* unmanaged<byte*, byte*, nint, nint*, byte**, int> open = &StudioNativeExports.DocumentOpen;
         delegate* unmanaged<nint, byte*, nint, byte**, byte**, int> import = &StudioNativeExports.DocumentImportPagesJson;
         delegate* unmanaged<nint, void> close = &StudioNativeExports.DocumentClose;
@@ -231,11 +231,11 @@ public sealed class StudioNativeEngineTests : IDisposable {
     private string CreateFormPdf() {
         string path = Path.Combine(_root, "form.pdf");
         File.WriteAllBytes(path, PdfDocument.Create(document => document.Content(content => content.Canvas(canvas => {
-            canvas.TextField("Name", null, 72, 72, 200, 24);
-            canvas.CheckBox("Subscribe", false, 72, 120, 16, 16);
-            canvas.RadioButton("Plan", "Basic", true, 72, 160, 16, 16);
-            canvas.RadioButton("Plan", "Pro", false, 120, 160, 16, 16);
-            canvas.ChoiceField("Country", ["Poland", "Germany"], null, 72, 200, 150, 22);
+            canvas.TextField("Name", null, global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24));
+            canvas.CheckBox("Subscribe", false, global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(16));
+            canvas.RadioButton("Plan", "Basic", true, global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(16));
+            canvas.RadioButton("Plan", "Pro", false, global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(16));
+            canvas.ChoiceField("Country", ["Poland", "Germany"], null, global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(22));
         }))).ToBytes());
         return path;
     }
@@ -388,7 +388,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
         string path = Path.Combine(_root, "text.pdf");
         PdfDocument.Create(document => {
             foreach (string text in new[] { "Alpha needle here", "Nothing to see", "Another NEEDLE" })
-                document.Page(page => page.Size(400, 300).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
         }).Save(path);
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
 
@@ -415,7 +415,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
         string path = Path.Combine(_root, "text.pdf");
         PdfDocument.Create(document => {
             foreach (string text in new[] { "Alpha needle here", "Nothing to see", "Another NEEDLE and a needle" })
-                document.Page(page => page.Size(400, 300).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
         }).Save(path);
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
         var pages = new List<StudioNativeSearchPage>();
@@ -511,7 +511,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
         string path = Path.Combine(_root, "text.pdf");
         PdfDocument.Create(document => {
             foreach (string text in new[] { "first page", "second needle" })
-                document.Page(page => page.Size(400, 300).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
         }).Save(path);
         delegate* unmanaged<byte*, byte*, nint, nint*, byte**, int> open = &StudioNativeExports.DocumentOpen;
         delegate* unmanaged<nint, int*, int, nint, byte**, int> reorder = &StudioNativeExports.DocumentReorderPages;
@@ -555,7 +555,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
         Assert.InRange(ink.Bounds.Y, 50D, 60D);
         Assert.InRange(ink.Bounds.X + ink.Bounds.Width, 200D, 210D);
         Assert.InRange(ink.Bounds.Y + ink.Bounds.Height, 80D, 90D);
-        PdfAnnotation saved = Assert.Single(PdfDocument.Load(await SavedBytesAsync(document)).Annotations.GetForEditing());
+        PdfAnnotation saved = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(await SavedBytesAsync(document))).Annotations.GetForEditing());
         Assert.Equal(6D, saved.BorderWidth);
         Assert.Equal(0.5D, saved.Opacity);
         Assert.True(saved.HasNormalAppearance);
@@ -641,7 +641,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
     [Fact]
     public async Task Page_text_gives_each_element_a_box_on_the_page_as_displayed() {
         string path = Path.Combine(_root, "text.pdf");
-        PdfDocument.Create(document => document.Page(page => page.Size(400, 300)
+        PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300))
             .Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Hello world")))))).Save(path);
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
 
@@ -672,7 +672,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
     // A blank page image, as a camera would give, rendered by the engine itself.
     private async Task<string> CreateScanImageAsync(string name, double width, double height) {
         string pdf = Path.Combine(_root, name + ".pdf");
-        PdfDocument.Create(document => document.Page(page => page.Size(width, height))).Save(pdf);
+        PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)))).Save(pdf);
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(pdf, null, default);
         string image = Path.Combine(_root, name + ".png");
         File.WriteAllBytes(image, (await document.RenderPageAsync(1, 2D, default)).Bytes);
@@ -781,7 +781,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
     [Fact]
     public async Task Making_a_digital_document_searchable_leaves_its_text_alone() {
         string path = Path.Combine(_root, "digital.pdf");
-        PdfDocument.Create(document => document.Page(page => page.Size(400, 300)
+        PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300))
             .Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Already searchable")))))).Save(path);
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
         long revision = (await document.GetInfoAsync(default)).Revision;
@@ -847,15 +847,15 @@ public sealed class StudioNativeEngineTests : IDisposable {
         }
         string workbook = Path.Combine(_root, "figures.xlsx");
         using (var document = OfficeIMO.Excel.ExcelDocument.Create(workbook)) {
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Quarterly figures");
-            sheet.SetColumnWidth(1, 40); // Search validates visible text, not clipped cell overflow.
-            sheet.SetRowHeight(1, 30);
+            sheet.SetColumnWidth(1, OfficeIMO.Excel.ExcelColumnWidth.Characters(40)); // Search validates visible text, not clipped cell overflow.
+            sheet.SetRowHeight(1, OfficeIMO.Excel.ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             sheet.CellVerticalAlign(1, 1, OfficeIMO.Excel.ExcelVerticalAlignment.Center);
             document.Save();
         }
         string deck = Path.Combine(_root, "deck.pptx");
-        using (var presentation = OfficeIMO.PowerPoint.PowerPointPresentation.Create(deck)) {
+        using (var presentation = OfficeIMO.PowerPoint.PowerPointDocument.Create(deck)) {
             presentation.AddSlide().AddTextBox("Quarterly review");
             presentation.Save();
         }
@@ -866,7 +866,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
             Assert.Equal(route, result.Route);
             Assert.Equal(new FileInfo(output).Length, result.OutputBytes);
             using StudioNativeDocument converted = await StudioNativeDocument.OpenAsync(output, null, default);
-            Assert.True((await converted.SearchAsync("quarterly", default)).Hits.Count > 0, route + ": " + OfficeIMO.Pdf.PdfReadDocument.Open(File.ReadAllBytes(output)).ExtractText());
+            Assert.True((await converted.SearchAsync("quarterly", default)).Hits.Count > 0, route + ": " + OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(output))).ExtractText());
         }
     }
 

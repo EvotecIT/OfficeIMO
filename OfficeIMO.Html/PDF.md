@@ -111,7 +111,7 @@ A prepared HTML report can be exported directly to a file:
 
 ```csharp
 var report = HtmlConversionDocument.Load("service-review.html");
-report.SaveAsPdf("service-review.pdf").RequireSuccess();
+report.SaveAsPdf("service-review.pdf");
 ```
 
 The [multi-format report example](../OfficeIMO.Examples/Converters/Html/HtmlMultiFormatReport.cs) also exports editable Word and Excel artifacts from the same prepared source.
@@ -189,21 +189,21 @@ Rectangular, fully opaque table backgrounds with automatic height continue throu
 </section>
 ```
 
-For large output, prefer `SaveAsPdf(Stream, options)` over `ToPdfBytes()`, and select forward-only PDF object serialization when the destination need not be seekable:
+For large output, prefer `SaveAsPdf(Stream, options)` over `ToPdf().ToBytes()`, and select forward-only PDF object serialization when the destination need not be seekable:
 
 ```csharp
 using OfficeIMO.Pdf;
 
 var options = new HtmlToPdfOptions {
-    PdfOptions = new PdfOptions {
+    PdfOptions = new PdfCreateOptions {
         FileVersion = PdfFileVersion.Pdf17,
         ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly
     }
 };
 
 using Stream destination = File.Create("purchases.pdf");
-PdfSaveResult saved = HtmlConversionDocument.Parse(html).SaveAsPdf(destination, options);
-Console.WriteLine(saved.Serialization?.PeakRetainedPageContentBytes);
+OfficeIMO.OfficeConversionReport saved = HtmlConversionDocument.Parse(html).SaveAsPdf(destination, options);
+Console.WriteLine(saved.ItemsWritten);
 ```
 
 This bounds completed PDF page and object payloads and avoids buffering the final artifact inside OfficeIMO. HTML parsing, cascading, and layout still operate on the complete document so CSS page counters, named pages, cross-page fragmentation, and other whole-document rules remain correct. `PdfSerializationReport.IsForwardOnlyLayout` stays `false`; split independently generated documents at the application boundary when a workload requires a hard end-to-end heap ceiling.
@@ -229,7 +229,7 @@ Set `HtmlToPdfOptions.MathMlSourceModificationDate` when an archival profile req
 An emitted tagged Formula MathML supplement can satisfy PDF/A-4f's embedded-file
 requirement. For reproducible archival output, supply text and mathematical fonts
 explicitly, set `MathMlSourceModificationDate`, request the profile, and validate the
-exact saved PDF. See the [PDF compliance contract](../OfficeIMO.Pdf/README.md#generate-and-assess-validator-backed-pdfa)
+exact saved PDF. See the [PDF compliance contract](../Docs/officeimo.pdf-guide.md#generate-and-assess-validator-backed-pdfa)
 for saved-artifact checks and external validation requirements.
 
 The [math and archive qualification](../Build/Project/Evidence/2026-09-30/html-master-convergence/math-operator-print-20261020.json) records the selected
@@ -270,7 +270,7 @@ Use strict mode when the input must stay inside the declared static contract, an
 ```csharp
 var options = new HtmlToPdfOptions {
     FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
-    PdfOptions = new OfficeIMO.Pdf.PdfOptions()
+    PdfCreateOptions = new OfficeIMO.Pdf.PdfCreateOptions()
         .EnableTaggedPdfCatalogMarkers()
 };
 
@@ -321,7 +321,7 @@ source omissions that were not represented in its tags.
 
 The [accessible report example](../OfficeIMO.Examples/Converters/Html/HtmlAccessibleReport.cs)
 embeds the same regular and bold fonts for layout and PDF encoding, uses
-`PdfOptions.UsePdfUa(...)`, and checks the retained result. Its
+`PdfCreateOptions.UsePdfUa(...)`, and checks the retained result. Its
 [HTML source](../OfficeIMO.Examples/Converters/Html/Content/Reports/accessibility-review.html)
 contains two pages, ordered and unordered lists, row and column table headers,
 a described figure, decorative SVG, an internal link, a labelled checkbox and
@@ -480,7 +480,7 @@ var options = new HtmlToPdfOptions {
     DefaultFontFamily = "Arial",
     BackgroundColor = OfficeColor.White,
     Scale = 1.5,
-    PdfOptions = new OfficeIMO.Pdf.PdfOptions()
+    PdfCreateOptions = new OfficeIMO.Pdf.PdfCreateOptions()
         .EnableTaggedPdfCatalogMarkers()
 };
 options.AdditionalStylesheets.Add("@page { margin: 18mm }");
@@ -527,6 +527,18 @@ foreach (var diagnostic in svgResult.Diagnostics) {
 ```
 
 Resource resolution is opt-in. `PdfResourcePolicy` is the host-access gate for local files, remote resolver calls, data URIs, embedded package resources, and installed fonts. `HtmlUrlPolicy` independently validates URL syntax and schemes; timeouts, byte limits, count limits, and stylesheet-depth limits inherited from `HtmlRenderOptions` bound resources after access is granted. HTML defaults to `PdfResourcePolicy.CreateLibraryFontDefault()`: library-selected installed fonts, bounded data URIs and MHTML package parts are allowed; document-selected host fonts and local or remote resolver calls are disabled. Set `AllowDocumentFontEmbedding` explicitly to use installed families named by the document. Portable deterministic mode disables installed-font discovery explicitly.
+
+Local files need no resolver. When `AllowLocalFileAccess` is true, as in `CreateTrustedHost()`, `file:` images, stylesheets and fonts load in synchronous and asynchronous conversions; relative references resolve against the document's `BaseUri`, and each file is bounded by `MaxResourceBytes`. A configured `ResourceResolver` is asked first.
+
+```csharp
+HtmlConversionDocument page = HtmlConversionDocument.Load("site/index.html", new HtmlConversionDocumentOptions {
+    Trust = HtmlInputTrust.Trusted,
+    BaseUri = new Uri(Path.GetFullPath("site") + Path.DirectorySeparatorChar)
+});
+page.SaveAsPdf("index.pdf", new HtmlToPdfOptions { ResourcePolicy = PdfResourcePolicy.CreateTrustedHost() });
+```
+
+An image that does not load and has no authored size takes the space of its alternative text, as in a browser, and the conversion report names it.
 
 Under the default policy, MathML can use the renderer's fixed mathematical font
 families when a supported installed face is available. CSS cannot use that fallback

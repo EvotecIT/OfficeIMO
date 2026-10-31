@@ -68,7 +68,7 @@ try {
         Import-Module Pester -Force -ErrorAction Stop
     }
 } catch {
-    throw "Failed to import module $ModuleName"
+    throw "Failed to import test modules for ${ModuleName}: $($_.Exception.Message)"
 } finally {
     if ($null -eq $previousDevelopmentFlag) {
         Remove-Item env:PSWRITEOFFICE_USE_DEVELOPMENT_BINARIES -ErrorAction SilentlyContinue

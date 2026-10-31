@@ -11,8 +11,8 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfStructuredTableStyle.xlsx");
 
         PdfCore.PdfDocument pdfDocument;
-        PdfCore.PdfColor expectedAccent;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Report")) {
+        global::OfficeIMO.OfficeColor expectedAccent;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(10, 8, "Column1");
             sheet.Cell(10, 9, "SamAccountName");
@@ -28,12 +28,12 @@ public partial class Excel {
                 includeAutoFilter: true);
             document.Save();
             string accentArgb = Assert.IsType<string>(document.ResolveThemeColorArgb(4U));
-            expectedAccent = PdfCore.PdfColor.FromRgb(
+            expectedAccent = global::OfficeIMO.OfficeColor.FromRgb(
                 Convert.ToByte(accentArgb.Substring(accentArgb.Length - 6, 2), 16),
                 Convert.ToByte(accentArgb.Substring(accentArgb.Length - 4, 2), 16),
                 Convert.ToByte(accentArgb.Substring(accentArgb.Length - 2, 2), 16));
 
-            pdfDocument = document.ToPdfDocument(new ExcelToPdfOptions {
+            pdfDocument = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable
             });
@@ -52,14 +52,14 @@ public partial class Excel {
 
         PdfCore.PdfTextRun headerRun = Assert.Single(table.Cells[0][0].Runs);
         Assert.True(headerRun.Bold);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 255, 255), headerRun.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255), headerRun.Color);
         Assert.False(Assert.Single(table.Cells[1][0].Runs).Bold);
     }
 
     [Fact]
     public void ToPdfDocument_BoundedReadPreservesDirectStylesWithoutLoadingWorksheetDom() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfBoundedStreaming.xlsx");
-        using (ExcelDocument source = ExcelDocument.Create(workbookPath, "Report")) {
+        using (ExcelDocument source = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" })) {
             ExcelSheet sheet = source.Sheets[0];
             sheet.Cell(1, 1, "Name");
             sheet.Cell(1, 2, "Status");
@@ -77,7 +77,7 @@ public partial class Excel {
         var worksheetPart = Assert.Single(document.OpenXmlDocument.WorkbookPart!.WorksheetParts);
         Assert.False(worksheetPart.IsRootElementLoaded);
 
-        PdfCore.PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(new ExcelToPdfOptions {
+        PdfCore.PdfDocumentConversionResult conversion = document.ConvertToPdfWithEvidence(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
             MaxRowsPerSheet = 2,
             UseBoundedWorksheetRead = true,
@@ -85,26 +85,26 @@ public partial class Excel {
         });
 
         Assert.False(worksheetPart.IsRootElementLoaded);
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "WorksheetBoundedRead");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "worksheet-bounded-read");
         PdfCore.PageBlock page = Assert.IsType<PdfCore.PageBlock>(Assert.Single(conversion.Value.Blocks));
         PdfCore.TableBlock table = Assert.Single(page.Blocks.OfType<PdfCore.TableBlock>());
         PdfCore.PdfTableStyle style = Assert.IsType<PdfCore.PdfTableStyle>(table.Style);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(192, 0, 0), style.CellFills![(0, 0)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(192, 0, 0), style.CellFills![(0, 0)]);
         PdfCore.PdfTextRun headerRun = Assert.Single(table.Cells[0][0].Runs);
         Assert.True(headerRun.Bold);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 255, 255), headerRun.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255), headerRun.Color);
         Assert.Equal(2, table.Rows.Count);
     }
 
     [Fact]
     public void ToPdfDocument_BoundedReadFallsBackToCreatedWorksheetStyles() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.Cell(1, 1, "Name");
         sheet.Cell(2, 1, "Platform");
         sheet.Range("A1").SetFillColor("C00000").SetFontColor("FFFFFF").SetBold();
 
-        PdfCore.PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(new ExcelToPdfOptions {
+        PdfCore.PdfDocumentConversionResult conversion = document.ConvertToPdfWithEvidence(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
             MaxRowsPerSheet = 2,
             UseBoundedWorksheetRead = true,
@@ -114,16 +114,16 @@ public partial class Excel {
         PdfCore.PageBlock page = Assert.IsType<PdfCore.PageBlock>(Assert.Single(conversion.Value.Blocks));
         PdfCore.TableBlock table = Assert.Single(page.Blocks.OfType<PdfCore.TableBlock>());
         PdfCore.PdfTableStyle style = Assert.IsType<PdfCore.PdfTableStyle>(table.Style);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(192, 0, 0), style.CellFills![(0, 0)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(192, 0, 0), style.CellFills![(0, 0)]);
         PdfCore.PdfTextRun headerRun = Assert.Single(table.Cells[0][0].Runs);
         Assert.True(headerRun.Bold);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 255, 255), headerRun.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255), headerRun.Color);
     }
 
     [Fact]
     public void ToPdfDocument_BoundedReadIgnoresStaleDefaultWorksheetDimension() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfBoundedStaleDimension.xlsx");
-        using (ExcelDocument source = ExcelDocument.Create(workbookPath, "Report")) {
+        using (ExcelDocument source = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" })) {
             source.Sheets[0].Cell(3, 2, "Preserved");
             source.Save();
         }
@@ -139,7 +139,7 @@ public partial class Excel {
         using ExcelDocument document = ExcelDocument.Load(
             workbookPath,
             new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
-        PdfCore.PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(new ExcelToPdfOptions {
+        PdfCore.PdfDocumentConversionResult conversion = document.ConvertToPdfWithEvidence(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
             MaxRowsPerSheet = 2,
             UseBoundedWorksheetRead = true,

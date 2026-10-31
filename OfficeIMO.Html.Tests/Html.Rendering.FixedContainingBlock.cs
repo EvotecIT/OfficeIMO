@@ -60,7 +60,7 @@ public sealed partial class HtmlRenderingTests {
         }
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, FixedContainingOptions());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(FixedContainingOptions()));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(FixedContainingOptions()))).ToBytes();
 
         Assert.Equal(OfficeColor.White, raster.GetPixel(140, 65));
         Assert.Empty(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(FixedContainingUri));
@@ -92,7 +92,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>html,body{margin:0}</style><div style='width:100px;height:250px;transform:translateX(15px);transform-origin:0 0'>"
             + FixedContainingLink("left:20px;top:120px;width:40px;height:20px") + "<div style='height:250px'></div></div>"
             + "<a href='https://example.test/viewport-fixed' style='position:fixed;left:80px;top:10px;width:10px;height:10px;background:blue'></a>";
-        var options = new HtmlToPdfOptions { PageSize = new OfficePageSize(120D / 96D, 100D / 96D),
+        var options = new HtmlToPdfOptions { PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(120D / 96D), global::OfficeIMO.OfficeLength.Inches(100D / 96D)),
             ViewportWidth = 120, ViewportHeight = 250, Margins = HtmlRenderMargins.All(0), AutoFitWidePrintContent = false };
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
         HtmlRenderRequest request = HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf, options);
@@ -114,7 +114,7 @@ public sealed partial class HtmlRenderingTests {
     private static void AssertFixedContainingPaintAndPdf(string html, double x, double y, double width, double height) {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, FixedContainingOptions());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(FixedContainingOptions()));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(FixedContainingOptions()))).ToBytes();
         PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(FixedContainingUri));
 
         Assert.Equal(OfficeColor.FromRgb(255, 0, 0), raster.GetPixel((int)x + 5, (int)y + 5));

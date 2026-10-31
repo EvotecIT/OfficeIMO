@@ -116,7 +116,7 @@ public partial class Excel {
                 relationshipSuffix: "image");
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => ExcelDocument.OpenDataReader(path));
+                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
 
             Assert.Contains(
                 "unrelated internal relationship",
@@ -136,7 +136,7 @@ public partial class Excel {
                 worksheetOccurrence: 1,
                 relationshipSuffix: "chartsheet");
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(path);
+            using DbDataReader reader = ExcelDocument.OpenReader(path);
             Assert.True(reader.Read());
             Assert.Equal("Ready", reader.GetString(0));
             Assert.False(reader.NextResult());
@@ -152,16 +152,16 @@ public partial class Excel {
             $"OfficeIMO.Excel.StaleWideDimension.{Guid.NewGuid():N}.xlsb");
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Amount");
                 sheet.CellValue(2, 1, "Alpha");
                 sheet.CellValue(2, 2, 42);
-                File.WriteAllBytes(path, document.ToBytes(ExcelFileFormat.Xlsb));
+                File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
             }
             ReplaceXlsbWorksheetLastColumn(path, 16_383);
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(path);
+            using DbDataReader reader = ExcelDocument.OpenReader(path);
             Assert.Equal(2, reader.FieldCount);
             Assert.True(reader.Read());
             Assert.Equal("Alpha", reader.GetString(0));
@@ -181,7 +181,7 @@ public partial class Excel {
         }
 
         return Assert.Throws<InvalidDataException>(
-            () => ExcelDocument.OpenDataReader(path));
+            () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
     }
 
     private static string CreateTwoSheetXlsb() {
@@ -189,13 +189,13 @@ public partial class Excel {
             Path.GetTempPath(),
             $"OfficeIMO.Excel.SheetRelationships.{Guid.NewGuid():N}.xlsb");
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet first = document.AddWorksheet("First");
+        ExcelSheet first = document.AddSheet("First");
         first.CellValue(1, 1, "Value");
         first.CellValue(2, 1, "Ready");
-        ExcelSheet second = document.AddWorksheet("Second");
+        ExcelSheet second = document.AddSheet("Second");
         second.CellValue(1, 1, "Value");
         second.CellValue(2, 1, "Ignored");
-        File.WriteAllBytes(path, document.ToBytes(ExcelFileFormat.Xlsb));
+        File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
         return path;
     }
 

@@ -13,12 +13,12 @@ public sealed class PdfLineSpacingContinuationTests {
     public void AutomaticColumnWidthUsesEffectiveParagraphFontSize(double size, bool defaultStyle) {
         double Render(bool explicitRunSize) {
             var options = Options();
-            var style = new PdfParagraphStyle { FontSize = size };
+            var style = new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(size) };
             if (defaultStyle) options.DefaultParagraphStyle = style;
             var document = PdfDocument.Create(options);
-            document.Content.Row(row => row.Gap(10)
+            document.Content.Row(row => row.Gap(global::OfficeIMO.OfficeLength.Points(10))
                 .AutoColumn(column => column.Paragraph(p => {
-                    if (explicitRunSize) p.FontSize(size);
+                    if (explicitRunSize) p.FontSize(global::OfficeIMO.OfficeLength.Points(size));
                     p.Text("WWWW");
                 }, style: defaultStyle ? null : style))
                 .RelativeColumn(column => column.Text("Marker")));
@@ -35,19 +35,19 @@ public sealed class PdfLineSpacingContinuationTests {
     [InlineData(true, true, 32D)]
     public void BalancedColumnsRetainStyledBlankLines(bool multiple, bool atBoundary, double expected) {
         var options = Options();
-        if (atBoundary) options.PageHeight = 60D + 5D * (multiple ? 8D : 20D);
+        if (atBoundary) options.PageHeight = global::OfficeIMO.OfficeLength.Points(60D + 5D * (multiple ? 8D : 20D));
         var document = PdfDocument.Create(options);
         document.Content.Columns(columns => columns.Paragraph(p => {
-            p.FontSize(8).Text(atBoundary ? "A\nB\nC\nD\n" : "A\n");
-            p.FontSize(32).LineBreak();
-            p.FontSize(8).Text(atBoundary ? "E" : "B\nC\nD\nE\nF\nG\nH\nI\nJ");
+            p.FontSize(global::OfficeIMO.OfficeLength.Points(8)).Text(atBoundary ? "A\nB\nC\nD\n" : "A\n");
+            p.FontSize(global::OfficeIMO.OfficeLength.Points(32)).LineBreak();
+            p.FontSize(global::OfficeIMO.OfficeLength.Points(8)).Text(atBoundary ? "E" : "B\nC\nD\nE\nF\nG\nH\nI\nJ");
         }, style: new PdfParagraphStyle {
-            FontSize = 8, SpacingBefore = 0, SpacingAfter = 0,
-            LineSpacing = multiple ? PdfLineSpacing.Multiple(1) : PdfLineSpacing.AtLeast(20, 1)
+            FontSize = global::OfficeIMO.OfficeLength.Points(8), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
+            LineSpacing = multiple ? PdfLineSpacing.Multiple(1) : PdfLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(20), 1)
         }), new PdfMultiColumnOptions {
-            ColumnCount = 2, Gap = 12, BalanceParagraphLines = true, BalanceLastPage = !atBoundary,
+            ColumnCount = 2, Gap = global::OfficeIMO.OfficeLength.Points(12), BalanceParagraphLines = true, BalanceLastPage = !atBoundary,
             ColumnDefinitions = atBoundary ? new[] {
-                new PdfFlowColumn(PdfColumnWidth.Fixed(148)), new PdfFlowColumn(PdfColumnWidth.Fixed(180))
+                new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(148))), new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(180)))
             } : Array.Empty<PdfFlowColumn>()
         });
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -61,8 +61,8 @@ public sealed class PdfLineSpacingContinuationTests {
         Assert.Equal(expected, first.StartBaseLine.Y - other.StartBaseLine.Y, 3);
     }
 
-    private static PdfOptions Options() => new() {
-        PageWidth = 400, PageHeight = 400, DefaultFontSize = 12,
-        MarginTop = 30, MarginBottom = 30, MarginLeft = 30, MarginRight = 30
+    private static PdfCreateOptions Options() => new() {
+        PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(400), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
+        MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30)
     };
 }

@@ -1,7 +1,7 @@
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         private static IReadOnlyList<TableChunk> CreateWorksheetSceneChunks(
-            WorksheetPdfExportPlan plan, ExcelToPdfOptions options, int columns,
+            WorksheetPdfExportPlan plan, ExcelPdfExportOptions options, int columns,
             double availableWidth, double availableHeight, double scale) {
             // A constrained fit axis controls its breaks; the unlimited axis retains manual breaks.
             IReadOnlyList<TableChunk> requested = CreateTableChunks(plan, options, columns,
@@ -38,7 +38,7 @@ namespace OfficeIMO.Excel.Pdf {
                 : chunks.OrderBy(chunk => chunk.StartColumn).ThenBy(BodyRow).ToArray();
         }
 
-        private static double ResolveWorksheetPlanScale(WorksheetPdfExportPlan plan, ExcelToPdfOptions options, int columns, double availableWidth, double availableHeight) {
+        private static double ResolveWorksheetPlanScale(WorksheetPdfExportPlan plan, ExcelPdfExportOptions options, int columns, double availableWidth, double availableHeight) {
             if (!ExcelPageSetupGeometry.HasFitToPageScale(plan.PageSetup)) return GetWorksheetAuthoredScale(plan.PageSetup);
             double scale = 1D;
             // Fit before choosing page breaks. A retained banner/chart can extend beyond

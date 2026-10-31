@@ -200,13 +200,13 @@ public partial class PdfDocumentComplianceAssessmentTests {
         PdfDocument decorativeDocument = PdfDocument.Create(CreatePdfUaGroundworkOptions())
             .TaggedPdfCatalogMarkers()
             .Meta(title: "Accessible title")
-            .Header(header => header.Image(png, 20, 10))
+            .Header(header => header.Image(png, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(10)))
             .Paragraph(paragraph => paragraph.Text("Header image without alt text."));
         PdfDocument satisfiedDocument = PdfDocument.Create(CreatePdfUaGroundworkOptions())
             .TaggedPdfCatalogMarkers()
             .Meta(title: "Accessible title")
-            .Header(header => header.Image(png, 20, 10, alternativeText: "Company logo"))
-            .Footer(footer => footer.Image(png, 20, 10, alternativeText: "Security footer mark"))
+            .Header(header => header.Image(png, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(10), alternativeText: "Company logo"))
+            .Footer(footer => footer.Image(png, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(10), alternativeText: "Security footer mark"))
             .Paragraph(paragraph => paragraph.Text("Header and footer image alt text."));
 
         PdfComplianceReadinessReport decorativeReport = decorativeDocument.AssessCompliance(PdfComplianceProfile.PdfUa1);

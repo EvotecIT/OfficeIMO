@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ModernChart_RejectsInvalidXmlTextBeforeAnyMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             var validData = new ExcelChartData(
                 new[] { "A" },
                 new[] { new ExcelChartSeries("Value", new[] { 1d }) });
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_QueryBackedTable_BudgetsDateTimeOffsetFallbackTextBeforeMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "Dates",
                 WorksheetName = sheet.Name,
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FeatureReport_HandlesChartExWithMissingRelationship() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             sheet.AddModernChart(
                 new ExcelChartData(
                     new[] { "A" },

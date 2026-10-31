@@ -7,13 +7,17 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds an auto shape with the specified geometry.
         /// </summary>
-        public PowerPointAutoShape AddShape(OfficePresetShapeType shapeType, long left = 0L, long top = 0L, long width = 914400L,
-            long height = 914400L, string? name = null) {
+        public PowerPointAutoShape AddShape(OfficePresetShapeType shapeType, OfficeLength? left = null, OfficeLength? top = null,
+            OfficeLength? width = null, OfficeLength? height = null, string? name = null) {
+            long nativeLeft = (left ?? OfficeLength.Emus(0L)).ToEmus();
+            long nativeTop = (top ?? OfficeLength.Emus(0L)).ToEmus();
+            long nativeWidth = (width ?? OfficeLength.Emus(914400L)).ToEmus();
+            long nativeHeight = (height ?? OfficeLength.Emus(914400L)).ToEmus();
             string shapeName = name ?? GenerateUniqueName(shapeType.ToString());
             A.ShapeTypeValues openXmlShapeType = shapeType.ToOpenXml();
 
             ShapeProperties shapeProperties = new(
-                new A.Transform2D(new A.Offset { X = left, Y = top }, new A.Extents { Cx = width, Cy = height }),
+                new A.Transform2D(new A.Offset { X = nativeLeft, Y = nativeTop }, new A.Extents { Cx = nativeWidth, Cy = nativeHeight }),
                 new A.PresetGeometry(new A.AdjustValueList()) { Preset = openXmlShapeType }
             );
 
@@ -59,158 +63,40 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Adds an auto shape with the specified geometry using centimeter measurements.
-        /// </summary>
-        public PowerPointAutoShape AddShapeCm(OfficePresetShapeType shapeType, double leftCm, double topCm, double widthCm,
-            double heightCm, string? name = null) {
-            return AddShape(shapeType,
-                PowerPointUnits.FromCentimeters(leftCm),
-                PowerPointUnits.FromCentimeters(topCm),
-                PowerPointUnits.FromCentimeters(widthCm),
-                PowerPointUnits.FromCentimeters(heightCm),
-                name);
-        }
-
-        /// <summary>
-        ///     Adds an auto shape with the specified geometry using inch measurements.
-        /// </summary>
-        public PowerPointAutoShape AddShapeInches(OfficePresetShapeType shapeType, double leftInches, double topInches,
-            double widthInches, double heightInches, string? name = null) {
-            return AddShape(shapeType,
-                PowerPointUnits.FromInches(leftInches),
-                PowerPointUnits.FromInches(topInches),
-                PowerPointUnits.FromInches(widthInches),
-                PowerPointUnits.FromInches(heightInches),
-                name);
-        }
-
-        /// <summary>
-        ///     Adds an auto shape with the specified geometry using point measurements.
-        /// </summary>
-        public PowerPointAutoShape AddShapePoints(OfficePresetShapeType shapeType, double leftPoints, double topPoints,
-            double widthPoints, double heightPoints, string? name = null) {
-            return AddShape(shapeType,
-                PowerPointUnits.FromPoints(leftPoints),
-                PowerPointUnits.FromPoints(topPoints),
-                PowerPointUnits.FromPoints(widthPoints),
-                PowerPointUnits.FromPoints(heightPoints),
-                name);
-        }
-
-        /// <summary>
         ///     Adds a rectangle shape.
         /// </summary>
-        public PowerPointAutoShape AddRectangle(long left, long top, long width, long height, string? name = null) {
+        public PowerPointAutoShape AddRectangle(OfficeLength left, OfficeLength top, OfficeLength width,
+            OfficeLength height, string? name = null) {
             return AddShape(OfficePresetShapeType.Rectangle, left, top, width, height, name);
-        }
-
-        /// <summary>
-        ///     Adds a rectangle shape using centimeter measurements.
-        /// </summary>
-        public PowerPointAutoShape AddRectangleCm(double leftCm, double topCm, double widthCm, double heightCm,
-            string? name = null) {
-            return AddShapeCm(OfficePresetShapeType.Rectangle, leftCm, topCm, widthCm, heightCm, name);
-        }
-
-        /// <summary>
-        ///     Adds a rectangle shape using inch measurements.
-        /// </summary>
-        public PowerPointAutoShape AddRectangleInches(double leftInches, double topInches, double widthInches,
-            double heightInches, string? name = null) {
-            return AddShapeInches(OfficePresetShapeType.Rectangle, leftInches, topInches, widthInches, heightInches, name);
-        }
-
-        /// <summary>
-        ///     Adds a rectangle shape using point measurements.
-        /// </summary>
-        public PowerPointAutoShape AddRectanglePoints(double leftPoints, double topPoints, double widthPoints,
-            double heightPoints, string? name = null) {
-            return AddShapePoints(OfficePresetShapeType.Rectangle, leftPoints, topPoints, widthPoints, heightPoints, name);
         }
 
         /// <summary>
         ///     Adds an ellipse shape.
         /// </summary>
-        public PowerPointAutoShape AddEllipse(long left, long top, long width, long height, string? name = null) {
+        public PowerPointAutoShape AddEllipse(OfficeLength left, OfficeLength top, OfficeLength width,
+            OfficeLength height, string? name = null) {
             return AddShape(OfficePresetShapeType.Ellipse, left, top, width, height, name);
         }
 
         /// <summary>
-        ///     Adds an ellipse shape using centimeter measurements.
+        ///     Adds a line shape from the specified start and end points.
         /// </summary>
-        public PowerPointAutoShape AddEllipseCm(double leftCm, double topCm, double widthCm, double heightCm,
-            string? name = null) {
-            return AddShapeCm(OfficePresetShapeType.Ellipse, leftCm, topCm, widthCm, heightCm, name);
-        }
-
-        /// <summary>
-        ///     Adds an ellipse shape using inch measurements.
-        /// </summary>
-        public PowerPointAutoShape AddEllipseInches(double leftInches, double topInches, double widthInches,
-            double heightInches, string? name = null) {
-            return AddShapeInches(OfficePresetShapeType.Ellipse, leftInches, topInches, widthInches, heightInches, name);
-        }
-
-        /// <summary>
-        ///     Adds an ellipse shape using point measurements.
-        /// </summary>
-        public PowerPointAutoShape AddEllipsePoints(double leftPoints, double topPoints, double widthPoints,
-            double heightPoints, string? name = null) {
-            return AddShapePoints(OfficePresetShapeType.Ellipse, leftPoints, topPoints, widthPoints, heightPoints, name);
-        }
-
-        /// <summary>
-        ///     Adds a line shape from the specified start and end points.      
-        /// </summary>
-        public PowerPointAutoShape AddLine(long startX, long startY, long endX, long endY, string? name = null) {
-            long left = Math.Min(startX, endX);
-            long top = Math.Min(startY, endY);
-            long width = Math.Abs(endX - startX);
-            long height = Math.Abs(endY - startY);
+        public PowerPointAutoShape AddLine(OfficeLength startX, OfficeLength startY, OfficeLength endX,
+            OfficeLength endY, string? name = null) {
+            long nativeStartX = startX.ToEmus();
+            long nativeStartY = startY.ToEmus();
+            long nativeEndX = endX.ToEmus();
+            long nativeEndY = endY.ToEmus();
+            long left = Math.Min(nativeStartX, nativeEndX);
+            long top = Math.Min(nativeStartY, nativeEndY);
+            long width = Math.Abs(nativeEndX - nativeStartX);
+            long height = Math.Abs(nativeEndY - nativeStartY);
 
             if (width == 0) width = 1;
             if (height == 0) height = 1;
 
-            return AddShape(OfficePresetShapeType.Line, left, top, width, height, name);
-        }
-
-        /// <summary>
-        ///     Adds a line shape using centimeter measurements.
-        /// </summary>
-        public PowerPointAutoShape AddLineCm(double startXCm, double startYCm, double endXCm, double endYCm,
-            string? name = null) {
-            return AddLine(
-                PowerPointUnits.FromCentimeters(startXCm),
-                PowerPointUnits.FromCentimeters(startYCm),
-                PowerPointUnits.FromCentimeters(endXCm),
-                PowerPointUnits.FromCentimeters(endYCm),
-                name);
-        }
-
-        /// <summary>
-        ///     Adds a line shape using inch measurements.
-        /// </summary>
-        public PowerPointAutoShape AddLineInches(double startXInches, double startYInches, double endXInches,
-            double endYInches, string? name = null) {
-            return AddLine(
-                PowerPointUnits.FromInches(startXInches),
-                PowerPointUnits.FromInches(startYInches),
-                PowerPointUnits.FromInches(endXInches),
-                PowerPointUnits.FromInches(endYInches),
-                name);
-        }
-
-        /// <summary>
-        ///     Adds a line shape using point measurements.
-        /// </summary>
-        public PowerPointAutoShape AddLinePoints(double startXPoints, double startYPoints, double endXPoints,
-            double endYPoints, string? name = null) {
-            return AddLine(
-                PowerPointUnits.FromPoints(startXPoints),
-                PowerPointUnits.FromPoints(startYPoints),
-                PowerPointUnits.FromPoints(endXPoints),
-                PowerPointUnits.FromPoints(endYPoints),
-                name);
+            return AddShape(OfficePresetShapeType.Line, OfficeLength.Emus(left), OfficeLength.Emus(top),
+                OfficeLength.Emus(width), OfficeLength.Emus(height), name);
         }
     }
 }

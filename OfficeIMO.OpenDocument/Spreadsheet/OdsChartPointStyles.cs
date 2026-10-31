@@ -124,13 +124,15 @@ internal static class OdsChartPointStyles {
             if (!OfficeColor.TryParseHex(outlineText, out OfficeColor parsed)) return false;
             outline = parsed;
         }
-        double? width = null;
+        OfficeLength? width = null;
         string? widthText = Get(OdfNamespaces.Svg + "stroke-width");
         if (widthText != null) {
             if (string.IsNullOrWhiteSpace(widthText) ||
-                !OdfLength.Parse(widthText).TryToPoints(out double points) || points <= 0 || points > 1584)
+                !OdfLength.Parse(widthText).TryToPoints(out double points) ||
+                double.IsNaN(points) || double.IsInfinity(points) || points <= 0 || points > 1584)
                 return false;
-            width = points;
+            width = OfficeLength.Points(points);
+            if (width.Value == OfficeLength.Zero) return false;
         }
         OfficeStrokeLineJoin? join = Get(OdfNamespaces.Draw + "stroke-linejoin") switch {
             "miter" => OfficeStrokeLineJoin.Miter,
@@ -294,7 +296,7 @@ internal static class OdsChartPointStyles {
                 if (point.OutlineColor.HasValue)
                     graphic.SetAttributeValue(OdfNamespaces.Svg + "stroke-color", point.OutlineColor.Value.ToString());
                 if (point.OutlineWidth.HasValue)
-                    graphic.SetAttributeValue(OdfNamespaces.Svg + "stroke-width", OdfLength.Points(point.OutlineWidth.Value).ToString());
+                    graphic.SetAttributeValue(OdfNamespaces.Svg + "stroke-width", OdfLength.Points(point.OutlineWidth.Value.ToPoints()).ToString());
                 if (point.OutlineJoin.HasValue)
                     graphic.SetAttributeValue(OdfNamespaces.Draw + "stroke-linejoin",
                         point.OutlineJoin.Value.ToString().ToLowerInvariant());
@@ -315,7 +317,7 @@ internal static class OdsChartPointStyles {
                 if (color.HasValue && color.Value.A != 255)
                     throw new NotSupportedException("ODF chart point colors require opaque RGB values.");
             if (style.OutlineWidth.HasValue &&
-                (!OdfLength.Points(style.OutlineWidth.Value).TryToPoints(out double emittedWidth) || emittedWidth <= 0))
+                (!OdfLength.Points(style.OutlineWidth.Value.ToPoints()).TryToPoints(out double emittedWidth) || emittedWidth <= 0))
                 throw new NotSupportedException("ODF chart point outline width is too small to serialize.");
         }
     }

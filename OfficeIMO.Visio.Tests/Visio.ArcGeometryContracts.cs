@@ -73,7 +73,7 @@ public sealed class VisioArcGeometryContractTests {
                     Assert.Contains(PathPoints(geometry), point => Near(point, 3.5, 4 - bow));
                     Assert.True(BlueNear(Raster(page), 3.5, 4 - bow));
                     if (connector) {
-                        var snapshot = Assert.Single(document.CreateInspectionSnapshot().Pages[pageIndex].Connectors);
+                        var snapshot = Assert.Single(document.Inspect().Pages[pageIndex].Connectors);
                         Assert.Equal(3.5, snapshot.LabelResolvedPinX!.Value, 8);
                         Assert.Equal(4 - bow, snapshot.LabelResolvedPinY!.Value, 8);
                         XElement label = Assert.Single(svg.Descendants(Svg + "rect"),

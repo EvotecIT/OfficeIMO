@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemapsSavedViewAndPaneTopLeftCells() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(5, 1).SetValue(1);
 
             var normalPane = new Pane { TopLeftCell = "B5" };
@@ -51,11 +51,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreflightsSavedViewTopLeftCells() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Keep");
             var view = new SheetView {
                 WorkbookViewId = 0U,
-                TopLeftCell = $"A{A1.MaxRows}"
+                TopLeftCell = $"A{ExcelA1.MaxRows}"
             };
             var sheetViews = new SheetViews(view);
             SheetData sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
@@ -66,15 +66,15 @@ namespace OfficeIMO.Tests {
                 () => sheet.InsertRows(1));
 
             Assert.Contains("row limit", exception.Message);
-            Assert.Equal($"A{A1.MaxRows}", view.TopLeftCell!.Value);
+            Assert.Equal($"A{ExcelA1.MaxRows}", view.TopLeftCell!.Value);
             Assert.Equal("Keep", sheet.CellAt(1, 1).GetValue<string>());
         }
 
         [Fact]
         public void Test_StructuralRows_RewritesDrawingShapeTextLinksWorkbookWide() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet dashboard = document.AddWorksheet("Dashboard");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet dashboard = document.AddSheet("Dashboard");
             data.CellAt(5, 1).SetValue("Moved");
             Xdr.Shape localShape = AddCellLinkedDrawingShape(data, 1U, "A5");
             Xdr.Shape remoteShape = AddCellLinkedDrawingShape(dashboard, 2U, "Data!A5");
@@ -89,26 +89,26 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreflightsDrawingShapeTextLinksWorkbookWide() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet dashboard = document.AddWorksheet("Dashboard");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet dashboard = document.AddSheet("Dashboard");
             data.CellAt(1, 1).SetValue("Keep");
             Xdr.Shape shape = AddCellLinkedDrawingShape(
                 dashboard,
                 1U,
-                $"Data!A{A1.MaxRows}");
+                $"Data!A{ExcelA1.MaxRows}");
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                 () => data.InsertRows(1));
 
             Assert.Contains("row limit", exception.Message);
-            Assert.Equal($"Data!A{A1.MaxRows}", shape.TextLink!.Value);
+            Assert.Equal($"Data!A{ExcelA1.MaxRows}", shape.TextLink!.Value);
             Assert.Equal("Keep", data.CellAt(1, 1).GetValue<string>());
         }
 
         [Fact]
         public void Test_StructuralRows_MutationPlanCountsOnlyChangedDrawingAnchors() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             AddCellLinkedDrawingShape(sheet, 1U, string.Empty);
 
             ExcelRowMutationPlan unaffected = sheet.PlanInsertRows(10);

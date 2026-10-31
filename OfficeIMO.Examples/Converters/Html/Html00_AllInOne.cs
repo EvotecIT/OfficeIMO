@@ -14,13 +14,13 @@ namespace OfficeIMO.Examples.Html {
 
             string html = File.ReadAllText(htmlPath);
             var baseDir = Path.GetDirectoryName(htmlPath)!;
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions { FontFamily = "Calibri", BasePath = baseDir });
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions { FontFamily = "Calibri", BasePath = baseDir });
 
             string docxPath = Path.Combine(folderPath, "Html00_AllInOne.docx");
             doc.Save(docxPath);
 
             string htmlOutPath = Path.Combine(folderPath, "Html00_AllInOne.roundtrip.html");
-            File.WriteAllText(htmlOutPath, doc.ToHtml(new WordToHtmlOptions { IncludeFontStyles = true, IncludeListStyles = true, IncludeDefaultCss = true }));
+            File.WriteAllText(htmlOutPath, doc.ToHtml(new WordHtmlExportOptions { IncludeFontStyles = true, IncludeListStyles = true, IncludeDefaultCss = true }));
 
             Console.WriteLine($"✓ Created: {docxPath}");
             Console.WriteLine($"✓ Round-trip HTML: {htmlOutPath}");

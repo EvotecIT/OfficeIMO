@@ -7,18 +7,18 @@ public sealed partial class OfficeWorkflowRunner {
     /// <summary>Splits consecutive pages through the PDF engine and publishes reopened, bounded outputs.</summary>
     public async Task<PdfSplitWorkflowResult> SplitPdfAsync(PdfSplitWorkflowRequest request,
         IProgress<OfficeWorkflowProgress>? progress = null, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(request);
+        if (request == null) throw new ArgumentNullException(nameof(request));
         string id = request.Id;
         var diagnostics = new List<OfficeWorkflowDiagnostic>();
         var inputs = new WorkflowInputSnapshots();
         string? staging = null;
         try {
-            if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Request id cannot be empty.");
+            if ((id == null || string.IsNullOrWhiteSpace(id))) throw new ArgumentException("Request id cannot be empty.");
             int pagesPerPart = request.PagesPerDocument;
             int maximumParts = request.MaximumParts;
             if (pagesPerPart < 1 || maximumParts < 1) throw new ArgumentOutOfRangeException(nameof(request), "Page and part limits must be positive.");
             var policy = request.ConflictPolicy;
-            if (!Enum.IsDefined(policy)) throw new ArgumentOutOfRangeException(nameof(request.ConflictPolicy));
+            if (!OfficeRuntimeCompatibility.IsDefined(policy)) throw new ArgumentOutOfRangeException(nameof(request.ConflictPolicy));
             var limits = (request.Limits ?? throw new ArgumentException("Workflow limits are required.")).CloneAndValidate();
             var directory = request.DirectoryOutput;
             var sourceStream = request.InputStream;
@@ -26,9 +26,9 @@ public sealed partial class OfficeWorkflowRunner {
             string name = sourceStream?.Name ?? Path.GetFileName(source);
             EnsurePdfExtension(name);
             string output = directory is null
-                ? Path.TrimEndingDirectorySeparator(ValidateLocalOutput(request.OutputDirectory))
+                ? OfficeRuntimeCompatibility.TrimEndingDirectorySeparator(ValidateLocalOutput(request.OutputDirectory))
                 : OfficeStorageIdentity.Normalize(request.OutputDirectory);
-            if (directory is not null && policy != OfficeWorkflowConflictPolicy.Replace)
+            if (directory is not null && policy != OfficePublicationPolicy.Replace)
                 throw new ArgumentException("Provider folder publication requires explicit Replace semantics.");
             if (directory is null && string.IsNullOrEmpty(Path.GetDirectoryName(output)))
                 throw new ArgumentException("Output directory cannot be a filesystem root.");
@@ -48,10 +48,10 @@ public sealed partial class OfficeWorkflowRunner {
             cancellationToken.ThrowIfCancellationRequested();
             if (directory is null) {
                 string parent = Path.GetDirectoryName(output)!;
-                if (hostGuard is IOfficeWorkflowStagingGuard stagingGuard)
+                if (hostGuard is IOfficeStagingGuard stagingGuard)
                     await stagingGuard.EnsureStagingDirectoryAllowedAsync(parent, cancellationToken).ConfigureAwait(false);
                 Directory.CreateDirectory(parent);
-                if (hostGuard is IOfficeWorkflowStagingGuard createdGuard)
+                if (hostGuard is IOfficeStagingGuard createdGuard)
                     await createdGuard.EnsureStagingDirectoryAllowedAsync(parent, cancellationToken).ConfigureAwait(false);
                 staging = Path.Combine(parent, ".officeimo-split." + Guid.NewGuid().ToString("N") + ".tmp");
                 Directory.CreateDirectory(staging);
@@ -71,9 +71,9 @@ public sealed partial class OfficeWorkflowRunner {
                 long remainingOutputBytes = limits.MaximumOutputBytes - totalBytes;
                 if (remainingOutputBytes <= 0) throw new InvalidOperationException("The split outputs exceed the aggregate output byte limit.");
                 PdfDocument part = document.Pages.Split(PdfPageRange.From(first, first + expected - 1), remainingOutputBytes);
-                await using (var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-                await using (var bounded = new OfficeWorkflowBoundedWriteStream(file, remainingOutputBytes, leaveOpen: true)) {
-                    await part.SaveAsync(bounded, cancellationToken).ConfigureAwait(false);
+                using (var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                using (var bounded = new OfficeWorkflowBoundedWriteStream(file, remainingOutputBytes, leaveOpen: true)) {
+                    await part.SaveAsync(bounded, new PdfSaveOptions { AllowLoss = true }, cancellationToken).ConfigureAwait(false);
                 }
                 long size = new FileInfo(path).Length;
                 totalBytes = checked(totalBytes + size);

@@ -10,7 +10,7 @@ $forecastVariance = ($budget | Measure-Object -Property Variance -Sum).Sum
 $overspend = @($budget | Where-Object Variance -gt 0 | Select-Object -ExpandProperty Department)
 $decision = if ($overspend.Count) { 'Decision: review overspend in ' + ($overspend -join ', ') + '.' } else { 'Decision: confirm the forecast remains within budget.' }
 
-ExcelNew -Path $path -EvaluateFormulas {
+New-OfficeExcel -Path $path -SaveOptions @{ EvaluateFormulas = $true } {
     ExcelSheet 'Dashboard' {
         ExcelGridlines -Hide
         ExcelColumn -ColumnName A -Width 38
@@ -35,7 +35,7 @@ ExcelNew -Path $path -EvaluateFormulas {
     }
 
     ExcelSheet 'Detail' {
-        ExcelTable -Data $budget -TableName 'DepartmentBudget' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium4' -AutoFit
+        ExcelTable -Data $budget -Name 'DepartmentBudget' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium4' -AutoFit
         ExcelFreeze -TopRows 1
         ExcelConditionalDataBar -Range 'C2:C5' -Color '#5B9BD5'
         ExcelConditionalIconSet -Range 'D2:D5' -IconSet ThreeTrafficLights1
@@ -45,7 +45,7 @@ ExcelNew -Path $path -EvaluateFormulas {
         for ($row = 2; $row -le $budget.Count + 1; $row++) {
             ExcelCell -Address "E$row" -Formula "D$row-B$row" -NumberFormat '[Red]$#,##0;[Green]-$#,##0'
         }
-        ExcelChart -Range 'A1:D5' -Row 7 -Column 1 -Type ColumnClustered -Title 'Budget, actual, and forecast' -WidthPixels 780 -HeightPixels 340
+        ExcelChart -Range 'A1:D5' -Address A7 -Type ColumnClustered -Title 'Budget, actual, and forecast' -Width 780px -Height 340px
     }
 
     ExcelTableOfContents -SheetName 'Index' -AddBackLinks -BackLinkText 'Back to Index'

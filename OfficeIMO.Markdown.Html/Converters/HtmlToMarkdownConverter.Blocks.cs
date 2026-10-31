@@ -82,7 +82,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         if (!IsInlineElement(element, context)) {
             if (IsVisualContractElement(element)
                 || (context.Options.PreserveUnsupportedBlocks
-                    && context.Options.UnknownBlockHandling == HtmlUnknownTagHandling.Preserve)) {
+                    && context.Options.UnknownBlockHandling == MarkdownHtmlUnknownTagHandling.Preserve)) {
                 return true;
             }
 
@@ -90,7 +90,7 @@ internal sealed partial class HtmlToMarkdownConverter {
                 return false;
             }
 
-            return context.Options.UnknownBlockHandling != HtmlUnknownTagHandling.Preserve;
+            return context.Options.UnknownBlockHandling != MarkdownHtmlUnknownTagHandling.Preserve;
         }
 
         return false;
@@ -380,7 +380,7 @@ internal sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        var conversionContext = new HtmlElementBlockConversionContext(
+        var conversionContext = new MarkdownHtmlBlockConversionContext(
             element,
             context.Options,
             nodes => ConvertNodesToBlocks(nodes, context),

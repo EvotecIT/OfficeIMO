@@ -16,18 +16,18 @@ namespace OfficeIMO.Excel {
         private ref bool _headerMapNormalize => ref Persistence.ReadCaches.NormalizeHeaders;
         private ref bool _headerMapCachePopulated => ref Persistence.ReadCaches.HeaderMapPopulated;
         private object _headerMapLock => Persistence.ReadCaches.HeaderMapLock;
-        private static readonly ExcelReadOptions DefaultHeaderReadOptions = new ExcelReadOptions();
+        private static readonly ExcelReaderOptions DefaultHeaderReadOptions = new ExcelReaderOptions();
 
         /// <summary>
         /// Builds or returns a cached case-insensitive map of header name to 1-based column index using the first row of UsedRange.
         /// Cache reuse respects the used range, header conversion options and named-style replacements.
         /// </summary>
-        public Dictionary<string, int> GetHeaderMap(ExcelReadOptions? options = null) {
+        public Dictionary<string, int> GetHeaderMap(ExcelReaderOptions? options = null) {
             var opt = options ?? DefaultHeaderReadOptions;
             return new Dictionary<string, int>(GetHeaderMapCached(opt), StringComparer.OrdinalIgnoreCase);
         }
 
-        private Dictionary<string, int> GetHeaderMapCached(ExcelReadOptions opt) {
+        private Dictionary<string, int> GetHeaderMapCached(ExcelReaderOptions opt) {
             opt.CancellationToken.ThrowIfCancellationRequested();
             if (Volatile.Read(ref _headerMapCachePopulated)) {
                 lock (_headerMapLock) {
@@ -70,7 +70,7 @@ namespace OfficeIMO.Excel {
                 if (_headerMapCache != null && string.Equals(_headerMapSourceA1, a1Used, StringComparison.Ordinal) && HeaderMapOptionsMatch(opt)) {
                     return _headerMapCache;
                 }
-                var (r1, c1, _, c2) = A1.ParseRange(a1Used);
+                var (r1, c1, _, c2) = ExcelA1.ParseRange(a1Used);
                 if (TryBuildHeaderMapFromWorksheetDom(r1, c1, c2, opt, out var directMap)) {
                     _headerMapCache = directMap;
                     _headerMapSourceA1 = a1Used;
@@ -85,7 +85,7 @@ namespace OfficeIMO.Excel {
 
                 using var rdr = _excelDocument.CreateReader(opt);
                 var sh = rdr.GetSheet(this.Name);
-                string headerRange = A1.CellReference(r1, c1) + ":" + A1.CellReference(r1, c2);
+                string headerRange = ExcelA1.CellReference(r1, c1) + ":" + ExcelA1.CellReference(r1, c2);
                 var values = sh.ReadRange(headerRange);
 
                 if (values.GetLength(0) == 0 || values.GetLength(1) == 0) {
@@ -141,7 +141,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryBuildHeaderMapFromReader(
-            ExcelReadOptions opt,
+            ExcelReaderOptions opt,
             out Dictionary<string, int> map,
             out string usedRange,
             out int headerRowIndex,
@@ -159,8 +159,8 @@ namespace OfficeIMO.Excel {
                 using var rdr = _excelDocument.CreateReader(opt);
                 var sh = rdr.GetSheet(this.Name);
                 usedRange = sh.GetUsedRangeA1();
-                var (r1, c1, _, c2) = A1.ParseRange(usedRange);
-                string headerRange = A1.CellReference(r1, c1) + ":" + A1.CellReference(r1, c2);
+                var (r1, c1, _, c2) = ExcelA1.ParseRange(usedRange);
+                string headerRange = ExcelA1.CellReference(r1, c1) + ":" + ExcelA1.CellReference(r1, c2);
                 object?[,] values = sh.ReadRange(headerRange);
 
                 headerRowIndex = r1;
@@ -218,16 +218,16 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static bool HeaderMapOptionsReusable(ExcelReadOptions options) =>
+        private static bool HeaderMapOptionsReusable(ExcelReaderOptions options) =>
             options.CellValueConverter == null && ReferenceEquals(options.Culture, CultureInfo.InvariantCulture)
             && !options.NumericAsDecimal && options.UseCachedFormulaResult;
 
-        private bool HeaderMapOptionsMatch(ExcelReadOptions options) =>
+        private bool HeaderMapOptionsMatch(ExcelReaderOptions options) =>
             Persistence.ReadCaches.HeaderOptionsReusable && HeaderMapOptionsReusable(options)
             && _headerMapNormalize == options.NormalizeHeaders
             && Persistence.ReadCaches.TreatHeaderDates == options.TreatDatesUsingNumberFormat;
 
-        private void CaptureHeaderMapOptions(ExcelReadOptions options) {
+        private void CaptureHeaderMapOptions(ExcelReaderOptions options) {
             _headerMapNormalize = options.NormalizeHeaders;
             Persistence.ReadCaches.TreatHeaderDates = options.TreatDatesUsingNumberFormat;
             Persistence.ReadCaches.HeaderOptionsReusable = HeaderMapOptionsReusable(options);
@@ -270,7 +270,7 @@ namespace OfficeIMO.Excel {
             return 0;
         }
 
-        private bool TryBuildHeaderMapFromWorksheetDom(int headerRowIndex, int firstColumn, int lastColumn, ExcelReadOptions options, out Dictionary<string, int> map) {
+        private bool TryBuildHeaderMapFromWorksheetDom(int headerRowIndex, int firstColumn, int lastColumn, ExcelReaderOptions options, out Dictionary<string, int> map) {
             map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             if (options.CellValueConverter != null
                 || options.Culture != CultureInfo.InvariantCulture
@@ -446,7 +446,7 @@ namespace OfficeIMO.Excel {
         /// Tries to resolve a 1-based column index for a given header.
         /// Returns <c>false</c> without throwing when the header cannot be found.
         /// </summary>
-        public bool TryGetColumnIndexByHeader(string header, out int columnIndex, ExcelReadOptions? options = null) {
+        public bool TryGetColumnIndexByHeader(string header, out int columnIndex, ExcelReaderOptions? options = null) {
             if (string.IsNullOrWhiteSpace(header)) {
                 columnIndex = 0;
                 return false;
@@ -462,7 +462,7 @@ namespace OfficeIMO.Excel {
         /// Sets a cell value in the specified row by resolving the column using the header name.
         /// Does nothing when the header cannot be found.
         /// </summary>
-        public void SetByHeader(int rowIndex, string header, object? value, ExcelReadOptions? options = null) {
+        public void SetByHeader(int rowIndex, string header, object? value, ExcelReaderOptions? options = null) {
             if (rowIndex <= 0) throw new ArgumentOutOfRangeException(nameof(rowIndex));
             if (!TryGetColumnIndexByHeader(header, out var col, options))
                 return;
@@ -556,7 +556,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Forces rebuilding the header map for the current UsedRange and options.
         /// </summary>
-        public void RefreshHeaderCache(ExcelReadOptions? options = null) {
+        public void RefreshHeaderCache(ExcelReaderOptions? options = null) {
             ClearHeaderCacheCore(markWorksheetMutation: false, invalidateHeaderMap: true);
             GetHeaderMap(options);
         }

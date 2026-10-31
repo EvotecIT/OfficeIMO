@@ -10,7 +10,7 @@ BeforeAll {
 Describe 'PDF reverse conversion workflows' {
     BeforeEach {
         $pdfPath = Join-Path $TestDrive 'source.pdf'
-        New-OfficePdf -Path $pdfPath {
+        New-OfficePdf -Path $pdfPath -Force {
             Add-OfficePdfHeading -Text 'Quarterly results' -Level 1
             Add-OfficePdfParagraph -Text 'Revenue improved in the current quarter.'
             Add-OfficePdfTable -InputObject @(
@@ -36,9 +36,9 @@ Describe 'PDF reverse conversion workflows' {
         $excelReport = ConvertTo-OfficePdfExcel -Path $pdfPath -OutputPath $excelPath -PassThruReport
         $powerPointReport = ConvertTo-OfficePdfPowerPoint -Path $pdfPath -OutputPath $powerPointPath -PassThruReport
 
-        $wordReport.GetType().FullName | Should -Be 'OfficeIMO.Word.Pdf.PdfWordConversionReport'
-        $excelReport.GetType().FullName | Should -Be 'OfficeIMO.Excel.Pdf.PdfExcelTableImportReport'
-        $powerPointReport.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.Pdf.PdfPowerPointConversionReport'
+        $wordReport.GetType().FullName | Should -Be 'OfficeIMO.OfficeConversionReport'
+        $excelReport.GetType().FullName | Should -Be 'OfficeIMO.OfficeConversionReport'
+        $powerPointReport.GetType().FullName | Should -Be 'OfficeIMO.OfficeConversionReport'
         Test-Path -LiteralPath $wordPath | Should -BeTrue
         Test-Path -LiteralPath $excelPath | Should -BeTrue
         Test-Path -LiteralPath $powerPointPath | Should -BeTrue
@@ -47,16 +47,16 @@ Describe 'PDF reverse conversion workflows' {
         $wordText | Should -Match 'Quarterly results'
         $wordText | Should -Match 'Revenue improved'
 
-        $excelReport.Entries.Count | Should -BeGreaterThan 0
+        $excelReport.ItemsWritten | Should -BeGreaterThan 0
         $excelSummary = Get-OfficeExcelSummary -Path $excelPath -IncludeSheets
         $rows = @(Import-OfficeExcel -Path $excelPath -WorksheetName $excelSummary.Sheets[0].Name)
         $rows | Should -HaveCount 3
         $rows[0].Region | Should -Be 'North'
         $rows[0].Revenue | Should -Be 1250
 
-        $presentation = Get-OfficePowerPoint -Path $powerPointPath
+        $presentation = Open-OfficePowerPoint -LiteralPath $powerPointPath
         try {
-            $slides = @($presentation | Get-OfficePowerPointSlideSummary)
+            $slides = @($presentation | Get-OfficePowerPointSlide -Summary)
             $slides | Should -HaveCount 1
             $slides[0].Title | Should -Be 'Quarterly results'
             $slides[0].TableCount | Should -BeGreaterThan 0
@@ -106,19 +106,19 @@ Describe 'PDF reverse conversion workflows' {
 
 Describe 'Protected-content capability discovery' {
     It 'returns filterable typed rows and deterministic catalog output' {
-        $all = @(Get-OfficeProtectionCapability)
+        $all = @(Get-OfficeDocumentCapability -Protection)
         $all.Count | Should -BeGreaterThan 0
         $all[0].GetType().FullName | Should -Be 'OfficeIMO.Security.OfficeProtectionCapability'
 
-        $pdf = @(Get-OfficeProtectionCapability -Format PDF)
+        $pdf = @(Get-OfficeDocumentCapability -Protection -Format PDF)
         $pdf | Should -HaveCount 1
         $pdf[0].Id | Should -Be 'pdf-password'
 
-        $incomplete = @(Get-OfficeProtectionCapability -IncompleteOnly)
+        $incomplete = @(Get-OfficeDocumentCapability -Protection -IncompleteOnly)
         $incomplete.Count | Should -BeGreaterThan 0
         $incomplete.Count | Should -BeLessThan $all.Count
 
-        $catalog = Get-OfficeProtectionCapability -AsJson | ConvertFrom-Json
+        $catalog = Get-OfficeDocumentCapability -Protection -AsJson | ConvertFrom-Json
         $catalog.id | Should -Be 'OfficeIMO.ProtectedContent'
         $catalog.schemaVersion | Should -Be 2
         @($catalog.capabilities).Count | Should -Be $all.Count
@@ -127,9 +127,9 @@ Describe 'Protected-content capability discovery' {
     }
 
     It 'rejects ambiguous text output requests' {
-        { Get-OfficeProtectionCapability -AsJson -AsMarkdown -ErrorAction Stop } |
+        { Get-OfficeDocumentCapability -Protection -AsJson -AsMarkdown -ErrorAction Stop } |
             Should -Throw '*Specify only one of -AsJson or -AsMarkdown*'
-        { Get-OfficeProtectionCapability -AsJson -Format PDF -ErrorAction Stop } |
+        { Get-OfficeDocumentCapability -Protection -AsJson -Format PDF -ErrorAction Stop } |
             Should -Throw '*cannot be combined with row filters*'
     }
 }

@@ -79,7 +79,7 @@ internal static partial class VisioReaderAdapter {
             : null;
 
     private static IEnumerable<ReaderChunk> Read(VisioDocument document, SourceMetadata source, ReaderOptions readerOptions, CancellationToken cancellationToken) {
-        VisioInspectionSnapshot snapshot = document.CreateInspectionSnapshot();
+        VisioInspectionSnapshot snapshot = document.Inspect();
         for (int pageIndex = 0; pageIndex < snapshot.Pages.Count; pageIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             VisioInspectionPageSnapshot page = snapshot.Pages[pageIndex];

@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Bookmarks.Count == 0);
                 Assert.True(document.Paragraphs.Count == 0);
 
-                var bookmark = document.AddParagraph("Test 1").AddBookmark("Start");
+                var bookmark = document.AddParagraph("Test 1").AddBookmark("Start").Paragraph;
 
                 document.AddPageBreak();
                 document.AddPageBreak();
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddPageBreak();
 
-                var bookmark1 = document.AddParagraph("Test 3").AddBookmark("Middle0");
+                var bookmark1 = document.AddParagraph("Test 3").AddBookmark("Middle0").Paragraph;
 
                 document.AddPageBreak();
                 document.AddPageBreak();

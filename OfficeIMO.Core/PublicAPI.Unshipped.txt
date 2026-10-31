@@ -1,0 +1,27 @@
+#nullable enable
+OfficeIMO.Drawing.OfficeChartTrendline
+OfficeIMO.Drawing.OfficeChartTrendline.Color.get -> OfficeIMO.OfficeColor?
+OfficeIMO.Drawing.OfficeChartTrendline.DisplayEquation.get -> bool
+OfficeIMO.Drawing.OfficeChartTrendline.DisplayRSquared.get -> bool
+OfficeIMO.Drawing.OfficeChartTrendline.Intercept.get -> double?
+OfficeIMO.Drawing.OfficeChartTrendline.OfficeChartTrendline(OfficeIMO.Drawing.OfficeChartTrendlineType type, int? order = null, int? period = null, bool displayEquation = false, bool displayRSquared = false, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? width = null, double? intercept = null) -> void
+OfficeIMO.Drawing.OfficeChartTrendline.Order.get -> int?
+OfficeIMO.Drawing.OfficeChartTrendline.Period.get -> int?
+OfficeIMO.Drawing.OfficeChartTrendline.Type.get -> OfficeIMO.Drawing.OfficeChartTrendlineType
+OfficeIMO.Drawing.OfficeChartTrendline.Width.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Drawing.OfficeDrawingRasterRenderOptions.MaximumClipEdgeChecks.get -> long
+OfficeIMO.Drawing.OfficeDrawingRasterRenderOptions.MaximumClipEdgeChecks.set -> void
+OfficeIMO.OfficePackageSecurityOptions.MaxRelationships.get -> int
+OfficeIMO.OfficePackageSecurityOptions.MaxRelationships.set -> void
+OfficeIMO.OfficePackageSecurityRule.RelationshipCount = 13 -> OfficeIMO.OfficePackageSecurityRule
+OfficeIMO.OfficeSeries.Trendline.get -> OfficeIMO.Drawing.OfficeChartTrendline?
+OfficeIMO.OfficeSeries.WithTrendline(OfficeIMO.Drawing.OfficeChartTrendline? trendline) -> OfficeIMO.OfficeSeries!
+const OfficeIMO.OfficeDiagnosticCodes.FontNotEmbedded = "font-not-embedded" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.NativeBookmarkTargetMissing = "native-bookmark-target-missing" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.NativeBookmarkTargetUnprojected = "native-bookmark-target-unprojected" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.PdfArtifactTextOmitted = "pdf-artifact-text-omitted" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.PdfExcelNumericConventionMismatch = "pdf-excel-numeric-convention-mismatch" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.PdfExcelNumericConventionMixed = "pdf-excel-numeric-convention-mixed" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.PdfExcelNumericValueAmbiguous = "pdf-excel-numeric-value-ambiguous" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.WordDocColorApproximated = "word-doc-color-approximated" -> string!
+static OfficeIMO.OfficeTheme.FromDocument(string! path) -> OfficeIMO.OfficeTheme!

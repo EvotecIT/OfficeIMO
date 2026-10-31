@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownInputNormalizer {
+internal static partial class MarkdownInputNormalizer {
     internal static string NormalizeCollapsedTableHeadingBoundaries(string? markdown) {
         return SplitCollapsedTableHeadingBoundaries(markdown ?? string.Empty);
     }

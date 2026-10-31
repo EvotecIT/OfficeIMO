@@ -27,7 +27,7 @@ public sealed class PdfDocumentAttachments {
         return selected.Count == 1 ? selected[0] : throw new KeyNotFoundException("The selected PDF attachment is no longer present.");
     }
     /// <summary>Attempts to extract attachment payloads, returning preflight diagnostics when blocked or failed.</summary>
-    public PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> ExtractResult(PdfLoadOptions? readOptions = null) =>
+    internal PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> ExtractResult(PdfLoadOptions? readOptions = null) =>
         _document.Reader.AttachmentsResult(readOptions);
     /// <summary>Applies a transactional attachment collection edit.</summary>
     public PdfAttachmentEditResult Edit(Action<PdfAttachmentEditSession> edit) => PdfAttachmentEditor.Edit(_document.GetBytesForOperation(), edit, _document.ReadOptions);

@@ -1,111 +1,61 @@
-using OfficeIMO.Core.Internal;
 using System;
 using System.IO;
 using System.Management.Automation;
-using System.Text;
 using OfficeIMO.Markdown;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Markdown;
-using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Markdown;
 
-/// <summary>Creates a Markdown document using a DSL scriptblock.</summary>
-/// <para>Runs the scriptblock against a Markdown document and saves it to disk unless <c>-NoSave</c> is specified.</para>
-/// <example>
-///   <summary>Create a Markdown document with headings and a table.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>New-OfficeMarkdown -Path .\README.md { MarkdownHeading -Level 1 -Text 'Report'; MarkdownTable -InputObject $data }</code>
-///   <para>Creates a README file with a heading and table content.</para>
-/// </example>
-/// <example>
-///   <summary>Create a report with multiple tables.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>New-OfficeMarkdown -Path .\Report.md {
-///     MarkdownHeading -Level 1 -Text 'Summary'
-///     MarkdownTable -InputObject $summary
-///     MarkdownHeading -Level 2 -Text 'Details'
-///     MarkdownTable -InputObject $details
-///   }</code>
-///   <para>Creates a report with two tables separated by headings.</para>
-/// </example>
+/// <summary>Creates a live Markdown document, or atomically publishes a completed content block.</summary>
+/// <example><summary>Create a report in one block.</summary>
+/// <code>New-OfficeMarkdown -Path ./Report.md -PassThru { MarkdownHeading -Text 'Report' }</code></example>
+/// <example><summary>Compose a live document before saving.</summary>
+/// <code>$document = New-OfficeMarkdown -Path ./Report.md
+/// $document | MarkdownHeading -Text 'Report'
+/// $document | Save-OfficeMarkdown
+/// $document | Close-OfficeMarkdown</code></example>
 [Cmdlet(VerbsCommon.New, "OfficeMarkdown", SupportsShouldProcess = true)]
-[Alias("OfficeMarkdown", "MarkdownNew")]
-[OutputType(typeof(FileInfo), typeof(MarkdownDoc))]
-public sealed class NewOfficeMarkdownCommand : PSCmdlet
-    , IMarkdownWriteOptionSource {
-    /// <summary>Destination path for the Markdown file.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
-    [Alias("FilePath", "OutputPath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>DSL scriptblock describing Markdown content.</summary>
-    [Parameter(Position = 1)]
-    public ScriptBlock? Content { get; set; }
-
-    /// <summary>Emit a <see cref="FileInfo"/> for chaining.</summary>
+[OutputType(typeof(FileInfo), typeof(MarkdownDocument))]
+public sealed class NewOfficeMarkdownCommand : OfficeLifecycleCmdlet<MarkdownDocument>, IMarkdownWriteOptionSource {
+    /// <summary>Optional associated path; a content block requires a destination.</summary>
+    [Parameter(Position = 0), ValidateNotNullOrEmpty]
+    public string? Path { get; set; }
+    /// <summary>Allow an existing destination; a failed block preserves its original contents.</summary>
     [Parameter]
-    public SwitchParameter PassThru { get; set; }
-
-    /// <summary>Skip saving after executing the DSL.</summary>
-    [Parameter]
-    public SwitchParameter NoSave { get; set; }
-
-    /// <summary>Optional Markdown writer options.</summary>
-    [Parameter]
-    public MarkdownWriteOptions? WriteOptions { get; set; }
-
-    /// <summary>Friendly Markdown writer profile.</summary>
+    public SwitchParameter Force { get; set; }
+    /// <summary>Native Markdown save settings or a hashtable, used when publishing a block.</summary>
+    [Parameter, OfficeOptionsTransformation(typeof(MarkdownSaveOptions)), ValidateNotNull]
+    public MarkdownSaveOptions? WriteOptions { get; set; }
+    /// <summary>Writer profile used when publishing a block.</summary>
     [Parameter]
     public OfficeMarkdownWriteProfile? WriteProfile { get; set; }
-
-    /// <summary>Controls how Markdown images are serialized.</summary>
+    /// <summary>Image serialization used when publishing a block.</summary>
     [Parameter]
     public MarkdownImageRenderingMode? ImageRenderingMode { get; set; }
-
-    /// <summary>Markdown line ending: CRLF, LF, CR, or a literal line ending string.</summary>
+    /// <summary>Line endings used when publishing a block.</summary>
     [Parameter]
-    [ArgumentCompleter(typeof(OfficeLineEndingArgumentCompleter))]
-    public string? LineEnding { get; set; }
-
-    /// <summary>Unordered list marker: '-', '*', or '+'.</summary>
-    [Parameter]
+    public OfficeLineEnding? LineEnding { get; set; }
+    /// <summary>Unordered list marker used when publishing a block.</summary>
+    [Parameter, ValidateSet("-", "*", "+")]
     public string? UnorderedListMarker { get; set; }
+    string? IMarkdownWriteOptionSource.LineEnding => LineEnding?.ToString();
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var fullPath = GetResolvedPath();
-        if (!NoSave.IsPresent && !PdfCommandUtilities.ShouldWrite(this, fullPath, "Write new Markdown document")) {
+        if (Content == null && (WriteOptions != null || WriteProfile.HasValue || ImageRenderingMode.HasValue ||
+            LineEnding.HasValue || UnorderedListMarker != null || MyInvocation.BoundParameters.ContainsKey(nameof(AllowLoss)))) {
+            InvalidArgument(new PSArgumentException("Writer settings require a content block. Supply them to Save-OfficeMarkdown when saving a live document."), Path);
             return;
         }
-
-        var document = MarkdownDoc.Create();
-        if (Content != null) {
-            using (MarkdownDslContext.Enter(document)) {
-                Content.InvokeReturnAsIs();
-            }
-        }
-
-        if (NoSave.IsPresent) {
-            WriteObject(document);
-            return;
-        }
-
-        var directory = System.IO.Path.GetDirectoryName(fullPath);
-        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory)) {
-            Directory.CreateDirectory(directory);
-        }
-
-        OfficeFileOutput.Write(fullPath, overwrite: true, temporaryPath => File.WriteAllText(temporaryPath, document.ToMarkdown(MarkdownOptionUtilities.BuildWriteOptions(this)), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)));
-        if (PassThru.IsPresent) {
-            WriteObject(new FileInfo(fullPath));
-        }
+        MarkdownSaveOptions options = MarkdownOptionUtilities.BuildWriteOptions(this) ?? new MarkdownSaveOptions();
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(AllowLoss))) options.AllowLoss = AllowLoss.IsPresent;
+        RunDocument(Path, isNew: true, Force.IsPresent,
+            path => path == null ? MarkdownDocument.Create() : MarkdownDocument.Create(path),
+            (document, path, _) => { document.Save(path, options); return null; });
     }
-
-    private string GetResolvedPath() {
-        var providerPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
-        return System.IO.Path.IsPathRooted(providerPath)
-            ? providerPath
-            : System.IO.Path.Combine(SessionState.Path.CurrentFileSystemLocation.Path, providerPath);
+    /// <inheritdoc />
+    protected override void InvokeContent(MarkdownDocument document) {
+        using (MarkdownDslContext.Enter(document)) Content!.Invoke();
     }
-
 }

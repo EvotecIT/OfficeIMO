@@ -128,10 +128,10 @@ public partial class Word {
     private static void AssertRunningTextBoxRunPaintKeepsPreciseAdmission(WordDocument document, string? absentText = null) {
         string[] before = AnchoredRunningStoryXml(document);
         string stylesBefore = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.OuterXml;
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         Assert.Equal(3, pdf.NumberOfPages);
         foreach (string token in new[] { "PREFIX", "BOX", "SUFFIX", "S2" }) AnchoredRunningLetters(pdf.GetPage(2), token);
         Assert.Contains("COUNT 2", pdf.GetPage(3).Text);

@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
         [InlineData("MAXIFS(B1,OFFSET(A1,-1,0),UNKNOWN()+1)")]
         public void Unsupported_inputs_are_not_masked_by_reference_errors(string expression) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Qualification");
+            var sheet = document.AddSheet("Qualification");
             sheet.CellValue(1, 1, 1d); sheet.CellValue(1, 2, 1d);
             string[] wrappers = { "IFERROR({0},99)", "IFNA({0},99)", "ISERROR({0})" };
             for (int index = 0; index < wrappers.Length; index++) {
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Qualified_reference_errors_still_reach_error_handlers_across_range_consumers() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Qualified");
+            var sheet = document.AddSheet("Qualified");
             sheet.CellValue(1, 1, 1d); sheet.CellValue(1, 2, 1d);
             string[] expressions = { "GCD(OFFSET(A1,-1,0),12)", "LCM(OFFSET(A1,-1,0),12)",
                 "COUNT(OFFSET(A1,-1,0))", "COUNTA(OFFSET(A1,-1,0))", "AVERAGEA(OFFSET(A1,-1,0))",
@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
         [InlineData("XLOOKUP(2,A1:A1,B1:B1,99,0,)", "99")]
         public void Optional_lookup_positions_follow_fresh_native_Excel_results(string formula, string expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Lookup positions");
+            var sheet = document.AddSheet("Lookup positions");
             sheet.CellValue(1, 1, 1d); sheet.CellValue(2, 1, 1d);
             sheet.CellValue(1, 2, 10d); sheet.CellValue(2, 2, 20d);
             sheet.CellFormula(1, 4, formula);
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Criteria_keep_quoted_expression_text_and_resolved_arithmetic() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Criteria qualification");
+            var sheet = document.AddSheet("Criteria qualification");
             sheet.CellValue(1, 1, "UNKNOWN()+1"); sheet.CellValue(2, 1, 2d);
             sheet.CellValue(1, 2, 7d); sheet.CellValue(2, 2, 11d);
             sheet.CellFormula(1, 4, "COUNTIF(A1:A2,\"UNKNOWN()+1\")");
@@ -111,7 +111,7 @@ namespace OfficeIMO.Tests {
         [InlineData("SUM", "12")]
         public void Scalar_references_share_the_aggregate_range_cell_budget(string function, string exactLimitResult) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Budget");
+            var sheet = document.AddSheet("Budget");
             sheet.CellValue(1, 1, 12d); sheet.CellValue(1, 2, 18d);
             sheet.CellFormula(1, 4, function + "(A1:A100000)");
             sheet.CellValue(2, 4, 42d); sheet.CellFormula(2, 4, function + "(A1:A100000,B1)");
@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
                 calls++;
                 return ExcelFormulaValue.FromNumber(arguments.Count);
             });
-            var sheet = document.AddWorksheet("Custom");
+            var sheet = document.AddSheet("Custom");
             sheet.CellFormula(1, 4, "QUALIFIEDINPUTS(12,18)");
             sheet.CellFormula(2, 4, "IFERROR(QUALIFIEDINPUTS(OFFSET(A1,-1,0),18),99)");
             sheet.CellValue(3, 4, 42d);
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Unqualified_array_reference_errors_do_not_leak_into_dependent_scalar_calculation() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Array owner");
+            var sheet = document.AddSheet("Array owner");
             sheet.CellValue(1, 6, 42d);
             sheet.SetArrayFormula("F1:F1", "SORT(OFFSET(A1,-1,0))");
             sheet.CellFormula(1, 8, "COUNT(F1)");

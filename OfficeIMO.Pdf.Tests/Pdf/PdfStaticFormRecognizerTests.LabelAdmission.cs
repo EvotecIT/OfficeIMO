@@ -46,7 +46,7 @@ public partial class PdfStaticFormRecognizerTests {
         byte[] source = StaticPdf(content,
             "/Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> ");
         PdfDocument document = PdfDocument.Load(source);
-        PdfDocumentReadResult read = document.Read(new PdfReadOptions { Profile = PdfReadProfile.Fast });
+        PdfDocumentReadResult read = document.Read(new PdfLoadOptions { Profile = PdfReadProfile.Fast });
         Assert.NotEmpty(read.Pages[0].Tables);
         Assert.Contains(read.Pages[0].TextBlocks, static block => block.IsTableContent);
 
@@ -81,7 +81,7 @@ public partial class PdfStaticFormRecognizerTests {
             "/Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> /XObject << /Im1 5 0 R >> >> ",
             "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\nFFFFFF>\nendstream\nendobj");
         PdfDocument document = PdfDocument.Load(source);
-        PdfDocumentReadResult read = document.Read(new PdfReadOptions { Profile = PdfReadProfile.Fast });
+        PdfDocumentReadResult read = document.Read(new PdfLoadOptions { Profile = PdfReadProfile.Fast });
         Assert.Contains(read.Pages[0].TextBlocks, static block => block.Spans.Count > 1);
         Assert.Empty(document.Forms.RecognizeStaticLayout().Proposals);
     }

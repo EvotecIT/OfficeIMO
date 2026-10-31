@@ -556,7 +556,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
         var normalizedItems = PowerShellObjectNormalizer
             .NormalizeItems(items, CreateNormalizerOptions())
             .ToList();
-        sheet.InsertObjects<object?>(normalizedItems, includeHeaders, dataStartRow);
+        sheet.WriteData<object?>(normalizedItems, includeHeaders, dataStartRow);
         range = sheet.UsedRangeA1;
         if (string.IsNullOrWhiteSpace(range))
         {
@@ -942,14 +942,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
 
         if (!NoTable.IsPresent && !appendRawRows)
         {
-            var range = sheet.InsertDataTableAsTable(
-                table,
-                startRow,
-                StartColumn,
-                includeHeaders,
-                tableName,
-                style,
-                includeAutoFilter: !NoAutoFilter.IsPresent);
+            var range = sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { AutoFit = false, UseDefaultHeaderlessColumnNames = true, IncludeHeaders = includeHeaders, Name = tableName, Style = style, IncludeAutoFilter = !NoAutoFilter.IsPresent }, row: startRow, column: StartColumn).Range!;
             ApplyTableStyleOptions(sheet, range, style);
             return range;
         }
@@ -980,7 +973,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
         sheet.CellValues(cells);
         var endRow = Math.Max(startRow, row - 1);
         var endColumn = StartColumn + table.Columns.Count - 1;
-        return $"{A1.CellReference(startRow, StartColumn)}:{A1.CellReference(endRow, endColumn)}";
+        return $"{ExcelA1.CellReference(startRow, StartColumn)}:{ExcelA1.CellReference(endRow, endColumn)}";
     }
 
     private void ApplyTableStyleOptions(ExcelSheet sheet, string? tableOrRange, ExcelTableStyle style)
@@ -1075,7 +1068,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
             string.Equals(candidate.SheetName, sheet.Name, StringComparison.OrdinalIgnoreCase) &&
             string.Equals(candidate.Name, tableName, StringComparison.OrdinalIgnoreCase));
         if (table != null && table.HasHeaderRow && !string.IsNullOrWhiteSpace(table.Range) &&
-            A1.TryParseRange(table.Range, out var tableStartRow, out _, out _, out _))
+            ExcelA1.TryParseRange(table.Range, out var tableStartRow, out _, out _, out _))
         {
             return Math.Max(1, tableStartRow);
         }
@@ -1092,9 +1085,9 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
         }
 
         var usedRange = sheet.UsedRangeA1;
-        if (!A1.TryParseRange(usedRange, out var firstRow, out var firstColumn, out var lastRow, out var lastColumn))
+        if (!ExcelA1.TryParseRange(usedRange, out var firstRow, out var firstColumn, out var lastRow, out var lastColumn))
         {
-            var (row, column) = A1.ParseCellRef(usedRange);
+            var (row, column) = ExcelA1.ParseCellRef(usedRange);
             firstRow = lastRow = row;
             firstColumn = lastColumn = column;
         }
@@ -1144,7 +1137,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
                 string.Equals(candidate.SheetName, sheet.Name, StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(candidate.Name, appendTableName, StringComparison.OrdinalIgnoreCase));
             if (table != null && !string.IsNullOrWhiteSpace(table.Range) &&
-                A1.TryParseRange(table.Range, out var tableStartRow, out _, out _, out _))
+                ExcelA1.TryParseRange(table.Range, out var tableStartRow, out _, out _, out _))
             {
                 return Math.Max(1, tableStartRow);
             }
@@ -1167,12 +1160,12 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
         }
 
         var usedRange = sheet.UsedRangeA1;
-        if (A1.TryParseRange(usedRange, out _, out _, out var lastRow, out _))
+        if (ExcelA1.TryParseRange(usedRange, out _, out _, out var lastRow, out _))
         {
             return lastRow + 1;
         }
 
-        var (row, _) = A1.ParseCellRef(usedRange);
+        var (row, _) = ExcelA1.ParseCellRef(usedRange);
         return row > 0 ? row + 1 : StartRow;
     }
 
@@ -1301,7 +1294,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
     {
         var sheet = document.Sheets.FirstOrDefault(existing =>
             string.Equals(existing.Name, sheetName, StringComparison.OrdinalIgnoreCase));
-        return sheet ?? document.AddWorksheet(sheetName, ExcelSheetNameValidationMode.None);
+        return sheet ?? document.AddSheet(sheetName, ExcelSheetNameValidationMode.None);
     }
 
     private static bool IsInvalidWorksheetNameCharacter(char ch)

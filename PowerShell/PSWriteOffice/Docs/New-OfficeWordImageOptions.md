@@ -11,7 +11,7 @@ Creates discoverable page and rendering settings for Export-OfficeWordImage.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficeWordImageOptions [-PageIndex <Int32>] [-PageCount <Int32>] [-Scale <Double>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-BackgroundColor <string>] [-TargetDpi <Double>] [-MaximumRasterPixels <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixels <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
+New-OfficeWordImageOptions [-PageIndex <Int32>] [-PageCount <Int32>] [-Scale <Double>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-BackgroundColor <string>] [-TargetDpi <Double>] [-MaximumRasterPixelCount <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixelCount <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -109,7 +109,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaximumRasterPixels
+### -MaximumRasterPixelCount
 Maximum pixels allocated for one raster image.
 
 ```yaml
@@ -141,7 +141,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaximumTotalRasterPixels
+### -MaximumTotalRasterPixelCount
 Maximum aggregate raster pixels accepted from one batch.
 
 ```yaml

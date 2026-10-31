@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes a name declared by an external supporting link in a legacy XLS workbook.
     /// </summary>
-    public sealed class LegacyXlsExternalName {
+    internal sealed class LegacyXlsExternalName {
         internal LegacyXlsExternalName(
             string name,
             int? localSheetIndex,

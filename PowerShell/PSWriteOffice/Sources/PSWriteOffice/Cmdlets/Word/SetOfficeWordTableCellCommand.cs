@@ -8,7 +8,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Replace text in a cell after finding a table.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Handover.docx
+///   <code>$doc = Open-OfficeWord -Path .\Handover.docx
 /// $table = Find-OfficeWordTable -Document $doc -Text 'Risk marker' | Select-Object -First 1
 /// $table |
 ///     Get-OfficeWordTableCell -Row 2 -Column 2 |
@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Highlight a status column in the first report table.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Report.docx
+///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// $table = $doc | Get-OfficeWordTable | Select-Object -First 1
 /// $table |
 ///     Get-OfficeWordTableCell -Column 2 |
@@ -36,7 +36,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Merge a heading row across columns.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Report.docx
+///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// $table = $doc | Get-OfficeWordTable | Select-Object -First 1
 /// $table |
 ///     Get-OfficeWordTableCell -Row 0 -Column 0 |
@@ -78,7 +78,7 @@ public sealed class SetOfficeWordTableCellCommand : PSCmdlet
     [Parameter]
     public WordShadingPattern? ShadingPattern { get; set; }
 
-    /// <summary>Cell width value.</summary>
+    /// <summary>Native cell preference: twips for Dxa or fiftieths of a percent for Pct. Null removes the preference.</summary>
     [Parameter] public int? Width { get; set; }
 
     /// <summary>Cell width unit type.</summary>
@@ -126,14 +126,34 @@ public sealed class SetOfficeWordTableCellCommand : PSCmdlet
         ValidateMargin(MarginRightCentimeters, nameof(MarginRightCentimeters));
 
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Text))) Cell.AddParagraph(Text ?? string.Empty, removeExistingParagraphs: true);
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginTopCentimeters))) Cell.MarginTopCentimeters = MarginTopCentimeters;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginBottomCentimeters))) Cell.MarginBottomCentimeters = MarginBottomCentimeters;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginLeftCentimeters))) Cell.MarginLeftCentimeters = MarginLeftCentimeters;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginRightCentimeters))) Cell.MarginRightCentimeters = MarginRightCentimeters;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginTopCentimeters))) Cell.MarginTop= ((MarginTopCentimeters) is { } wordLength6025 ? global::OfficeIMO.OfficeLength.Centimeters(wordLength6025) : (global::OfficeIMO.OfficeLength?)null);
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginBottomCentimeters))) Cell.MarginBottom= ((MarginBottomCentimeters) is { } wordLength6165 ? global::OfficeIMO.OfficeLength.Centimeters(wordLength6165) : (global::OfficeIMO.OfficeLength?)null);
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginLeftCentimeters))) Cell.MarginLeft= ((MarginLeftCentimeters) is { } wordLength6304 ? global::OfficeIMO.OfficeLength.Centimeters(wordLength6304) : (global::OfficeIMO.OfficeLength?)null);
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginRightCentimeters))) Cell.MarginRight= ((MarginRightCentimeters) is { } wordLength6443 ? global::OfficeIMO.OfficeLength.Centimeters(wordLength6443) : (global::OfficeIMO.OfficeLength?)null);
         if (MyInvocation.BoundParameters.ContainsKey(nameof(ShadingFillColor))) Cell.ShadingFillColorHex = ShadingFillColor ?? string.Empty;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(ShadingPattern))) Cell.ShadingPattern = ShadingPattern;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(Width))) Cell.Width = Width;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(WidthType))) Cell.WidthType = WidthType;
+        bool hasWidth = MyInvocation.BoundParameters.ContainsKey(nameof(Width));
+        bool hasWidthType = MyInvocation.BoundParameters.ContainsKey(nameof(WidthType));
+        if (hasWidth || hasWidthType) {
+            if ((hasWidth && !Width.HasValue) || (hasWidthType && !WidthType.HasValue)) {
+                Cell.Width = null;
+            } else {
+                WordTableWidth? current = Cell.Width;
+                WordTableWidthKind kind = hasWidthType ? WidthType!.Value switch {
+                    WordTableWidthUnit.Dxa => WordTableWidthKind.Length,
+                    WordTableWidthUnit.Pct => WordTableWidthKind.Percent,
+                    WordTableWidthUnit.Nil => WordTableWidthKind.Nil,
+                    _ => WordTableWidthKind.Auto
+                } : current?.Kind ?? WordTableWidthKind.Length;
+                int width = hasWidth ? Width!.Value : current?.ToNativeValue() ?? 0;
+                Cell.Width = kind switch {
+                    WordTableWidthKind.Length => WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)width * 635))),
+                    WordTableWidthKind.Percent => WordTableWidth.Percent(width / 50d),
+                    WordTableWidthKind.Nil => WordTableWidth.Nil,
+                    _ => WordTableWidth.Auto
+                };
+            }
+        }
         if (MyInvocation.BoundParameters.ContainsKey(nameof(TextDirection))) Cell.TextDirection = TextDirection;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(WrapText))) Cell.WrapText = WrapText ?? false;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(FitText))) Cell.FitText = FitText ?? false;

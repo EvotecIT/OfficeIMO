@@ -47,29 +47,35 @@ namespace OfficeIMO.Word {
         public int CellsCount => Cells.Count;
 
         /// <summary>
-        /// Gets the declared row height in twips, or sets an exact height. Null removes the height constraint.
+        /// Gets the declared row height as a physical length, or sets an exact height. Null removes the height constraint.
         /// </summary>
-        public int? Height {
+        public global::OfficeIMO.OfficeLength? Height {
             get {
                 var height = _tableRow.TableRowProperties?.OfType<TableRowHeight>().FirstOrDefault();
-                return height?.Val != null ? (int)height.Val.Value : null;
+                return height?.Val != null ? global::OfficeIMO.OfficeLength.Points(((int)height.Val.Value) / 20D) : null;
             }
-            set => SetRowHeight(value, HeightRuleValues.Exact);
+            set {
+                if (value.HasValue && value.Value < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(value), "Row height cannot be negative.");
+                var wordNativeValue = checked((int?)(value?.ToTwips()));
+                SetRowHeight(wordNativeValue, HeightRuleValues.Exact);
+            }
         }
 
         /// <summary>
-        /// Gets or sets the minimum row height in twips, allowing the row to grow to fit content.
+        /// Gets or sets the minimum row height as a physical length, allowing the row to grow to fit content.
         /// Setting a value replaces an exact height. Null removes a minimum constraint and preserves an exact height.
         /// </summary>
-        public int? MinimumHeight {
+        public global::OfficeIMO.OfficeLength? MinimumHeight {
             get {
                 var height = _tableRow.TableRowProperties?.OfType<TableRowHeight>().FirstOrDefault();
                 return height?.Val != null && height.HeightType?.Value == HeightRuleValues.AtLeast
-                    ? (int)height.Val.Value : null;
+                    ? global::OfficeIMO.OfficeLength.Points(((int)height.Val.Value) / 20D) : null;
             }
             set {
-                if (value == null && MinimumHeight == null) return;
-                SetRowHeight(value, HeightRuleValues.AtLeast);
+                if (value.HasValue && value.Value < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(value), "Row height cannot be negative.");
+                var wordNativeValue = checked((int?)(value?.ToTwips()));
+                if (wordNativeValue == null && MinimumHeight == null) return;
+                SetRowHeight(wordNativeValue, HeightRuleValues.AtLeast);
             }
         }
 
@@ -131,6 +137,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets whether this table row should repeat at the top of each page.
         /// Word repeats contiguous header rows from the start of the table.
+        /// Setting <c>false</c> explicitly overrides a repeating header inherited from a table style.
         /// </summary>
         public bool RepeatHeaderRowAtTheTopOfEachPage {
             get {
@@ -147,14 +154,11 @@ namespace OfficeIMO.Word {
                 var tableRowProperties = _tableRow.TableRowProperties!;
                 var rowHeader = tableRowProperties.OfType<TableHeader>().FirstOrDefault();
                 if (rowHeader != null) {
-                    if (value == false) {
-                        rowHeader.Remove();
-                    } else {
-                        rowHeader.Val = OnOffOnlyValues.On;
-                    }
-                } else if (value) {
-                    // Add table header
-                    tableRowProperties.InsertAt(new TableHeader(), 0);
+                    rowHeader.Val = value ? OnOffOnlyValues.On : OnOffOnlyValues.Off;
+                } else {
+                    tableRowProperties.InsertAt(new TableHeader {
+                        Val = value ? OnOffOnlyValues.On : OnOffOnlyValues.Off
+                    }, 0);
                 }
             }
         }
@@ -219,13 +223,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Appends the specified <see cref="WordTableCell"/> to the end of this row.
-        /// </summary>
-        /// <param name="cell">The cell to append.</param>
-        public void Add(WordTableCell cell) {
-            _tableRow.Append(cell._tableCell);
-        }
+        /// <summary>Creates and appends a cell, returning the attached cell for further editing.</summary>
+        public WordTableCell AddCell() => new WordTableCell(_document, _wordTable, this);
 
         /// <summary>
         /// Remove a row

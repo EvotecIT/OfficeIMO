@@ -8,25 +8,25 @@ public class PowerPointTextInsetTests {
     [InlineData(false, 7.2D, 3.6D)]
     [InlineData(true, 0D, 0D)]
     public void ImageTextFramesUseDrawingMlDefaultsAndPreserveExplicitZero(bool explicitZero, double horizontal, double vertical) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
-        var topLeft = slide.AddTextBoxPoints("Top left", 18, 18, 220, 60);
-        var bottomRight = slide.AddTextBoxPoints("Bottom right", 18, 100, 220, 60);
+        var topLeft = slide.AddTextBox("Top left",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60));
+        var bottomRight = slide.AddTextBox("Bottom right",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60));
         bottomRight.Paragraphs[0].Alignment = PowerPointTextAlignment.Right;
         bottomRight.TextVerticalAlignment = PowerPointTextVerticalAlignment.Bottom;
         var boxes = new[] { topLeft, bottomRight };
         foreach (var box in boxes) {
-            box.FontSize = 12;
+            box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             box.FontName = "Helvetica";
             if (explicitZero) {
-                box.TextMarginLeftPoints = box.TextMarginRightPoints = 0D;
-                box.TextMarginTopPoints = box.TextMarginBottomPoints = 0D;
+                box.TextMarginLeft = box.TextMarginRight = global::OfficeIMO.OfficeLength.Points(0D);
+                box.TextMarginTop = box.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(0D);
             }
         }
         var inset = slide.CreateVisualSnapshot();
         foreach (var box in boxes) {
-            box.TextMarginLeftPoints = box.TextMarginRightPoints = 0D;
-            box.TextMarginTopPoints = box.TextMarginBottomPoints = 0D;
+            box.TextMarginLeft = box.TextMarginRight = global::OfficeIMO.OfficeLength.Points(0D);
+            box.TextMarginTop = box.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(0D);
         }
         var zero = slide.CreateVisualSnapshot();
         foreach (var box in boxes) {

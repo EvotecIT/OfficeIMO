@@ -5,7 +5,7 @@ using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public class VisioHyperlinkTests {

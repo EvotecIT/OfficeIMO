@@ -362,7 +362,7 @@ public partial class PdfInspectorTests {
         Assert.Contains("DocMDPAllowsFormFill", policy.Warnings);
         Assert.Contains("SignedDocMDPFormFill", policy.Warnings);
         Assert.Contains("ExistingIncrementalRevisions", policy.Warnings);
-        Assert.Contains("AcroFormAppendOnly", policy.Warnings);
+        Assert.Contains("acro-form-append-only", policy.Warnings);
         Assert.Contains("Append-only mutation is blocked for this input", policy.Summary, System.StringComparison.Ordinal);
 
         PdfAppendOnlyMutationReport directPolicy = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(report.Probe.Security);
@@ -380,7 +380,7 @@ public partial class PdfInspectorTests {
         IReadOnlyList<string> appendSignatureDiagnostics = report.GetCapabilityDiagnostics(PdfPreflightCapability.PrepareExternalSignatureRevision);
         Assert.Contains("PDF append-only external-signature preparation is not available for this PDF.", appendSignatureDiagnostics);
         Assert.Contains("Append-only blocker: UsageRights.", appendSignatureDiagnostics);
-        Assert.Contains("Append-only warning: AcroFormAppendOnly.", appendSignatureDiagnostics);
+        Assert.Contains("Append-only warning: acro-form-append-only.", appendSignatureDiagnostics);
 
         PdfValidationResult validation = PdfValidator.Validate(pdf);
         Assert.False(validation.CanAppendMetadataRevision);

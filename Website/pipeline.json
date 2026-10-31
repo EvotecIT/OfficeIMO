@@ -968,7 +968,7 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.PowerPoint",
       "injectCriticalCss": true,
-      "quickStartTypes": "PowerPointPresentation",
+      "quickStartTypes": "PowerPointDocument",
       "packageId": "OfficeIMO.PowerPoint",
       "relatedContentManifests": [
         "./data/apidocs/powerpoint-guides.json",

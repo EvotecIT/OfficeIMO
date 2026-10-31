@@ -80,11 +80,11 @@ internal static class PdfRowColumnBuilder
             case "rule":
             case "hr":
             case "horizontalrule":
-                column.HR(GetDouble(specification, "Thickness"), GetColor(specification, "Color"), GetDouble(specification, "SpacingBefore"), GetDouble(specification, "SpacingAfter"));
+                column.HR(((double?)(GetDouble(specification, "Thickness")) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null), GetColor(specification, "Color"), ((double?)(GetDouble(specification, "SpacingBefore")) is double physicalLength2 ? global::OfficeIMO.OfficeLength.Points(physicalLength2) : (global::OfficeIMO.OfficeLength?)null), ((double?)(GetDouble(specification, "SpacingAfter")) is double physicalLength3 ? global::OfficeIMO.OfficeLength.Points(physicalLength3) : (global::OfficeIMO.OfficeLength?)null));
                 break;
             case "spacer":
             case "space":
-                column.Spacer(GetDouble(specification, "Height", "Size") ?? 12D);
+                column.Spacer(global::OfficeIMO.OfficeLength.Points(GetDouble(specification, "Height", "Size") ?? 12D));
                 break;
             case "bookmark":
                 column.Bookmark(GetRequiredString(specification, "Name", "Bookmark"));
@@ -132,12 +132,12 @@ internal static class PdfRowColumnBuilder
 
         if (GetBool(specification, "Rule", "HorizontalRule", "Hr"))
         {
-            column.HR(GetDouble(specification, "Thickness"), GetColor(specification, "RuleColor", "Color"), GetDouble(specification, "SpacingBefore"), GetDouble(specification, "SpacingAfter"));
+            column.HR(((double?)(GetDouble(specification, "Thickness")) is double physicalLength5 ? global::OfficeIMO.OfficeLength.Points(physicalLength5) : (global::OfficeIMO.OfficeLength?)null), GetColor(specification, "RuleColor", "Color"), ((double?)(GetDouble(specification, "SpacingBefore")) is double physicalLength6 ? global::OfficeIMO.OfficeLength.Points(physicalLength6) : (global::OfficeIMO.OfficeLength?)null), ((double?)(GetDouble(specification, "SpacingAfter")) is double physicalLength7 ? global::OfficeIMO.OfficeLength.Points(physicalLength7) : (global::OfficeIMO.OfficeLength?)null));
         }
 
         if (TryGetValue(specification, out _, "Spacer", "Space", "Height"))
         {
-            column.Spacer(GetDouble(specification, "Spacer", "Space", "Height") ?? 12D);
+            column.Spacer(global::OfficeIMO.OfficeLength.Points(GetDouble(specification, "Spacer", "Space", "Height") ?? 12D));
         }
     }
 
@@ -245,7 +245,7 @@ internal static class PdfRowColumnBuilder
             : (PdfAlign)Enum.Parse(typeof(PdfAlign), Convert.ToString(value, CultureInfo.InvariantCulture) ?? "Left", ignoreCase: true);
     }
 
-    private static PdfColor? GetColor(object specification, params string[] names)
+    private static global::OfficeIMO.OfficeColor? GetColor(object specification, params string[] names)
     {
         return PdfCommandUtilities.ParseColor(GetString(specification, names));
     }

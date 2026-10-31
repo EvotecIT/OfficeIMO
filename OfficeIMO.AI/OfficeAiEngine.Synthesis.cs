@@ -34,14 +34,12 @@ public sealed partial class OfficeAiEngine {
             bool summary = request.Operation == OfficeAiOperation.Summarize;
             OfficeAiExecutionRequest Create(IReadOnlyList<OfficeAiClaim> items, int requestNumber) => new(
                 requestId + (summary ? "-summary-" : "-reasoning-") + requestNumber, SynthesisInstructions,
-                JsonSerializer.Serialize(new {
-                    schema = summary ? "officeimo.ai.summary.v1" : "officeimo.ai.reasoning.v1",
-                    operation = request.Operation.ToString(), instruction = request.Instruction, conversationContext = request.ConversationContext,
-                    coverage = new { omittedEvidenceCount = coverage.OmittedEvidenceCount, emptyPages = coverage.EmptyPages, sourceReaderDiagnostics = coverage.SourceReaderDiagnostics },
-                    maxResultItems = request.Limits.MaxResultItems,
-                    drafts = items.Select((claim, index) => new { id = "c" + index, text = claim.Text,
-                        sources = claim.Citations.Select(citation => new { citation.EvidenceId, citation.Page, citation.Quote, citation.QuoteMatched, citation.Recognition }) })
-                }), outputSchema, Array.Empty<OfficeAiImage>(), request.Limits.MaxResponseCharacters);
+                JsonSerializer.Serialize(new OfficeAiSynthesisPayload(summary ? "officeimo.ai.summary.v1" : "officeimo.ai.reasoning.v1",
+                    request.Operation.ToString(), request.Instruction, request.ConversationContext,
+                    new(coverage.OmittedEvidenceCount, coverage.EmptyPages, coverage.SourceReaderDiagnostics), request.Limits.MaxResultItems,
+                    items.Select((claim, index) => new OfficeAiSynthesisDraft("c" + index, claim.Text,
+                        claim.Citations.Select(citation => new OfficeAiSynthesisSource(citation.EvidenceId, citation.Page, citation.Quote,
+                            citation.QuoteMatched, citation.Recognition))))), OfficeAiJsonContext.Default.OfficeAiSynthesisPayload), outputSchema, Array.Empty<OfficeAiImage>(), request.Limits.MaxResponseCharacters);
             int position = 0;
             while (position < current.Count) {
                 PackedPrefix packed;

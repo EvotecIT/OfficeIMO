@@ -6,7 +6,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Supported chart kinds for a dependency-free Word chart snapshot.
     /// </summary>
-    public enum WordChartSnapshotKind {
+    internal enum WordChartSnapshotKind {
         /// <summary>Clustered vertical column chart.</summary>
         ClusteredColumn,
         /// <summary>Stacked vertical column chart.</summary>
@@ -42,47 +42,9 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>
-    /// Series values extracted from cached Word chart data.
-    /// </summary>
-    public sealed class WordChartSeries {
-        private readonly OfficeIMO.Drawing.OfficeChartSeries _sharedSeries;
-
-        internal WordChartSeries(OfficeIMO.Drawing.OfficeChartSeries series) {
-            _sharedSeries = series;
-            Name = series.Name;
-            Values = series.Values;
-            XValues = series.XValues;
-            Color = series.Color;
-            PointColors = series.PointColors;
-            PointStyles = series.PointStyles;
-        }
-
-        /// <summary>Series display name.</summary>
-        public string Name { get; }
-
-        /// <summary>Y values or category values.</summary>
-        public IReadOnlyList<double> Values { get; }
-
-        /// <summary>Optional X values for scatter charts.</summary>
-        public IReadOnlyList<double>? XValues { get; }
-
-        /// <summary>Optional explicit series color extracted from Word chart shape properties.</summary>
-        public OfficeIMO.Drawing.OfficeColor? Color { get; }
-
-        /// <summary>Optional explicit point colors extracted from Word chart data point shape properties.</summary>
-        public IReadOnlyList<OfficeIMO.Drawing.OfficeColor?>? PointColors { get; }
-
-        /// <summary>Point fill, hatch, and outline overrides read from native chart properties.</summary>
-        public IReadOnlyList<OfficeIMO.Drawing.OfficeChartPointStyle?>? PointStyles { get; }
-
-        /// <summary>Returns the shared series, retaining native line, marker and point appearance.</summary>
-        public OfficeIMO.Drawing.OfficeChartSeries ToOfficeSeries() => _sharedSeries;
-    }
-
-    /// <summary>
     /// Category and series data extracted from cached Word chart data.
     /// </summary>
-    public sealed class WordChartData {
+    internal sealed class WordChartData {
         internal WordChartData(IReadOnlyList<string> categories, IReadOnlyList<WordChartSeries> series) {
             Categories = new ReadOnlyCollection<string>(new List<string>(categories ?? Array.Empty<string>()));
             Series = new ReadOnlyCollection<WordChartSeries>(new List<WordChartSeries>(series ?? Array.Empty<WordChartSeries>()));
@@ -98,8 +60,8 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Dependency-free Word chart snapshot suitable for export and visual fallback renderers.
     /// </summary>
-    public sealed class WordChartSnapshot {
-        internal WordChartSnapshot(string name, string? title, WordChartSnapshotKind chartKind, WordChartData data, double widthPoints, double heightPoints,
+    internal sealed class WordChartInfo {
+        internal WordChartInfo(string name, string? title, WordChartSnapshotKind chartKind, WordChartData data, double widthPoints, double heightPoints,
             OfficeIMO.Drawing.OfficeChartRadialLayout? radialLayout = null) {
             Name = name ?? string.Empty;
             Title = title;

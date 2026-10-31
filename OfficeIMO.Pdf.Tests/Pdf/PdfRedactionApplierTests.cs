@@ -10,7 +10,7 @@ public partial class PdfRedactionApplierTests {
     [Fact]
     public void Apply_RemovesWatermarkActualTextWithItsPaintedGlyphs() {
         const string secret = "Watermark secret";
-        byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Watermark(secret, fontSize: 36, rotationAngle: 0)
             .Paragraph(paragraph => paragraph.Text("Public body"))
             .ToBytes();
@@ -307,7 +307,7 @@ public partial class PdfRedactionApplierTests {
     public void Apply_PreservesGeneratedEmbeddedType0FontOutsidePartialRedaction() {
         const string text = "Alpha office secret affinity Omega";
         string fontPath = Assert.IsType<string>(PdfComplianceTestFonts.FindBundledOpenTypeCffFont());
-        byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .UseFontFamily("Redaction Embedded", fontPath)
             .Paragraph(paragraph => paragraph.Text(text))
             .ToBytes();
@@ -1199,7 +1199,7 @@ public partial class PdfRedactionApplierTests {
     }
 
     private static byte[] BuildRedactionSource() {
-        return PdfDocument.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Paragraph(paragraph => paragraph.Text("Visible before"))

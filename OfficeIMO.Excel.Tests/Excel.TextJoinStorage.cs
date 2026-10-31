@@ -16,7 +16,7 @@ public sealed class ExcelTextJoinStorageTests {
     [InlineData("error-cache")]
     public void Joining_distinguishes_error_like_text_from_typed_formula_errors(string kind) {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         if (kind.EndsWith("cache", StringComparison.Ordinal)) sheet.CellFormulaWithTextCache(1, 1, "UNSUPPORTED()", "#N/A");
         else sheet.CellValue(1, 1, "#N/A");
         sheet.CellAt(1, 1).GetValue();
@@ -47,10 +47,10 @@ public sealed class ExcelTextJoinStorageTests {
     [InlineData(true)]
     public void TextJoin_storage_prefixes_nested_calls_and_preserves_literal_and_qualified_text(bool materialized) {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.CellValue(1, 1, "a");
         sheet.CellValue(2, 1, "b");
-        document.AddWorksheet("O'Brien, TEXTJOIN(").CellValue(1, 1, "quoted");
+        document.AddSheet("O'Brien, TEXTJOIN(").CellValue(1, 1, "quoted");
         if (materialized) sheet.CellAt(1, 1).GetValue();
         const string authored = "IF(TRUE,TEXTJOIN(\",\",TRUE,A1:A2,\"TEXTJOIN(\",'O''Brien, TEXTJOIN('!A1),_xlfn.TEXTJOIN(\"\",FALSE,\"x\"))";
         const string stored = "IF(TRUE,_xlfn.TEXTJOIN(\",\",TRUE,A1:A2,\"TEXTJOIN(\",'O''Brien, TEXTJOIN('!A1),_xlfn.TEXTJOIN(\"\",FALSE,\"x\"))";
@@ -76,7 +76,7 @@ public sealed class ExcelTextJoinStorageTests {
     [InlineData("CONCAT(A1:A2)")]
     public void Joining_text_propagates_errors_as_typed_errors(string expression) {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.CellFormula(1, 1, "IFNA(#N/A,#N/A)");
         sheet.CellValue(2, 1, "tail");
         sheet.CellFormula(1, 2, expression);
@@ -93,7 +93,7 @@ public sealed class ExcelTextJoinStorageTests {
     [Fact]
     public void TextJoin_result_above_the_cell_text_limit_remains_a_typed_error() {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.CellValue(1, 1, new string('x', 20000));
         sheet.CellValue(2, 1, new string('y', 20000));
         sheet.CellFormula(1, 2, "TEXTJOIN(\",\",FALSE,A1:A2)");
@@ -111,7 +111,7 @@ public sealed class ExcelTextJoinStorageTests {
     public void TextJoin_prefix_expansion_cannot_truncate_a_valid_formula_at_the_storage_limit() {
         string expression = "TEXTJOIN(\"\",FALSE,\"" + new string('x', 8190 - "TEXTJOIN(\"\",FALSE,\"\")".Length) + "\")";
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         Assert.Throws<ArgumentException>(() => sheet.CellFormula(1, 1, expression));
     }
 }

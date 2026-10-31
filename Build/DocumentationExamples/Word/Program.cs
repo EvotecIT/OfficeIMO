@@ -1,18 +1,19 @@
 #region QuickStart
+using OfficeIMO;
 using OfficeIMO.Word;
 
-using var document = WordDocument.Create("report.docx");
+Milestone[] milestones = [new("Discovery", "Product", "Done"), new("Pilot", "Operations", "At risk"), new("Rollout", "IT", "Planned")];
 
-document.AddParagraph("Quarterly report").Style = WordParagraphStyles.Heading1;
-document.AddParagraph("Created with OfficeIMO.Word.");
+using var document = WordDocument.Create("Status.docx");
+document.AddHeading("Northwind migration", level: 1);
 
-var table = document.AddTable(2, 2, WordTableStyle.TableGrid);
-table.Rows[0].Cells[0].Paragraphs[0].Text = "Area";
-table.Rows[0].Cells[1].Paragraphs[0].Text = "Status";
-table.Rows[1].Cells[0].Paragraphs[0].Text = "Documents";
-table.Rows[1].Cells[1].Paragraphs[0].Text = "Generated";
-table.RepeatHeaderRowAtTheTopOfEachPage = true;
-table.Style = WordTableStyle.TableGrid;
+WordParagraph status = document.AddParagraph("Overall status: ");
+status.AddText("On track").Bold = true;
+
+document.AddHeading("Milestones", level: 2);
+document.AddTable(milestones);
 
 document.Save();
+
+record Milestone(string Name, string Owner, string Status);
 #endregion

@@ -4,13 +4,13 @@ description: "Copy complete PowerShell recipes for Word, Excel, PowerPoint, PDF,
 layout: docs
 ---
 
-The PSWriteOffice DSL is a set of scoped PowerShell commands for composing documents. The outer `New-Office*` command creates and saves the file. Nested blocks establish the active section, sheet, slide, page, or Markdown document so content commands do not need the document object repeated on every line.
+The PSWriteOffice DSL is a set of scoped PowerShell commands for composing documents. With a content block, the outer `New-Office*` command publishes the completed document. Without a content block it returns a live document for explicit editing and saving. Nested blocks establish the active section, sheet, slide, page, or Markdown document so content commands do not need the document object repeated on every line.
 
 If loops or conditions need to keep and pass explicit document objects, use the companion [pipeline, object, and DSL workflow guide](/docs/pswriteoffice/object-workflows/).
 
 ## Choose one command style
 
-The scenario recipes use short DSL aliases from the outer constructor through the nested content commands. This keeps composition blocks compact and avoids switching naming styles halfway through a document.
+Document lifecycle commands use their full names: `New-OfficeWord`, `New-OfficeExcel`, `New-OfficePowerPoint` and `New-OfficePdf`. Inside the content block, use concise content aliases or full command names.
 
 ### DSL aliases
 
@@ -20,8 +20,7 @@ $rows = @(
     [pscustomobject]@{ Name = 'Beta'; Status = 'Review' }
 )
 
-PdfNew -Path '.\Status.pdf' {
-    PdfTheme Report
+New-OfficePdf -Path '.\Status.pdf' -Theme Modern {
     PdfHeading -Text 'Status' -Level 1
     PdfTable -InputObject $rows
 }
@@ -30,22 +29,13 @@ PdfNew -Path '.\Status.pdf' {
 ### Canonical cmdlets
 
 ```powershell
-New-OfficePdf -Path '.\Status.pdf' {
-    Set-OfficePdfTheme -Theme Report
+New-OfficePdf -Path '.\Status-Canonical.pdf' -Theme Modern {
     Add-OfficePdfHeading -Text 'Status' -Level 1
     Add-OfficePdfTable -InputObject $rows
 }
 ```
 
-These blocks call the same cmdlets and produce the same document. `PdfTheme` maps to `Set-OfficePdfTheme`: applying a theme changes the active PDF composition context, so the canonical verb is `Set`, not `New` or `Add`.
-
-- Word: `WordNew` maps to `New-OfficeWord`; `WordSection` maps to `Add-OfficeWordSection`.
-- Excel: `ExcelNew` maps to `New-OfficeExcel`.
-- PowerPoint: `PptNew` maps to `New-OfficePowerPoint`.
-- PDF: `PdfNew` maps to `New-OfficePdf`; `PdfTheme` maps to `Set-OfficePdfTheme`.
-- Markdown: `MarkdownNew` maps to `New-OfficeMarkdown`.
-
-Canonical command names are easier to discover in generated help. Aliases make dense composition blocks easier to scan. Pick one form for a script rather than mixing `New-OfficePdf` with `PdfTheme` and other aliases.
+Both styles call the same content commands. `PdfHeading` maps to `Add-OfficePdfHeading`, `PdfTable` maps to `Add-OfficePdfTable`, and `WordSection` maps to `Add-OfficeWordSection`. Use `-Theme` on the constructor to select the document's visual defaults.
 
 The same plain PowerShell objects can feed an Excel table, PowerPoint chart, PDF table, Word report, or Markdown document. Keep source collection and business calculations outside the DSL. Let the composition block describe the artifact.
 
@@ -54,14 +44,14 @@ The same plain PowerShell objects can feed an Excel table, PowerPoint chart, PDF
 Pass several strings to `WordText -Text` when every segment uses the same formatting. The strings are appended to one paragraph:
 
 ```powershell
-WordNew -Path '.\Formatting.docx' {
+New-OfficeWord -Path '.\Formatting.docx' {
     WordSection {
         WordText -Text @(
             'This is a text'
             ' that will show '
             'how WordText joins segments '
             'with the same formatting.'
-        ) -FontFamily Tahoma -FontSize 10 -Color Blue
+        ) -Font Tahoma -Size 10pt -Color Blue
     }
 }
 ```
@@ -117,7 +107,7 @@ Canvas coordinates use PDF points from the visual top-left. `Add-OfficePdfStamp 
 Saved DSL constructors are silent by default, so they do not need `Out-Null` or a suppression switch. Add `-PassThru` only when the next command needs the saved file:
 
 ```powershell
-$file = PdfNew -Path '.\Status.pdf' -PassThru {
+$file = New-OfficePdf -Path '.\Status-Review.pdf' -PassThru {
     PdfHeading 'Status'
     PdfText 'Ready for review.'
 }
@@ -125,61 +115,61 @@ $file = PdfNew -Path '.\Status.pdf' -PassThru {
 $file | Select-Object Name, Length, LastWriteTime
 ```
 
-When `New-OfficePdf` is used without a path, or with `-NoSave`, it returns the in-memory PDF document because no saved file exists.
+Without a content block, `New-OfficePdf` returns a live document and writes no file. An optional `-Path` becomes its associated destination; `Save-OfficePdf` saves to that path or an explicit new one. `Close-OfficePdf` releases it without saving.
 
 ## Word recipes
 
-- [Project status report](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-ProjectStatus.ps1) combines a header and footer, narrative, lists, conditional table rows, a chart, and approval controls.
-- [Change approval checklist](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-ApprovalChecklist.ps1) creates a reusable form with a table of contents, content controls, and a watermark.
-- [Executive report](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Showcase/Showcase-Word-ExecutiveReport.ps1) is the larger reference for metadata, bookmarks, footnotes, endnotes, tables, charts, and rich text.
-- [Word object composition](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-ObjectComposition.ps1) builds the same kind of content through a live document and paragraph targets.
-- [Inspect, update, merge, and mail merge](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/README.md#read-modify-combine-and-convert) cover existing-document workflows.
+- [Project status report](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-ProjectStatus.ps1) combines a header and footer, narrative, lists, conditional table rows, a chart, and approval controls.
+- [Change approval checklist](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-ApprovalChecklist.ps1) creates a reusable form with a table of contents, content controls, and a watermark.
+- [Executive report](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Showcase/Showcase-Word-ExecutiveReport.ps1) is the larger reference for metadata, bookmarks, footnotes, endnotes, tables, charts, and rich text.
+- [Word object composition](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-ObjectComposition.ps1) builds the same kind of content through a live document and paragraph targets.
+- [Inspect, update, merge, and mail merge](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/README.md#read-modify-combine-and-convert) cover existing-document workflows.
 
 Use Word when the reader needs a flowing, editable report with sections, review features, fields, or forms.
 
 ## Excel recipes
 
-- [Project tracker](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ProjectTracker.ps1) adds a structured table, status validation, conditional formatting, a chart, print settings, and an index sheet.
-- [Budget dashboard](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-BudgetDashboard.ps1) separates summary formulas and charts from a styled detail table.
-- [Operational dashboard](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1) demonstrates KPI cells, tables, charts, pivots, sparklines, links, threaded comments, print layout, and workbook validation.
-- [Quick export](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-QuickExport.ps1) and [Excel object composition](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ObjectComposition.ps1) show the shorter alternatives to a complete workbook DSL.
-- [Read, update, merge, compare, and import](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/README.md#read-modify-combine-and-convert) cover existing-workbook workflows.
+- [Project tracker](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ProjectTracker.ps1) adds a structured table, status validation, conditional formatting, a chart, print settings, and an index sheet.
+- [Budget dashboard](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-BudgetDashboard.ps1) separates summary formulas and charts from a styled detail table.
+- [Operational dashboard](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1) demonstrates KPI cells, tables, charts, pivots, sparklines, links, threaded comments, print layout, and workbook validation.
+- [Quick export](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-QuickExport.ps1) and [Excel object composition](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ObjectComposition.ps1) show the shorter alternatives to a complete workbook DSL.
+- [Read, update, merge, compare, and import](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/README.md#read-modify-combine-and-convert) cover existing-workbook workflows.
 
 Use Excel when the data grid, formula model, filtering, chart interaction, or workbook navigation is part of the deliverable.
 
 ## PowerPoint recipes
 
-- [Quarterly business review](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-QuarterlyReview.ps1) creates a title slide, a data chart, a priority table, bullets, and speaker notes.
-- [Training workshop](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-TrainingWorkshop.ps1) builds learning objectives, an agenda table, a call-to-action slide, and presenter notes.
-- [Service brief](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Showcase/Showcase-PowerPoint-ServiceBrief.ps1) combines semantic designer plans with direct slide composition, charts, sections, transitions, and inspection.
-- [PowerPoint object composition](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-ObjectComposition.ps1) keeps a presentation object for loop-driven slide creation.
-- [Inspect, update, and reuse slides](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/README.md#read-modify-combine-and-convert) cover existing-presentation workflows.
+- [Quarterly business review](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-QuarterlyReview.ps1) creates a title slide, a data chart, a priority table, bullets, and speaker notes.
+- [Training workshop](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-TrainingWorkshop.ps1) builds learning objectives, an agenda table, a call-to-action slide, and presenter notes.
+- [Service brief](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Showcase/Showcase-PowerPoint-ServiceBrief.ps1) combines semantic designer plans with direct slide composition, charts, sections, transitions, and inspection.
+- [PowerPoint object composition](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-ObjectComposition.ps1) keeps a presentation object for loop-driven slide creation.
+- [Inspect, update, and reuse slides](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/README.md#read-modify-combine-and-convert) cover existing-presentation workflows.
 
 Use direct slide composition when the script owns placement. Use a deck plan when the content is semantic and the designer should choose layout variants.
 
 ## PDF recipes
 
-- [Service invoice](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-ServiceInvoice.ps1) composes invoice metadata, line items, totals, payment terms, headers, footers, and a link.
-- [Audit report](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-AuditReport.ps1) adds findings, bookmarks, page breaks, remediation sections, and interactive form fields.
-- [Composed PDF report](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Pdf/Example-PdfReportDsl.ps1) demonstrates themes, backgrounds, borders, rich text, rows, links, bookmarks, tables, and attachments.
-- [Form data exchange](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-FormDataExchange.ps1), [attachments](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-AttachEvidence.ps1), and [page reordering](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-ReorderPages.ps1) cover post-composition operations.
-- [Inspect, merge, split, position, redact, sanitize, and process forms](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/README.md#read-modify-combine-and-convert) cover completed-PDF workflows.
+- [Service invoice](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-ServiceInvoice.ps1) composes invoice metadata, line items, totals, payment terms, headers, footers, and a link.
+- [Audit report](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-AuditReport.ps1) adds findings, bookmarks, page breaks, remediation sections, and interactive form fields.
+- [Composed PDF report](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Pdf/Example-PdfReportDsl.ps1) demonstrates themes, backgrounds, borders, rich text, rows, links, bookmarks, tables, and attachments.
+- [Form data exchange](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-FormDataExchange.ps1), [attachments](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-AttachEvidence.ps1), and [page reordering](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-ReorderPages.ps1) cover post-composition operations.
+- [Inspect, merge, split, position, redact, sanitize, and process forms](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/README.md#read-modify-combine-and-convert) cover completed-PDF workflows.
 
 Use PDF for fixed-layout delivery. Keep an editable source artifact as well when the workflow needs later content changes.
 
 ## Markdown recipes
 
-- [Operations runbook](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-OperationsRunbook.ps1) creates front matter, a table of contents, warnings, task lists, code, a validation table, and collapsible rollback steps.
-- [Release notes](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-ReleaseNotes.ps1) creates a release page with metadata, an upgrade callout, a change table, a checklist, code, and known limits.
-- [Advanced Markdown](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Markdown/Example-MarkdownAdvanced.ps1) collects the broader typed Markdown surface in one script.
-- [Markdown object composition](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-ObjectComposition.ps1) uses an explicit Markdown document target.
-- [Inspect, publish HTML, and round-trip through Word](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/README.md#read-modify-combine-and-convert) cover Markdown transformation workflows.
+- [Operations runbook](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-OperationsRunbook.ps1) creates front matter, a table of contents, warnings, task lists, code, a validation table, and collapsible rollback steps.
+- [Release notes](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-ReleaseNotes.ps1) creates a release page with metadata, an upgrade callout, a change table, a checklist, code, and known limits.
+- [Advanced Markdown](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Markdown/Example-MarkdownAdvanced.ps1) collects the broader typed Markdown surface in one script.
+- [Markdown object composition](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-ObjectComposition.ps1) uses an explicit Markdown document target.
+- [Inspect, publish HTML, and round-trip through Word](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/README.md#read-modify-combine-and-convert) cover Markdown transformation workflows.
 
 Use Markdown when the source should remain diffable, reviewable, and easy to publish into other text or document workflows.
 
 ## Create several formats from one data model
 
-The [multi-format status pack](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Workflows/Recipe-MultiFormat-StatusPack.ps1) sends one service-status object array into five thin composition blocks:
+The [multi-format status pack](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Workflows/Recipe-MultiFormat-StatusPack.ps1) sends one service-status object array into five thin composition blocks:
 
 ```text
 PowerShell objects
@@ -194,7 +184,7 @@ This is useful when audiences need different artifacts but the numbers and statu
 
 ## Run and adapt a recipe
 
-For reports that combine headings, tables and charts, use [document spacing and table padding](../document-layout/) to keep each section readable. The [patch compliance recipe](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-PatchCompliance.ps1) creates both an editable Word document and a PDF delivery copy.
+For reports that combine headings, tables and charts, use [document spacing and table padding](../document-layout/) to keep each section readable. The [patch compliance recipe](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-PatchCompliance.ps1) creates both an editable Word document and a PDF delivery copy.
 
 ```powershell
 .\Examples\Word\Recipe-Word-ProjectStatus.ps1
@@ -202,4 +192,4 @@ For reports that combine headings, tables and charts, use [document spacing and 
 
 Replace the sample objects first. Then adjust visual choices such as styles, colors, layout, and labels. Search the [PowerShell command reference](/api/powershell/) for exact parameters and accepted values.
 
-The [complete example index](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/README.md) also covers Visio, Reader, RTF, CSV, HTML review, DbaClientX, ChartForgeX visuals, and Confluence publishing.
+The [complete example index](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/README.md) also covers Visio, Reader, RTF, CSV, HTML review, DbaClientX, ChartForgeX visuals, and Confluence publishing.

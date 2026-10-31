@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes decoded Dat chart data-table display options.
     /// </summary>
-    public sealed class LegacyXlsChartDataTableOptions {
+    internal sealed class LegacyXlsChartDataTableOptions {
         internal LegacyXlsChartDataTableOptions(ushort flags) {
             Flags = flags;
         }

@@ -40,7 +40,7 @@ Describe 'RTF cmdlets' {
         ConvertFrom-OfficeRtf -Path $rtfPath -As Word -OutputPath $roundtripPath -PassThru |
             Should -BeOfType System.IO.FileInfo
 
-        $document = Get-OfficeWord -Path $roundtripPath -ReadOnly
+        $document = Open-OfficeWord -Path $roundtripPath -ReadOnly
         try {
             ($document.Paragraphs | ForEach-Object Text) -join "`n" | Should -Match 'Word RTF bridge'
         } finally {

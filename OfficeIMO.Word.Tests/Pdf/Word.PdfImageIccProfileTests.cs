@@ -13,9 +13,9 @@ namespace OfficeIMO.Tests {
             byte[] profile = PdfPngTestImages.MarkIccTagTypeReservedBytes(PdfIccProfiles.SrgbIec6196621);
             using WordDocument word = WordDocument.Create();
             using var pixels = new MemoryStream(PdfPngTestImages.CreateRgbaPngWithIccProfile(profile));
-            word.AddParagraph("Before").AddText("").InsertImage(pixels, "diagram.png", 80, 40);
+            word.AddParagraph("Before").AddText("").AddImage(pixels, "diagram.png", OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
 
-            var result = word.ToPdfDocumentResult();
+            var result = word.ConvertToPdfWithEvidence();
             Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeBodyImageUnsupported");
             byte[] pdf = result.Value.ToBytes();
             Assert.Single(PdfImageExtractor.ExtractImagePlacements(pdf));

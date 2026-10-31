@@ -1,10 +1,12 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     /// <summary>Creates an internal text-only measurement view: assets are borrowed, while font usage and diagnostic caches are independent.</summary>
     /// <remarks>Never expose this view for general editing or serialization. It must not mutate borrowed attachments, styles, or font definitions.</remarks>
-    internal PdfOptions CreateTextMeasurementSnapshot() {
-        var view = (PdfOptions)MemberwiseClone();
+    internal PdfCreateOptions CreateTextMeasurementSnapshot() {
+        var view = (PdfCreateOptions)MemberwiseClone();
+        view._themeDefaults = null;
+        view._themeDeferredTableStyle = null;
         // Font definitions and their immutable owned bytes can be borrowed. Dictionary
         // membership must be private because automatic fallback may register a family.
         view._embeddedFonts = _embeddedFonts == null ? null : new Dictionary<PdfStandardFont, PdfEmbeddedFont>(_embeddedFonts);
@@ -23,6 +25,7 @@ public sealed partial class PdfOptions {
         view._automaticLatinShapedTextRun = null;
         view._recordProviderShapedTextRunDelegate = null;
         view._diagnosticsReport = null;
+        view._suppressDiagnostics = true;
         view._fallbackOwnedFontFamilies = _fallbackOwnedFontFamilies == null ? null : new HashSet<PdfStandardFont>(_fallbackOwnedFontFamilies);
         view._usedEmbeddedFallbackFontSlots = _usedEmbeddedFallbackFontSlots == null ? null : new HashSet<PdfStandardFont>(_usedEmbeddedFallbackFontSlots);
         view._automaticFallbackOwnedNamedFamilyKeys = _automaticFallbackOwnedNamedFamilyKeys == null ? null : new HashSet<string>(_automaticFallbackOwnedNamedFamilyKeys, StringComparer.Ordinal);
@@ -31,7 +34,7 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>Checks selected immutable font-definition identities without hashing or copying their payloads.</summary>
-    internal bool HasSameMeasurementFonts(PdfOptions source) {
+    internal bool HasSameMeasurementFonts(PdfCreateOptions source) {
         if (_fontConfigurationAssignmentVersion != source._fontConfigurationAssignmentVersion ||
             _defaultFontSizeAssignmentVersion != source._defaultFontSizeAssignmentVersion ||
             (_embeddedFonts?.Count ?? 0) != (source._embeddedFonts?.Count ?? 0) ||

@@ -28,20 +28,20 @@ public sealed class PdfInvoiceExternalProofTests {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
         byte[] font = File.ReadAllBytes(fontPath!);
-        var options = new PdfOptions { IncludeStandardFontToUnicodeMaps = true };
+        var options = new PdfCreateOptions { IncludeStandardFontToUnicodeMaps = true };
         options.UsePdfA(archival)
             .EmbedStandardFont(PdfStandardFont.Helvetica, font, "OfficeIMO Source Serif")
             .EmbedStandardFont(PdfStandardFont.HelveticaBold, font, "OfficeIMO Source Serif");
         if (accessible) options.UsePdfUa();
 
         byte[] pdf = snapshot.ToPdfBytes(options);
-        PdfDocumentInfo info = PdfDocument.Load(pdf).Inspect();
+        PdfDocumentInfo info = PdfDocument.Load(new System.IO.MemoryStream(pdf)).Inspect();
         PdfXmpMetadataInfo xmp = Assert.IsType<PdfXmpMetadataInfo>(info.XmpMetadata);
         Assert.Equal("1.7", info.HeaderVersion);
         Assert.Equal(3, xmp.PdfAPart);
         Assert.Equal(conformance, xmp.PdfAConformance);
         Assert.Equal(accessible ? (int?)1 : null, xmp.PdfUaPart);
-        PdfDocument saved = PdfDocument.Load(pdf);
+        PdfDocument saved = PdfDocument.Load(new System.IO.MemoryStream(pdf));
         Assert.Equal(xml, Assert.Single(saved.Attachments.Extract()).Bytes);
         PdfComplianceReadinessReport readiness = saved.AssessCompliance(PdfComplianceProfile.FacturX);
         Assert.Empty(readiness.MissingRequirements);
@@ -56,7 +56,7 @@ public sealed class PdfInvoiceExternalProofTests {
         PdfComplianceProofReport proof = saved.AssessComplianceProof(PdfComplianceProfile.FacturX);
         Assert.True(proof.IsInternallyReady);
         Assert.False(proof.CanClaimConformance); // External proof is collected independently on these exact bytes.
-        string text = PdfReadDocument.Open(pdf).ExtractUnwrappedText();
+        string text = PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractUnwrappedText();
         Assert.Contains(invoice.Number, text);
         Assert.Equal(profile is not (InvoiceProfile.Minimum or InvoiceProfile.BasicWithoutLines),
             text.IndexOf("Consulting", StringComparison.Ordinal) >= 0);
@@ -90,7 +90,7 @@ public sealed class PdfInvoiceExternalProofTests {
         else amount.Value = "101.00";
 
         byte[] font = File.ReadAllBytes(PdfComplianceTestFonts.FindBundledOpenTypeCffFont()!);
-        var options = new PdfOptions().UseFacturX(Encoding.UTF8.GetBytes(xml.ToString()),
+        var options = new PdfCreateOptions().UseFacturX(Encoding.UTF8.GetBytes(xml.ToString()),
                 textFallbacks: PdfTextFallbackFeatures.None)
             .UsePdfA(PdfComplianceProfile.PdfA3B)
             .SetEmbeddedFileModificationDate("factur-x.xml", DateTimeOffset.UtcNow)
@@ -119,7 +119,7 @@ public sealed class PdfInvoiceExternalProofTests {
             Assert.Single(totals.Elements(ram + "DuePayableAmount")).Value);
 
         byte[] font = File.ReadAllBytes(PdfComplianceTestFonts.FindBundledOpenTypeCffFont()!);
-        var options = new PdfOptions().UseFacturX(Encoding.UTF8.GetBytes(xml.ToString()),
+        var options = new PdfCreateOptions().UseFacturX(Encoding.UTF8.GetBytes(xml.ToString()),
                 textFallbacks: PdfTextFallbackFeatures.None)
             .UsePdfA(PdfComplianceProfile.PdfA3B)
             .SetEmbeddedFileModificationDate("factur-x.xml", DateTimeOffset.UtcNow)
@@ -127,7 +127,7 @@ public sealed class PdfInvoiceExternalProofTests {
         PdfDocument document = PdfDocument.Create(options);
         document.Content.Paragraph(p => p.Text("MINIMUM optional totals regression"));
         byte[] pdf = document.ToBytes();
-        PdfDocument saved = PdfDocument.Load(pdf);
+        PdfDocument saved = PdfDocument.Load(new System.IO.MemoryStream(pdf));
         Assert.Empty(saved.AssessCompliance(PdfComplianceProfile.FacturX).MissingRequirements);
         Assert.True(saved.AssessComplianceProof(PdfComplianceProfile.FacturX).IsInternallyReady);
     }
@@ -140,12 +140,12 @@ public sealed class PdfInvoiceExternalProofTests {
         PdfComplianceProfile archival, string expectedProfile, string wrongProfile) {
         var contract = new InvoiceXmlOptions(InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2,
             InvoiceSyntax.Cii, InvoiceProfile.En16931);
-        var options = new PdfOptions().UsePdfA(archival);
+        var options = new PdfCreateOptions().UsePdfA(archival);
         byte[] font = File.ReadAllBytes(PdfComplianceTestFonts.FindBundledOpenTypeCffFont()!);
         options.EmbedStandardFont(PdfStandardFont.Helvetica, font, "OfficeIMO Source Serif")
             .EmbedStandardFont(PdfStandardFont.HelveticaBold, font, "OfficeIMO Source Serif");
         byte[] pdf = PdfInvoiceDocument.Create(InvoiceFixture.Create(), contract).ToPdfBytes(options);
-        PdfDocument saved = PdfDocument.Load(pdf);
+        PdfDocument saved = PdfDocument.Load(new System.IO.MemoryStream(pdf));
         PdfExternalValidationResult Result(PdfExternalValidatorKind kind, string profile, bool success) =>
             PdfExternalValidationResult.FromExitCodeForArtifact(kind, success ? 0 : 1,
                 "Test evidence", "fixture", "Profile matching regression", pdf, profile);

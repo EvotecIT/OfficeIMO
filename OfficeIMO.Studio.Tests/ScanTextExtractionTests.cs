@@ -23,8 +23,8 @@ public sealed class ScanTextExtractionTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "quick-text.pdf");
             PdfDocument.Create(doc => {
-                doc.Page(page => page.Size(300, 300));
-                doc.Page(page => page.Size(300, 300));
+                doc.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)));
+                doc.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)));
             }).Save(source);
             byte[] original = File.ReadAllBytes(source);
             var recognition = new RecognitionService();
@@ -111,7 +111,7 @@ public sealed class ScanTextExtractionTests {
             var engine = new DelegateOcrEngine("quick-text", (_, _) => Task.FromResult(new OcrResult {
                 Provider = "fixture", Language = "eng", Spans = [Word("Copy this", 20), Word("Discard", 60)]
             }));
-            return PdfDocument.Load(source).PrepareSearchableOcrAsync(engine, options.Pdf, token);
+            return PdfDocument.Load(new System.IO.MemoryStream(source)).PrepareSearchableOcrAsync(engine, options.Pdf, token);
         }
         private static OcrTextSpan Word(string text, double y) => new() {
             Text = text, Confidence = .95, Level = OcrTextSpanLevel.Word, CoordinateUnit = OcrCoordinateUnit.Points,

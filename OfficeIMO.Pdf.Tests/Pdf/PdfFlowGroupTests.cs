@@ -27,7 +27,7 @@ public class PdfFlowGroupTests {
             .Paragraph(paragraph => paragraph.Text("Page one"))
             .Spacer(105)
             .Flow(
-                item => item.Rectangle(60, 80),
+                item => item.Rectangle(global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(80)),
                 new PdfFlowOptions { KeepTogether = true },
                 capture)
             .ToBytes();
@@ -35,7 +35,7 @@ public class PdfFlowGroupTests {
         PdfLayoutRegion region = Assert.Single(capture.Regions);
         Assert.Equal(2, PdfInspector.Inspect(bytes).PageCount);
         Assert.Equal(2, region.PageNumber);
-        Assert.Equal(80D, region.Height, 3);
+        Assert.Equal(80D, region.Height.ToPoints(), 3);
         Assert.False(capture.WasSkipped);
     }
 
@@ -51,7 +51,7 @@ public class PdfFlowGroupTests {
                     invocations++;
                     return item => item.Paragraph(paragraph => paragraph.Text("Deferred page " + context.PageNumber));
                 },
-                new PdfFlowOptions { MinimumRemainingHeight = 100 },
+                new PdfFlowOptions { MinimumRemainingHeight = global::OfficeIMO.OfficeLength.Points(100) },
                 capture)
             .ToBytes();
 
@@ -80,7 +80,7 @@ public class PdfFlowGroupTests {
             .Paragraph(paragraph => paragraph.Text("Before"))
             .Spacer(105)
             .Flow(
-                item => item.Rectangle(60, 80),
+                item => item.Rectangle(global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(80)),
                 new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.Skip },
                 skipCapture)
             .Paragraph(paragraph => paragraph.Text("After skip"))
@@ -90,7 +90,7 @@ public class PdfFlowGroupTests {
             .Paragraph(paragraph => paragraph.Text("Before"))
             .Spacer(105)
             .Flow(
-                item => item.Rectangle(60, 80),
+                item => item.Rectangle(global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(80)),
                 new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.StopDocument })
             .Paragraph(paragraph => paragraph.Text("After stop"))
             .ToBytes();
@@ -104,13 +104,13 @@ public class PdfFlowGroupTests {
     }
 
     private static PdfDocument CreateShortPageDocument() {
-        return PdfDocument.Create(new PdfOptions {
-            PageWidth = 200,
-            PageHeight = 200,
-            MarginLeft = 20,
-            MarginTop = 20,
-            MarginRight = 20,
-            MarginBottom = 20,
+        return PdfDocument.Create(new PdfCreateOptions {
+            PageWidth = global::OfficeIMO.OfficeLength.Points(200),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(200),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
             CompressContentStreams = false
         });
     }

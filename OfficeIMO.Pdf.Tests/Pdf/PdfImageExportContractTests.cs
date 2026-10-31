@@ -8,19 +8,6 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfImageExportContractTests {
-    [Fact]
-    public void LoadedPdfPageRetainsTheOriginalThreeParameterExportOverload() {
-        System.Reflection.MethodInfo? method = typeof(PdfImageExportExtensions).GetMethod(
-            nameof(PdfImageExportExtensions.ExportImage),
-            new[] {
-                typeof(PdfReadPage),
-                typeof(OfficeImageExportFormat),
-                typeof(PdfImageExportOptions)
-            });
-
-        Assert.NotNull(method);
-    }
-
     [Theory]
     [InlineData(OfficeImageExportFormat.Png)]
     [InlineData(OfficeImageExportFormat.Jpeg)]
@@ -58,17 +45,14 @@ public sealed class PdfImageExportContractTests {
     }
 
     [Fact]
-    public void PdfBatchBuilderPreservesSelectionAndSharedRasterSafety() {
+    public void PdfBatchOptionsPreservesSelectionAndSharedRasterSafety() {
         PdfReadDocument document = LoadTwoPageDocument();
 
         IReadOnlyList<OfficeImageExportResult> results = document
-            .ToImages(new PdfImageExportOptions {
-                Scale = 10D,
-                MaximumRasterPixels = 20_000L
-            })
-            .Pages("2,1")
-            .AsWebp()
-            .Export();
+            .CreateImageExportOperation(new PdfImageExportOptions {
+                Scale = 10D, MaximumRasterPixels = 20_000L,
+                PageSelector = PdfPageSelector.Parse("2,1"), Format = OfficeImageExportFormat.Webp
+            }).Export();
 
         Assert.Equal(new[] { "Page 2", "Page 1" }, results.Select(result => result.Name));
         Assert.All(results, result => {
@@ -80,16 +64,13 @@ public sealed class PdfImageExportContractTests {
     }
 
     [Fact]
-    public void PdfBatchBuilderUsesTheSharedOutputCountBudget() {
+    public void PdfBatchOptionsUsesTheSharedOutputCountBudget() {
         PdfReadDocument document = LoadTwoPageDocument();
 
         OfficeImageExportBatchLimitException exception =
             Assert.Throws<OfficeImageExportBatchLimitException>(() =>
                 document
-                    .ToImages()
-                    .WithMaximumPages(1)
-                    .AsPng()
-                    .Export());
+                    .CreateImageExportOperation(new PdfImageExportOptions { MaximumOutputCount = 1 }).Export());
 
         Assert.Equal(nameof(OfficeImageExportOptions.MaximumOutputCount), exception.LimitName);
         Assert.Equal(2, exception.Actual);
@@ -121,9 +102,8 @@ public sealed class PdfImageExportContractTests {
         OfficeImageExportBatchLimitException exception =
             Assert.Throws<OfficeImageExportBatchLimitException>(() =>
                 document
-                    .ToImages(new PdfImageExportOptions { MaximumTotalEncodedBytes = maximumBytes })
-                    .AsSvg()
-                    .Export());
+                    .CreateImageExportOperation(new PdfImageExportOptions {
+                        MaximumTotalEncodedBytes = maximumBytes, Format = OfficeImageExportFormat.Svg }).Export());
 
         Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
         Assert.True(exception.Actual > maximumBytes);
@@ -131,16 +111,14 @@ public sealed class PdfImageExportContractTests {
     }
 
     [Fact]
-    public void PdfPageBuilderSupportsDpiThumbnailAndConfiguredEncoding() {
+    public void PdfPageOptionsSupportDpiThumbnailAndConfiguredEncoding() {
         PdfReadPage page = LoadTwoPageDocument().Pages[0];
 
         OfficeImageExportResult result = page
-            .ToImage()
-            .AtDpi(288D)
-            .AsThumbnail(96)
-            .WithRasterEncoding(encoding => encoding.Jpeg.Quality = 70)
-            .AsJpeg()
-            .Export();
+            .ExportImage(OfficeImageExportFormat.Jpeg, new PdfImageExportOptions {
+                TargetDpi = 288D, ThumbnailMaxDimension = 96,
+                RasterEncoding = new OfficeRasterEncodingOptions { Jpeg = new OfficeJpegEncodeOptions { Quality = 70 } }
+            });
 
         Assert.Equal(OfficeImageExportFormat.Jpeg, result.Format);
         Assert.True(Math.Max(result.Width, result.Height) <= 96);
@@ -155,11 +133,9 @@ public sealed class PdfImageExportContractTests {
         OfficeImageExportResult baseline = page.ExportImage(OfficeImageExportFormat.Png);
 
         OfficeImageExportResult fitted = page
-            .ToImage()
-            .WithScale(2D)
-            .FitWithin(baseline.Width, baseline.Height)
-            .AsPng()
-            .Export();
+            .ExportImage(OfficeImageExportFormat.Png, new PdfImageExportOptions {
+                Scale = 2D, MaximumOutputWidth = baseline.Width, MaximumOutputHeight = baseline.Height
+            });
 
         Assert.Equal(baseline.Width, fitted.Width);
         Assert.Equal(baseline.Height, fitted.Height);
@@ -172,10 +148,7 @@ public sealed class PdfImageExportContractTests {
         PdfReadPage page = LoadTwoPageDocument().Pages[0];
 
         OfficeImageExportResult result = page
-            .ToImage()
-            .WithBackground("#123456")
-            .AsSvg()
-            .Export();
+            .ExportImage(OfficeImageExportFormat.Svg, new PdfImageExportOptions { BackgroundColor = OfficeIMO.OfficeColor.Parse("#123456") });
         string svg = System.Text.Encoding.UTF8.GetString(result.Bytes);
 
         Assert.Contains("fill=\"#123456\"", svg, StringComparison.Ordinal);
@@ -208,7 +181,7 @@ public sealed class PdfImageExportContractTests {
     }
 
     [Fact]
-    public void FluentDocumentReaderUsesTheSharedImageExportContract() {
+    public void DocumentReaderUsesTheSharedImageExportContract() {
         PdfDocument document = PdfDocument.Load(PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Fluent image export"))
             .ToBytes());
@@ -227,12 +200,11 @@ public sealed class PdfImageExportContractTests {
             .Paragraph(paragraph => paragraph.Text("Authored page"));
 
         OfficeImageExportResult direct = Assert.Single(document.ExportImages(OfficeImageExportFormat.Webp));
-        OfficeImageExportResult fluent = Assert.Single(document.ToImages().AsPng().Export());
+        byte[] png = Assert.Single(document.ExportImages()).Bytes;
 
         Assert.Equal(OfficeImageExportFormat.Webp, direct.Format);
         Assert.Equal("image/webp", OfficeImageReader.Identify(direct.Bytes).MimeType);
-        Assert.Equal(OfficeImageExportFormat.Png, fluent.Format);
-        Assert.Equal("image/png", OfficeImageReader.Identify(fluent.Bytes).MimeType);
+        Assert.Equal("image/png", OfficeImageReader.Identify(png).MimeType);
     }
 
     [Fact]
@@ -246,31 +218,31 @@ public sealed class PdfImageExportContractTests {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        PdfDocumentImageExportBuilder builder = document.ToImages();
+        var options = new PdfImageExportOptions();
 
         Assert.False(materialized);
         Assert.ThrowsAny<OperationCanceledException>(() =>
             document.ExportImages(OfficeImageExportFormat.Png, cancellationToken: cancellation.Token));
         Assert.ThrowsAny<OperationCanceledException>(() =>
             document.Reader.ExportImages(OfficeImageExportFormat.Png, cancellationToken: cancellation.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => builder.ExportAsync(cancellation.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => document.ExportImagesAsync(options, cancellation.Token));
         Assert.False(materialized);
     }
 
     [Fact]
-    public async Task FluentAuthoredDocumentExportPropagatesCancellationThroughDeferredSnapshot() {
+    public async Task AuthoredDocumentExportPropagatesCancellationThroughDeferredSnapshot() {
         using var cancellation = new CancellationTokenSource();
         bool materializedAfterCancellation = false;
         PdfDocument document = CreateCancelingDeferredDocument(cancellation, () => materializedAfterCancellation = true);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            document.ToImages().AsSvg().ExportAsync(cancellation.Token));
+            document.ExportImagesAsync(new PdfImageExportOptions { Format = OfficeImageExportFormat.Svg }, cancellation.Token));
 
         Assert.False(materializedAfterCancellation);
     }
 
     [Fact]
-    public async Task FluentConversionExportPropagatesCancellationThroughDeferredSnapshot() {
+    public async Task ConversionExportPropagatesCancellationThroughDeferredSnapshot() {
         using var cancellation = new CancellationTokenSource();
         bool materializedAfterCancellation = false;
         var conversion = new PdfDocumentConversionResult(
@@ -278,7 +250,7 @@ public sealed class PdfImageExportContractTests {
             new PdfConversionReport());
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            conversion.ToImages().AsSvg().ExportAsync(cancellation.Token));
+            conversion.CreateImageExportOperation(new PdfImageExportOptions { Format = OfficeImageExportFormat.Svg }).ExportAsync(cancellation.Token));
 
         Assert.False(materializedAfterCancellation);
     }
@@ -310,9 +282,7 @@ public sealed class PdfImageExportContractTests {
             report);
 
         OfficeImageExportResult result = Assert.Single(conversion
-            .ToImages()
-            .AsPng()
-            .Export());
+            .CreateImageExportOperation().Export());
 
         OfficeImageExportDiagnostic diagnostic = Assert.Single(
             result.Diagnostics,
@@ -339,6 +309,63 @@ public sealed class PdfImageExportContractTests {
             diagnostic =>
                 diagnostic.Code == "render.operator.unsupported" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Fact]
+    public async Task PublicImageOptionsPreservePageOrderAndFreezeAsyncSettings() {
+        using PdfDocument document = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .PageBreak().Paragraph(paragraph => paragraph.Text("Page two"));
+        var options = new PdfImageExportOptions {
+            Format = OfficeImageExportFormat.Svg, PageSelector = PdfPageSelector.Parse("last,1"),
+            MaximumOutputWidth = 160, MaximumOutputHeight = 160
+        };
+        Task<OfficeIMO.OfficeConversionResult<IReadOnlyList<OfficeImageExportResult>>> pending = document.ExportImagesAsync(options);
+        options.Format = OfficeImageExportFormat.Jpeg;
+        options.PageSelector = PdfPageSelector.Parse("1");
+        var exported = await pending;
+        Assert.Equal(2, exported.Value.Count);
+        Assert.Equal(new[] { "Page 2", "Page 1" }, exported.Value.Select(result => result.Name));
+        Assert.Equal(2, exported.Report.ItemsWritten);
+        Assert.Equal("Svg", exported.Report.Target);
+        Assert.Equal(document.ExportImages(new PdfImageExportOptions {
+            Format = OfficeImageExportFormat.Svg, PageSelector = PdfPageSelector.Parse("2"),
+            MaximumOutputWidth = 160, MaximumOutputHeight = 160
+        }).Single().Bytes, exported.Value[0].Bytes);
+        Assert.All(exported.Value, result => {
+            var image = OfficeImageReader.Identify(result.Bytes);
+            Assert.Equal(OfficeImageExportFormat.Svg, result.Format);
+            Assert.Equal(image.Width, result.Width);
+            Assert.Equal(image.Height, result.Height);
+            Assert.Equal("image/svg+xml", image.MimeType);
+            Assert.InRange(image.Width, 1, 160);
+            Assert.InRange(image.Height, 1, 160);
+        });
+    }
+
+    [Fact]
+    public async Task PublicImageSavesReturnReportsAndRejectLossBeforeWriting() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-image-" + Guid.NewGuid().ToString("N"));
+        try {
+            using PdfDocument document = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Page"));
+            var options = new PdfImageExportOptions { Format = OfficeImageExportFormat.Webp };
+            OfficeIMO.OfficeConversionReport report = await document.SaveAsImagesAsync(directory, options);
+            string path = Assert.Single(Directory.GetFiles(directory));
+            Assert.Equal("image/webp", OfficeImageReader.Identify(File.ReadAllBytes(path)).MimeType);
+            Assert.Equal(1, report.ItemsWritten);
+            Assert.Equal(Path.GetFullPath(directory), report.OutputPath);
+            Assert.Throws<IOException>(() => document.SaveAsImages(directory, options));
+            using var input = new MemoryStream(BuildSinglePagePdf("1 2 FuturePaint"));
+            using PdfDocument lossy = PdfDocument.Load(input);
+            var strict = new PdfImageExportOptions { Format = OfficeImageExportFormat.Svg, FailOnLoss = true };
+            string strictDirectory = Path.Combine(directory, "strict");
+            var failure = Assert.Throws<OfficeIMO.OfficeConversionException>(() => lossy.SaveAsImages(strictDirectory, strict));
+            Assert.Contains(Assert.IsType<OfficeIMO.OfficeConversionReport>(failure.Report).Diagnostics, finding => finding.Code == "render.operator.unsupported" &&
+                finding.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Empty(Directory.Exists(strictDirectory) ? Directory.GetFiles(strictDirectory) : Array.Empty<string>());
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
     }
 
     private static PdfReadDocument LoadTwoPageDocument() =>

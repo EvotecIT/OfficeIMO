@@ -45,7 +45,7 @@ public sealed class ImageOcrWorkflowTests {
             var recovery = new OfficeWorkflowOutputRecoveryStore(Path.Combine(root, "recovery"));
             var request = new ImageOcrWorkflowRequest {
                 InputPath = "content://scans/input", InputStream = new("scan.png", _ => Task.FromResult<Stream>(new MemoryStream(image))),
-                OutputPath = "content://scans/output", ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                OutputPath = "content://scans/output", ConflictPolicy = OfficePublicationPolicy.Replace,
                 OutputStream = new("reviewed.txt", _ => Task.FromResult<Stream>(new MemoryStream(stored)), _ => {
                     if (failWrite) throw new IOException("Provider write is unavailable.");
                     return Task.FromResult<Stream>(new TextDestination(bytes => stored = bytes));
@@ -95,7 +95,7 @@ public sealed class ImageOcrWorkflowTests {
             var entered = new TaskCompletionSource<ImageOcrWorkflowReview>(TaskCreationOptions.RunContinuationsAsynchronously);
             var decision = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
             var request = new ImageOcrWorkflowRequest {
-                InputPath = source, OutputPath = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                InputPath = source, OutputPath = output, ConflictPolicy = OfficePublicationPolicy.Replace,
                 Limits = new() { MaximumOutputBytes = action == "too-large" ? 1 : 1024 },
                 ReviewAsync = (review, _) => { entered.SetResult(review); return decision.Task; }
             };

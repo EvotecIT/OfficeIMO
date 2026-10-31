@@ -86,16 +86,16 @@ public sealed class AddOfficePdfFormFieldCommand : PSCmdlet
                     content.CheckBox(Name, Checked.IsPresent, align: Align);
                     break;
                 case OfficePdfFormFieldType.Choice:
-                    content.ChoiceField(Name, Options, Value, Width, Height, Align);
+                    content.ChoiceField(Name, Options, Value, global::OfficeIMO.OfficeLength.Points(Width), global::OfficeIMO.OfficeLength.Points(Height), Align);
                     break;
                 case OfficePdfFormFieldType.MultiSelectChoice:
-                    content.MultiSelectChoiceField(Name, Options, Values.Length > 0 ? Values : Value == null ? null : new[] { Value }, Width, Height, Align);
+                    content.MultiSelectChoiceField(Name, Options, Values.Length > 0 ? Values : Value == null ? null : new[] { Value }, global::OfficeIMO.OfficeLength.Points(Width), global::OfficeIMO.OfficeLength.Points(Height), Align);
                     break;
                 case OfficePdfFormFieldType.RadioButton:
                     content.RadioButtonGroup(Name, Options, Value, align: Align);
                     break;
                 default:
-                    content.TextField(Name, Width, Height, Value ?? string.Empty, Align);
+                    content.TextField(Name, global::OfficeIMO.OfficeLength.Points(Width), global::OfficeIMO.OfficeLength.Points(Height), Value ?? string.Empty, Align);
                     break;
             }
         });

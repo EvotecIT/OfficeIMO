@@ -3,10 +3,11 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Markdown;
 
 /// <summary>
-/// Root document container and fluent API entrypoint for composing Markdown.
-/// Supports a fluent-chaining style and an explicit object model via <see cref="Add(IMarkdownBlock)"/>.
+/// Root document container for Markdown blocks and syntax helpers.
+/// Use <see cref="Add{T}(T)"/> to append and retain a typed block.
 /// </summary>
-public partial class MarkdownDoc : MarkdownObject {
+public partial class MarkdownDocument : MarkdownObject {
+    internal MarkdownDocument() { }
     /// <summary>Resolved heading metadata within a document.</summary>
     public sealed class HeadingInfo {
         /// <summary>The heading block.</summary>
@@ -27,61 +28,25 @@ public partial class MarkdownDoc : MarkdownObject {
     private readonly List<IMarkdownBlock> _blocks = new();
     private IMarkdownBlock? _lastBlock;
     private IFrontMatterMarkdownBlock? _frontMatter;
-    private MarkdownParseResult? _parseResult;
+    private MarkdownParseInfo? _parseResult;
 
     /// <summary>Creates a new, empty Markdown document.</summary>
-    public static MarkdownDoc Create() => new MarkdownDoc();
-
-    /// <summary>All blocks added to the document (excluding front matter).</summary>
-    public IReadOnlyList<IMarkdownBlock> Blocks => _blocks;
-    /// <summary>Document-level front matter/header block when present.</summary>
-    public FrontMatterBlock? DocumentHeader => _frontMatter as FrontMatterBlock;
-    /// <summary>Structured document front matter entries when present.</summary>
-    public IReadOnlyList<FrontMatterBlock.Entry> FrontMatterEntries => DocumentHeader?.Entries ?? Array.Empty<FrontMatterBlock.Entry>();
-    /// <summary>All top-level document blocks in order, including front matter when present.</summary>
-    public IReadOnlyList<IMarkdownBlock> TopLevelBlocks => BuildTopLevelBlocks();
-    /// <summary>Whether the document has front matter.</summary>
-    public bool HasDocumentHeader => DocumentHeader != null;
-
-    internal MarkdownParseResult? AttachedParseResult => _parseResult;
-
-    /// <summary>Adds a block instance (object-model style).</summary>
-    /// <param name="block">Block to append to the document.</param>
-    /// <returns>Same <see cref="MarkdownDoc"/> for chaining.</returns>
-    public MarkdownDoc Add(IMarkdownBlock block) {
-        if (block is IFrontMatterMarkdownBlock fm) {
-            _frontMatter = fm;
-        } else {
-            _blocks.Add(block);
-            _lastBlock = block;
-        }
-        _parseResult = null;
-        RequestObjectTreeBinding();
-        return this;
+    public static MarkdownDocument Create(MarkdownCreateOptions? options = null) {
+        MarkdownDocument document = options?.Template == null ? new MarkdownDocument() : Load(options.Template);
+        document._filePath = null;
+        return document;
     }
 
-    /// <summary>Adds multiple blocks and binds the resulting object tree once after the batch is complete.</summary>
-    /// <param name="blocks">Blocks to append in source order.</param>
-    /// <returns>Same <see cref="MarkdownDoc"/> for chaining.</returns>
-    public MarkdownDoc AddRange(IEnumerable<IMarkdownBlock> blocks) {
-        if (blocks == null) throw new ArgumentNullException(nameof(blocks));
-        foreach (IMarkdownBlock block in blocks) {
-            if (block == null) throw new ArgumentException("Markdown blocks cannot contain null entries.", nameof(blocks));
-            if (block is IFrontMatterMarkdownBlock frontMatter) {
-                _frontMatter = frontMatter;
-            } else {
-                _blocks.Add(block);
-                _lastBlock = block;
-            }
-        }
-
-        _parseResult = null;
-        MarkdownObjectTreeBinder.BindDocument(this);
-        return this;
+    /// <summary>Creates a Markdown document associated with a path, without writing the file.</summary>
+    public static MarkdownDocument Create(string filePath, MarkdownCreateOptions? options = null) {
+        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+        MarkdownDocument document = Create(options);
+        document._filePath = System.IO.Path.GetFullPath(filePath);
+        return document;
     }
 
     /// <summary>Rewrites the document using the provided rewriter.</summary>
-    public MarkdownDoc Rewrite(MarkdownRewriter rewriter) {
+    public MarkdownDocument Rewrite(MarkdownRewriter rewriter) {
         if (rewriter == null) {
             throw new ArgumentNullException(nameof(rewriter));
         }
@@ -110,7 +75,7 @@ public partial class MarkdownDoc : MarkdownObject {
         MarkdownObjectTreeBinder.BindDocument(this);
     }
 
-    internal void AttachParseResult(MarkdownParseResult parseResult) {
+    internal void AttachParseResult(MarkdownParseInfo parseResult) {
         _parseResult = parseResult ?? throw new ArgumentNullException(nameof(parseResult));
     }
 
@@ -384,108 +349,108 @@ public partial class MarkdownDoc : MarkdownObject {
 
     /// <summary>Sets YAML front matter from an anonymous object or dictionary.</summary>
     [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Uses reflection over an arbitrary runtime type. For NativeAOT, call FrontMatter<T> or pass a dictionary.")]
-    public MarkdownDoc FrontMatter(object data) {
+    public MarkdownDocument FrontMatter(object data) {
         _frontMatter = FrontMatterBlock.FromObject(data);
         MarkdownObjectTreeBinder.BindDocument(this);
         return this;
     }
 
     /// <summary>Sets YAML front matter from a type known at publish time.</summary>
-    public MarkdownDoc FrontMatter<
+    public MarkdownDocument FrontMatter<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] T>(T data) {
         _frontMatter = FrontMatterBlock.FromObject(data);
         MarkdownObjectTreeBinder.BindDocument(this);
         return this;
     }
 
-    /// <summary>Adds an H1 heading.</summary>
-    public MarkdownDoc H1(string text) => Add(new HeadingBlock(1, text));
-    /// <summary>Adds an H2 heading.</summary>
-    public MarkdownDoc H2(string text) => Add(new HeadingBlock(2, text));
-    /// <summary>Adds an H3 heading.</summary>
-    public MarkdownDoc H3(string text) => Add(new HeadingBlock(3, text));
+    /// <summary>Adds an MarkdownH1 heading.</summary>
+    public MarkdownDocument H1(string text) => Append(new HeadingBlock(1, text));
+    /// <summary>Adds an MarkdownH2 heading.</summary>
+    public MarkdownDocument H2(string text) => Append(new HeadingBlock(2, text));
+    /// <summary>Adds an MarkdownH3 heading.</summary>
+    public MarkdownDocument H3(string text) => Append(new HeadingBlock(3, text));
     /// <summary>Adds an H4 heading.</summary>
-    public MarkdownDoc H4(string text) => Add(new HeadingBlock(4, text));
+    public MarkdownDocument H4(string text) => Append(new HeadingBlock(4, text));
     /// <summary>Adds an H5 heading.</summary>
-    public MarkdownDoc H5(string text) => Add(new HeadingBlock(5, text));
+    public MarkdownDocument H5(string text) => Append(new HeadingBlock(5, text));
     /// <summary>Adds an H6 heading.</summary>
-    public MarkdownDoc H6(string text) => Add(new HeadingBlock(6, text));
+    public MarkdownDocument H6(string text) => Append(new HeadingBlock(6, text));
 
     /// <summary>Adds a paragraph with plain text.</summary>
-    public MarkdownDoc P(string text) => Add(new ParagraphBlock(new InlineSequence().Text(text)));
+    public MarkdownDocument P(string text) => Append(new ParagraphBlock(new InlineSequence().Text(text)));
 
     /// <summary>Adds a paragraph composed with the paragraph builder.</summary>
-    public MarkdownDoc P(Action<MarkdownParagraphBuilder> build) {
+    public MarkdownDocument P(Action<MarkdownParagraphBuilder> build) {
         MarkdownParagraphBuilder builder = new MarkdownParagraphBuilder();
         build(builder);
-        return Add(new ParagraphBlock(builder.Inlines));
+        return Append(new ParagraphBlock(builder.Inlines));
     }
 
     /// <summary>Adds a simple block quote with a single line of text.</summary>
-    public MarkdownDoc Quote(string text) => Add(new QuoteBlock(new[] { text ?? string.Empty }));
+    public MarkdownDocument Quote(string text) => Append(new QuoteBlock(new[] { text ?? string.Empty }));
 
-    /// <summary>Adds a block quote composed via <see cref="QuoteBuilder"/>.</summary>
-    public MarkdownDoc Quote(Action<QuoteBuilder> build) {
-        QuoteBuilder builder = new QuoteBuilder();
+    /// <summary>Adds a block quote composed via <see cref="MarkdownQuoteBuilder"/>.</summary>
+    public MarkdownDocument Quote(Action<MarkdownQuoteBuilder> build) {
+        MarkdownQuoteBuilder builder = new MarkdownQuoteBuilder();
         build(builder);
-        return Add(builder.Build());
+        return Append(builder.Build());
     }
 
     /// <summary>Adds a collapsible details block.</summary>
-    public MarkdownDoc Details(string summary, Action<MarkdownDoc> buildBody, bool open = false) {
-        var inner = MarkdownDoc.Create();
+    public MarkdownDocument Details(string summary, Action<MarkdownDocument> buildBody, bool open = false) {
+        var inner = MarkdownDocument.Create();
         buildBody(inner);
         var details = new DetailsBlock(new SummaryBlock(summary), inner.Blocks, open);
-        return Add(details);
+        return Append(details);
     }
 
     /// <summary>Adds a horizontal rule.</summary>
-    public MarkdownDoc Hr() => Add(new HorizontalRuleBlock());
+    public MarkdownDocument Hr() => Append(new HorizontalRuleBlock());
 
     /// <summary>Adds a callout/admonition block (Docs-style).</summary>
-    public MarkdownDoc Callout(string kind, string title, string body) => Add(new CalloutBlock(kind, title, body));
+    public MarkdownDocument Callout(string kind, string title, string body) => Append(new CalloutBlock(kind, title, body));
 
     /// <summary>Adds a callout/admonition block with structured markdown body content.</summary>
-    public MarkdownDoc Callout(string kind, string title, Action<MarkdownDoc> buildBody) {
+    public MarkdownDocument Callout(string kind, string title, Action<MarkdownDocument> buildBody) {
         if (buildBody == null) {
             throw new ArgumentNullException(nameof(buildBody));
         }
 
-        var body = MarkdownDoc.Create();
+        var body = MarkdownDocument.Create();
         buildBody(body);
-        return Add(new CalloutBlock(kind, title, body.Blocks));
+        return Append(new CalloutBlock(kind, title, body.Blocks));
     }
 
     /// <summary>Adds an unordered list.</summary>
-    public MarkdownDoc Ul(Action<UnorderedListBuilder> build) {
-        UnorderedListBuilder builder = new UnorderedListBuilder();
+    public MarkdownDocument Ul(Action<MarkdownUnorderedListBuilder> build) {
+        MarkdownUnorderedListBuilder builder = new MarkdownUnorderedListBuilder();
         build(builder);
-        return Add(builder.Build());
+        return Append(builder.Build());
     }
 
     /// <summary>Adds an ordered list.</summary>
-    public MarkdownDoc Ol(Action<OrderedListBuilder> build) {
-        OrderedListBuilder builder = new OrderedListBuilder();
+    public MarkdownDocument Ol(Action<MarkdownOrderedListBuilder> build) {
+        MarkdownOrderedListBuilder builder = new MarkdownOrderedListBuilder();
         build(builder);
-        return Add(builder.Build());
+        return Append(builder.Build());
     }
 
     /// <summary>Adds a definition list.</summary>
-    public MarkdownDoc Dl(Action<DefinitionListBuilder> build) {
-        DefinitionListBuilder builder = new DefinitionListBuilder();
+    public MarkdownDocument Dl(Action<MarkdownDefinitionListBuilder> build) {
+        MarkdownDefinitionListBuilder builder = new MarkdownDefinitionListBuilder();
         build(builder);
-        return Add(builder.Build());
+        return Append(builder.Build());
     }
 
     /// <summary>Adds a fenced code block.</summary>
-    public MarkdownDoc Code(string language, string content) {
+    public MarkdownDocument Code(string language, string content) {
         CodeBlock code = new CodeBlock(language, content);
-        Add(code);
+        Append(code);
         return this;
     }
 
     /// <summary>Sets a caption for the last captionable block (image/code), or appends a paragraph.</summary>
-    public MarkdownDoc Caption(string caption) {
+    public MarkdownDocument Caption(string caption) {
         if (_lastBlock is ICaptionable cap) {
             cap.Caption = caption;
         } else {
@@ -496,81 +461,48 @@ public partial class MarkdownDoc : MarkdownObject {
     }
 
     /// <summary>Adds an image block with optional alt text and title.</summary>
-    public MarkdownDoc Image(string path, string? alt, string? title)
-        => Add(new ImageBlock(path, alt, title));
+    public MarkdownDocument Image(string path, string? alt, string? title)
+        => Append(new ImageBlock(path, alt, title));
 
-    /// <summary>Adds an image block with optional alt text, title, and size hints.</summary>
-    public MarkdownDoc Image(string path, string? alt = null, string? title = null, double? width = null, double? height = null)
-        => Add(new ImageBlock(path, alt, title, width, height));
+    /// <summary>Adds an image block with optional alt text, title, and physical display lengths.</summary>
+    public MarkdownDocument Image(string path, string? alt = null, string? title = null, OfficeLength? width = null, OfficeLength? height = null)
+        => Append(new ImageBlock(path, alt, title, width, height));
 
-    /// <summary>Adds a table built with <see cref="TableBuilder"/>.</summary>
-    public MarkdownDoc Table(Action<TableBuilder> build) {
-        TableBuilder tb = new TableBuilder();
+    /// <summary>Adds a table built with <see cref="MarkdownTableBuilder"/>.</summary>
+    public MarkdownDocument Table(Action<MarkdownTableBuilder> build) {
+        MarkdownTableBuilder tb = new MarkdownTableBuilder();
         build(tb);
-        return Add(tb.Build());
+        return Append(tb.Build());
     }
 
     /// <summary>
-    /// Builds a table via <see cref="TableBuilder"/>, then applies auto-alignment heuristics if requested.
+    /// Builds a table via <see cref="MarkdownTableBuilder"/>, then applies auto-alignment heuristics if requested.
     /// </summary>
-    public MarkdownDoc TableAuto(Action<TableBuilder> build, bool alignNumeric = true, bool alignDates = true) {
-        TableBuilder tb = new TableBuilder();
+    public MarkdownDocument TableAuto(Action<MarkdownTableBuilder> build, bool alignNumeric = true, bool alignDates = true) {
+        MarkdownTableBuilder tb = new MarkdownTableBuilder();
         build(tb);
         if (alignDates) tb.AlignDatesCenter();
         if (alignNumeric) tb.AlignNumericRight();
-        return Add(tb.Build());
-    }
-
-    /// <summary>
-    /// Convenience to add a table from arbitrary data; see <see cref="TableBuilder.FromAny(object?)"/> for rules.
-    /// </summary>
-    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Uses reflection over arbitrary runtime types. For NativeAOT, use TableFrom<T> with explicit selectors.")]
-    [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Uses runtime generic inspection for arbitrary dictionaries. For NativeAOT, use TableFrom<T> with explicit selectors.")]
-    public MarkdownDoc TableFrom(object? data) {
-        TableBuilder tb = new TableBuilder();
-        tb.FromAny(data);
-        return Add(tb.Build());
-    }
-
-    /// <summary>
-    /// Creates a table from data and applies auto-alignment heuristics (numeric right, dates center) if requested.
-    /// </summary>
-    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Uses reflection over arbitrary runtime types. For NativeAOT, use TableFrom<T> with explicit selectors.")]
-    [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Uses runtime generic inspection for arbitrary dictionaries. For NativeAOT, use TableFrom<T> with explicit selectors.")]
-    public MarkdownDoc TableFromAuto(object? data, System.Action<TableFromOptions>? configure = null, bool alignNumeric = true, bool alignDates = true) {
-        TableBuilder tb = new TableBuilder();
-        if (configure is null) tb.FromAny(data); else tb.FromAny(data, configure);
-        if (alignDates) tb.AlignDatesCenter();
-        if (alignNumeric) tb.AlignNumericRight();
-        return Add(tb.Build());
-    }
-
-    /// <summary>
-    /// Convenience to add a table from a sequence using column selectors.
-    /// </summary>
-    public MarkdownDoc TableFrom<T>(System.Collections.Generic.IEnumerable<T> items, params (string Header, System.Func<T, object?> Selector)[] columns) {
-        TableBuilder tb = new TableBuilder();
-        tb.FromSequence(items, columns);
-        return Add(tb.Build());
+        return Append(tb.Build());
     }
 
     /// <summary>Adds an unordered list from a sequence of items using ToString().</summary>
-    public MarkdownDoc Ul<T>(System.Collections.Generic.IEnumerable<T> items) {
-        UnorderedListBuilder builder = new UnorderedListBuilder();
+    public MarkdownDocument Ul<T>(System.Collections.Generic.IEnumerable<T> items) {
+        MarkdownUnorderedListBuilder builder = new MarkdownUnorderedListBuilder();
         builder.Items(items, null);
-        return Add(builder.Build());
+        return Append(builder.Build());
     }
 
     /// <summary>Adds an ordered list from a sequence of items using ToString().</summary>
-    public MarkdownDoc Ol<T>(System.Collections.Generic.IEnumerable<T> items, int start = 1) {
-        OrderedListBuilder builder = new OrderedListBuilder().StartAt(start);
+    public MarkdownDocument Ol<T>(System.Collections.Generic.IEnumerable<T> items, int start = 1) {
+        MarkdownOrderedListBuilder builder = new MarkdownOrderedListBuilder().StartAt(start);
         builder.Items(items, null);
-        return Add(builder.Build());
+        return Append(builder.Build());
     }
 
     /// <summary>Renders an embeddable HTML fragment. Wraps in &lt;article class="markdown-body"&gt; by default.</summary>
-    public string ToHtmlFragment(HtmlOptions? options = null) {
-        HtmlOptions operation = (options ?? new HtmlOptions()).CloneForRender(HtmlKind.Fragment);
+    internal string RenderHtmlFragment(MarkdownHtmlExportOptions? options = null) {
+        MarkdownHtmlExportOptions operation = (options ?? new MarkdownHtmlExportOptions()).CloneForRender(MarkdownHtmlKind.Fragment);
         return HtmlRenderer.Render(this, operation);
     }
 
@@ -578,8 +510,8 @@ public partial class MarkdownDoc : MarkdownObject {
     /// Renders an embeddable HTML fragment and inlines the computed CSS and tiny scripts at the top/bottom
     /// of the fragment. Useful when you want a single self-contained chunk without a full HTML document.
     /// </summary>
-    public string ToHtmlFragmentWithCss(HtmlOptions? options = null) {
-        HtmlOptions operation = (options ?? new HtmlOptions()).CloneForRender(HtmlKind.Fragment);
+    internal string RenderHtmlFragmentWithCss(MarkdownHtmlExportOptions? options = null) {
+        MarkdownHtmlExportOptions operation = (options ?? new MarkdownHtmlExportOptions()).CloneForRender(MarkdownHtmlKind.Fragment);
         var parts = HtmlRenderer.RenderParts(this, operation);
         var sb = new StringBuilder();
         if (!string.IsNullOrEmpty(parts.Css)) sb.Append("<style>\n").Append(parts.Css).Append("\n</style>");
@@ -589,14 +521,14 @@ public partial class MarkdownDoc : MarkdownObject {
     }
 
     /// <summary>Renders a standalone HTML5 document with optional CSS/JS assets.</summary>
-    public string ToHtmlDocument(HtmlOptions? options = null) {
-        HtmlOptions operation = (options ?? new HtmlOptions()).CloneForRender(HtmlKind.Document);
+    internal string RenderHtmlDocument(MarkdownHtmlExportOptions? options = null) {
+        MarkdownHtmlExportOptions operation = (options ?? new MarkdownHtmlExportOptions()).CloneForRender(MarkdownHtmlKind.Document);
         return HtmlRenderer.Render(this, operation);
     }
 
     /// <summary>Returns rendered parts for advanced embedding (Head, Body, Css, Scripts).</summary>
-    public HtmlRenderParts ToHtmlParts(HtmlOptions? options = null) {
-        HtmlOptions operation = (options ?? new HtmlOptions()).CloneForRender();
+    public MarkdownHtmlParts ToHtmlParts(MarkdownHtmlExportOptions? options = null) {
+        MarkdownHtmlExportOptions operation = (options ?? new MarkdownHtmlExportOptions()).CloneForRender();
         return HtmlRenderer.RenderParts(this, operation);
     }
 
@@ -609,60 +541,17 @@ public partial class MarkdownDoc : MarkdownObject {
         return (realized, headingCatalog);
     }
 
-    /// <summary>
-    /// Saves HTML to the specified file. When <see cref="CssDelivery.ExternalFile"/> is used,
-    /// writes a sidecar CSS file next to the HTML and links it.
-    /// </summary>
-    public void SaveAsHtml(string path, HtmlOptions? options = null) {
-        HtmlOptions operation = (options ?? new HtmlOptions()).CloneForRender();
-        // If external CSS requested, compute sidecar path and let renderer know
-        if (operation.CssDelivery == CssDelivery.ExternalFile) {
-            var basePath = System.IO.Path.ChangeExtension(path, null);
-            var cssPath = basePath + ".css";
-            operation.ExternalCssOutputPath = cssPath;
-        }
-        var html = HtmlRenderer.Render(this, operation);
-        OfficeFileCommit.WriteAllBytes(path, System.Text.Encoding.UTF8.GetBytes(html));
-        // If renderer produced a sidecar css, ensure it's written
-        if (!string.IsNullOrEmpty(operation.ExternalCssOutputPath) && operation._externalCssContentToWrite is not null) {
-            OfficeFileCommit.WriteAllBytes(
-                operation.ExternalCssOutputPath!,
-                System.Text.Encoding.UTF8.GetBytes(operation._externalCssContentToWrite));
-        }
-    }
+
+
+
 
     /// <summary>
-    /// Asynchronously saves HTML to the specified file. When <see cref="CssDelivery.ExternalFile"/> is used,
-    /// writes a sidecar CSS file next to the HTML and links it.
-    /// </summary>
-    public async System.Threading.Tasks.Task SaveAsHtmlAsync(string path, HtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
-        HtmlOptions operation = (options ?? new HtmlOptions()).CloneForRender();
-        if (operation.CssDelivery == CssDelivery.ExternalFile) {
-            var basePath = System.IO.Path.ChangeExtension(path, null);
-            var cssPath = basePath + ".css";
-            operation.ExternalCssOutputPath = cssPath;
-        }
-        cancellationToken.ThrowIfCancellationRequested();
-        var html = HtmlRenderer.Render(this, operation);
-        await OfficeFileCommit.WriteAllBytesAsync(
-            path,
-            System.Text.Encoding.UTF8.GetBytes(html),
-            cancellationToken: cancellationToken).ConfigureAwait(false);
-        if (!string.IsNullOrEmpty(operation.ExternalCssOutputPath) && operation._externalCssContentToWrite is not null) {
-            await OfficeFileCommit.WriteAllBytesAsync(
-                operation.ExternalCssOutputPath!,
-                System.Text.Encoding.UTF8.GetBytes(operation._externalCssContentToWrite),
-                cancellationToken: cancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    /// <summary>
-    /// Generates a Table of Contents from headings already present in the document and inserts it.
+    /// Generates a MarkdownTable of Contents from headings already present in the document and inserts it.
     /// </summary>
     /// <param name="configure">Optional TOC options.</param>
     /// <param name="placeAtTop">When true, inserts TOC as the first block; otherwise appended.</param>
-    public MarkdownDoc Toc(System.Action<TocOptions>? configure = null, bool placeAtTop = false) {
-        var opts = new TocOptions();
+    public MarkdownDocument Toc(System.Action<MarkdownTocOptions>? configure = null, bool placeAtTop = false) {
+        var opts = new MarkdownTocOptions();
         configure?.Invoke(opts);
 
         var placeholder = new TocPlaceholderBlock(opts, titleHeadingAlreadyInserted: opts.IncludeTitle);
@@ -685,17 +574,17 @@ public partial class MarkdownDoc : MarkdownObject {
     }
 
     /// <summary>
-    /// Convenience helper to insert a Table of Contents at the top with common parameters.
+    /// Convenience helper to insert a MarkdownTable of Contents at the top with common parameters.
     /// </summary>
-    public MarkdownDoc TocAtTop(string title = "Contents", int min = 1, int max = 3, bool ordered = false, int titleLevel = 2) {
+    public MarkdownDocument TocAtTop(string title = "Contents", int min = 1, int max = 3, bool ordered = false, int titleLevel = 2) {
         return Toc(opts => { opts.Title = title; opts.MinLevel = min; opts.MaxLevel = max; opts.Ordered = ordered; opts.TitleLevel = titleLevel; }, placeAtTop: true);
     }
 
     /// <summary>
     /// Inserts a TOC placeholder at the current position without a title heading by default.
     /// </summary>
-    public MarkdownDoc TocHere(System.Action<TocOptions>? configure = null) {
-        var opts = new TocOptions { IncludeTitle = false };
+    public MarkdownDocument TocHere(System.Action<MarkdownTocOptions>? configure = null) {
+        var opts = new MarkdownTocOptions { IncludeTitle = false };
         configure?.Invoke(opts);
         var placeholder = new TocPlaceholderBlock(opts);
         _blocks.Add(placeholder);
@@ -707,15 +596,15 @@ public partial class MarkdownDoc : MarkdownObject {
     /// <summary>
     /// Inserts a section TOC for the nearest preceding heading. Useful to place a small TOC under a section.
     /// </summary>
-    public MarkdownDoc TocForPreviousHeading(string? title = "Contents", int min = 2, int max = 6, bool ordered = false, int titleLevel = 3) {
-        return Toc(opts => { opts.Title = title ?? ""; opts.IncludeTitle = !string.IsNullOrEmpty(title); opts.MinLevel = min; opts.MaxLevel = max; opts.Ordered = ordered; opts.TitleLevel = titleLevel; opts.Scope = TocScope.PreviousHeading; }, placeAtTop: false);
+    public MarkdownDocument TocForPreviousHeading(string? title = "Contents", int min = 2, int max = 6, bool ordered = false, int titleLevel = 3) {
+        return Toc(opts => { opts.Title = title ?? ""; opts.IncludeTitle = !string.IsNullOrEmpty(title); opts.MinLevel = min; opts.MaxLevel = max; opts.Ordered = ordered; opts.TitleLevel = titleLevel; opts.Scope = MarkdownTocScope.PreviousHeading; }, placeAtTop: false);
     }
 
     /// <summary>
     /// Inserts a section TOC scoped to the named heading.
     /// </summary>
-    public MarkdownDoc TocForSection(string headingTitle, string? title = "Contents", int min = 2, int max = 6, bool ordered = false, int titleLevel = 3) {
-        return Toc(opts => { opts.Title = title ?? ""; opts.IncludeTitle = !string.IsNullOrEmpty(title); opts.MinLevel = min; opts.MaxLevel = max; opts.Ordered = ordered; opts.TitleLevel = titleLevel; opts.Scope = TocScope.HeadingTitle; opts.ScopeHeadingTitle = headingTitle; }, placeAtTop: false);
+    public MarkdownDocument TocForSection(string headingTitle, string? title = "Contents", int min = 2, int max = 6, bool ordered = false, int titleLevel = 3) {
+        return Toc(opts => { opts.Title = title ?? ""; opts.IncludeTitle = !string.IsNullOrEmpty(title); opts.MinLevel = min; opts.MaxLevel = max; opts.Ordered = ordered; opts.TitleLevel = titleLevel; opts.Scope = MarkdownTocScope.HeadingTitle; opts.ScopeHeadingTitle = headingTitle; }, placeAtTop: false);
     }
 
     private (System.Collections.Generic.List<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) RealizeTocPlaceholders(
@@ -735,7 +624,7 @@ public partial class MarkdownDoc : MarkdownObject {
         return (realized, headingCatalog);
     }
 
-    private static string? RenderFrontMatter(IFrontMatterMarkdownBlock? frontMatter, MarkdownWriteOptions options) {
+    private static string? RenderFrontMatter(IFrontMatterMarkdownBlock? frontMatter, MarkdownSaveOptions options) {
         if (frontMatter == null) {
             return null;
         }
@@ -747,7 +636,7 @@ public partial class MarkdownDoc : MarkdownObject {
         };
     }
 
-    private static bool AppendParseOwnedAbbreviationDefinitions(StringBuilder sb, MarkdownParseResult? parseResult, MarkdownWriteOptions options) {
+    private static bool AppendParseOwnedAbbreviationDefinitions(StringBuilder sb, MarkdownParseInfo? parseResult, MarkdownSaveOptions options) {
         if (options.AbbreviationDefinitionRendering == MarkdownAbbreviationDefinitionRenderingMode.Omit) {
             return false;
         }
@@ -776,7 +665,7 @@ public partial class MarkdownDoc : MarkdownObject {
         return wroteDefinition;
     }
 
-    private static string RenderAbbreviationDefinition(MarkdownParseResult parseResult, MarkdownAbbreviationDefinition definition) {
+    private static string RenderAbbreviationDefinition(MarkdownParseInfo parseResult, MarkdownAbbreviationDefinition definition) {
         if (definition.SourceSpan.HasValue
             && parseResult.TryCreateSourceSlice(definition.SourceSpan.Value, out var slice)) {
             var sourceLine = slice.Text.TrimEnd('\r', '\n');

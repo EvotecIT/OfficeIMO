@@ -39,7 +39,7 @@ public sealed class StudioFormOcrReviewTests {
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services,
                 pickSavePdf: _ => Task.FromResult<string?>(copy));
             await model.OpenDocumentAsync(source);
-            await model.PrepareFormOcrAsync(Engine(PdfDocument.Load(original)));
+            await model.PrepareFormOcrAsync(Engine(PdfDocument.Load(new System.IO.MemoryStream(original))));
             Assert.Null(model.FormOcrError);
             var review = Assert.IsType<FormOcrReviewViewModel>(model.FormOcrReview);
             await review.PreviewTask;
@@ -223,7 +223,7 @@ public sealed class StudioFormOcrReviewTests {
             var engine = new DelegateOcrEngine("multi-widget-fixture", (_, _) => Task.FromResult(new OcrResult {
                 Spans = [Span("Bora", 30, 75), Span("Bora", 65, 75), Span("Moorea", 30, 175)]
             }));
-            var prepared = await OfficeIMO.Pdf.Ocr.PdfFormOcrExtensions.PrepareFormOcrAsync(PdfDocument.Load(bytes), engine);
+            var prepared = await OfficeIMO.Pdf.Ocr.PdfFormOcrExtensions.PrepareFormOcrAsync(PdfDocument.Load(new System.IO.MemoryStream(bytes)), engine);
             using var review = new FormOcrReviewViewModel(prepared, ((App)Application.Current!).Services.Localizer);
             var proposal = Assert.Single(review.Proposals);
             Assert.True(proposal.Proposal.IsAmbiguous);

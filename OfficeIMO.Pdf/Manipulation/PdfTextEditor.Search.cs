@@ -107,11 +107,11 @@ internal static partial class PdfTextEditor {
 
     private static List<int[]> SplitTableSearchFlows(ref List<TextLayoutEngine.TextLine> lines,
         IReadOnlyList<PdfTextSpan> spans,
-        List<StructuredTable> tables, int maxFlowComparisons, ref long flowComparisons,
+        List<PdfStructuredTable> tables, int maxFlowComparisons, ref long flowComparisons,
         Action<long> chargeTableWork) {
         var cells = new Dictionary<PdfTextSpan, (int Table, int Row, int Column)>();
         for (int tableIndex = 0; tableIndex < tables.Count; tableIndex++) {
-            StructuredTable table = tables[tableIndex];
+            PdfStructuredTable table = tables[tableIndex];
             var rowBySpan = new Dictionary<PdfTextSpan, int>();
             for (int rowIndex = 0; rowIndex < table.SourceLines.Count; rowIndex++) {
                 foreach (PdfTextSpan span in table.SourceLines[rowIndex].Spans) rowBySpan[span] = rowIndex;
@@ -141,7 +141,7 @@ internal static partial class PdfTextEditor {
                 int row = FindNearestIndex(anchors, span.Y, chargeTableWork);
                 if (Math.Abs(anchors[row] - span.Y) > rowPitch / 2D) continue;
                 int column = FindNearestIndex(columnCenters, span.X, chargeTableWork);
-                StructuredTableColumn columnBounds = table.Columns[column];
+                PdfStructuredTableColumn columnBounds = table.Columns[column];
                 if (span.X < Math.Min(columnBounds.From, columnBounds.To) - 2D ||
                     span.X > Math.Max(columnBounds.From, columnBounds.To) + 2D) continue;
                 cells[span] = (tableIndex, row, column);

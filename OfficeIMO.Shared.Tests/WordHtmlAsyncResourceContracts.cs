@@ -17,13 +17,13 @@ public sealed class WordHtmlAsyncResourceContracts {
         var handler = new ImageHandler();
         using var client = new HttpClient(handler);
         HtmlConversionDocument html = CreateRemoteImageDocument();
-        HtmlToWordOptions options = HtmlToWordOptions.CreateTrustedDocumentProfile();
+        WordHtmlImportOptions options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
         options.AllowDocumentStylesheetLinks = false;
         options.HttpClient = client;
 
-        HtmlToWordResult result = await html.ToWordDocumentResultAsync(options);
+        OfficeConversionResult<OfficeIMO.Word.WordDocument> result = await html.ToWordAsync(options);
 
-        using var document = result.RequireValue();
+        using var document = result.Value;
         Assert.Equal(1, handler.RequestCount);
         Assert.NotEmpty(document.Images);
     }
@@ -33,11 +33,11 @@ public sealed class WordHtmlAsyncResourceContracts {
         var handler = new ImageHandler();
         using var client = new HttpClient(handler);
         HtmlConversionDocument html = CreateRemoteImageDocument();
-        HtmlToWordOptions options = HtmlToWordOptions.CreateTrustedDocumentProfile();
+        WordHtmlImportOptions options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
         options.AllowDocumentStylesheetLinks = false;
         options.HttpClient = client;
 
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => html.ToWordDocumentResult(options));
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => html.ToWord(options));
 
         Assert.Contains("offline-only", exception.Message, StringComparison.Ordinal);
         Assert.Equal(0, handler.RequestCount);
@@ -51,10 +51,10 @@ public sealed class WordHtmlAsyncResourceContracts {
                 Trust = HtmlInputTrust.Trusted,
                 BaseUri = new Uri("https://assets.example.test/pages/index.html")
             });
-        HtmlToWordOptions options = HtmlToWordOptions.CreateTrustedDocumentProfile();
+        WordHtmlImportOptions options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
         options.StylesheetPaths.Add("../styles/site.css");
 
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => html.ToWordDocumentResult(options));
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => html.ToWord(options));
 
         Assert.Contains("offline-only", exception.Message, StringComparison.Ordinal);
     }

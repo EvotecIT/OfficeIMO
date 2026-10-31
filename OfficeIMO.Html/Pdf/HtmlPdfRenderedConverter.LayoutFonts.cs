@@ -28,10 +28,11 @@ internal static partial class HtmlPdfRenderedConverter {
         family = CreateCoverageSafeFontFamily(family, textRuns);
         if (!TryRetainSelectedDefaultFontFamily(family, fonts, options, resources, diagnostics, cancellationToken)) return false;
         options.LibrarySelectedDefaultFontFamily = family;
-        PdfCore.PdfOptions measurement = options.PdfOptions.Clone();
+        PdfCore.PdfCreateOptions measurement = options.PdfOptions.Clone();
         measurement.TextShapingLanguageOverride = options.TextShapingLanguage;
         measurement.SetTextShapingMode(options.TextShapingMode).SetTextShapingProvider(options.TextShapingProvider);
         measurement.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, options.LibrarySelectedDefaultFontFamily);
+        ApplyLibraryDefaultFontEmbedding(options, measurement);
         options.FallbackTextMeasurement = CreateFallbackTextMeasurement(options, measurement);
         options.FallbackTextFaceMetrics = CreateFallbackTextFaceMetrics(options, measurement);
         return true;

@@ -12,7 +12,7 @@ public static partial class OfficeChartDrawingRenderer {
             (style.NoFill || style.FillColor.HasValue || style.Hatch.HasValue || style.OutlineColor.HasValue ||
                 style.OutlineWidth.HasValue || style.ShowOutline.HasValue || style.OutlineJoin.HasValue)) == true);
 
-    private static OfficeChartPointStyle? GetPointStyle(OfficeChartSeries series, int index) {
+    private static OfficeChartPointStyle? GetPointStyle(OfficeSeries series, int index) {
         var point = GetPointStyle(series.PointStyles, index);
         if (series.PointColors != null && index >= 0 && index < series.PointColors.Count &&
             series.PointColors[index] is OfficeColor color)
@@ -23,7 +23,7 @@ public static partial class OfficeChartDrawingRenderer {
     private static OfficeChartPointStyle? GetPointStyle(IReadOnlyList<OfficeChartPointStyle?>? styles, int index) =>
         styles != null && index >= 0 && index < styles.Count ? styles[index] : null;
 
-    private static OfficeColor GetPointDataLabelColor(OfficeChartStyle style, OfficeChartSeries series,
+    private static OfficeColor GetPointDataLabelColor(OfficeChartStyle style, OfficeSeries series,
         int index) {
         // Radial charts do not paint a separate plot-area rectangle.
         OfficeColor background = style.BackgroundColor;
@@ -45,8 +45,8 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeColor color, OfficeChartPointStyle? style, OfficeColor? defaultOutline, double defaultWidth) {
         OfficeColor? fill = style?.NoFill == true ? null : style?.FillColor ?? color;
         OfficeColor? outline = style?.ShowOutline == false ? null : style?.OutlineColor ?? defaultOutline;
-        if (style?.ShowOutline != false && (style?.ShowOutline == true || style?.OutlineWidth != null) && !outline.HasValue) outline = OfficeColor.Black;
-        double width = style?.OutlineWidth ?? defaultWidth;
+        if (style?.ShowOutline != false && (style?.ShowOutline == true || style?.OutlineWidth?.ToPoints() != null) && !outline.HasValue) outline = OfficeColor.Black;
+        double width = style?.OutlineWidth?.ToPoints() ?? defaultWidth;
         if (outline.HasValue && width <= 0 && (style?.ShowOutline == true || style?.OutlineColor != null)) width = 0.75;
         OfficeShape baseShape = shape.Clone();
         baseShape.StrokeLineJoin = style?.OutlineJoin;
@@ -79,8 +79,8 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeColor color, OfficeChartPointStyle? pointStyle, OfficeColor? defaultOutline, double defaultWidth) {
         OfficeColor? fill = pointStyle?.NoFill == true ? null : pointStyle?.FillColor ?? color;
         OfficeColor? outline = pointStyle?.ShowOutline == false ? null : pointStyle?.OutlineColor ?? defaultOutline;
-        double outlineWidth = pointStyle?.OutlineWidth ?? defaultWidth;
-        if (pointStyle?.ShowOutline != false && (pointStyle?.ShowOutline == true || pointStyle?.OutlineWidth != null) && !outline.HasValue) outline = OfficeColor.Black;
+        double outlineWidth = pointStyle?.OutlineWidth?.ToPoints() ?? defaultWidth;
+        if (pointStyle?.ShowOutline != false && (pointStyle?.ShowOutline == true || pointStyle?.OutlineWidth?.ToPoints() != null) && !outline.HasValue) outline = OfficeColor.Black;
         if (outline.HasValue && outlineWidth <= 0 && (pointStyle?.ShowOutline == true || pointStyle?.OutlineColor != null)) outlineWidth = 0.75;
         if (pointStyle?.Hatch == null) {
             AddPolygonShape(drawing, points, fill, outline, outline.HasValue ? outlineWidth : 0,

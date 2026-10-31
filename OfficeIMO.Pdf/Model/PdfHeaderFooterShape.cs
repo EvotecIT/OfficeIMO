@@ -17,10 +17,10 @@ public sealed class PdfHeaderFooterShape {
     }
 
     /// <summary>Shape width in PDF points.</summary>
-    public double Width => _block.Shape.Width;
+    public global::OfficeIMO.OfficeLength Width => global::OfficeIMO.OfficeLength.Points(_block.Shape.Width);
 
     /// <summary>Shape height in PDF points.</summary>
-    public double Height => _block.Shape.Height;
+    public global::OfficeIMO.OfficeLength Height => global::OfficeIMO.OfficeLength.Points(_block.Shape.Height);
 
     /// <summary>Horizontal placement inside the page content width.</summary>
     public PdfAlign Align => _block.Align;

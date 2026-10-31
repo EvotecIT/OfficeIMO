@@ -68,7 +68,7 @@ internal static class PowerPointTextRunService
         run.Underline = spec.Underline;
         run.Strikethrough = spec.Strike;
         run.FontSize = spec.FontSize.HasValue
-            ? (int)Math.Round(spec.FontSize.Value)
+            ? global::OfficeIMO.OfficeLength.Points((int)Math.Round(spec.FontSize.Value))
             : null;
         run.FontName = !string.IsNullOrWhiteSpace(spec.FontName)
             ? spec.FontName

@@ -7,7 +7,7 @@ using global::ChartForgeX.VisualArtifacts;
 using OfficeIMO.ChartForgeX;
 using OfficeIMO.Visio;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.ChartForgeX.Tests;
 

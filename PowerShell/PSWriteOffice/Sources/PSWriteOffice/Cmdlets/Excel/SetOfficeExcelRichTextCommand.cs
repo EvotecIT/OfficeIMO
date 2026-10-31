@@ -84,7 +84,7 @@ public sealed class SetOfficeExcelRichTextCommand : PSCmdlet {
     }
 
     private void WriteRuns(ExcelSheet sheet, int row, int column) {
-        var address = A1.CellReference(row, column);
+        var address = ExcelA1.CellReference(row, column);
         var path = string.Equals(ParameterSetName, ParameterSetPath, System.StringComparison.OrdinalIgnoreCase)
             ? Path
             : null;

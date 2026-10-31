@@ -18,7 +18,7 @@ public sealed class StudioFormSelectionTests {
             var services = ((App)Application.Current!).Services;
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "editable-choice.pdf");
-            PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400)))
+            PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400))))
                 .Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
                     Name = "Country", Kind = PdfFormFieldCreationKind.Choice,
                     X = 20, Y = 200, Width = 120, Height = 24,
@@ -67,8 +67,8 @@ public sealed class StudioFormSelectionTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "selection.pdf");
             byte[] bytes = PdfDocument.Create(compose => {
-                compose.Page(page => page.Size(300, 400));
-                compose.Page(page => page.Size(300, 400));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)));
             }).Pages.Rotate(90, 2).Forms.Edit(edit => edit
                 .Create(new() { Name = "First", PageNumber = 1, X = 20, Y = 50, Value = "First page" })
                 .Create(new() { Name = "Rotated", PageNumber = 2, X = 20, Y = 50, Value = "Second page" })

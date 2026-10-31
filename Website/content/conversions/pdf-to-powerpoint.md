@@ -36,7 +36,7 @@ using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
 
 PdfDocument pdf = PdfDocument.Load("briefing.pdf");
-PdfPowerPointConversionResult result = pdf.ToPowerPointPresentationResult();
+PdfPowerPointConversionResult result = pdf.ToPowerPointDocumentResult();
 using var presentation = result.Value;
 
 File.WriteAllBytes("briefing.pptx", presentation.ToBytes());

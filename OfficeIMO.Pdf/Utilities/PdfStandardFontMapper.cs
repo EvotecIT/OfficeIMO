@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Maps common office font family names to dependency-free PDF standard fonts.
 /// </summary>
-public static class PdfStandardFontMapper {
+internal static class PdfStandardFontMapper {
     private static readonly char[] FamilyTrimChars = { ' ', '\t', '"', '\'' };
 
     /// <summary>

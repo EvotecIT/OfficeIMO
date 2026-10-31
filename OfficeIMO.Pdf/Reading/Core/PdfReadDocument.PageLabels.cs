@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfReadDocument {
+internal sealed partial class PdfReadDocument {
     private IReadOnlyList<PdfPageLabel> ExtractPageLabels(System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary? catalog = FindCatalog();

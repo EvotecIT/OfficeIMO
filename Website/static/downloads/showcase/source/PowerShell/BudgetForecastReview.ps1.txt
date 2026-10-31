@@ -62,7 +62,7 @@ $docx = Join-Path $OutputDirectory 'BudgetForecastReview.docx'
 $pdf = Join-Path $OutputDirectory 'BudgetForecastReview.pdf'
 
 #region Excerpt:pswriteoffice-budget-review
-ExcelNew -Path $xlsx -EvaluateFormulas {
+New-OfficeExcel -Path $xlsx -SaveOptions @{ EvaluateFormulas = $true } {
     ExcelSheet 'Review' {
         ExcelGridlines -Hide
         ExcelColumn -ColumnName A -Width 44
@@ -86,7 +86,7 @@ ExcelNew -Path $xlsx -EvaluateFormulas {
         ExcelPrintArea -Range 'A1:B8'
     }
     ExcelSheet 'Detail' {
-        ExcelTable -Data $rows -TableName 'BudgetForecast' -TableStyle TableStyleMedium4
+        ExcelTable -Data $rows -Name 'BudgetForecast' -TableStyle TableStyleMedium4
         ExcelFreeze -TopRows 1
         ExcelColumn -ColumnName A -Width 36
         ExcelColumn -ColumnName B -Width 24
@@ -109,10 +109,10 @@ $reviewRows = $rows | Select-Object Department,
     @{Name='Budget (USD)';Expression={$_.Budget.ToString('N2',$money)}},
     @{Name='Forecast (USD)';Expression={$_.Forecast.ToString('N2',$money)}},
     @{Name='Variance (USD)';Expression={$_.Variance.ToString('+#,##0.00;-#,##0.00;0.00',$money)}}
-WordNew -Path $docx {
+New-OfficeWord -Path $docx {
     WordHeader { WordParagraph -Text "FINANCE | $inputLabel | $($AsOfDate.ToString('yyyy-MM-dd'))" }
-    WordFooter { WordPageNumber -IncludeTotalPages }
-    WordParagraph { WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true; WordText 'Budget and forecast review' -Bold -FontSize 25 -Color '17365D' }
+    WordFooter { WordPageNumber -IncludeTotal }
+    WordParagraph { WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true; WordText 'Budget and forecast review' -Bold -Size 25 -Color '17365D' }
     WordParagraph -Text "Forecast $($totalForecast.ToString('C2',$money)) against budget $($totalBudget.ToString('C2',$money)); actual spend $($totalActual.ToString('C2',$money))."
     WordParagraph -Text "$(if ($variance -eq 0) {'The forecast matches the approved budget.'} else { "The forecast is $([math]::Abs($variance).ToString('C2',$money)) $(if ($variance -gt 0) {'above'} else {'below'}) budget." }) $($exceptions.Count) department(s) need an overspend decision."
     WordParagraph -Text 'Positive variance is overspend; negative is favorable. The workbook retains detail, formulas and input validation. Regenerate this dated review after changing the CSV.'
@@ -129,8 +129,8 @@ WordNew -Path $docx {
     $table.RepeatHeaderRowAtTheTopOfEachPage = $true
     foreach ($tableRow in $table.Rows) { $tableRow.AllowRowToBreakAcrossPages = $false }
     $table | Get-OfficeWordTableCell | ForEach-Object {
-        $_.MarginTopCentimeters = 0.12; $_.MarginBottomCentimeters = 0.12
-        $_.MarginLeftCentimeters = 0.16; $_.MarginRightCentimeters = 0.16
+        $_.MarginTop = [OfficeIMO.OfficeLength]::Centimeters(0.12); $_.MarginBottom = [OfficeIMO.OfficeLength]::Centimeters(0.12)
+        $_.MarginLeft = [OfficeIMO.OfficeLength]::Centimeters(0.16); $_.MarginRight = [OfficeIMO.OfficeLength]::Centimeters(0.16)
     }
 
 }

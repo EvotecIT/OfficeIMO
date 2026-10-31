@@ -6,9 +6,9 @@ namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         private static void ReportAccountingUnderlineApproximations(
             IReadOnlyList<WorksheetPdfExportPlan> plans,
-            ExcelToPdfOptions options) {
+            ExcelPdfExportOptions options) {
             foreach (WorksheetPdfExportPlan plan in plans) {
-                ExcelCellStyleSnapshot?[,]? styles = plan.ExportData.Styles;
+                ExcelCellStyleInfo?[,]? styles = plan.ExportData.Styles;
                 if (styles == null) continue;
                 int count = 0;
                 for (int row = 0; row < styles.GetLength(0); row++) {
@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel.Pdf {
                 AddWarning(
                     options,
                     plan.SheetName,
-                    "AccountingUnderlineApproximation",
+                    "accounting-underline-approximation",
                     count.ToString(CultureInfo.InvariantCulture)
                     + " accounting underline cell(s) use a glyph-width line in PDF output instead of Excel's cell-width accounting line.");
             }
@@ -107,7 +107,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             return charts
-                .Where(chart => exportedCellReferences.Contains(A1.CellReference(chart.Snapshot.RowIndex, chart.Snapshot.ColumnIndex)))
+                .Where(chart => exportedCellReferences.Contains(ExcelA1.CellReference(chart.Snapshot.RowIndex, chart.Snapshot.ColumnIndex)))
                 .ToList();
         }
 
@@ -115,7 +115,7 @@ namespace OfficeIMO.Excel.Pdf {
             return cellReference.Replace("$", string.Empty).ToUpperInvariant();
         }
 
-        private static IReadOnlyList<TableChunk> CreateTableChunks(WorksheetPdfExportPlan plan, ExcelToPdfOptions options, int exportedColumns, long maximumProjectedCells, bool honorRowBreaks = true, bool honorColumnBreaks = true) {
+        private static IReadOnlyList<TableChunk> CreateTableChunks(WorksheetPdfExportPlan plan, ExcelPdfExportOptions options, int exportedColumns, long maximumProjectedCells, bool honorRowBreaks = true, bool honorColumnBreaks = true) {
             IReadOnlyList<TableAxisChunk> rowChunks = CreateTableAxisChunks(
                 plan.ExportedRows,
                 options.UseWorksheetPageBreaks && honorRowBreaks ? GetManualRowBreakOffsets(plan) : new List<int>());
@@ -250,7 +250,7 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
-                (int Row, int Col) cell = A1.ParseCellRef(reference!.Replace("$", string.Empty));
+                (int Row, int Col) cell = ExcelA1.ParseCellRef(reference!.Replace("$", string.Empty));
                 if (cell.Row > 0) {
                     return cell.Row;
                 }
@@ -266,7 +266,7 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
-                (int Row, int Col) cell = A1.ParseCellRef(reference!.Replace("$", string.Empty));
+                (int Row, int Col) cell = ExcelA1.ParseCellRef(reference!.Replace("$", string.Empty));
                 if (cell.Col > 0) {
                     return cell.Col;
                 }
@@ -275,7 +275,7 @@ namespace OfficeIMO.Excel.Pdf {
             return 0;
         }
 
-        private static IEnumerable<PdfCore.PdfTableCell[]> CreatePdfRows(object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, MergeLayoutData? mergedCells, IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>>? imagesByCellReference, IReadOnlyList<int> rowIndexes, int startColumn, int columnCount, string emptyCellText, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string sheetName, PdfCore.PdfStandardFont defaultFontFamily, double fontScale = 1D, bool preserveWorksheetNoWrap = false, ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred) {
+        private static IEnumerable<PdfCore.PdfTableCell[]> CreatePdfRows(object?[,] values, ExcelCellStyleInfo?[,]? styles, ExcelHyperlinkInfo?[,]? hyperlinks, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, MergeLayoutData? mergedCells, IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>>? imagesByCellReference, IReadOnlyList<int> rowIndexes, int startColumn, int columnCount, string emptyCellText, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string sheetName, PdfCore.PdfStandardFont defaultFontFamily, double fontScale = 1D, bool preserveWorksheetNoWrap = false, ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred, IReadOnlyDictionary<(int Row, int Column), string>? textOverrides = null) {
             int endColumn = Math.Min(values.GetLength(1), startColumn + columnCount);
             for (int localRow = 0; localRow < rowIndexes.Count; localRow++) {
                 int row = rowIndexes[localRow];
@@ -289,10 +289,17 @@ namespace OfficeIMO.Excel.Pdf {
                         continue;
                     }
 
-                    ExcelCellStyleSnapshot? style = GetCellStyle(styles, row, column);
+                    ExcelCellStyleInfo? style = GetCellStyle(styles, row, column);
                     StructuredTableCellVisual? tableVisual = GetStructuredTableCellVisual(structuredTables, cellReferences, row, column);
-                    ExcelHyperlinkSnapshot? hyperlink = GetHyperlink(hyperlinks, row, column);
-                    string text = FormatCellValue(values[row, column], style, emptyCellText, dateSystem);
+                    ExcelHyperlinkInfo? hyperlink = GetHyperlink(hyperlinks, row, column);
+                    string text;
+                    if (textOverrides != null && textOverrides.TryGetValue((row, column), out string? overrideText)) {
+                        text = overrideText;
+                        // Overflowing text, and its link, are painted over the neighbours instead.
+                        if (text.Length == 0) hyperlink = null;
+                    } else {
+                        text = FormatCellValue(values[row, column], style, emptyCellText, dateSystem);
+                    }
                     MergeSpan? span = mergedCells?.GetSpan(row, column);
                     string? cellDestinationName = TryGetCellDestinationName(cellReferences, row, column, sheetName, cellDestinations, out string? destinationName)
                         ? destinationName
@@ -323,20 +330,20 @@ namespace OfficeIMO.Excel.Pdf {
                 : null;
         }
 
-        private static PdfCore.PdfTableCell CreatePdfCell(string text, ExcelCellStyleSnapshot? style, StructuredTableCellVisual? tableVisual, ExcelHyperlinkSnapshot? hyperlink, MergeSpan? span, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string sheetName, string? cellDestinationName, IReadOnlyList<WorksheetImageExportData>? cellImages, PdfCore.PdfStandardFont defaultFontFamily, double fontScale, bool preserveWorksheetNoWrap, string? formatColor) {
+        private static PdfCore.PdfTableCell CreatePdfCell(string text, ExcelCellStyleInfo? style, StructuredTableCellVisual? tableVisual, ExcelHyperlinkInfo? hyperlink, MergeSpan? span, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string sheetName, string? cellDestinationName, IReadOnlyList<WorksheetImageExportData>? cellImages, PdfCore.PdfStandardFont defaultFontFamily, double fontScale, bool preserveWorksheetNoWrap, string? formatColor) {
             int rowSpan = span?.RowSpan ?? 1;
             int columnSpan = span?.ColumnSpan ?? 1;
-            PdfCore.PdfColor? textColor = ToPdfColor(formatColor) ?? ToPdfColor(style?.FontColorHex) ?? ToPdfColor(tableVisual?.Text);
+            global::OfficeIMO.OfficeColor? textColor = ToPdfColor(formatColor) ?? ToPdfColor(style?.FontColorHex) ?? ToPdfColor(tableVisual?.Text);
             bool bold = style?.Bold == true || tableVisual?.Bold == true;
             string? linkUri = hyperlink?.IsExternal == true ? hyperlink.Target : null;
             string? linkDestinationName = TryGetInternalHyperlinkDestinationName(hyperlink, sheetName, sheetDestinations, cellDestinations, out string? destinationName)
                 ? destinationName
                 : null;
-            string? linkContents = linkUri == null && linkDestinationName == null ? null : text;
+            string? linkContents = linkUri == null && linkDestinationName == null || string.IsNullOrWhiteSpace(text) ? null : text;
             IReadOnlyList<PdfCore.PdfTableCellImage>? pdfImages = ToPdfTableCellImages(cellImages);
             PdfCore.PdfStandardFont? font = MapFont(style?.FontName, defaultFontFamily);
-            double? fontSize = style?.FontSize is double authoredFontSize && authoredFontSize > 0D
-                ? authoredFontSize * fontScale
+            double? fontSize = style?.FontSize is global::OfficeIMO.OfficeLength authoredFontSize && authoredFontSize > global::OfficeIMO.OfficeLength.Zero
+                ? authoredFontSize.ToPoints() * fontScale
                 : null;
             string? fontFamily = string.IsNullOrWhiteSpace(style?.FontName) ? null : style!.FontName;
             IReadOnlyList<PdfCore.PdfTextRun> runs = (style != null && (style.Bold || style.Italic || style.Underline || style.Strikethrough || style.VerticalTextAlignment.HasValue || fontSize.HasValue || font.HasValue || fontFamily != null)) || bold || textColor.HasValue
@@ -347,7 +354,7 @@ namespace OfficeIMO.Excel.Pdf {
                     color: textColor,
                     italic: style?.Italic == true,
                     strike: style?.Strikethrough == true,
-                    fontSize: fontSize,
+                    fontSize: ((double?)(fontSize) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
                     font: font,
                     baseline: MapExcelPdfBaseline(style?.VerticalTextAlignment),
                     fontFamily: fontFamily,
@@ -398,7 +405,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             var pdfImages = new List<PdfCore.PdfTableCellImage>(images.Count);
             foreach (WorksheetImageExportData image in images) {
-                pdfImages.Add(new PdfCore.PdfTableCellImage(image.Bytes, image.WidthPoints, image.HeightPoints, CreateConverterImageStyle(image)));
+                pdfImages.Add(new PdfCore.PdfTableCellImage(image.Bytes, global::OfficeIMO.OfficeLength.Points(image.WidthPoints), global::OfficeIMO.OfficeLength.Points(image.HeightPoints), CreateConverterImageStyle(image)));
             }
 
             return pdfImages;
@@ -415,7 +422,7 @@ namespace OfficeIMO.Excel.Pdf {
                 cellDestinations.TryGetValue(CreateCellDestinationKey(sheetName, cellReference!), out destinationName);
         }
 
-        private static bool TryGetInternalHyperlinkDestinationName(ExcelHyperlinkSnapshot? hyperlink, string currentSheetName, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, out string? destinationName) {
+        private static bool TryGetInternalHyperlinkDestinationName(ExcelHyperlinkInfo? hyperlink, string currentSheetName, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, out string? destinationName) {
             destinationName = null;
             if (hyperlink == null || hyperlink.IsExternal || !TryParseInternalTarget(hyperlink.Target, currentSheetName, out string? sheetName, out string? cellReference)) {
                 return false;
@@ -488,17 +495,17 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             string token = referenceToken.Trim();
-            if (A1.TryParseRange(token, out int firstRow, out int firstColumn, out _, out _)) {
-                cellReference = A1.CellReference(firstRow, firstColumn);
+            if (ExcelA1.TryParseRange(token, out int firstRow, out int firstColumn, out _, out _)) {
+                cellReference = ExcelA1.CellReference(firstRow, firstColumn);
                 return true;
             }
 
-            (int Row, int Col) cell = A1.ParseCellRef(token);
+            (int Row, int Col) cell = ExcelA1.ParseCellRef(token);
             if (cell.Row <= 0 || cell.Col <= 0) {
                 return false;
             }
 
-            cellReference = A1.CellReference(cell.Row, cell.Col);
+            cellReference = ExcelA1.CellReference(cell.Row, cell.Col);
             return true;
         }
 

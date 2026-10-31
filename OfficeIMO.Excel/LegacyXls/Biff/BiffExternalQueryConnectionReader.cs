@@ -108,7 +108,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             string message) {
             diagnostics.Add(new LegacyXlsImportDiagnostic(
                 LegacyXlsDiagnosticSeverity.Warning,
-                "XLS-BIFF-DBQUERYEXT-INVALID",
+                "xls-biff-dbqueryext-invalid",
                 "The DBQueryExt external query connection record could not be decoded. " + message,
                 recordOffset: record.Offset,
                 recordType: record.Type,

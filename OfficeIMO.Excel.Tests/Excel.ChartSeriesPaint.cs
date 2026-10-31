@@ -7,8 +7,8 @@ using OfficeIMO.Excel.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests;
-
-public sealed class ExcelChartSeriesPaintTests {
+public sealed class ExcelChartSeriesPaintTests
+{
     [Fact]
     public void NativeSeriesFillAndOutlineRemainIndependent() {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "Charts", "SeriesPaint", "series-paint.xlsx");
@@ -39,29 +39,33 @@ public sealed class ExcelChartSeriesPaintTests {
     [InlineData(true, false)]
     [InlineData(false, true)]
     [InlineData(false, false)]
-    public void RibbonProjectionKeepsItsEnabledPaintIndependent(bool fill, bool outline) {
+    public void RibbonProjectionKeepsItsEnabledPaintIndependent(bool fill, bool outline)
+    {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Paint");
-        sheet.CellValue(1, 1, "Category"); sheet.CellValue(1, 2, "Series");
-        sheet.CellValue(2, 1, "A"); sheet.CellValue(2, 2, 2);
-        sheet.CellValue(3, 1, "B"); sheet.CellValue(3, 2, 4);
-        var chart = sheet.Chart("A1:B3").Line3D().Size(640, 360).At(1, 4);
-        chart.SetSeriesFillColor(0, "0000FF").SetSeriesLineColor(0, "FF0000", 3);
-        if (!fill) chart.SetSeriesNoFill(0, noLine: !outline);
-        else if (!outline) {
-            var line = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single().ChartSpace!
-                .Descendants<DocumentFormat.OpenXml.Drawing.Outline>().First();
+        var sheet = document.AddSheet("Paint");
+        sheet.CellValue(1, 1, "Category");
+        sheet.CellValue(1, 2, "Series");
+        sheet.CellValue(2, 1, "A");
+        sheet.CellValue(2, 2, 2);
+        sheet.CellValue(3, 1, "B");
+        sheet.CellValue(3, 2, 4);
+        var chart = sheet.AddChart(OfficeChartType.Line3D, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(640), Height = OfficeLength.Pixels(360), Title = null, IncludeCachedData = true, HasHeaders = true });
+        chart.SetSeriesFillColor(0, OfficeColor.Parse("0000FF")).SetSeriesLineColor(0, OfficeColor.Parse("FF0000"), OfficeLength.Points(3));
+        if (!fill)
+            chart.SetSeriesNoFill(0, noLine: !outline);
+        else if (!outline)
+        {
+            var line = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single().ChartSpace!.Descendants<DocumentFormat.OpenXml.Drawing.Outline>().First();
             line.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.SolidFill>();
             line.AddChild(new DocumentFormat.OpenXml.Drawing.NoFill(), true);
         }
+
         Assert.True(chart.TryGetSnapshot(out var native));
         Assert.True(ExcelRangeImageRenderer.TryCreateOfficeChartSnapshot(native, 640, 360, null, "Paint", out var snapshot));
         var series = Assert.Single(snapshot!.Data.Series);
         Assert.False(series.ShowMarkers);
         Assert.Equal(fill || outline, series.SeriesStyle!.ShowOutline);
         var drawing = OfficeChartDrawingRenderer.Render(snapshot);
-        Assert.Equal(fill || outline, drawing.Shapes.Any(shape => shape.Shape.StrokeWidth == 3 &&
-            shape.Shape.StrokeColor == (fill ? OfficeColor.Blue : OfficeColor.Red) &&
-            shape.Shape.Kind is OfficeShapeKind.Line or OfficeShapeKind.Path));
+        Assert.Equal(fill || outline, drawing.Shapes.Any(shape => shape.Shape.StrokeWidth == 3 && shape.Shape.StrokeColor == (fill ? OfficeColor.Blue : OfficeColor.Red) && shape.Shape.Kind is OfficeShapeKind.Line or OfficeShapeKind.Path));
     }
 }

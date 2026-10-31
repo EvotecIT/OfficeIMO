@@ -194,7 +194,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(session.Resources);
         Assert.Equal(0, session.AcceptedResourceCount);
         Assert.Contains(session.Diagnostics, diagnostic =>
-            diagnostic.Code == "StylesheetResourceRejectedByPolicy"
+            diagnostic.Code == "stylesheet-resource-rejected-by-policy"
             && diagnostic.Detail == "https://blocked.example.test/site.css");
     }
 
@@ -375,7 +375,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(visuals.OfType<HtmlRenderImage>());
         Assert.Empty(visuals.OfType<HtmlRenderImagePattern>());
         Assert.Empty(visuals.OfType<HtmlRenderDrawing>());
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceRejectedByPolicy");
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "image-resource-rejected-by-policy");
     }
 
     [Fact]
@@ -405,7 +405,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(visuals.OfType<HtmlRenderImage>());
         Assert.DoesNotContain(visuals.OfType<HtmlRenderText>(), text =>
             text.LinkUri?.StartsWith("file:", StringComparison.OrdinalIgnoreCase) == true);
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceRejectedByPolicy");
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "image-resource-rejected-by-policy");
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "HyperlinkRejectedByPolicy");
     }
 
@@ -429,7 +429,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(document, options);
 
         Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Visuals), visual => visual is HtmlRenderImage);
-        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceRejectedByPolicy");
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == "image-resource-rejected-by-policy");
     }
 
     [Fact]

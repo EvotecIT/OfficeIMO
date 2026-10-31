@@ -14,10 +14,10 @@ public partial class Word {
     [InlineData(true)]
     public void LegacyDoc_TableSpacing_DoesNotInsertBlankBeforeFollowingBodyParagraph(bool authoredBlank) {
         using WordDocument document = WordDocument.Create();
-        document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Cell";
+        document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0].Text = "Cell";
         if (authoredBlank) document.AddParagraph();
         document.AddParagraph("After");
-        byte[] bytes = document.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
 
         // The main story is also consumed by Word; self-round-trip projection alone hid the extra paragraph.
         Assert.Equal("Cell\a\a" + (authoredBlank ? "\r" : "") + "After\r", ReadNativeTableSpacingStory(bytes));
@@ -31,9 +31,9 @@ public partial class Word {
     [Fact]
     public void LegacyDoc_TableSpacing_KeepsAdjacentTablesDistinctAndFinalBodyTerminator() {
         using WordDocument document = WordDocument.Create();
-        document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "First";
-        document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Second";
-        byte[] bytes = document.ToBytes(WordFileFormat.Doc);
+        document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0].Text = "First";
+        document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0].Text = "Second";
+        byte[] bytes = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         Assert.Equal("First\a\a\rSecond\a\a\r", ReadNativeTableSpacingStory(bytes));
         using WordDocument reopened = WordDocument.Load(new MemoryStream(bytes));
         Assert.Equal(2, reopened.Tables.Count);
@@ -46,10 +46,10 @@ public partial class Word {
     [InlineData(true)]
     public void LegacyDoc_TableSpacing_ManyBookmarksKeepTheFollowingBlockBoundary(bool nextIsTable) {
         using WordDocument document = WordDocument.Create();
-        document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "First";
+        document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0].Text = "First";
         OpenXmlElement following;
         if (nextIsTable) {
-            WordTable second = document.AddTable(1, 1);
+            WordTable second = document.AddTable(1, 1, WordTableStyle.TableGrid);
             second.Rows[0].Cells[0].Paragraphs[0].Text = "Second";
             following = second._table;
         } else {
@@ -62,7 +62,7 @@ public partial class Word {
             body.InsertAfter(new BookmarkEnd { Id = start.Id }, start);
         }
 
-        byte[] bytes = document.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         Assert.Equal(nextIsTable ? "First\a\a\rSecond\a\a\r" : "First\a\aAfter\r", ReadNativeTableSpacingStory(bytes));
         Assert.Equal(256, LegacyDocDocument.Load(bytes).Bookmarks.Count);
     }
@@ -84,13 +84,13 @@ public partial class Word {
         }
         WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         paragraph.Text = "Grid";
-        if (directOverride) paragraph.LineSpacingAfter = 120;
+        if (directOverride) paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
 
-        using WordDocument reopened = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordParagraph restored = Assert.Single(Assert.Single(reopened.Tables).Rows[0].Cells[0].Paragraphs);
-        Assert.Equal(directOverride ? 120 : 0, restored.LineSpacingAfter);
-        Assert.Equal(240, restored.LineSpacing);
-        Assert.Equal(WordLineSpacingRule.Auto, restored.LineSpacingRule);
+        Assert.Equal(directOverride ? 120 : 0, checked((int?)(restored.LineSpacingAfter?.ToTwips())));
+        Assert.Equal(240, restored.NativeLineSpacingValue);
+        Assert.Equal(WordLineSpacingRule.Auto, restored.NativeLineSpacingRule);
     }
 
     private static string ReadNativeTableSpacingStory(byte[] bytes) {
@@ -135,15 +135,14 @@ public partial class Word {
         paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
         paragraph._paragraph.ParagraphProperties.ParagraphStyleId = new ParagraphStyleId { Val = inheritedParagraph ? "DerivedCell" : "CellSpacing" };
         if (directOverride) {
-            paragraph.LineSpacingAfter = 120;
-            paragraph.LineSpacing = 360;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((360) / 240D);
         }
-        using WordDocument reopened = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordParagraph restored = Assert.Single(Assert.Single(reopened.Tables).Rows[0].Cells[0].Paragraphs);
-        Assert.Equal(directOverride ? 120 : 240, restored.LineSpacingAfter);
-        Assert.Equal(directOverride ? 360 : 480, restored.LineSpacing);
-        Assert.Equal(WordLineSpacingRule.Auto, restored.LineSpacingRule);
+        Assert.Equal(directOverride ? 120 : 240, checked((int?)(restored.LineSpacingAfter?.ToTwips())));
+        Assert.Equal(directOverride ? 360 : 480, restored.NativeLineSpacingValue);
+        Assert.Equal(WordLineSpacingRule.Auto, restored.NativeLineSpacingRule);
         Assert.Equal(inheritedParagraph ? "LegacyDocDerivedCell" : "LegacyDocCellSpacing", restored.StyleId);
     }
 
@@ -157,10 +156,10 @@ public partial class Word {
     [InlineData(0, true, true)]
     public void LegacyDoc_TableSpacing_AdjacentTableBookmarksExcludeSeparator(int contentControlDepth, bool previousEndAfterNextStart, bool authoredBlank) {
         using WordDocument document = WordDocument.Create();
-        WordTable first = document.AddTable(1, 1);
+        WordTable first = document.AddTable(1, 1, WordTableStyle.TableGrid);
         first.Rows[0].Cells[0].Paragraphs[0].Text = "First";
         if (authoredBlank) document.AddParagraph();
-        WordTable second = document.AddTable(1, 1);
+        WordTable second = document.AddTable(1, 1, WordTableStyle.TableGrid);
         second.Rows[0].Cells[0].Paragraphs[0].Text = "Second";
         Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
         body.InsertBefore(new BookmarkStart { Id = "61", Name = "FirstTable" }, first._table);
@@ -192,7 +191,7 @@ public partial class Word {
             }
             body.PrependChild(new SdtBlock(new SdtProperties(new SdtAlias { Val = "Tables" }), content));
         }
-        byte[] bytes = document.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         string story = ReadNativeTableSpacingStory(bytes);
         LegacyDocDocument model = LegacyDocDocument.Load(bytes);
         int secondStart = story.IndexOf("Second", System.StringComparison.Ordinal);

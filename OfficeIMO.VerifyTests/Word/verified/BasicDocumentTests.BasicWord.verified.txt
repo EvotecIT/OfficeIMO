@@ -38,8 +38,8 @@
       <w:pPr />
       <w:r>
         <w:rPr>
-          <w:b />
-          <w:bCs />
+          <w:b w:val="true" />
+          <w:bCs w:val="true" />
         </w:rPr>
         <w:t xml:space="preserve">Adding another paragraph with some more text</w:t>
       </w:r>
@@ -69,7 +69,8 @@
   <w:docDefaults>
     <w:rPrDefault>
       <w:rPr>
-        <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorHAnsi" w:cstheme="minorBidi" />
+        <w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" />
+        <w:color w:val="1B2433" />
         <w:sz w:val="22" />
         <w:szCs w:val="22" />
         <w:lang w:val="en-US" w:eastAsia="en-US" w:bidi="ar-SA" />
@@ -10002,18 +10003,19 @@
     <w:link w:val="Heading1Char" />
     <w:uiPriority w:val="9" />
     <w:qFormat />
-    <w:rsid w:val="00973C6F" />
     <w:pPr>
       <w:keepNext />
       <w:keepLines />
-      <w:spacing w:before="240" w:after="0" />
+      <w:spacing w:before="360" w:after="120" />
       <w:outlineLvl w:val="0" />
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="2F5496" w:themeColor="accent1" w:themeShade="BF" />
-      <w:sz w:val="32" />
-      <w:szCs w:val="32" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="40" />
+      <w:szCs w:val="40" />
     </w:rPr>
   </w:style>
   <w:style w:type="paragraph" w:styleId="Heading2">
@@ -10023,19 +10025,19 @@
     <w:link w:val="Heading2Char" />
     <w:uiPriority w:val="9" />
     <w:unhideWhenUsed />
-    <w:qFormat />
-    <w:rsid w:val="00973C6F" />
     <w:pPr>
       <w:keepNext />
       <w:keepLines />
-      <w:spacing w:before="40" w:after="0" />
+      <w:spacing w:before="280" w:after="80" />
       <w:outlineLvl w:val="1" />
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="2F5496" w:themeColor="accent1" w:themeShade="BF" />
-      <w:sz w:val="26" />
-      <w:szCs w:val="26" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="30" />
+      <w:szCs w:val="30" />
     </w:rPr>
   </w:style>
   <w:style w:type="paragraph" w:styleId="Heading3">
@@ -10044,21 +10046,20 @@
     <w:next w:val="Normal" />
     <w:link w:val="Heading3Char" />
     <w:uiPriority w:val="9" />
-    <w:semiHidden />
     <w:unhideWhenUsed />
-    <w:qFormat />
-    <w:rsid w:val="00700ED2" />
     <w:pPr>
       <w:keepNext />
       <w:keepLines />
-      <w:spacing w:before="40" w:after="0" />
+      <w:spacing w:before="240" w:after="60" />
       <w:outlineLvl w:val="2" />
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="1F3763" w:themeColor="accent1" w:themeShade="7F" />
-      <w:sz w:val="24" />
-      <w:szCs w:val="24" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="25" />
+      <w:szCs w:val="25" />
     </w:rPr>
   </w:style>
   <w:style w:type="paragraph" w:styleId="Heading4">
@@ -10067,21 +10068,20 @@
     <w:next w:val="Normal" />
     <w:link w:val="Heading4Char" />
     <w:uiPriority w:val="9" />
-    <w:semiHidden />
     <w:unhideWhenUsed />
-    <w:qFormat />
-    <w:rsid w:val="00700ED2" />
     <w:pPr>
       <w:keepNext />
       <w:keepLines />
-      <w:spacing w:before="40" w:after="0" />
+      <w:spacing w:before="240" w:after="60" />
       <w:outlineLvl w:val="3" />
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:i />
-      <w:iCs />
-      <w:color w:val="2F5496" w:themeColor="accent1" w:themeShade="BF" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="22" />
+      <w:szCs w:val="22" />
     </w:rPr>
   </w:style>
   <w:style w:type="paragraph" w:styleId="Heading5">
@@ -10090,19 +10090,20 @@
     <w:next w:val="Normal" />
     <w:link w:val="Heading5Char" />
     <w:uiPriority w:val="9" />
-    <w:semiHidden />
     <w:unhideWhenUsed />
-    <w:qFormat />
-    <w:rsid w:val="00700ED2" />
     <w:pPr>
       <w:keepNext />
       <w:keepLines />
-      <w:spacing w:before="40" w:after="0" />
+      <w:spacing w:before="240" w:after="60" />
       <w:outlineLvl w:val="4" />
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="2F5496" w:themeColor="accent1" w:themeShade="BF" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="22" />
+      <w:szCs w:val="22" />
     </w:rPr>
   </w:style>
   <w:style w:type="paragraph" w:styleId="Heading6">
@@ -10111,19 +10112,20 @@
     <w:next w:val="Normal" />
     <w:link w:val="Heading6Char" />
     <w:uiPriority w:val="9" />
-    <w:semiHidden />
     <w:unhideWhenUsed />
-    <w:qFormat />
-    <w:rsid w:val="00700ED2" />
     <w:pPr>
       <w:keepNext />
       <w:keepLines />
-      <w:spacing w:before="40" w:after="0" />
+      <w:spacing w:before="240" w:after="60" />
       <w:outlineLvl w:val="5" />
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="1F3763" w:themeColor="accent1" w:themeShade="7F" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="20" />
+      <w:szCs w:val="20" />
     </w:rPr>
   </w:style>
   <w:style w:type="paragraph" w:styleId="Heading7">
@@ -10208,6 +10210,43 @@
       <w:contextualSpacing />
     </w:pPr>
   </w:style>
+  <w:style w:type="paragraph" w:styleId="Title">
+    <w:name w:val="Title" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:uiPriority w:val="10" />
+    <w:qFormat />
+    <w:pPr>
+      <w:keepNext />
+      <w:spacing w:before="0" w:after="120" w:line="240" w:lineRule="auto" />
+      <w:contextualSpacing />
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:kern w:val="28" />
+      <w:sz w:val="56" />
+      <w:szCs w:val="56" />
+    </w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Subtitle">
+    <w:name w:val="Subtitle" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:uiPriority w:val="11" />
+    <w:qFormat />
+    <w:pPr>
+      <w:keepNext />
+      <w:spacing w:before="0" w:after="240" />
+    </w:pPr>
+    <w:rPr>
+      <w:color w:val="3F64D7" />
+      <w:sz w:val="25" />
+      <w:szCs w:val="25" />
+    </w:rPr>
+  </w:style>
   <w:style w:type="character" w:styleId="DefaultParagraphFont" w:default="true">
     <w:name w:val="Default Paragraph Font" />
     <w:uiPriority w:val="1" />
@@ -10219,12 +10258,15 @@
     <w:basedOn w:val="DefaultParagraphFont" />
     <w:link w:val="Heading1" />
     <w:uiPriority w:val="9" />
-    <w:rsid w:val="00700ED2" />
+    <w:semiHidden />
+    <w:unhideWhenUsed />
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="2F5496" w:themeColor="accent1" w:themeShade="BF" />
-      <w:sz w:val="32" />
-      <w:szCs w:val="32" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="40" />
+      <w:szCs w:val="40" />
     </w:rPr>
   </w:style>
   <w:style w:type="character" w:styleId="Heading2Char" w:customStyle="true">
@@ -10233,12 +10275,14 @@
     <w:link w:val="Heading2" />
     <w:uiPriority w:val="9" />
     <w:semiHidden />
-    <w:rsid w:val="00700ED2" />
+    <w:unhideWhenUsed />
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="2F5496" w:themeColor="accent1" w:themeShade="BF" />
-      <w:sz w:val="26" />
-      <w:szCs w:val="26" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="30" />
+      <w:szCs w:val="30" />
     </w:rPr>
   </w:style>
   <w:style w:type="character" w:styleId="Heading3Char" w:customStyle="true">
@@ -10247,12 +10291,14 @@
     <w:link w:val="Heading3" />
     <w:uiPriority w:val="9" />
     <w:semiHidden />
-    <w:rsid w:val="00700ED2" />
+    <w:unhideWhenUsed />
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="1F3763" w:themeColor="accent1" w:themeShade="7F" />
-      <w:sz w:val="24" />
-      <w:szCs w:val="24" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="25" />
+      <w:szCs w:val="25" />
     </w:rPr>
   </w:style>
   <w:style w:type="character" w:styleId="Heading4Char" w:customStyle="true">
@@ -10261,12 +10307,14 @@
     <w:link w:val="Heading4" />
     <w:uiPriority w:val="9" />
     <w:semiHidden />
-    <w:rsid w:val="00700ED2" />
+    <w:unhideWhenUsed />
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:i />
-      <w:iCs />
-      <w:color w:val="2F5496" w:themeColor="accent1" w:themeShade="BF" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="22" />
+      <w:szCs w:val="22" />
     </w:rPr>
   </w:style>
   <w:style w:type="character" w:styleId="Heading5Char" w:customStyle="true">
@@ -10275,10 +10323,14 @@
     <w:link w:val="Heading5" />
     <w:uiPriority w:val="9" />
     <w:semiHidden />
-    <w:rsid w:val="00700ED2" />
+    <w:unhideWhenUsed />
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="2F5496" w:themeColor="accent1" w:themeShade="BF" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="22" />
+      <w:szCs w:val="22" />
     </w:rPr>
   </w:style>
   <w:style w:type="character" w:styleId="Heading6Char" w:customStyle="true">
@@ -10287,10 +10339,14 @@
     <w:link w:val="Heading6" />
     <w:uiPriority w:val="9" />
     <w:semiHidden />
-    <w:rsid w:val="00700ED2" />
+    <w:unhideWhenUsed />
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="1F3763" w:themeColor="accent1" w:themeShade="7F" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="20" />
+      <w:szCs w:val="20" />
     </w:rPr>
   </w:style>
   <w:style w:type="character" w:styleId="Heading7Char" w:customStyle="true">
@@ -10465,6 +10521,203 @@
       <w:vertAlign w:val="superscript" />
     </w:rPr>
   </w:style>
+  <w:style w:type="paragraph" w:styleId="TOCHeading">
+    <w:name w:val="TOC Heading" />
+    <w:basedOn w:val="Heading1" />
+    <w:next w:val="Normal" />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:qFormat />
+    <w:pPr>
+      <w:outlineLvl w:val="9" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="TOC1">
+    <w:name w:val="toc 1" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:autoRedefine />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="right" w:leader="dot" w:pos="9350" />
+      </w:tabs>
+      <w:spacing w:after="100" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="TOC2">
+    <w:name w:val="toc 2" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:autoRedefine />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="right" w:leader="dot" w:pos="9350" />
+      </w:tabs>
+      <w:spacing w:after="100" />
+      <w:ind w:left="220" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="TOC3">
+    <w:name w:val="toc 3" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:autoRedefine />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="right" w:leader="dot" w:pos="9350" />
+      </w:tabs>
+      <w:spacing w:after="100" />
+      <w:ind w:left="440" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="TOC4">
+    <w:name w:val="toc 4" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:autoRedefine />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="right" w:leader="dot" w:pos="9350" />
+      </w:tabs>
+      <w:spacing w:after="100" />
+      <w:ind w:left="660" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="TOC5">
+    <w:name w:val="toc 5" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:autoRedefine />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="right" w:leader="dot" w:pos="9350" />
+      </w:tabs>
+      <w:spacing w:after="100" />
+      <w:ind w:left="880" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="TOC6">
+    <w:name w:val="toc 6" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:autoRedefine />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="right" w:leader="dot" w:pos="9350" />
+      </w:tabs>
+      <w:spacing w:after="100" />
+      <w:ind w:left="1100" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="TOC7">
+    <w:name w:val="toc 7" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:autoRedefine />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="right" w:leader="dot" w:pos="9350" />
+      </w:tabs>
+      <w:spacing w:after="100" />
+      <w:ind w:left="1320" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="TOC8">
+    <w:name w:val="toc 8" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:autoRedefine />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="right" w:leader="dot" w:pos="9350" />
+      </w:tabs>
+      <w:spacing w:after="100" />
+      <w:ind w:left="1540" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="TOC9">
+    <w:name w:val="toc 9" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:autoRedefine />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="right" w:leader="dot" w:pos="9350" />
+      </w:tabs>
+      <w:spacing w:after="100" />
+      <w:ind w:left="1760" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="table" w:styleId="OfficeIMOModern">
+    <w:name w:val="OfficeIMO Modern" />
+    <w:basedOn w:val="TableNormal" />
+    <w:uiPriority w:val="40" />
+    <w:pPr>
+      <w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto" />
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="20" />
+      <w:szCs w:val="20" />
+    </w:rPr>
+    <w:tblPr>
+      <w:tblStyleRowBandSize w:val="1" />
+      <w:tblStyleColBandSize w:val="1" />
+      <w:tblBorders>
+        <w:bottom w:val="single" w:color="DCE2EA" w:sz="4" w:space="0" />
+        <w:insideH w:val="single" w:color="DCE2EA" w:sz="4" w:space="0" />
+      </w:tblBorders>
+      <w:tblCellMar>
+        <w:top w:w="100" w:type="dxa" />
+        <w:left w:w="140" w:type="dxa" />
+        <w:bottom w:w="100" w:type="dxa" />
+        <w:right w:w="140" w:type="dxa" />
+      </w:tblCellMar>
+    </w:tblPr>
+    <w:tblStylePr w:type="firstRow">
+      <w:pPr>
+        <w:keepNext />
+      </w:pPr>
+      <w:rPr>
+        <w:b w:val="true" />
+        <w:bCs w:val="true" />
+        <w:color w:val="1B2433" />
+      </w:rPr>
+      <w:trPr>
+        <w:tblHeader />
+      </w:trPr>
+      <w:tcPr>
+        <w:tcBorders>
+          <w:bottom w:val="single" w:color="3F64D7" w:sz="8" w:space="0" />
+        </w:tcBorders>
+        <w:shd w:val="clear" w:color="auto" w:fill="EAF0FC" />
+      </w:tcPr>
+    </w:tblStylePr>
+    <w:tblStylePr w:type="band2Horz">
+      <w:tcPr>
+        <w:shd w:val="clear" w:color="auto" w:fill="F6F8FB" />
+      </w:tcPr>
+    </w:tblStylePr>
+  </w:style>
 </w:styles>
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/webSettings.xml
@@ -10580,55 +10833,69 @@
     <w:pitch w:val="variable" />
     <w:sig w:usb0="E4002EFF" w:usb1="C000247B" w:usb2="00000009" w:usb3="00000000" w:csb0="000001FF" w:csb1="00000000" />
   </w:font>
+  <w:font w:name="Aptos">
+    <w:panose1 w:val="020B0004020202020204" />
+    <w:charset w:val="00" />
+    <w:family w:val="swiss" />
+    <w:pitch w:val="variable" />
+    <w:sig w:usb0="20000287" w:usb1="00000003" w:usb2="00000000" w:usb3="00000000" w:csb0="0000019F" w:csb1="00000000" />
+  </w:font>
+  <w:font w:name="Aptos Display">
+    <w:panose1 w:val="020B0004020202020204" />
+    <w:charset w:val="00" />
+    <w:family w:val="swiss" />
+    <w:pitch w:val="variable" />
+    <w:sig w:usb0="20000287" w:usb1="00000003" w:usb2="00000000" w:usb3="00000000" w:csb0="0000019F" w:csb1="00000000" />
+  </w:font>
 </w:fonts>
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/theme/theme1.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<a:theme xmlns:thm15="http://schemas.microsoft.com/office/thememl/2012/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office Theme">
+<a:theme xmlns:thm15="http://schemas.microsoft.com/office/thememl/2012/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Modern">
   <a:themeElements>
-    <a:clrScheme name="Office">
+    <a:clrScheme name="Modern">
       <a:dk1>
-        <a:sysClr val="windowText" lastClr="000000" />
+        <a:srgbClr val="1B2433" />
       </a:dk1>
       <a:lt1>
-        <a:sysClr val="window" lastClr="FFFFFF" />
+        <a:srgbClr val="FFFFFF" />
       </a:lt1>
       <a:dk2>
-        <a:srgbClr val="44546A" />
+        <a:srgbClr val="5B6575" />
       </a:dk2>
       <a:lt2>
-        <a:srgbClr val="E7E6E6" />
+        <a:srgbClr val="F6F8FB" />
       </a:lt2>
       <a:accent1>
-        <a:srgbClr val="4472C4" />
+        <a:srgbClr val="3F64D7" />
       </a:accent1>
       <a:accent2>
-        <a:srgbClr val="ED7D31" />
+        <a:srgbClr val="DC7536" />
       </a:accent2>
       <a:accent3>
-        <a:srgbClr val="A5A5A5" />
+        <a:srgbClr val="058E80" />
       </a:accent3>
       <a:accent4>
-        <a:srgbClr val="FFC000" />
+        <a:srgbClr val="A52758" />
       </a:accent4>
       <a:accent5>
-        <a:srgbClr val="5B9BD5" />
+        <a:srgbClr val="3F2F6B" />
       </a:accent5>
       <a:accent6>
-        <a:srgbClr val="70AD47" />
+        <a:srgbClr val="255319" />
       </a:accent6>
       <a:hlink>
-        <a:srgbClr val="0563C1" />
+        <a:srgbClr val="3F64D7" />
       </a:hlink>
       <a:folHlink>
-        <a:srgbClr val="954F72" />
+        <a:srgbClr val="DC7536" />
       </a:folHlink>
     </a:clrScheme>
-    <a:fontScheme name="Office">
+    <a:fontScheme name="Modern">
       <a:majorFont>
-        <a:latin typeface="Calibri Light" panose="020F0302020204030204" />
-        <a:ea typeface="" />
-        <a:cs typeface="" />
+        <a:latin typeface="Aptos" />
+        <a:ea typeface="Aptos" />
+        <a:cs typeface="Aptos" />
         <a:font script="Jpan" typeface="游ゴシック Light" />
         <a:font script="Hang" typeface="맑은 고딕" />
         <a:font script="Hans" typeface="等线 Light" />
@@ -10678,9 +10945,9 @@
         <a:font script="Tfng" typeface="Ebrima" />
       </a:majorFont>
       <a:minorFont>
-        <a:latin typeface="Calibri" panose="020F0502020204030204" />
-        <a:ea typeface="" />
-        <a:cs typeface="" />
+        <a:latin typeface="Aptos" />
+        <a:ea typeface="Aptos" />
+        <a:cs typeface="Aptos" />
         <a:font script="Jpan" typeface="游明朝" />
         <a:font script="Hang" typeface="맑은 고딕" />
         <a:font script="Hans" typeface="等线" />

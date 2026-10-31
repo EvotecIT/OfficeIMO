@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("MoreValidation");
+                    ExcelSheet sheet = document.AddSheet("MoreValidation");
                     sheet.CellValue(1, 1, "Amount");
                     sheet.CellValue(1, 2, "Date");
                     sheet.CellValue(1, 3, "Code");
@@ -85,8 +85,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet options = document.AddWorksheet("Options");
-                    ExcelSheet input = document.AddWorksheet("Input");
+                    ExcelSheet options = document.AddSheet("Options");
+                    ExcelSheet input = document.AddSheet("Input");
 
                     options.CellValue(1, 1, "Open");
                     options.CellValue(2, 1, "Closed");
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Validation");
+                    ExcelSheet sheet = document.AddSheet("Validation");
                     sheet.CellValue(1, 1, "Open");
                     sheet.CellValue(2, 1, "Closed");
                     sheet.CellValue(3, 1, "Pending");
@@ -188,7 +188,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("SingleDv");
+                    ExcelSheet sheet = document.AddSheet("SingleDv");
                     sheet.CellValue(1, 1, 3d);
                     sheet.ValidationWholeNumber("A1", ExcelDataValidationOperator.Between, 1, 5);
 
@@ -215,9 +215,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet input = document.AddWorksheet("Input");
-                    ExcelSheet firstRegion = document.AddWorksheet("Region 1");
-                    ExcelSheet secondRegion = document.AddWorksheet("Region 2");
+                    ExcelSheet input = document.AddSheet("Input");
+                    ExcelSheet firstRegion = document.AddSheet("Region 1");
+                    ExcelSheet secondRegion = document.AddSheet("Region 2");
 
                     firstRegion.CellValue(1, 1, "North");
                     firstRegion.CellValue(2, 1, "East");
@@ -257,7 +257,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ExternalDv");
+                    ExcelSheet sheet = document.AddSheet("ExternalDv");
                     sheet.CellValue(1, 1, "Amount");
                     sheet.CellValue(2, 1, 5d);
 
@@ -298,7 +298,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ExternalDvName");
+                    ExcelSheet sheet = document.AddSheet("ExternalDvName");
                     sheet.CellValue(1, 1, "Amount");
                     sheet.CellValue(2, 1, 5d);
 
@@ -339,7 +339,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ExternalDvName");
+                    ExcelSheet sheet = document.AddSheet("ExternalDvName");
                     sheet.CellValue(1, 1, "Amount");
                     sheet.CellValue(2, 1, 5d);
 

@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents a parsed legacy XLS Font record.
     /// </summary>
-    public sealed class LegacyXlsFont {
+    internal sealed class LegacyXlsFont {
         /// <summary>
         /// Creates a parsed legacy XLS font.
         /// </summary>

@@ -11,24 +11,24 @@ namespace OfficeIMO.Excel.Pdf {
             seriesLegendWidthRatio: 0.0001D,
             categoryLegendWidthRatio: 0.0001D);
 
-        private static void AddWorksheetChart(PdfCore.PdfContentBuilder item, WorksheetChartExportData chart, string sheetName, ExcelToPdfOptions options) {
-            ExcelChartSnapshot snapshot = chart.Snapshot;
+        private static void AddWorksheetChart(PdfCore.PdfContentBuilder item, WorksheetChartExportData chart, string sheetName, ExcelPdfExportOptions options) {
+            ExcelChartInfo snapshot = chart.Snapshot;
             if (string.IsNullOrWhiteSpace(snapshot.Title) && !string.IsNullOrWhiteSpace(snapshot.Name)) {
-                item.H2(snapshot.Name, PdfCore.PdfAlign.Left, PdfCore.PdfColor.FromRgb(31, 78, 121));
+                item.H2(snapshot.Name, PdfCore.PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(31, 78, 121));
             }
 
             bool useStyledRadialLegend = HasStyledRadialPoints(snapshot);
             OfficeChartRenderingResult rendering = OfficeChartDrawingRenderer.RenderWithQuality(
                 CreateOfficeChartSnapshotCore(snapshot, options, preserveWorksheetLegend: useStyledRadialLegend));
             AddChartQualityWarning(options, sheetName, snapshot, rendering.QualityReport);
-            item.Drawing(rendering.Drawing, PdfCore.PdfAlign.Left, spacingBefore: 2D, spacingAfter: 6D);
+            item.Drawing(rendering.Drawing, PdfCore.PdfAlign.Left, spacingBefore: global::OfficeIMO.OfficeLength.Points(2D), spacingAfter: global::OfficeIMO.OfficeLength.Points(6D));
             // The shared chart legend renders point fill, no-fill, hatch, and outline. A table cell
             // can only reproduce a solid fill, so keep the data table uncolored for styled radial charts.
             item.Table(CreateChartLegendRows(snapshot), PdfCore.PdfAlign.Left,
                 CreateChartLegendStyle(useStyledRadialLegend ? 0 : GetChartLegendColorCount(snapshot), options.ChartStyle));
         }
 
-        private static void AddChartQualityWarning(ExcelToPdfOptions options, string sheetName, ExcelChartSnapshot snapshot, OfficeDrawingQualityReport qualityReport) {
+        private static void AddChartQualityWarning(ExcelPdfExportOptions options, string sheetName, ExcelChartInfo snapshot, OfficeDrawingQualityReport qualityReport) {
             if (!qualityReport.HasIssues) {
                 return;
             }
@@ -44,12 +44,12 @@ namespace OfficeIMO.Excel.Pdf {
             return string.Join("; ", qualityReport.Issues.Select(issue => issue.ToString()));
         }
 
-        private static OfficeChartSnapshot CreateOfficeChartSnapshot(ExcelChartSnapshot snapshot, ExcelToPdfOptions options) {
+        private static OfficeChartSnapshot CreateOfficeChartSnapshot(ExcelChartInfo snapshot, ExcelPdfExportOptions options) {
             return CreateOfficeChartSnapshotCore(snapshot, options, preserveWorksheetLegend: false);
         }
 
-        private static OfficeChartSnapshot CreateOfficeChartSnapshotCore(ExcelChartSnapshot snapshot, ExcelToPdfOptions options, bool preserveWorksheetLegend) {
-            if (!TryMapChartKind(snapshot.ChartType, out OfficeChartKind chartKind)) {
+        private static OfficeChartSnapshot CreateOfficeChartSnapshotCore(ExcelChartInfo snapshot, ExcelPdfExportOptions options, bool preserveWorksheetLegend) {
+            if (!TryMapChartKind(snapshot.ChartType, out OfficeChartType chartKind)) {
                 throw new NotSupportedException("Excel chart type '" + snapshot.ChartType + "' is not supported by the shared OfficeIMO chart renderer.");
             }
 
@@ -62,10 +62,10 @@ namespace OfficeIMO.Excel.Pdf {
                 snapshot.Title,
                 chartKind,
                 data,
-                PixelsToPoints(snapshot.WidthPixels),
-                PixelsToPoints(snapshot.HeightPixels),
+                snapshot.Width,
+                snapshot.Height,
                 options.ChartStyle ?? snapshot.Style,
-                options.ChartLayout ?? (preserveWorksheetLegend || chartKind is OfficeChartKind.Pie or OfficeChartKind.Doughnut
+                options.ChartLayout ?? (preserveWorksheetLegend || chartKind is OfficeChartType.Pie or OfficeChartType.Doughnut
                     ? snapshot.Layout ?? new OfficeChartLayout()
                     : WithNativeCategoryGeometry(DefaultExcelPdfChartLayout, snapshot.Layout)),
                 snapshot.BubbleScalePercent, snapshot.BubbleSizeMode, snapshot.RadialLayout);
@@ -79,16 +79,16 @@ namespace OfficeIMO.Excel.Pdf {
                 .WithCategoryPointsOnTickMarks(native.CategoryPointsOnTickMarks)
                 .WithHighLowLines(native.ShowHighLowLines, native.HighLowLineColor, native.HighLowLineWidth);
 
-        private static OfficeChartSeries CreateOfficeChartSeries(ExcelChartSeries series, ExcelChartType defaultType, OfficeChartKind defaultKind,
+        private static OfficeSeries CreateOfficeChartSeries(ExcelChartSeries series, OfficeChartType defaultType, OfficeChartType defaultKind,
             bool callerPalette = false) {
-            if (defaultType == ExcelChartType.Bubble) return ExcelRangeImageRenderer.CreateBubbleChartSeries(series, callerPalette);
-            ExcelChartType effectiveType = series.ChartType ?? defaultType;
-            OfficeChartKind? renderKind = null;
+            if (defaultType == OfficeChartType.Bubble) return ExcelRangeImageRenderer.CreateBubbleChartSeries(series, callerPalette);
+            OfficeChartType effectiveType = series.ChartType ?? defaultType;
+            OfficeChartType? renderKind = null;
             if (effectiveType != defaultType) {
                 if (!ExcelRangeImageRenderer.TryMapCompatibleComboSeriesRenderKind(
                         defaultType,
                         effectiveType,
-                        out OfficeChartKind mappedKind,
+                        out OfficeChartType mappedKind,
                         out _,
                         out string? unsupportedReason)) {
                     throw new NotSupportedException(
@@ -98,7 +98,7 @@ namespace OfficeIMO.Excel.Pdf {
                 renderKind = mappedKind == defaultKind ? null : mappedKind;
             }
 
-            return new OfficeChartSeries(
+            return new OfficeSeries(
                 series.Name,
                 series.Values,
                 series.XValues,
@@ -116,81 +116,82 @@ namespace OfficeIMO.Excel.Pdf {
                 renderKind: renderKind,
                 axisGroup: series.AxisGroup)
                 .WithSeriesStyle(series.SeriesStyle).WithPointStyles(series.PointStyles)
-                .WithPointExplosions(series.PointExplosions);
+                .WithPointExplosions(series.PointExplosions)
+                .WithTrendline(series.Trendline);
         }
 
-        private static bool TryMapChartKind(ExcelChartType type, out OfficeChartKind kind) {
+        private static bool TryMapChartKind(OfficeChartType type, out OfficeChartType kind) {
             switch (type) {
-                case ExcelChartType.ColumnClustered:
-                case ExcelChartType.Column3DClustered:
-                    kind = OfficeChartKind.ColumnClustered;
+                case OfficeChartType.ColumnClustered:
+                case OfficeChartType.Column3DClustered:
+                    kind = OfficeChartType.ColumnClustered;
                     return true;
-                case ExcelChartType.ColumnStacked:
-                case ExcelChartType.Column3DStacked:
-                    kind = OfficeChartKind.ColumnStacked;
+                case OfficeChartType.ColumnStacked:
+                case OfficeChartType.Column3DStacked:
+                    kind = OfficeChartType.ColumnStacked;
                     return true;
-                case ExcelChartType.ColumnStacked100:
-                case ExcelChartType.Column3DStacked100:
-                    kind = OfficeChartKind.ColumnStacked100;
+                case OfficeChartType.ColumnStacked100:
+                case OfficeChartType.Column3DStacked100:
+                    kind = OfficeChartType.ColumnStacked100;
                     return true;
-                case ExcelChartType.BarClustered:
-                case ExcelChartType.Bar3DClustered:
-                    kind = OfficeChartKind.BarClustered;
+                case OfficeChartType.BarClustered:
+                case OfficeChartType.Bar3DClustered:
+                    kind = OfficeChartType.BarClustered;
                     return true;
-                case ExcelChartType.BarStacked:
-                case ExcelChartType.Bar3DStacked:
-                    kind = OfficeChartKind.BarStacked;
+                case OfficeChartType.BarStacked:
+                case OfficeChartType.Bar3DStacked:
+                    kind = OfficeChartType.BarStacked;
                     return true;
-                case ExcelChartType.BarStacked100:
-                case ExcelChartType.Bar3DStacked100:
-                    kind = OfficeChartKind.BarStacked100;
+                case OfficeChartType.BarStacked100:
+                case OfficeChartType.Bar3DStacked100:
+                    kind = OfficeChartType.BarStacked100;
                     return true;
-                case ExcelChartType.Line:
-                case ExcelChartType.Line3D:
-                    kind = OfficeChartKind.Line;
+                case OfficeChartType.Line:
+                case OfficeChartType.Line3D:
+                    kind = OfficeChartType.Line;
                     return true;
-                case ExcelChartType.LineStacked:
-                    kind = OfficeChartKind.LineStacked;
+                case OfficeChartType.LineStacked:
+                    kind = OfficeChartType.LineStacked;
                     return true;
-                case ExcelChartType.LineStacked100:
-                    kind = OfficeChartKind.LineStacked100;
+                case OfficeChartType.LineStacked100:
+                    kind = OfficeChartType.LineStacked100;
                     return true;
-                case ExcelChartType.Area:
-                case ExcelChartType.Area3D:
-                    kind = OfficeChartKind.Area;
+                case OfficeChartType.Area:
+                case OfficeChartType.Area3D:
+                    kind = OfficeChartType.Area;
                     return true;
-                case ExcelChartType.AreaStacked:
-                case ExcelChartType.Area3DStacked:
-                    kind = OfficeChartKind.AreaStacked;
+                case OfficeChartType.AreaStacked:
+                case OfficeChartType.Area3DStacked:
+                    kind = OfficeChartType.AreaStacked;
                     return true;
-                case ExcelChartType.AreaStacked100:
-                case ExcelChartType.Area3DStacked100:
-                    kind = OfficeChartKind.AreaStacked100;
+                case OfficeChartType.AreaStacked100:
+                case OfficeChartType.Area3DStacked100:
+                    kind = OfficeChartType.AreaStacked100;
                     return true;
-                case ExcelChartType.Bubble:
-                    kind = OfficeChartKind.Bubble;
+                case OfficeChartType.Bubble:
+                    kind = OfficeChartType.Bubble;
                     return true;
-                case ExcelChartType.Scatter:
-                    kind = OfficeChartKind.Scatter;
+                case OfficeChartType.Scatter:
+                    kind = OfficeChartType.Scatter;
                     return true;
-                case ExcelChartType.Radar:
-                    kind = OfficeChartKind.Radar;
+                case OfficeChartType.Radar:
+                    kind = OfficeChartType.Radar;
                     return true;
-                case ExcelChartType.Pie:
-                case ExcelChartType.Pie3D:
-                case ExcelChartType.PieOfPie:
-                case ExcelChartType.BarOfPie:
-                    kind = OfficeChartKind.Pie;
+                case OfficeChartType.Pie:
+                case OfficeChartType.Pie3D:
+                case OfficeChartType.PieOfPie:
+                case OfficeChartType.BarOfPie:
+                    kind = OfficeChartType.Pie;
                     return true;
-                case ExcelChartType.Doughnut:
-                    kind = OfficeChartKind.Doughnut;
+                case OfficeChartType.Doughnut:
+                    kind = OfficeChartType.Doughnut;
                     return true;
-                case ExcelChartType.Stock:
-                case ExcelChartType.Surface:
-                case ExcelChartType.SurfaceWireframe:
-                case ExcelChartType.SurfaceContour:
-                case ExcelChartType.SurfaceContourWireframe:
-                    kind = OfficeChartKind.Line;
+                case OfficeChartType.Stock:
+                case OfficeChartType.Surface:
+                case OfficeChartType.SurfaceWireframe:
+                case OfficeChartType.SurfaceContour:
+                case OfficeChartType.SurfaceContourWireframe:
+                    kind = OfficeChartType.Line;
                     return true;
                 default:
                     kind = default;
@@ -198,7 +199,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static string[][] CreateChartLegendRows(ExcelChartSnapshot snapshot) {
+        private static string[][] CreateChartLegendRows(ExcelChartInfo snapshot) {
             if (IsPieLikeChart(snapshot.ChartType)) {
                 return CreatePieChartLegendRows(snapshot);
             }
@@ -217,7 +218,7 @@ namespace OfficeIMO.Excel.Pdf {
             return rows.ToArray();
         }
 
-        private static string[][] CreatePieChartLegendRows(ExcelChartSnapshot snapshot) {
+        private static string[][] CreatePieChartLegendRows(ExcelChartInfo snapshot) {
             var rows = new List<string[]> {
                 new[] { "Category", "Value" }
             };
@@ -238,7 +239,7 @@ namespace OfficeIMO.Excel.Pdf {
             return rows.ToArray();
         }
 
-        private static int GetChartLegendColorCount(ExcelChartSnapshot snapshot) {
+        private static int GetChartLegendColorCount(ExcelChartInfo snapshot) {
             if (IsPieLikeChart(snapshot.ChartType)) {
                 return snapshot.Data.Categories.Count;
             }
@@ -246,7 +247,7 @@ namespace OfficeIMO.Excel.Pdf {
             return snapshot.Data.Series.Count;
         }
 
-        private static bool HasStyledRadialPoints(ExcelChartSnapshot snapshot) {
+        private static bool HasStyledRadialPoints(ExcelChartInfo snapshot) {
             if (!IsPieLikeChart(snapshot.ChartType)) return false;
             return snapshot.Data.Series.Any(series =>
                 series.PointStyles?.Any(style => style != null) == true ||
@@ -256,33 +257,33 @@ namespace OfficeIMO.Excel.Pdf {
         private static PdfCore.PdfTableStyle CreateChartLegendStyle(int colorCount, OfficeChartStyle? chartStyle) {
             var style = new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                FontSize = 8.5D,
-                HeaderFontSize = 8.5D,
-                CellPaddingX = 4D,
-                CellPaddingY = 2D,
-                BorderColor = PdfCore.PdfColor.FromRgb(203, 213, 225),
-                HeaderFill = PdfCore.PdfColor.FromRgb(239, 246, 255),
+                FontSize = global::OfficeIMO.OfficeLength.Points(8.5D),
+                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8.5D),
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(4D),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(2D),
+                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
+                HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255),
                 ColumnWidthWeights = new List<double> { 0.7D, 1.3D },
                 AutoFitColumns = false,
-                MaxWidth = 300D,
-                SpacingAfter = 6D
+                MaxWidth = global::OfficeIMO.OfficeLength.Points(300D),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(6D)
             };
 
-            var fills = new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
+            var fills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
             OfficeChartStyle paletteStyle = chartStyle ?? OfficeChartStyle.Default;
             for (int i = 0; i < colorCount; i++) {
-                fills[(i + 1, 0)] = PdfCore.PdfColor.FromOfficeColor(paletteStyle.GetSeriesColor(i));
+                fills[(i + 1, 0)] = paletteStyle.GetSeriesColor(i);
             }
             style.CellFills = fills;
             return style;
         }
 
-        private static bool IsPieLikeChart(ExcelChartType type) {
-            return type == ExcelChartType.Pie
-                   || type == ExcelChartType.Pie3D
-                   || type == ExcelChartType.PieOfPie
-                   || type == ExcelChartType.BarOfPie
-                   || type == ExcelChartType.Doughnut;
+        private static bool IsPieLikeChart(OfficeChartType type) {
+            return type == OfficeChartType.Pie
+                   || type == OfficeChartType.Pie3D
+                   || type == OfficeChartType.PieOfPie
+                   || type == OfficeChartType.BarOfPie
+                   || type == OfficeChartType.Doughnut;
         }
 
         private static double GetSeriesValue(ExcelChartSeries series, int index) {

@@ -15,12 +15,12 @@ public sealed class XmlAssemblyLimitsTests {
             string input = Path.Combine(root, "source" + extension), output = Path.Combine(root, "result.pdf");
             string marker = new('A', 1024);
             if (extension == ".docx") { using var word = WordDocument.Create(input); word.AddParagraph(marker); word.Save(); }
-            else if (extension == ".xlsx") { using var excel = ExcelDocument.Create(input); excel.AddWorksheet("Budget").CellValue(1, 1, marker); excel.Save(); }
-            else { using var ppt = PowerPointPresentation.Create(input); ppt.AddSlide().AddTextBox(marker); ppt.Save(); }
+            else if (extension == ".xlsx") { using var excel = ExcelDocument.Create(input); excel.AddSheet("Budget").CellValue(1, 1, marker); excel.Save(); }
+            else { using var ppt = PowerPointDocument.Create(input); ppt.AddSlide().AddTextBox(marker); ppt.Save(); }
             byte[] originalSource = File.ReadAllBytes(input), originalOutput = { 1, 2, 3 };
             File.WriteAllBytes(output, originalOutput);
             var request = new PdfAssemblyRequest {
-                Sources = [input], OutputPath = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                Sources = [input], OutputPath = output, ConflictPolicy = OfficePublicationPolicy.Replace,
                 Limits = new() { MaximumXmlCharactersInPart = 256 }
             };
             var rejected = await new OfficeWorkflowRunner().AssemblePdfAsync(request);

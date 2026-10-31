@@ -1,4 +1,3 @@
-using System.Reflection;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -7,7 +6,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfAllSeverityBatch21Tests {
     [Fact]
     public void UnprofiledExternalValidationDoesNotSatisfyProfiledProof() {
-        PdfOptions options = new PdfOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
+        PdfCreateOptions options = new PdfCreateOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
         byte[] artifact = PdfDocument.Create(options).ToBytes();
         PdfExternalValidationResult validation = PdfExternalValidationResult.PassedForArtifact(
             PdfExternalValidatorKind.VeraPdf,
@@ -26,65 +25,6 @@ public class PdfAllSeverityBatch21Tests {
         Assert.False(proof.HasRequiredExternalValidation);
         Assert.False(proof.CanClaimConformance);
         Assert.Contains(PdfExternalValidatorKind.VeraPdf, proof.MissingExternalValidators);
-    }
-
-    [Fact]
-    public void LegacyPublicTextAndFormSignaturesRemainAvailable() {
-        Type stringValues = typeof(IReadOnlyDictionary<string, string>);
-
-        AssertMethod(typeof(PdfEmbeddedFontFallbackSet), nameof(PdfEmbeddedFontFallbackSet.PlanText), typeof(string), typeof(string));
-        AssertMethod(typeof(PdfEmbeddedFontFallbackSet), nameof(PdfEmbeddedFontFallbackSet.PlanTextRuns), typeof(string), typeof(string), typeof(PdfTextRun));
-        AssertMethod(
-            typeof(PdfEmbeddedFontFallbackSet),
-            nameof(PdfEmbeddedFontFallbackSet.TryPlanTextRuns),
-            typeof(string),
-            typeof(IReadOnlyList<PdfTextRun>).MakeByRefType(),
-            typeof(string),
-            typeof(PdfTextRun),
-            typeof(PdfConversionReport),
-            typeof(string));
-
-        Type diagnostics = typeof(PdfEmbeddedFontFallbackSet).Assembly.GetType("OfficeIMO.Pdf.PdfTextDiagnostics", throwOnError: true)!;
-        AssertMethod(
-            diagnostics,
-            "PlanEmbeddedFontFallbackText",
-            typeof(string),
-            typeof(IEnumerable<PdfEmbeddedFontFallbackCandidate>),
-            typeof(string));
-
-        AssertMethod(
-            typeof(PdfPageCanvas),
-            nameof(PdfPageCanvas.Image),
-            typeof(byte[]),
-            typeof(double),
-            typeof(double),
-            typeof(double),
-            typeof(double),
-            typeof(PdfImageStyle),
-            typeof(string),
-            typeof(string),
-            typeof(string),
-            typeof(double));
-
-        AssertMethod(typeof(PdfParagraphBuilder), nameof(PdfParagraphBuilder.Tab), typeof(PdfTabLeaderStyle));
-        AssertMethod(typeof(PdfTextRun), nameof(PdfTextRun.Tab), typeof(PdfTabLeaderStyle));
-        Assert.NotNull(typeof(PdfTextRun).GetConstructor(new[] {
-            typeof(string),
-            typeof(bool),
-            typeof(bool),
-            typeof(PdfColor?),
-            typeof(bool),
-            typeof(bool),
-            typeof(double?),
-            typeof(PdfStandardFont?),
-            typeof(string),
-            typeof(string),
-            typeof(PdfTextBaseline),
-            typeof(string),
-            typeof(PdfTabLeaderStyle),
-            typeof(PdfColor?),
-            typeof(string)
-        }));
     }
 
     [Fact]
@@ -117,14 +57,14 @@ public class PdfAllSeverityBatch21Tests {
 
     [Fact]
     public void TopOfPageKeepTogetherIgnoresSuppressedSpacingBefore() {
-        PdfOptions options = new() {
-            PageWidth = 320,
-            PageHeight = 170,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
-            DefaultFontSize = 10
+        PdfCreateOptions options = new() {
+            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(170),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -132,7 +72,7 @@ public class PdfAllSeverityBatch21Tests {
                 paragraph => paragraph.Text("This visible paragraph fits."),
                 style: new PdfParagraphStyle {
                     KeepTogether = true,
-                    SpacingBefore = 500
+                    SpacingBefore = global::OfficeIMO.OfficeLength.Points(500)
                 })
             .ToBytes();
 
@@ -141,14 +81,14 @@ public class PdfAllSeverityBatch21Tests {
 
     [Fact]
     public void KeepTogetherCollapsesSpacingBeforeAfterMovingToFreshPage() {
-        PdfOptions options = new() {
-            PageWidth = 320,
-            PageHeight = 170,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
-            DefaultFontSize = 10
+        PdfCreateOptions options = new() {
+            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(170),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -157,14 +97,12 @@ public class PdfAllSeverityBatch21Tests {
                 paragraph => paragraph.Text("This paragraph fits after its spacing collapses."),
                 style: new PdfParagraphStyle {
                     KeepTogether = true,
-                    SpacingBefore = 500
+                    SpacingBefore = global::OfficeIMO.OfficeLength.Points(500)
                 })
             .ToBytes();
 
         Assert.NotEmpty(bytes);
     }
 
-    private static void AssertMethod(Type type, string name, params Type[] parameters) {
-        Assert.NotNull(type.GetMethod(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance, binder: null, parameters, modifiers: null));
-    }
+
 }

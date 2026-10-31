@@ -5,12 +5,12 @@ namespace OfficeIMO.Excel {
     /// Convenience presets for common read conversions to keep user code minimal.
     /// Provides several choices from minimal to more aggressive conversions.
     /// </summary>
-    public static class ExcelReadPresets {
+    internal static class ExcelReadPresets {
         /// <summary>
-        /// No extra converters. Equivalent to default ExcelReadOptions with only built-in behavior.
+        /// No extra converters. Equivalent to default ExcelReaderOptions with only built-in behavior.
         /// </summary>
-        public static ExcelReadOptions None() {
-            return new ExcelReadOptions();
+        public static ExcelReaderOptions None() {
+            return new ExcelReaderOptions();
         }
 
         /// <summary>
@@ -18,8 +18,8 @@ namespace OfficeIMO.Excel {
         /// - Y/Yes/N/No to bool
         /// - Currency-like strings to decimal (tries CurrentCulture, InvariantCulture, a few common locales)
         /// </summary>
-        public static ExcelReadOptions Simple() {
-            var opt = new ExcelReadOptions();
+        public static ExcelReaderOptions Simple() {
+            var opt = new ExcelReaderOptions();
             ApplyBasicConverters(opt);
             return opt;
         }
@@ -27,8 +27,8 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Like Simple() but prefers decimal for numeric cells when possible.
         /// </summary>
-        public static ExcelReadOptions DecimalFirst() {
-            var opt = new ExcelReadOptions { NumericAsDecimal = true };
+        public static ExcelReaderOptions DecimalFirst() {
+            var opt = new ExcelReaderOptions { NumericAsDecimal = true };
             ApplyBasicConverters(opt);
             return opt;
         }
@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies the same converters as returned by <see cref="Simple"/> to an existing options instance.
         /// </summary>
-        public static void ApplyBasicConverters(ExcelReadOptions options) {
+        public static void ApplyBasicConverters(ExcelReaderOptions options) {
             if (options == null) throw new ArgumentNullException(nameof(options));
 
             options.CellValueConverter = ctx => {
@@ -89,8 +89,8 @@ namespace OfficeIMO.Excel {
         /// - Currency and plain numeric strings to decimal/double/int where appropriate
         /// - ISO date strings to DateTime
         /// </summary>
-        public static ExcelReadOptions Aggressive() {
-            var opt = new ExcelReadOptions();
+        public static ExcelReaderOptions Aggressive() {
+            var opt = new ExcelReaderOptions();
 
             opt.CellValueConverter = ctx => {
                 var s = ctx.RawText?.Trim();

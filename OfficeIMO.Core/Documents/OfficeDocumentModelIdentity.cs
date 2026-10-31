@@ -7,7 +7,7 @@ using System.Text;
 namespace OfficeIMO;
 
 /// <summary>Builds deterministic identities for de-duplicating neutral model elements across aggregate and page collections.</summary>
-public static class OfficeDocumentModelIdentity {
+internal static class OfficeDocumentModelIdentity {
     /// <summary>Builds a block identity.</summary>
     public static string BuildBlockIdentity(OfficeDocumentModelBlock block) {
         if (block == null) throw new ArgumentNullException(nameof(block));

@@ -17,29 +17,27 @@ namespace OfficeIMO.Tests {
             PowerPointClassicAnimationBuildType buildType) {
             var data = new OfficeChartData(new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new OfficeChartSeries("Revenue", new[] { 12D, 19D, 27D }),
-                    new OfficeChartSeries("Plan", new[] { 15D, 18D, 24D })
+                    new OfficeSeries("Revenue", new[] { 12D, 19D, 27D }),
+                    new OfficeSeries("Plan", new[] { 15D, 18D, 24D })
                 });
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
-                PowerPointChart chart = slide.AddChartPoints(
-                    OfficeChartKind.ColumnClustered, data, 30D, 20D, 240D, 150D);
+                PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(30D), Top = global::OfficeIMO.OfficeLength.Points(20D), Width = global::OfficeIMO.OfficeLength.Points(240D), Height = global::OfficeIMO.OfficeLength.Points(150D) });
                 slide.AddClassicAnimation(chart, PowerPointClassicAnimationEffect.Fade,
                     new PowerPointClassicAnimationOptions { BuildType = buildType });
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt,
-                    new PowerPointSaveOptions {
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                         LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 
             LegacyPptShape legacyShape = Assert.Single(
-                Assert.Single(LegacyPptPresentation.Load(bytes).Slides).Shapes);
+                Assert.Single(LegacyPptDocument.Load(bytes).Slides).Shapes);
             Assert.Equal(LegacyPptShapeKind.Picture, legacyShape.Kind);
             Assert.Equal((LegacyPptAnimationBuildType)buildType,
                 legacyShape.Animation!.BuildType);
 
-            using PowerPointPresentation projected = PowerPointPresentation.Load(
+            using PowerPointDocument projected = PowerPointDocument.Load(
                 new MemoryStream(bytes, writable: false));
             PowerPointClassicAnimation animation = Assert.Single(
                 projected.Slides[0].ClassicAnimations);
@@ -51,18 +49,17 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_ExplicitlyConvertsChartToStaticPngPicture() {
             var data = new OfficeChartData(new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new OfficeChartSeries("Revenue",
+                    new OfficeSeries("Revenue",
                         new[] { 12D, 19D, 27D }, xValues: null,
                         color: OfficeColor.CornflowerBlue),
-                    new OfficeChartSeries("Plan",
+                    new OfficeSeries("Plan",
                         new[] { 15D, 18D, 24D }, xValues: null,
                         color: OfficeColor.Orange)
                 });
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank)
-                    .AddChartPoints(OfficeChartKind.ColumnClustered, data,
-                        30D, 20D, 240D, 150D)
+                    .AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(30D), Top = global::OfficeIMO.OfficeLength.Points(20D), Width = global::OfficeIMO.OfficeLength.Points(240D), Height = global::OfficeIMO.OfficeLength.Points(150D) })
                     .SetTitle("Quarterly revenue");
 
                 LegacyPptWritePreflightReport preflight = source
@@ -70,18 +67,16 @@ namespace OfficeIMO.Tests {
                 Assert.False(preflight.CanWrite);
                 LegacyPptWriteFinding finding = Assert.Single(
                     preflight.Findings, candidate =>
-                        candidate.Code == "PPT-WRITE-CHART-CONVERTED");
+                        candidate.Code == "ppt-write-chart-converted");
                 Assert.Equal(LegacyPptFeature.Charts, finding.Feature);
-                Assert.Throws<NotSupportedException>(() => source.ToBytes(
-                    PowerPointFileFormat.Ppt));
+                Assert.Throws<NotSupportedException>(() => source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
 
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt,
-                    new PowerPointSaveOptions {
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                         LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             OfficeArtBlipStoreEntry image = Assert.Single(
                 legacy.BlipStoreEntries);
             Assert.Equal("image/png", image.ContentType);
@@ -98,7 +93,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, picture.PictureStoreIndex);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation.Load(
+            using PowerPointDocument projected = PowerPointDocument.Load(
                 input);
             Assert.Empty(projected.Slides[0].Charts);
             PowerPointPicture projectedPicture = Assert.Single(
@@ -106,7 +101,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(image.ImageBytes, projectedPicture.GetImageBytes());
             Assert.Empty(projected.ValidateDocument());
             Assert.True(projected.AnalyzeLegacyPptWrite().CanWrite);
-            Assert.Equal(bytes, projected.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(bytes, projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
     }
 }

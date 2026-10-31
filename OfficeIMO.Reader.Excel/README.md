@@ -15,6 +15,14 @@ For CSV import and export, install the separate `OfficeIMO.Excel.Csv` adapter.
 Keeping conversion outside the Reader package avoids pulling CSV behavior into
 applications that only need generic Excel document extraction.
 
+## Select a worksheet
+
+Set `ReaderExcelOptions.SheetName` to a literal worksheet name, or `SheetNumber`
+to its one-based position. Omit both to read every worksheet; setting both is an
+error. A numeric name such as `"2"` remains a name. Positional selection is resolved
+once per workbook and applies to chunks, rich content, assets and inspection
+without changing the registered options. A position outside the workbook fails.
+
 ## Project an open workbook
 
 With `OfficeIMO.Reader.Excel` imported, call `document.ReadDocument(sourceName,
@@ -70,7 +78,7 @@ The combined registration applies the same immutable legacy options to every leg
 
 Legacy warnings include the detected profile, structured-versus-salvage quality, and feature-level losses. The handler never executes macros or refreshes external links.
 
-SYLK/DIF project stored values through the same Excel table reader. SYLK expressions and formatting are omitted with warnings; DIF error markers remain literal text with warnings. The [Excel profile coverage](../OfficeIMO.Excel/README.md#profile-coverage) defines the exact grammar and limits. `LegacySpreadsheetImportOptions.TextEncoding` is snapshotted at registration; when absent, the per-read `ReaderOptions.TextEncoding` applies, then Windows-1252. A Unicode BOM takes precedence. `OfficeIMO.Reader.All` includes these formats when `IncludeLegacySpreadsheet` is enabled, which is the preset default.
+SYLK/DIF project stored values through the same Excel table reader. SYLK expressions and formatting are omitted with warnings; DIF error markers remain literal text with warnings. The [Excel profile coverage](../Docs/officeimo.excel-guide.md#profile-coverage) defines the exact grammar and limits. `LegacySpreadsheetImportOptions.TextEncoding` is snapshotted at registration; when absent, the per-read `ReaderOptions.TextEncoding` applies, then Windows-1252. A Unicode BOM takes precedence. `OfficeIMO.Reader.All` includes these formats when `IncludeLegacySpreadsheet` is enabled, which is the preset default.
 
 Reader table extraction admits at most 1,000,000 projected cell positions across
 the selected sheets and ranges. Sparse sources still occupy their full rectangular

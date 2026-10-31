@@ -50,8 +50,10 @@ public class VisioImageExport {
             page.ExportImage(OfficeImageExportFormat.Png, options));
 
         Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+        var imageOptions1 = new VisioImageExportOptions();
+        imageOptions1.Format = OfficeImageExportFormat.Png;
         Assert.Throws<OperationCanceledException>(() =>
-            page.ToImage().AsPng().Export(new System.Threading.CancellationToken(canceled: true)));
+            page.ExportImage(OfficeImageExportFormat.Png, imageOptions1, cancellationToken: new System.Threading.CancellationToken(canceled: true)));
     }
 
     [Fact]
@@ -701,42 +703,45 @@ public class VisioImageExport {
         VisioPage page = document.AddPage("Bounded").Size(4, 2);
         page.AddRectangle(2, 1, 2, 1, "Bounded");
 
-        OfficeImageExportResult png = page.ToImage()
-            .WithScale(2D)
-            .FitWithin(240, 240)
-            .IncludeConnectorLabels(false)
-            .AsPng()
-            .Export();
-        OfficeImageExportResult svg = page.ToImage()
-            .WithScale(2D)
-            .FitWithin(240, 240)
-            .ResolveConnectorLabelOverlaps(false)
-            .AsSvg()
-            .Export();
+        var imageOptions2 = new VisioImageExportOptions();
+        imageOptions2.Scale = 2D;
+        imageOptions2.TargetDpi = null;
+        imageOptions2.MaximumOutputWidth = 240;
+        imageOptions2.MaximumOutputHeight = 240;
+        imageOptions2.RenderConnectorLabels = false;
+        imageOptions2.Format = OfficeImageExportFormat.Png;
+        OfficeImageExportResult png = page.ExportImage(OfficeImageExportFormat.Png, imageOptions2);
+        var imageOptions3 = new VisioImageExportOptions();
+        imageOptions3.Scale = 2D;
+        imageOptions3.TargetDpi = null;
+        imageOptions3.MaximumOutputWidth = 240;
+        imageOptions3.MaximumOutputHeight = 240;
+        imageOptions3.ResolveConnectorLabelOverlaps = false;
+        imageOptions3.Format = OfficeImageExportFormat.Svg;
+        OfficeImageExportResult svg = page.ExportImage(OfficeImageExportFormat.Svg, imageOptions3);
 
         Assert.Equal((240, 120), (png.Width, png.Height));
         Assert.Equal((png.Width, png.Height), (svg.Width, svg.Height));
     }
 
     [Fact]
-    public void DocumentFluentBatchExport_SelectsPagesAndSavesPortableResults() {
+    public void DocumentBatchExport_SelectsPagesAndSavesPortableResults() {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);
         document.AddPage("First").Size(2, 1).AddRectangle(1, 0.5, 1, 0.5, "One");
         document.AddPage("Second").Size(2, 1).AddEllipse(1, 0.5, 1, 0.5, "Two");
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + Guid.NewGuid().ToString("N"));
         try {
-            IReadOnlyList<OfficeImageExportResult> results = document.ToImages()
-                .FromPage(1)
-                .TakePages(1)
-                .AtDpi(48D)
-                .AsWebp()
-                .Save(folder);
+            var imageOptions4 = new VisioImageExportOptions();
+            imageOptions4.PageIndex = 1;
+            imageOptions4.PageCount = 1;
+            imageOptions4.TargetDpi = 48D;
+            imageOptions4.Format = OfficeImageExportFormat.Webp;
+            OfficeConversionReport report = document.SaveAsImages(folder, imageOptions4);
 
-            OfficeImageExportResult result = Assert.Single(results);
-            Assert.Equal("Second", result.Name);
-            Assert.Equal("Visio page 2", result.Source);
-            Assert.Equal("image/webp", OfficeImageReader.Identify(result.Bytes).MimeType);
+            Assert.Equal(1, report.ItemsWritten);
+            byte[] bytes = File.ReadAllBytes(Path.Combine(folder, "Second.webp"));
+            Assert.Equal("image/webp", OfficeImageReader.Identify(bytes).MimeType);
             Assert.True(File.Exists(Path.Combine(folder, "Second.webp")));
         } finally {
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
@@ -754,7 +759,10 @@ public class VisioImageExport {
         Assert.Equal("image/jpeg", OfficeImageReader.Identify(page.ToJpeg(options)).MimeType);
         Assert.Equal("image/tiff", OfficeImageReader.Identify(document.ToTiff(options)).MimeType);
         Assert.Equal("image/webp", OfficeImageReader.Identify(page.ToWebp(options)).MimeType);
-        Assert.Equal(OfficeImageExportFormat.Svg, document.ToImage().AtDpi(48D).AsSvg().Export().Format);
+        var imageOptions5 = new VisioImageExportOptions();
+        imageOptions5.TargetDpi = 48D;
+        imageOptions5.Format = OfficeImageExportFormat.Svg;
+        Assert.Equal(OfficeImageExportFormat.Svg, document.ExportImage(OfficeImageExportFormat.Svg, imageOptions5).Format);
     }
 
     [Fact]

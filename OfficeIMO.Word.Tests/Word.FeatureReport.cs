@@ -187,7 +187,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var chart = document.AddChart("Revenue");
                 chart.AddChartAxisX(new List<string> { "Q1", "Q2" });
-                chart.AddLine("Sales", new List<int> { 10, 20 }, OfficeIMO.Drawing.OfficeColor.Blue);
+                chart.AddLine("Sales", new List<int> { 10, 20 }, OfficeIMO.OfficeColor.Blue);
                 document.AddSmartArt(WordSmartArtType.BasicProcess);
                 const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:r><m:t>x=1</m:t></m:r></m:oMath></m:oMathPara>";
                 document.AddEquation(omml);
@@ -337,7 +337,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Linked logo")
-                    .AddImage(new Uri("https://example.com/assets/logo.png"), 64, 32, description: "Linked logo");
+                    .AddImage(new Uri("https://example.com/assets/logo.png"), OfficeIMO.OfficeLength.Pixels(64), OfficeIMO.OfficeLength.Pixels(32), options: new OfficeIMO.Word.WordImageOptions { Description = "Linked logo" });
                 document.Save();
             }
 

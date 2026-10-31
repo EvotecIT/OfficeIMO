@@ -4,43 +4,43 @@ namespace OfficeIMO.Pdf;
 /// Describes optional per-side padding overrides for one table cell.
 /// </summary>
 public sealed class PdfCellPadding {
-    private double? _left;
-    private double? _right;
-    private double? _top;
-    private double? _bottom;
+    private global::OfficeIMO.OfficeLength? _left;
+    private global::OfficeIMO.OfficeLength? _right;
+    private global::OfficeIMO.OfficeLength? _top;
+    private global::OfficeIMO.OfficeLength? _bottom;
 
-    /// <summary>Optional left padding in points. When null the table style value is used.</summary>
-    public double? Left {
+    /// <summary>Optional left padding as a physical length. When null the table style value is used.</summary>
+    public global::OfficeIMO.OfficeLength? Left {
         get => _left;
         set {
-            ValidateOptionalPadding(value, nameof(Left));
+            ValidateOptionalPadding(value?.ToPoints(), nameof(Left));
             _left = value;
         }
     }
 
-    /// <summary>Optional right padding in points. When null the table style value is used.</summary>
-    public double? Right {
+    /// <summary>Optional right padding as a physical length. When null the table style value is used.</summary>
+    public global::OfficeIMO.OfficeLength? Right {
         get => _right;
         set {
-            ValidateOptionalPadding(value, nameof(Right));
+            ValidateOptionalPadding(value?.ToPoints(), nameof(Right));
             _right = value;
         }
     }
 
-    /// <summary>Optional top padding in points. When null the table style value is used.</summary>
-    public double? Top {
+    /// <summary>Optional top padding as a physical length. When null the table style value is used.</summary>
+    public global::OfficeIMO.OfficeLength? Top {
         get => _top;
         set {
-            ValidateOptionalPadding(value, nameof(Top));
+            ValidateOptionalPadding(value?.ToPoints(), nameof(Top));
             _top = value;
         }
     }
 
-    /// <summary>Optional bottom padding in points. When null the table style value is used.</summary>
-    public double? Bottom {
+    /// <summary>Optional bottom padding as a physical length. When null the table style value is used.</summary>
+    public global::OfficeIMO.OfficeLength? Bottom {
         get => _bottom;
         set {
-            ValidateOptionalPadding(value, nameof(Bottom));
+            ValidateOptionalPadding(value?.ToPoints(), nameof(Bottom));
             _bottom = value;
         }
     }

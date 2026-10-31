@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
         [InlineData("XNPV(0.09,{-10000,2750,4250,3250,2750},{39448,39508,39751,39859,39904})", 2086.64760203154)]
         [InlineData("XNPV(0.1,{-100,110},{40000.9,40365.1})", 0)]
         public void Financial_results_match_reference_equations_and_survive_save(string formula, double expected) {
-            using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Finance");
+            using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Finance");
             sheet.CellValue(1, 1, 99d); sheet.CellFormula(1, 1, formula);
             Assert.Equal(1, document.Calculate());
             Assert.InRange(Math.Abs(sheet.CellAt(1, 1).GetValue<double>() - expected), 0, 1e-7);
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
         [InlineData("RATE(#N/A,-100,1200)", "#N/A")]
         [InlineData("IFERROR(IRR({1,2,3}),42)", "42")]
         public void Financial_failures_replace_stale_caches_with_typed_errors(string formula, string expected) {
-            using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Finance");
+            using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Finance");
             sheet.CellValue(1, 1, 99d); sheet.CellFormula(1, 1, formula);
             Assert.Equal(1, document.Calculate());
             Assert.Equal(expected, Assert.Single(document.InspectFormulas().Formulas).CachedValue);
@@ -90,9 +90,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Financial_vectors_share_reference_budgets_and_recalculate_cross_sheet_dependencies() {
-            using var document = ExcelDocument.Create(); var inputs = document.AddWorksheet("Inputs");
+            using var document = ExcelDocument.Create(); var inputs = document.AddSheet("Inputs");
             inputs.CellValue(1, 1, -100d); inputs.CellValue(2, 1, "ignored"); inputs.CellValue(4, 1, 110d);
-            var sheet = document.AddWorksheet("Results"); sheet.CellFormula(1, 1, "IRR(Inputs!A1:A4)");
+            var sheet = document.AddSheet("Results"); sheet.CellFormula(1, 1, "IRR(Inputs!A1:A4)");
             sheet.CellFormula(2, 1, "XNPV(0.1,Inputs!A1:A1,Inputs!A4:A4)");
             Assert.Equal(2, document.Calculate());
             Assert.InRange(sheet.CellAt(1, 1).GetValue<double>(), 0.0999999999, 0.1000000001);

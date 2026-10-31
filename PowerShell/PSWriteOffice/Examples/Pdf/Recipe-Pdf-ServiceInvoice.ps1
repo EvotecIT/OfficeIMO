@@ -20,7 +20,7 @@ $lines = foreach ($item in $items) {
 $tax = [decimal]::Round($subtotal * $taxRate, 2, [MidpointRounding]::AwayFromZero)
 $total = $subtotal + $tax
 
-PdfNew -Path $path {
+New-OfficePdf -Path $path {
     PdfTheme Report
     PdfMetadata -Title 'Service invoice INV-2026-0818' -Author 'Northwind Automation'
     PdfPageSetup -PageSize A4 -Margin 42

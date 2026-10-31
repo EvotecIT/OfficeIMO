@@ -8,8 +8,8 @@ public sealed class PdfPipelineStep {
         PdfPipelineStepKind kind,
         string operation,
         bool succeeded,
-        PdfArtifactSnapshot? input,
-        PdfArtifactSnapshot? output,
+        PdfArtifactInfo? input,
+        PdfArtifactInfo? output,
         TimeSpan? duration,
         PdfMutationOperation? mutationOperation,
         PdfMutationExecutionMode? executionMode,
@@ -35,10 +35,10 @@ public sealed class PdfPipelineStep {
     public bool Succeeded { get; }
 
     /// <summary>Input artifact evidence when the stage consumed a PDF.</summary>
-    public PdfArtifactSnapshot? Input { get; }
+    public PdfArtifactInfo? Input { get; }
 
     /// <summary>Output artifact evidence when the stage produced a PDF.</summary>
-    public PdfArtifactSnapshot? Output { get; }
+    public PdfArtifactInfo? Output { get; }
 
     /// <summary>Measured execution duration, or null when an older operation path could not capture it.</summary>
     public TimeSpan? Duration { get; }

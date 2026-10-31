@@ -8,12 +8,14 @@ using Xunit;
 using X14 = DocumentFormat.OpenXml.Office2010.Excel;
 using Xm = DocumentFormat.OpenXml.Office.Excel;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Test_StructuralRows_PreservesOutOfGridNamesStructuredReferencesAndExternalTargets() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("A3 Total");
             sheet.CellAt(2, 1).SetValue(10);
             sheet.AddTable(
@@ -24,19 +26,19 @@ namespace OfficeIMO.Tests {
             sheet.CellFormula(1, 3, "A1048577+SUM(Table1[A3 Total])");
             sheet.SetHyperlink(2, 1, "https://example.org/book.xlsx", display: "External");
             Hyperlink hyperlink = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Hyperlink>());
-            hyperlink.Location = $"Data!A{A1.MaxRows}";
+            hyperlink.Location = $"Data!A{ExcelA1.MaxRows}";
 
             sheet.InsertRows(2);
 
             Assert.Equal("A1048577+SUM(Table1[A3 Total])", sheet.GetFormulaText(1, 3));
             Assert.Equal("A3", hyperlink.Reference!.Value);
-            Assert.Equal($"Data!A{A1.MaxRows}", hyperlink.Location!.Value);
+            Assert.Equal($"Data!A{ExcelA1.MaxRows}", hyperlink.Location!.Value);
         }
 
         [Fact]
         public void Test_StructuralRows_RemapsOffice2010DataValidationTargetsAndFormulas() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(2, 1).SetValue(1);
             sheet.CellAt(3, 1).SetValue(2);
 
@@ -60,8 +62,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_DoesNotRebaseRelativeReferencesToOtherSheets() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            document.AddWorksheet("Other");
+            ExcelSheet sheet = document.AddSheet("Data");
+            document.AddSheet("Other");
             sheet.CellAt(2, 1).SetValue(1);
 
             var validation = new DataValidation(
@@ -88,7 +90,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemapsStandardAndOffice2010IgnoredErrors() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(5, 1).SetValue("1");
             sheet.CellAt(6, 1).SetValue("2");
 
@@ -122,8 +124,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemapsOffice2010ConditionalFormattingTargetsAndFormulas() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            document.AddWorksheet("Other");
+            ExcelSheet sheet = document.AddSheet("Data");
+            document.AddSheet("Other");
             sheet.CellAt(2, 1).SetValue(1);
 
             var rule = new X14.ConditionalFormattingRule(
@@ -160,7 +162,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RejectsFormControlsBeforeMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(2, 1).SetValue("Keep");
             sheet.WorksheetPart.Worksheet.Append(new Controls());
 
@@ -174,8 +176,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_DeleteRows_ValidatesAllSharedFormulaGroupsBeforeMaterializingAny() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet first = document.AddWorksheet("First");
-            ExcelSheet second = document.AddWorksheet("Second");
+            ExcelSheet first = document.AddSheet("First");
+            ExcelSheet second = document.AddSheet("Second");
             first.CellAt(2, 1).SetValue(1);
             first.CellAt(3, 1).SetValue(2);
             second.CellAt(2, 1).SetValue(1);
@@ -195,27 +197,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_StructuralRows_InvalidatesNameBasedPivotSources() {
+        public void Test_StructuralRows_InvalidatesNameBasedPivotSources()
+        {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Region");
             sheet.CellAt(1, 2).SetValue("Sales");
             sheet.CellAt(2, 1).SetValue("East");
             sheet.CellAt(2, 2).SetValue(10);
             sheet.CellAt(3, 1).SetValue("West");
             sheet.CellAt(3, 2).SetValue(20);
-            sheet.AddTable(
-                "A1:B3",
-                hasHeader: true,
-                name: "PivotSourceData",
-                OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
-            sheet.AddPivotTable(
-                sourceRange: "A1:B3",
-                destinationCell: "E10",
-                name: "SalesPivot",
-                rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
-
+            sheet.AddTable("A1:B3", hasHeader: true, name: "PivotSourceData", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
+            sheet.AddPivotTable("A1:B3", "E10", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             PivotTablePart pivotPart = Assert.Single(sheet.WorksheetPart.PivotTableParts);
             PivotTableCacheDefinitionPart cachePart = pivotPart.PivotTableCacheDefinitionPart!;
             WorksheetSource source = cachePart.PivotCacheDefinition!.CacheSource!.WorksheetSource!;
@@ -224,26 +217,17 @@ namespace OfficeIMO.Tests {
             source.Sheet = null;
             cachePart.PivotCacheDefinition.RefreshOnLoad = false;
             cachePart.PivotCacheDefinition.SaveData = true;
-
             sheet.InsertRows(3);
-
             Assert.True(cachePart.PivotCacheDefinition.RefreshOnLoad!.Value);
             Assert.False(cachePart.PivotCacheDefinition.SaveData!.Value);
-            Assert.Equal(
-                0U,
-                cachePart.PivotTableCacheRecordsPart!.PivotCacheRecords!.Count!.Value);
-
+            Assert.Equal(0U, cachePart.PivotTableCacheRecordsPart!.PivotCacheRecords!.Count!.Value);
             cachePart.PivotCacheDefinition.RefreshOnLoad = false;
             cachePart.PivotCacheDefinition.SaveData = true;
             cachePart.PivotTableCacheRecordsPart.PivotCacheRecords.Count = 1U;
-
             sheet.DeleteRows(4);
-
             Assert.True(cachePart.PivotCacheDefinition.RefreshOnLoad!.Value);
             Assert.False(cachePart.PivotCacheDefinition.SaveData!.Value);
-            Assert.Equal(
-                0U,
-                cachePart.PivotTableCacheRecordsPart.PivotCacheRecords.Count!.Value);
+            Assert.Equal(0U, cachePart.PivotTableCacheRecordsPart.PivotCacheRecords.Count!.Value);
         }
 
         private static void AppendSharedFormulaGroup(

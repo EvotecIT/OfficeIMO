@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
         public void ObjectTableRejectsColumnsBeyondConfiguredLimit() {
 
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             var rows = new[] {
                 new System.Collections.Generic.Dictionary<string, object?> {
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ObjectTableExplainsHardColumnBoundary() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             var row = Enumerable.Range(0, 1_025)
                 .ToDictionary(index => "Column" + index, index => (object?)index);
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ObjectTableExplainsHardCellBoundary() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             var rows = Enumerable.Range(0, 100)
                 .Select(_ => new System.Collections.Generic.Dictionary<string, object?>())
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ObjectTableRejectsNonPositiveRowLimitBeforeInspectingSource() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
 
             ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests {
         public void ObjectTableRejectsFinalCellsDuringNestedExpansion() {
 
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             var rows = new[] {
                 new System.Collections.Generic.Dictionary<string, object?> {
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
         public void ObjectTableWithoutHeadersCountsOnlyRenderedCells() {
 
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             var rows = new[] {
                 new System.Collections.Generic.Dictionary<string, object?> {
@@ -145,7 +145,7 @@ namespace OfficeIMO.Tests {
         public void ObjectTableExplicitColumnsPreservesDistinctRequestedSchema() {
 
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             var rows = new[] {
                 new System.Collections.Generic.Dictionary<string, object?> {
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ObjectTableAppliesSelectionBeforeExplicitColumnLimit() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             var rows = new[] {
                 new System.Collections.Generic.Dictionary<string, object?> {
@@ -191,7 +191,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ObjectTableStopsStreamingRowsAtCellLimit() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             int enumeratedRows = 0;
 
@@ -214,24 +214,23 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExplicitBindingTableStopsColumnEnumerationAtHardLimit() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
 
             Assert.Throws<InvalidDataException>(() => slide.AddTable(
-                new[] { 1 },
-                InfiniteColumns()));
+                new[] { 1 },                InfiniteColumns()));
         }
 
         [Fact]
         public void ExplicitBindingTableStopsRowEnumerationAtCellLimit() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTableColumn<int>[] columns = Enumerable.Range(0, 1_024)
                 .Select(index => PowerPointTableColumn<int>.Create("Column" + index, value => value))
                 .ToArray();
 
-            Assert.Throws<InvalidDataException>(() => slide.AddTable(InfiniteRows(), columns));
+            Assert.Throws<InvalidDataException>(() => slide.AddTable(InfiniteRows(),columns));
         }
 
         [Fact]
@@ -242,11 +241,11 @@ namespace OfficeIMO.Tests {
 
 
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
 
                 PowerPointSlide slide = presentation.AddSlide();
 
-                PowerPointTable table = slide.AddTable(2, 2);
+                PowerPointTable table = slide.AddTable(2,2);
 
                 PowerPointTableCell cell = table.GetCell(0, 0);
 
@@ -270,7 +269,7 @@ namespace OfficeIMO.Tests {
 
 
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
 
                 PowerPointTable table = presentation.Slides[0].Tables.First();
 
@@ -304,15 +303,15 @@ namespace OfficeIMO.Tests {
         public void CanToggleHeaderAndBandedRows() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(2, 2);
+                PowerPointTable table = slide.AddTable(2,2);
                 table.HeaderRow = false;
                 table.BandedRows = false;
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointTable table = presentation.Slides.Single().Tables.First();
                 Assert.False(table.HeaderRow);
                 Assert.False(table.BandedRows);
@@ -335,7 +334,7 @@ namespace OfficeIMO.Tests {
             string? styleName = null;
             string? styleId = null;
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointTableStyleInfo style = presentation.TableStyles
                     .FirstOrDefault(s => !string.IsNullOrWhiteSpace(s.StyleId));
                 Assert.False(string.IsNullOrWhiteSpace(style.StyleId));
@@ -344,9 +343,7 @@ namespace OfficeIMO.Tests {
                 styleName = string.IsNullOrWhiteSpace(style.Name) ? style.StyleId : style.Name;
 
                 PowerPointSlide slide = presentation.AddSlide();
-                slide.AddTable(rows: 2, columns: 2, styleName: styleName,
-                    left: 0L, top: 0L, width: 6000000L, height: 2000000L,
-                    firstRow: true, bandedRows: true);
+                slide.AddTable(rows: 2,columns: 2,styleName: styleName,left: global::OfficeIMO.OfficeLength.Emus(0L),top: global::OfficeIMO.OfficeLength.Emus(0L),width: global::OfficeIMO.OfficeLength.Emus(6000000L),height: global::OfficeIMO.OfficeLength.Emus(2000000L),                    firstRow: true,bandedRows: true);
                 presentation.Save();
             }
 
@@ -363,7 +360,7 @@ namespace OfficeIMO.Tests {
         public void TableStyles_DoesNotDuplicateEntries() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointTableStyleInfo[] styles = presentation.TableStyles.ToArray();
 
                 Assert.NotEmpty(styles);
@@ -393,9 +390,9 @@ namespace OfficeIMO.Tests {
         public void CanSetTableCellAutoFit() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(1, 1);
+                PowerPointTable table = slide.AddTable(1,1);
                 PowerPointTableCell cell = table.GetCell(0, 0);
                 cell.SetTextAutoFit(PowerPointTextAutoFit.Normal,
                     new PowerPointTextAutoFitOptions(fontScalePercent: 80, lineSpaceReductionPercent: 10));
@@ -425,24 +422,23 @@ namespace OfficeIMO.Tests {
             };
 
             var columns = new[] {
-                PowerPointTableColumn<SalesRow>.Create("Product", row => row.Product).WithWidthCm(4.0),
+                PowerPointTableColumn<SalesRow>.Create("Product", row => row.Product).WithWidth(global::OfficeIMO.OfficeLength.Centimeters(4.0)),
                 PowerPointTableColumn<SalesRow>.Create("Q1", row => row.Q1),
                 PowerPointTableColumn<SalesRow>.Create("Q2", row => row.Q2)
             };
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                slide.AddTable(data, columns, includeHeaders: true,
-                    left: 0L, top: 0L, width: 6000000L, height: 2000000L);
+                slide.AddTable(data,columns,includeHeaders: true,left: global::OfficeIMO.OfficeLength.Emus(0L),top: global::OfficeIMO.OfficeLength.Emus(0L),width: global::OfficeIMO.OfficeLength.Emus(6000000L),height: global::OfficeIMO.OfficeLength.Emus(2000000L));
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointTable table = presentation.Slides[0].Tables.First();
                 Assert.Equal("Product", table.GetCell(0, 0).Text);
                 Assert.Equal("Alpha", table.GetCell(1, 0).Text);
                 Assert.Equal("15", table.GetCell(1, 2).Text);
-                Assert.True(table.GetColumnWidth(0) > 0);
+                Assert.True((table.GetColumnWidth(0)).ToEmus() > 0);
             }
 
             File.Delete(filePath);
@@ -459,18 +455,19 @@ namespace OfficeIMO.Tests {
 
             const long tableWidth = 6000000L;
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                slide.AddTable(data, includeHeaders: true,
-                    left: 0L, top: 0L, width: tableWidth, height: 2000000L);
+                slide.AddTable(data, configure: null, includeHeaders: true,
+                    left: OfficeIMO.OfficeLength.Zero, top: OfficeIMO.OfficeLength.Zero,
+                    width: OfficeIMO.OfficeLength.Emus(tableWidth), height: OfficeIMO.OfficeLength.Emus(2000000L));
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointTable table = presentation.Slides[0].Tables.First();
                 long sum = 0;
                 for (int i = 0; i < table.Columns; i++) {
-                    long width = table.GetColumnWidth(i);
+                    long width = (table.GetColumnWidth(i)).ToEmus();
                     Assert.True(width > 0);
                     sum += width;
                 }
@@ -487,16 +484,16 @@ namespace OfficeIMO.Tests {
             };
 
             var columns = new[] {
-                PowerPointTableColumn<SalesRow>.Create("Product", row => row.Product).WithWidth(1500000L),
-                PowerPointTableColumn<SalesRow>.Create("Q1", row => row.Q1).WithWidth(1500000L)
+                PowerPointTableColumn<SalesRow>.Create("Product", row => row.Product).WithWidth(global::OfficeIMO.OfficeLength.Emus(1500000L)),
+                PowerPointTableColumn<SalesRow>.Create("Q1", row => row.Q1).WithWidth(global::OfficeIMO.OfficeLength.Emus(1500000L))
             };
 
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 Assert.Throws<ArgumentException>(() =>
-                    slide.AddTable(data, columns, includeHeaders: true, left: 0L, top: 0L, width: 2000000L, height: 1000000L));
+                    slide.AddTable(data,columns,includeHeaders: true,left: global::OfficeIMO.OfficeLength.Emus(0L),top: global::OfficeIMO.OfficeLength.Emus(0L),width: global::OfficeIMO.OfficeLength.Emus(2000000L),height: global::OfficeIMO.OfficeLength.Emus(1000000L)));
             }
 
             File.Delete(filePath);
@@ -506,17 +503,17 @@ namespace OfficeIMO.Tests {
         public void CanApplyColumnWidthRatios() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(1, 2, left: 0L, top: 0L, width: 6000000L, height: 1500000L);
+                PowerPointTable table = slide.AddTable(1,2,left: global::OfficeIMO.OfficeLength.Emus(0L),top: global::OfficeIMO.OfficeLength.Emus(0L),width: global::OfficeIMO.OfficeLength.Emus(6000000L),height: global::OfficeIMO.OfficeLength.Emus(1500000L));
                 table.SetColumnWidthsByRatio(2, 1);
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointTable table = presentation.Slides[0].Tables.First();
-                Assert.Equal(4000000L, table.GetColumnWidth(0));
-                Assert.Equal(2000000L, table.GetColumnWidth(1));
+                Assert.Equal(4000000L, (table.GetColumnWidth(0)).ToEmus());
+                Assert.Equal(2000000L, (table.GetColumnWidth(1)).ToEmus());
             }
 
             File.Delete(filePath);
@@ -526,16 +523,16 @@ namespace OfficeIMO.Tests {
         public void CanAddColumnUsingExplicitAppendIndex() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(1, 2);
+                PowerPointTable table = slide.AddTable(1,2);
 
                 table.AddColumn(table.Columns);
                 table.GetCell(0, 2).Text = "Appended";
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointTable table = presentation.Slides.Single().Tables.First();
                 Assert.Equal(3, table.Columns);
                 Assert.Equal("Appended", table.GetCell(0, 2).Text);
@@ -559,25 +556,25 @@ namespace OfficeIMO.Tests {
                     PowerPointTableColumn<SalesRow>.Create("Q1", row => row.Q1)
                 };
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointTable table = slide.AddTable(3, 3, left: 0L, top: 0L, width: 6000000L, height: 3000000L);
+                    PowerPointTable table = slide.AddTable(3,3,left: global::OfficeIMO.OfficeLength.Emus(0L),top: global::OfficeIMO.OfficeLength.Emus(0L),width: global::OfficeIMO.OfficeLength.Emus(6000000L),height: global::OfficeIMO.OfficeLength.Emus(3000000L));
 
                     table.ApplyStyle(new PowerPointTableStylePreset(firstRow: true, bandedRows: true, bandedColumns: true));
                     table.LastRow = true;
                     table.FirstColumn = true;
                     table.SetColumnWidthsByRatio(2, 1, 1);
                     table.SetRowHeightsByRatio(1, 1, 1);
-                    table.SetCellPaddingCm(0.15, 0.1, 0.15, 0.1);
+                    table.SetCellPadding(global::OfficeIMO.OfficeLength.Centimeters(0.15), global::OfficeIMO.OfficeLength.Centimeters(0.1), global::OfficeIMO.OfficeLength.Centimeters(0.15), global::OfficeIMO.OfficeLength.Centimeters(0.1));
                     table.SetCellAlignment(PowerPointTextAlignment.Center, PowerPointTextVerticalAlignment.Center);
-                    table.SetCellBorders(PowerPointTableCellBorders.All, "4472C4", widthPoints: 0.75, dash: PowerPointLineDashStyle.Dash);
+                    table.SetCellBorders(PowerPointTableCellBorders.All, "4472C4", width: global::OfficeIMO.OfficeLength.Points(0.75), dash: PowerPointLineDashStyle.Dash);
 
                     PowerPointTableCell header = table.GetCell(0, 0);
                     header.Text = "Header";
                     header.FillColor = "1F4E79";
                     header.Color = "FFFFFF";
                     header.Bold = true;
-                    header.FontSize = 12;
+                    header.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                     header.FontName = "Aptos";
                     header.SetTextAutoFit(PowerPointTextAutoFit.Normal,
                         new PowerPointTextAutoFitOptions(fontScalePercent: 90, lineSpaceReductionPercent: 5));

@@ -328,7 +328,8 @@ Describe 'ChartForgeX visual artifacts' {
             }
         } | Out-Null
         New-OfficePowerPoint -Path $powerPointPath {
-            PptSlide { $visual | Add-OfficePowerPointVisual -X 36 -Y 54 | Out-Null }
+            $slide = PowerPointSlide -PassThru
+            $visual | Add-OfficePowerPointVisual -Slide $slide -X 36 -Y 54 | Out-Null
         } | Out-Null
         Test-Path $wordPath | Should -BeTrue
         Test-Path $excelPath | Should -BeTrue
@@ -344,7 +345,8 @@ Describe 'ChartForgeX visual artifacts' {
             $visual | Add-OfficePdfVisual -Align Center
         } | Out-Null
 
-        $document = New-OfficePdf -Content { PdfParagraph 'Existing document' }
+        $document = New-OfficePdf
+        PdfParagraph -Document $document 'Existing document'
         $updated = $visual | Add-OfficePdfVisual -Document $document -PassThru
         [object]::ReferenceEquals($updated, $document) | Should -BeTrue
         $pipelineUpdated = $document | Add-OfficePdfVisual -InputObject $visual -PassThru
@@ -358,7 +360,7 @@ Describe 'ChartForgeX visual artifacts' {
     It 'rejects conversion overrides when a prepared visual is reused' {
         $visual = $SvgPath | ConvertTo-OfficeVisual -Width 300
         $wordPath = Join-Path $TestDrive 'override.docx'
-        $document = New-OfficeWord -Path $wordPath -NoSave
+        $document = New-OfficeWord -Path $wordPath
         try {
             $paragraph = $document.AddParagraph()
             { $visual | Add-OfficeWordVisual -Paragraph $paragraph -Width 240 -ErrorAction Stop } | Should -Throw '*cannot be used with an existing*'

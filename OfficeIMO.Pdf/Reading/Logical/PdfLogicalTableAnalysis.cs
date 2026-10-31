@@ -37,7 +37,7 @@ public static class PdfLogicalTableAnalysis {
             : PdfLogicalTableSchemaKind.Unknown;
         IReadOnlyList<PdfInferenceEvidence> schemaEvidence = BuildSchemaEvidence(table, hasHeader);
         double schemaConfidence = hasHeader
-            ? table.Evidence.Any(static evidence => evidence.Code == "table.tagged-header-row") ? 0.99D : 0.95D
+            ? table.Evidence.Any(static evidence => evidence.Code == "table-tagged-header-row") ? 0.99D : 0.95D
             : 0D;
 
         return new PdfLogicalTableStructure(
@@ -361,9 +361,9 @@ public static class PdfLogicalTableAnalysis {
         }
 
         bool hasExplicitHeaderEvidence = table.Evidence.Any(static evidence =>
-            string.Equals(evidence.Code, "table.header-emphasis", StringComparison.Ordinal) ||
-            string.Equals(evidence.Code, "table.tagged-header-row", StringComparison.Ordinal));
-        if (!hasExplicitHeaderEvidence) {
+            string.Equals(evidence.Code, "table-header-emphasis", StringComparison.Ordinal) ||
+            string.Equals(evidence.Code, "table-tagged-header-row", StringComparison.Ordinal));
+        if (!hasExplicitHeaderEvidence && !HasStyledHeaderRow(table)) {
             return null;
         }
 
@@ -377,6 +377,30 @@ public static class PdfLogicalTableAnalysis {
         }
 
         return headers;
+    }
+
+    /// <summary>
+    /// A first row whose cells are filled or bold while the next row is styled differently is a header row, as
+    /// drawn by most report and invoice generators. Rows of values alone never qualify.
+    /// </summary>
+    internal static bool HasStyledHeaderRow(PdfLogicalTable table) {
+        IReadOnlyList<IReadOnlyList<PdfLogicalTableCellStyle?>>? styles = table.CellStyles;
+        if (styles == null || styles.Count < 2 || table.Rows.Count < 2) return false;
+        IReadOnlyList<string> firstRow = table.Rows[0];
+        int filled = 0, styledHeader = 0, textual = 0;
+        for (int column = 0; column < firstRow.Count; column++) {
+            string value = firstRow[column]?.Trim() ?? string.Empty;
+            if (value.Length == 0) continue;
+            filled++;
+            if (value.Any(char.IsLetter)) textual++;
+            PdfLogicalTableCellStyle? header = column < styles[0].Count ? styles[0][column] : null;
+            PdfLogicalTableCellStyle? body = column < styles[1].Count ? styles[1][column] : null;
+            bool headerFill = header?.FillColor.HasValue == true;
+            bool distinctFill = headerFill && !Nullable.Equals(header!.FillColor, body?.FillColor);
+            bool distinctWeight = header?.IsBold == true && body?.IsBold != true;
+            if (distinctFill || distinctWeight) styledHeader++;
+        }
+        return filled > 0 && textual * 2 >= filled && styledHeader * 2 > filled;
     }
 
     private static ScopeRepresentation IsTextBlockRepresentedByAnyTable(
@@ -639,7 +663,9 @@ public static class PdfLogicalTableAnalysis {
                 }
 
                 sawValue = true;
-                if (!LooksLikeNumericValue(value)) {
+                // Amounts with a currency code ("31,80 PLN") align like other figures.
+                if (!LooksLikeNumericValue(value) && !PdfLogicalTableValueParser.TryParseCurrency(value, CultureInfo.InvariantCulture, out _, out _) &&
+                    !LooksLikeCodedAmount(value)) {
                     allNumeric = false;
                     break;
                 }
@@ -649,6 +675,18 @@ public static class PdfLogicalTableAnalysis {
         }
 
         return numericColumns;
+    }
+
+    /// <summary>A number followed by a short unit or currency code ("31,80 PLN", "1.2 h", "+2.4 pts"), or preceded by an uppercase code.</summary>
+    private static bool LooksLikeCodedAmount(string value) {
+        string trimmed = value.Trim();
+        int space = trimmed.LastIndexOf(' ');
+        int firstSpace = trimmed.IndexOf(' ');
+        if (space <= 0) return false;
+        string tail = trimmed.Substring(space + 1);
+        string head = trimmed.Substring(0, firstSpace);
+        if (tail.Length is >= 1 and <= 4 && tail.All(char.IsLetter) && LooksLikeNumericValue(trimmed.Substring(0, space))) return true;
+        return head.Length is >= 1 and <= 4 && head.All(char.IsUpper) && LooksLikeNumericValue(trimmed.Substring(firstSpace + 1));
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<string> NormalizeRow(IReadOnlyList<string> row, int columnCount) {
@@ -715,8 +753,14 @@ public static class PdfLogicalTableAnalysis {
 
         CultureInfo effectiveCulture = culture ?? CultureInfo.InvariantCulture;
         const NumberStyles styles = NumberStyles.Number | NumberStyles.AllowCurrencySymbol | NumberStyles.AllowParentheses;
-        if (decimal.TryParse(source, styles, effectiveCulture, out value) ||
-            decimal.TryParse(source, styles, CultureInfo.InvariantCulture, out value)) {
+        // decimal.TryParse accepts group separators anywhere, so "31,80" would become 3180 under
+        // the invariant culture. Only accept a culture's reading when its digit grouping is valid.
+        bool effectiveGrouping = HasValidDigitGrouping(source, effectiveCulture);
+        bool invariantGrouping = ReferenceEquals(effectiveCulture, CultureInfo.InvariantCulture)
+            ? effectiveGrouping
+            : HasValidDigitGrouping(source, CultureInfo.InvariantCulture);
+        if (effectiveGrouping && decimal.TryParse(source, styles, effectiveCulture, out value) ||
+            invariantGrouping && decimal.TryParse(source, styles, CultureInfo.InvariantCulture, out value)) {
             return true;
         }
 
@@ -724,10 +768,73 @@ public static class PdfLogicalTableAnalysis {
             return false;
         }
 
-        return TryParseNormalizedNumericValue(source, effectiveCulture, out value) ||
+        return effectiveGrouping && TryParseNormalizedNumericValue(source, effectiveCulture, out value) ||
             (!ReferenceEquals(effectiveCulture, CultureInfo.InvariantCulture) &&
-             TryParseNormalizedNumericValue(source, CultureInfo.InvariantCulture, out value));
+             invariantGrouping && TryParseNormalizedNumericValue(source, CultureInfo.InvariantCulture, out value));
     }
+
+    /// <summary>
+    /// Checks that dot and comma separators in numeric text form a valid reading for the culture: at most one
+    /// decimal separator, no group separators after it, and three-digit groups after the leading integer group.
+    /// </summary>
+    internal static bool HasValidDigitGrouping(string text, CultureInfo culture) {
+        NumberFormatInfo format = culture.NumberFormat;
+        char? decimalSeparator = GetSingleSeparator(format.NumberDecimalSeparator);
+        char? groupSeparator = GetSingleSeparator(format.NumberGroupSeparator);
+        int[] groupSizes = format.NumberGroupSizes;
+        bool threeDigitGroups = groupSizes.Length == 1 && groupSizes[0] == 3;
+        var core = new System.Text.StringBuilder(text.Length);
+        for (int index = 0; index < text.Length;) {
+            int length = char.IsSurrogatePair(text, index) ? 2 : 1;
+            if (CharUnicodeInfo.GetDecimalDigitValue(text, index) >= 0) {
+                core.Append('0');
+            } else {
+                char c = NormalizeSeparator(text[index]);
+                if (c == '.' || c == ',') core.Append(c);
+            }
+            index += length;
+        }
+        if (core.Length == 0) return true;
+
+        bool sawDecimal = false;
+        bool integerHasGroups = false;
+        for (int index = 0; index < core.Length && core[index] != decimalSeparator; index++) {
+            if (core[index] == groupSeparator) { integerHasGroups = true; break; }
+        }
+        int runLength = 0;
+        int integerRun = 0;
+        for (int index = 0; index < core.Length; index++) {
+            char c = core[index];
+            if (c == '0') { runLength++; continue; }
+            if (runLength == 0 && index > 0) return false;
+            if (c == decimalSeparator) {
+                if (sawDecimal || !IsValidIntegerRun()) return false;
+                sawDecimal = true;
+            } else if (c == groupSeparator) {
+                if (sawDecimal || index == 0 || !IsValidIntegerRun()) return false;
+            } else {
+                return false;
+            }
+            runLength = 0;
+        }
+        if (runLength == 0) return core[core.Length - 1] != groupSeparator;
+        return sawDecimal || IsValidIntegerRun();
+
+        bool IsValidIntegerRun() {
+            int run = integerRun++;
+            if (!threeDigitGroups || !integerHasGroups) return true;
+            return run == 0 ? runLength <= 3 : runLength == 3;
+        }
+    }
+
+    private static char? GetSingleSeparator(string separator) =>
+        separator.Length == 1 ? NormalizeSeparator(separator[0]) : null;
+
+    private static char NormalizeSeparator(char value) => value switch {
+        '\uFF0E' => '.',
+        '\uFF0C' => ',',
+        _ => value
+    };
 
     private static bool CanParseNumericColumn(IReadOnlyList<IReadOnlyList<string>> rows, int columnIndex, CultureInfo culture) {
         bool sawValue = false;
@@ -854,15 +961,15 @@ public static class PdfLogicalTableAnalysis {
     private static PdfInferenceEvidence[] BuildSchemaEvidence(PdfLogicalTable table, bool hasHeader) {
         if (!hasHeader) {
             return new[] { new PdfInferenceEvidence(
-                "table.schema-unknown",
+                "table-schema-unknown",
                 "No tagged or structural evidence is strong enough to promote a row to table schema.",
                 -0.5D) };
         }
         PdfInferenceEvidence? tagged = table.Evidence.FirstOrDefault(static evidence =>
-            string.Equals(evidence.Code, "table.tagged-header-row", StringComparison.Ordinal));
+            string.Equals(evidence.Code, "table-tagged-header-row", StringComparison.Ordinal));
         if (tagged is not null) return new[] { tagged };
         PdfInferenceEvidence? emphasis = table.Evidence.FirstOrDefault(static evidence =>
-            string.Equals(evidence.Code, "table.header-emphasis", StringComparison.Ordinal));
+            string.Equals(evidence.Code, "table-header-emphasis", StringComparison.Ordinal));
         return emphasis is not null ? new[] { emphasis } : Array.Empty<PdfInferenceEvidence>();
     }
 

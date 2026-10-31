@@ -7,7 +7,7 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
     private static (byte[], OfficeWorkflowConversionEvidence) ConvertDjVu(ValidatedRequest request, byte[] input,
-        OfficeWorkflowConversionOptions settings, CancellationToken token) {
+        OfficeWorkflowRenderingOptions settings, CancellationToken token) {
         var document = DjVuDocument.Load(input, new DjVuReadOptions {
             MaxSourceBytes = Math.Min(256L * 1024 * 1024, request.Limits.MaximumInputBytes)
         }, token);

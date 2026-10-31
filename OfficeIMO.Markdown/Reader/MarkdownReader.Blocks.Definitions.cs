@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private static bool IsDefinitionLine(string line) {
         if (string.IsNullOrWhiteSpace(line)) return false;
         var trimmed = line.TrimStart();
@@ -15,7 +15,7 @@ public static partial class MarkdownReader {
         return TryGetDefinitionSeparator(line, out _);
     }
 
-    private static bool ShouldTreatAsDefinitionLine(IReadOnlyList<string>? lines, int index, MarkdownReaderOptions options) {
+    private static bool ShouldTreatAsDefinitionLine(IReadOnlyList<string>? lines, int index, MarkdownLoadOptions options) {
         if (lines == null || index < 0 || index >= lines.Count) return false;
         if (options == null || !options.DefinitionLists) return false;
 
@@ -87,7 +87,7 @@ public static partial class MarkdownReader {
     }
 
     private static bool ContainsLiteralAutolinkLikeToken(string text) {
-        var autolinkOptions = new MarkdownReaderOptions();
+        var autolinkOptions = new MarkdownLoadOptions();
         foreach (var rawToken in text.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries)) {
             if (LooksLikeMarkdownLinkToken(rawToken)) continue;
 

@@ -20,23 +20,23 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHyperlinks.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Links")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Links" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Name");
             sheet.SetHyperlink(2, 1, linkUri, display: "OfficeIMO");
 
-            ExcelHyperlinkSnapshot hyperlink = Assert.Single(sheet.GetHyperlinks()).Value;
+            ExcelHyperlinkInfo hyperlink = Assert.Single(sheet.GetHyperlinks()).Value;
             Assert.True(hyperlink.IsExternal);
             Assert.Equal(linkUri, hyperlink.Target);
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(360, 220),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -59,34 +59,34 @@ public partial class Excel {
         byte[] bytes;
         byte[] summaryOnlyBytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet summary = document.AddSheet("Summary");
             summary.Cell(1, 1, "Name");
             summary.SetInternalLink(2, 1, "Details!B3", display: "Open Details B3");
-            ExcelSheet details = document.AddWorksheet("Details");
+            ExcelSheet details = document.AddSheet("Details");
             details.Cell(1, 1, "Details Target");
             details.Cell(2, 1, "DestinationValue");
             details.Cell(3, 2, "CellSpecificTarget");
 
-            ExcelHyperlinkSnapshot hyperlink = Assert.Single(summary.GetHyperlinks()).Value;
+            ExcelHyperlinkInfo hyperlink = Assert.Single(summary.GetHyperlinks()).Value;
             Assert.False(hyperlink.IsExternal);
             Assert.Equal("'Details'!B3", hyperlink.Target);
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = true,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(360, 220),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
-            summaryOnlyBytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            summaryOnlyBytes = document.ToPdf(new ExcelPdfExportOptions {
                 SheetNames = new[] { "Summary" },
                 IncludeSheetHeadings = true,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(360, 220),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(bytes);
@@ -111,18 +111,18 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfSameSheetInternalHyperlinks.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Links")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Links" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Top Target");
             sheet.SetInternalLink(2, 1, "A1", display: "Back to Top");
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = true,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(360, 220),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(bytes);
@@ -138,22 +138,22 @@ public partial class Excel {
 
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet summary = document.AddSheet("Summary");
             summary.Cell(1, 1, "Name");
             summary.SetInternalLink(2, 1, "Details!B200", display: "Open Details B200");
-            ExcelSheet details = document.AddWorksheet("Details");
+            ExcelSheet details = document.AddSheet("Details");
             details.Cell(1, 1, "Details Header");
             details.Cell(2, 1, "Visible Detail");
             details.Cell(200, 2, "Hidden Target");
             document.SetPrintArea(details, "A1:B2");
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = true,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(360, 220),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(bytes);

@@ -13,14 +13,14 @@ public sealed class OfficeChartSnapshot {
     /// <param name="title">Optional display title.</param>
     /// <param name="chartKind">Supported chart family.</param>
     /// <param name="data">Chart category and series data.</param>
-    /// <param name="widthPoints">Requested render width in points.</param>
-    /// <param name="heightPoints">Requested render height in points.</param>
+    /// <param name="width">Requested physical render width.</param>
+    /// <param name="height">Requested physical render height.</param>
     /// <param name="style">Optional shared chart style metadata.</param>
     /// <param name="layout">Optional shared chart layout metadata.</param>
-    public OfficeChartSnapshot(string name, string? title, OfficeChartKind chartKind,
-        OfficeChartData data, double widthPoints, double heightPoints,
+    public OfficeChartSnapshot(string name, string? title, OfficeChartType chartKind,
+        OfficeChartData data, OfficeLength width, OfficeLength height,
         OfficeChartStyle? style = null, OfficeChartLayout? layout = null)
-        : this(name, title, chartKind, data, widthPoints, heightPoints,
+        : this(name, title, chartKind, data, width, height,
             style, layout, 100D, OfficeChartBubbleSizeMode.Area) {
     }
 
@@ -31,15 +31,15 @@ public sealed class OfficeChartSnapshot {
     /// <param name="title">Optional display title.</param>
     /// <param name="chartKind">Supported chart family.</param>
     /// <param name="data">Chart category and series data.</param>
-    /// <param name="widthPoints">Requested render width in points.</param>
-    /// <param name="heightPoints">Requested render height in points.</param>
+    /// <param name="width">Requested physical render width.</param>
+    /// <param name="height">Requested physical render height.</param>
     /// <param name="bubbleScalePercent">Bubble diameter scale as a percentage from zero through 300.</param>
     /// <param name="bubbleSizeMode">Whether bubble values represent area or width.</param>
-    public OfficeChartSnapshot(string name, string? title, OfficeChartKind chartKind,
-        OfficeChartData data, double widthPoints, double heightPoints,
+    public OfficeChartSnapshot(string name, string? title, OfficeChartType chartKind,
+        OfficeChartData data, OfficeLength width, OfficeLength height,
         double bubbleScalePercent,
         OfficeChartBubbleSizeMode bubbleSizeMode = OfficeChartBubbleSizeMode.Area)
-        : this(name, title, chartKind, data, widthPoints, heightPoints,
+        : this(name, title, chartKind, data, width, height,
             null, null, bubbleScalePercent, bubbleSizeMode) {
     }
 
@@ -50,39 +50,39 @@ public sealed class OfficeChartSnapshot {
     /// <param name="title">Optional display title.</param>
     /// <param name="chartKind">Supported chart family.</param>
     /// <param name="data">Chart category and series data.</param>
-    /// <param name="widthPoints">Requested render width in points.</param>
-    /// <param name="heightPoints">Requested render height in points.</param>
+    /// <param name="width">Requested physical render width.</param>
+    /// <param name="height">Requested physical render height.</param>
     /// <param name="style">Optional shared chart style metadata.</param>
     /// <param name="layout">Optional shared chart layout metadata.</param>
     /// <param name="bubbleScalePercent">Bubble diameter scale as a percentage from zero through 300.</param>
     /// <param name="bubbleSizeMode">Whether bubble values represent area or width.</param>
-    public OfficeChartSnapshot(string name, string? title, OfficeChartKind chartKind,
-        OfficeChartData data, double widthPoints, double heightPoints,
+    public OfficeChartSnapshot(string name, string? title, OfficeChartType chartKind,
+        OfficeChartData data, OfficeLength width, OfficeLength height,
         OfficeChartStyle? style, OfficeChartLayout? layout,
         double bubbleScalePercent, OfficeChartBubbleSizeMode bubbleSizeMode)
-        : this(name, title, chartKind, data, widthPoints, heightPoints, style, layout,
+        : this(name, title, chartKind, data, width, height, style, layout,
             bubbleScalePercent, bubbleSizeMode, OfficeChartRadialLayout.Default) {
     }
 
     /// <summary>Creates a chart snapshot with explicit radial geometry and default bubble sizing.</summary>
-    public OfficeChartSnapshot(string name, string? title, OfficeChartKind chartKind,
-        OfficeChartData data, double widthPoints, double heightPoints,
+    public OfficeChartSnapshot(string name, string? title, OfficeChartType chartKind,
+        OfficeChartData data, OfficeLength width, OfficeLength height,
         OfficeChartStyle? style, OfficeChartLayout? layout, OfficeChartRadialLayout radialLayout)
-        : this(name, title, chartKind, data, widthPoints, heightPoints, style, layout,
+        : this(name, title, chartKind, data, width, height, style, layout,
             100D, OfficeChartBubbleSizeMode.Area, radialLayout) {
     }
 
     /// <summary>Creates a chart snapshot with explicit bubble sizing and radial geometry.</summary>
-    public OfficeChartSnapshot(string name, string? title, OfficeChartKind chartKind,
-        OfficeChartData data, double widthPoints, double heightPoints,
+    public OfficeChartSnapshot(string name, string? title, OfficeChartType chartKind,
+        OfficeChartData data, OfficeLength width, OfficeLength height,
         OfficeChartStyle? style, OfficeChartLayout? layout,
         double bubbleScalePercent, OfficeChartBubbleSizeMode bubbleSizeMode, OfficeChartRadialLayout radialLayout) {
         if (data == null) {
             throw new ArgumentNullException(nameof(data));
         }
 
-        ValidatePositiveFinite(widthPoints, nameof(widthPoints));
-        ValidatePositiveFinite(heightPoints, nameof(heightPoints));
+        ValidatePositiveLength(width, nameof(width));
+        ValidatePositiveLength(height, nameof(height));
         if (double.IsNaN(bubbleScalePercent) || double.IsInfinity(bubbleScalePercent) ||
             bubbleScalePercent < 0D || bubbleScalePercent > 300D) {
             throw new ArgumentOutOfRangeException(nameof(bubbleScalePercent),
@@ -92,16 +92,16 @@ public sealed class OfficeChartSnapshot {
             throw new ArgumentOutOfRangeException(nameof(bubbleSizeMode));
         }
         for (int seriesIndex = 0; seriesIndex < data.Series.Count; seriesIndex++) {
-            OfficeChartSeries series = data.Series[seriesIndex];
-            OfficeChartKind effectiveKind = series.RenderKind ?? chartKind;
-            if (effectiveKind == OfficeChartKind.Bubble &&
-                chartKind != OfficeChartKind.Bubble &&
-                chartKind != OfficeChartKind.Scatter) {
+            OfficeSeries series = data.Series[seriesIndex];
+            OfficeChartType effectiveKind = series.RenderKind ?? chartKind;
+            if (effectiveKind == OfficeChartType.Bubble &&
+                chartKind != OfficeChartType.Bubble &&
+                chartKind != OfficeChartType.Scatter) {
                 throw new ArgumentException(
                     "Bubble series require a bubble or scatter snapshot with numeric axes.",
                     nameof(data));
             }
-            if (effectiveKind == OfficeChartKind.Bubble &&
+            if (effectiveKind == OfficeChartType.Bubble &&
                 (series.XValues == null || series.BubbleSizes == null ||
                  series.XValues.Count != series.Values.Count ||
                  series.BubbleSizes.Count != series.Values.Count)) {
@@ -115,8 +115,8 @@ public sealed class OfficeChartSnapshot {
         Title = title;
         ChartKind = chartKind;
         Data = data;
-        WidthPoints = widthPoints;
-        HeightPoints = heightPoints;
+        Width = width;
+        Height = height;
         Style = style ?? OfficeChartStyle.Default;
         Layout = layout ?? OfficeChartLayout.Default;
         BubbleScalePercent = bubbleScalePercent;
@@ -131,16 +131,16 @@ public sealed class OfficeChartSnapshot {
     public string? Title { get; }
 
     /// <summary>Supported chart family.</summary>
-    public OfficeChartKind ChartKind { get; }
+    public OfficeChartType ChartKind { get; }
 
     /// <summary>Chart category and series data.</summary>
     public OfficeChartData Data { get; }
 
-    /// <summary>Requested render width in points.</summary>
-    public double WidthPoints { get; }
+    /// <summary>Requested physical render width.</summary>
+    public OfficeLength Width { get; }
 
-    /// <summary>Requested render height in points.</summary>
-    public double HeightPoints { get; }
+    /// <summary>Requested physical render height.</summary>
+    public OfficeLength Height { get; }
 
     /// <summary>Shared chart style metadata.</summary>
     public OfficeChartStyle Style { get; }
@@ -158,15 +158,15 @@ public sealed class OfficeChartSnapshot {
     public OfficeChartRadialLayout RadialLayout { get; }
 
     /// <summary>Creates a snapshot at a different render size while retaining all chart data and presentation metadata.</summary>
-    /// <param name="widthPoints">Finite positive render width in points.</param>
-    /// <param name="heightPoints">Finite positive render height in points.</param>
-    public OfficeChartSnapshot WithSize(double widthPoints, double heightPoints) =>
-        new OfficeChartSnapshot(Name, Title, ChartKind, Data, widthPoints, heightPoints,
+    /// <param name="width">Positive physical render width.</param>
+    /// <param name="height">Positive physical render height.</param>
+    public OfficeChartSnapshot WithSize(OfficeLength width, OfficeLength height) =>
+        new OfficeChartSnapshot(Name, Title, ChartKind, Data, width, height,
             Style, Layout, BubbleScalePercent, BubbleSizeMode, RadialLayout);
 
-    private static void ValidatePositiveFinite(double value, string paramName) {
-        if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0D) {
-            throw new ArgumentOutOfRangeException(paramName, "Chart snapshot dimensions must be finite positive numbers.");
+    private static void ValidatePositiveLength(OfficeLength value, string paramName) {
+        if (value <= OfficeLength.Zero) {
+            throw new ArgumentOutOfRangeException(paramName, "Chart snapshot dimensions must be positive lengths.");
         }
     }
 }

@@ -5,8 +5,8 @@ namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         private static void ApplyWorksheetColumnFontMetrics(
             ExcelDocument document,
-            PdfCore.PdfOptions pdfOptions,
-            ExcelToPdfOptions options,
+            PdfCore.PdfCreateOptions pdfOptions,
+            ExcelPdfExportOptions options,
             IReadOnlyList<WorksheetPdfExportPlan> plans) {
             if (options.WorksheetLayout != ExcelPdfWorksheetLayoutMode.WorksheetCanvas ||
                 !options.UseWorksheetColumnWidths ||

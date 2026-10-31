@@ -12,7 +12,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
         EmitPowerPointChartData(chart, dataVariable, sb);
         var kind = ToPowerPointChartKind(chart.ChartType);
         var chartVariable = $"chart{chartIndex}";
-        sb.AppendLine($"var {chartVariable} = {slideVariable}.AddChart(OfficeChartKind.{kind}, {dataVariable});");
+        sb.AppendLine($"var {chartVariable} = {slideVariable}.AddChart(OfficeChartType.{kind}, {dataVariable});");
         if (!string.IsNullOrWhiteSpace(chart.Title)) {
             sb.AppendLine($"{chartVariable}.SetTitle({CsString(chart.Title!)});");
         }
@@ -91,7 +91,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
         for (int seriesIndex = 1; seriesIndex < headers.Count; seriesIndex++) {
             var values = chart.Data.Skip(1).Select(row => NumericLiteral(row.Count > seriesIndex ? row[seriesIndex] : "0"));
             var comma = seriesIndex == headers.Count - 1 ? string.Empty : ",";
-            sb.AppendLine($"        new OfficeChartSeries({CsString(headers[seriesIndex])}, new[] {{ {string.Join(", ", values)} }}){comma}");
+            sb.AppendLine($"        new OfficeSeries({CsString(headers[seriesIndex])}, new[] {{ {string.Join(", ", values)} }}){comma}");
         }
 
         sb.AppendLine("    });");
@@ -134,7 +134,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
 
         var dataVariable = $"chartData{chartIndex}";
         EmitExcelChartData(chart, dataVariable, sb);
-        sb.AppendLine($"var {chartVariable} = {chartSheetExpression}.AddChart({dataVariable}, row: {row}, column: {column}, widthPixels: {width}, heightPixels: {height}, type: ExcelChartType.{chartType}, title: {CsString(chart.Title ?? string.Empty)});");
+        sb.AppendLine($"var {chartVariable} = {chartSheetExpression}.AddChart({dataVariable}, row: {row}, column: {column}, width: OfficeLength.Pixels({width}), height: OfficeLength.Pixels({height}), type: OfficeChartType.{chartType}, title: {CsString(chart.Title ?? string.Empty)});");
         EmitExcelChartSemanticOptions(chart, chartVariable, sb);
     }
 
@@ -154,14 +154,14 @@ public sealed partial class OfficeMarkupCSharpEmitter {
             var sourceSheetVariable = $"chartSourceSheet{chartIndex}";
             sb.AppendLine($"var {sourceSheetVariable} = GetOrAddSheet({CsString(sourceSheetName)});");
             EmitExcelChartDataRangeFromSource(sb, chartIndex, sourceSheetVariable, localSource);
-            sb.AppendLine($"var {chartVariable} = {chartSheetExpression}.AddChart(chartDataRange{chartIndex}, row: {row}, column: {column}, widthPixels: {width}, heightPixels: {height}, type: ExcelChartType.{chartType}, title: {CsString(chart.Title ?? string.Empty)});");
+            sb.AppendLine($"var {chartVariable} = {chartSheetExpression}.AddChart(chartDataRange{chartIndex}, row: {row}, column: {column}, width: OfficeLength.Pixels({width}), height: OfficeLength.Pixels({height}), type: OfficeChartType.{chartType}, title: {CsString(chart.Title ?? string.Empty)});");
             return;
         }
 
         if (source.IndexOf(':') >= 0) {
-            sb.AppendLine($"var {chartVariable} = {chartSheetExpression}.AddChartFromRange({CsString(source)}, row: {row}, column: {column}, widthPixels: {width}, heightPixels: {height}, type: ExcelChartType.{chartType}, title: {CsString(chart.Title ?? string.Empty)});");
+            sb.AppendLine($"var {chartVariable} = {chartSheetExpression}.AddChartFromRange({CsString(source)}, row: {row}, column: {column}, width: OfficeLength.Pixels({width}), height: OfficeLength.Pixels({height}), type: OfficeChartType.{chartType}, title: {CsString(chart.Title ?? string.Empty)});");
         } else {
-            sb.AppendLine($"var {chartVariable} = {chartSheetExpression}.AddChartFromTable({CsString(source)}, row: {row}, column: {column}, widthPixels: {width}, heightPixels: {height}, type: ExcelChartType.{chartType}, title: {CsString(chart.Title ?? string.Empty)});");
+            sb.AppendLine($"var {chartVariable} = {chartSheetExpression}.AddChartFromTable({CsString(source)}, row: {row}, column: {column}, width: OfficeLength.Pixels({width}), height: OfficeLength.Pixels({height}), type: OfficeChartType.{chartType}, title: {CsString(chart.Title ?? string.Empty)});");
         }
     }
 

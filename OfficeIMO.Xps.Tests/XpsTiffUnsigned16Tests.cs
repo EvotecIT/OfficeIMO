@@ -31,7 +31,7 @@ public sealed class XpsTiffUnsigned16Tests {
             var direct = OfficeDrawingRasterRenderer.Render(page.ToDrawing(), background: OfficeColor.White);
             Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.Svg), out var svgDrawing));
             var svgImage = OfficeDrawingRasterRenderer.Render(svgDrawing!, scale: 1, background: OfficeColor.White);
-            var pdfPage = Assert.Single(PdfReadDocument.Open(document.ToPdf()).Pages);
+            var pdfPage = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf())).Pages);
             var pdfImage = OfficeDrawingRasterRenderer.Render(pdfPage.ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
             byte[] expected = File.ReadAllBytes(Path.Combine(Corpus, Path.ChangeExtension(fields[0], ".rgba")));
             for (int y = 0; y < 13; y++) for (int x = 0; x < 19; x++) {

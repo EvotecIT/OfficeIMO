@@ -21,14 +21,14 @@ namespace OfficeIMO.Examples.Pdf {
                 ShowTableColumnGuides = true
             };
 
-            var opts = new PdfOptions { Debug = debug };
+            var opts = new PdfCreateOptions { Debug = debug };
 
             var styleBase = new PdfTableStyle {
-                HeaderFill = PdfColor.LightGray,
-                BorderColor = PdfColor.FromRgb(210,210,210),
-                BorderWidth = 0.5,
-                CellPaddingX = 6,
-                CellPaddingY = 13.5
+                HeaderFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.9D, 0.9D),
+                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210,210,210),
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(13.5)
             };
 
             PdfDocument.Create(pdf => pdf.Content(content => content
@@ -39,9 +39,9 @@ namespace OfficeIMO.Examples.Pdf {
                     BorderWidth = styleBase.BorderWidth,
                     CellPaddingX = styleBase.CellPaddingX,
                     CellPaddingY = styleBase.CellPaddingY,
-                    RowBaselineOffset = -1.0
+                    RowBaselineOffset = global::OfficeIMO.OfficeLength.Points(-1.0)
                 })
-                .Spacer(14)
+                .Spacer(global::OfficeIMO.OfficeLength.Points(14))
                 .H1("Table Debug — Offset 0.0", PdfAlign.Left)
                 .Table(rows, PdfAlign.Left, new PdfTableStyle {
                     HeaderFill = styleBase.HeaderFill,
@@ -49,9 +49,9 @@ namespace OfficeIMO.Examples.Pdf {
                     BorderWidth = styleBase.BorderWidth,
                     CellPaddingX = styleBase.CellPaddingX,
                     CellPaddingY = styleBase.CellPaddingY,
-                    RowBaselineOffset = 0.0
+                    RowBaselineOffset = global::OfficeIMO.OfficeLength.Points(0.0)
                 })
-                .Spacer(14)
+                .Spacer(global::OfficeIMO.OfficeLength.Points(14))
                 .H1("Table Debug — Offset +1.0", PdfAlign.Left)
                 .Table(rows, PdfAlign.Left, new PdfTableStyle {
                     HeaderFill = styleBase.HeaderFill,
@@ -59,7 +59,7 @@ namespace OfficeIMO.Examples.Pdf {
                     BorderWidth = styleBase.BorderWidth,
                     CellPaddingX = styleBase.CellPaddingX,
                     CellPaddingY = styleBase.CellPaddingY,
-                    RowBaselineOffset = 1.0
+                    RowBaselineOffset = global::OfficeIMO.OfficeLength.Points(1.0)
                 })), opts)
                 .Save(path);
 

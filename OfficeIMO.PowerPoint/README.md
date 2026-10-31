@@ -1,841 +1,128 @@
-# OfficeIMO.PowerPoint - PowerPoint presentations for .NET
+# OfficeIMO.PowerPoint
 
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.PowerPoint)](https://www.nuget.org/packages/OfficeIMO.PowerPoint)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.PowerPoint?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.PowerPoint)
 
-`OfficeIMO.PowerPoint` creates, reads, edits, and writes `.pptx` presentations and PowerPoint 97-2003
-`.ppt`, `.pot`, and `.pps` files. It works without COM automation and without Microsoft PowerPoint installed.
-
-## Inspection without export payloads
-
-`PowerPointExtractOptions.IncludeMarkdown = false` makes `ExtractMarkdownChunks`
-emit plain slide/table/note text without constructing Markdown. Extraction options
-are snapshotted when the enumerable is created. `PowerPointLoadOptions.AllowLegacyProjection = false`
-rejects binary PPT before secondary payload/model projection, including encrypted
-legacy input; ordinary loads keep the default import behavior.
-
-`InspectEmbeddedPayloads(options, cancellationToken)` inventories inert package,
-OLE and ActiveX descriptors and provides selected bounded `OpenRead(ordinal)`
-streams. `OpenEmbeddedPayload(id, maximumBytes, cancellationToken)` opens one
-payload directly. Keep the presentation open while requesting reads; returned
-complete read-only streams are caller-owned and survive presentation disposal.
-The [Core payload contract](../OfficeIMO.Core/README.md#bounded-embedded-payload-reads)
-defines count, member, aggregate and cumulative work limits, unknown lengths and
-optional hashing. `InspectVbaProjectMetadata()` inventories the part and signature
-relationship without reading binary module content, with
-`ModuleInspectionRequested = false`.
-
-If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
+Create, edit, read and save PowerPoint presentations (`.pptx`, and PowerPoint 97–2003 `.ppt`, `.pot` and `.pps`) in .NET, without Microsoft PowerPoint or COM. Slides, tables and charts are native PowerPoint objects that stay editable.
 
 ## Install
 
-```powershell
+```sh
 dotnet add package OfficeIMO.PowerPoint
+dotnet add package OfficeIMO.PowerPoint.Pdf   # only for SaveAsPdf
 ```
 
-## Quick start
+Targets `netstandard2.0`, `net8.0` and `net10.0`, plus `net472` on Windows.
 
-```csharp
-using OfficeIMO.Drawing;
-using OfficeIMO.PowerPoint;
+## Create a deck
 
-using var presentation = PowerPointPresentation.Create("deck.pptx");
-presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-var slide = presentation.AddSlide();
-slide.AddTitle("OfficeIMO.PowerPoint");
-
-var body = slide.AddTextBox("Generated without PowerPoint automation.");
-body.SetPositionCm(2, 2);
-body.SetSizeCm(18, 2);
-
-slide.Transition = PowerPointSlideTransition.Fade;
-presentation.Save();
-```
-
-`Create(...)` starts with zero slides, and each `AddSlide()` call creates exactly one. This keeps creation and
-editing deterministic; there is no hidden placeholder slide to reuse.
-
-For a deck from an untrusted source, use the bounded load profile:
-
-```csharp
-using var incoming = PowerPointPresentation.Load("upload.pptx", PowerPointLoadOptions.UntrustedDefaults);
-```
-
-It rejects macros, embedded payloads, ActiveX, and external relationships before parsing. Ordinary load options retain compatibility with decks containing those parts; set `PackageSecurity` explicitly for another policy.
-
-Retain a structural report of the exact input used by the loader:
+Positions and sizes are `OfficeLength` values. `SlideSize.GetContentBox` gives the area inside a margin, and a `PowerPointLayoutBox` splits it into rows, columns or a title band, so slides line up without hand-computed coordinates:
 
 ```csharp
 using OfficeIMO;
 using OfficeIMO.PowerPoint;
 
-using var presentation = PowerPointPresentation.Load("review.pptx", new PowerPointLoadOptions {
-    AccessMode = DocumentAccessMode.ReadOnly,
-    PackageSecurity = new OfficePackageSecurityOptions { MaxPackageBytes = 64L * 1024 * 1024 },
-    CaptureSourcePackageSecurity = true
-});
-Console.WriteLine(presentation.SourcePackageSecurityReport?.ContainerKind);
-Console.WriteLine(presentation.SourcePackageSecurityScope);
-var loadedSafety = presentation.InspectLoadedContentSafety();
+using var deck = PowerPointDocument.Create("Review.pptx");
+PowerPointLayoutBox page = deck.SlideSize.GetContentBox(OfficeLength.Centimeters(1.5));
+PowerPointLayoutBox titleBand = page.TakeTop(OfficeLength.Centimeters(2.5));
+PowerPointLayoutBox body = page.Inset(OfficeLength.Zero, OfficeLength.Centimeters(3.5), OfficeLength.Zero, OfficeLength.Zero);
+
+deck.AddSlide().AddTitle("Quarterly business review", titleBand);
+
+PowerPointSlide agenda = deck.AddSlide();
+agenda.AddTitle("Agenda", titleBand);
+agenda.AddTextBox(body).AddBullets(["Results", "Risks", "Decisions", "Next steps"]);
+agenda.Notes.Text = "Keep the agenda under two minutes.";
+
+deck.Save();
 ```
 
-The captured package report stays attached to the original source scope when the
-model is later edited. Loaded-content safety inspection examines that current model
-without reopening, saving or running presentation content. Capture is opt-in;
-native import and package limits remain necessary. A macro or signature part is
-an inert descriptor, not execution or cryptographic-validation evidence.
+`Create` starts with no slides; each `AddSlide()` adds one.
 
-Load operations are detached from their source. Persistence is explicit by default, and read-only intent or
-save-on-dispose behavior uses the same shared lifecycle options as Word and Excel:
+## Tables and charts from your data
 
-```csharp
-using var edited = PowerPointPresentation.Load("deck.pptx");
-edited.ReplaceText("Draft", "Approved");
-edited.Save();
-
-using var inspected = PowerPointPresentation.Load("deck.pptx",
-    new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
-
-using var output = new MemoryStream();
-using var streamed = PowerPointPresentation.Create(output);
-streamed.AddSlide().AddTitle("Stream-backed deck");
-streamed.Save();
-```
-
-### PowerPoint 97-2003 binary files
-
-Normal loading detects the OLE document streams, so callers do not need a separate code path for `.ppt`,
-`.pot`, or `.pps` input. Supported binary content is projected into the same editable model used for PPTX:
-
-```csharp
-using var presentation = PowerPointPresentation.Load("legacy-deck.ppt");
-
-Console.WriteLine(presentation.SourceFormat); // Ppt
-presentation.ReplaceText("Draft", "Approved");
-presentation.SaveCopy("updated.pptx");
-```
-
-Use `LoadLegacyPptWithReport(...)` when an import gate needs parser diagnostics and a conversion-loss result:
-
-```csharp
-using OfficeIMO.PowerPoint.LegacyPpt;
-
-using LegacyPptLoadResult result =
-    PowerPointPresentation.LoadLegacyPptWithReport("legacy-deck.ppt");
-
-result.EnsureNoImportErrors();
-if (result.HasConversionLoss) {
-    foreach (var diagnostic in result.Diagnostics) {
-        Console.WriteLine(diagnostic);
-    }
-}
-
-PowerPointPresentation presentation = result.Document;
-```
-
-Native binary saving is selected by a `.ppt`, `.pot`, or `.pps` destination, or explicitly through
-`ToBytes(PowerPointFileFormat.Ppt)`. Fresh binary authoring and supported PPTX conversion use the same
-slides, masters, layouts, placeholders, themes, text, shapes, pictures, notes, comments, interactions,
-transitions, animations, properties, macros, embedded objects, and media contracts exposed by the normal
-PowerPoint model:
-
-Explicit `.pptx` output is macro-free. VBA imported from a binary presentation remains available in the
-editable model and is retained when saving back to `.ppt`, `.pot`, or `.pps`, but it is omitted from
-`Save("output.pptx")` and `ToBytes(PowerPointFileFormat.Pptx)` so the package content matches its extension.
-Matching macro-enabled Open XML path destinations (`.pptm`, `.potm`, `.ppsm`, and `.ppam`) preserve their
-package type and VBA, including encrypted path saves. Associated no-format stream saves preserve the loaded
-macro-enabled package type and VBA as well.
-
-```csharp
-using OfficeIMO.PowerPoint.LegacyPpt;
-
-using var presentation = PowerPointPresentation.Create("simple-deck.ppt");
-var slide = presentation.AddSlide();
-slide.AddTitle("Binary PowerPoint");
-slide.AddTextBox("Written without PowerPoint automation.");
-slide.AddRectangle(600000, 3200000, 1800000, 700000);
-
-LegacyPptWritePreflightReport report = presentation.AnalyzeLegacyPptWrite();
-if (report.CanWrite) {
-    presentation.Save();
-}
-```
-
-Imported binary files use a preservation-aware writer: no-op saves can retain the original compound file,
-representable edits append compatible records, and unrelated or unknown records and streams remain intact.
-Saving blocks on known loss by default. Tables, charts, and SmartArt can be converted to deterministic static
-PNG visuals only after the caller accepts the reported loss with
-`new PowerPointSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }`. Features with no safe
-binary representation are blocked rather than silently omitted.
-
-The versioned capability catalog is the source of truth for import, fresh binary authoring, binary round-trip,
-and PPTX-to-binary behavior:
-
-```csharp
-using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
-
-string json = LegacyPptCapabilityCatalog.ToJson();
-string markdown = LegacyPptCapabilityCatalog.ToMarkdown();
-LegacyPptCapability pictures = LegacyPptCapabilityCatalog.Get(
-    LegacyPptFeature.RasterPictures);
-```
-
-Password-to-open encryption works for both Open XML and binary presentations. Binary destinations use RC4
-CryptoAPI for PowerPoint 97-2003 compatibility; it is a legacy interoperability mechanism, not modern
-cryptography:
-
-```csharp
-using var encrypted = PowerPointPresentation.LoadEncrypted(
-    "protected.ppt", "open-password");
-
-encrypted.SaveEncrypted("protected-copy.ppt", "new-password",
-    new PowerPointSaveOptions {
-        LegacyPptEncryptionKeySizeBits = 128,
-        LegacyPptEncryptDocumentProperties = true
-    });
-```
-
-`InspectSignatures()` detects Open XML and legacy binary signature metadata. The safe default blocks a
-mutating save of signed content; callers must explicitly choose whether invalidated signature markup should
-be removed or preserved. `SignPackageSignature(...)` and `ValidatePackageSignatures(...)` use an explicitly
-supplied `IOfficeSecurityProvider` for OPC creation and cryptographic validation without adding a transitive
-`OfficeIMO.Security` dependency.
-
-## What it does
-
-- Creates and edits PowerPoint presentations, slides, slide size, text boxes, pictures, tables, charts, backgrounds, transitions, notes, and metadata.
-- Reads and writes `.ppt`, `.pot`, and `.pps` through a dependency-free binary parser, native writer, and preservation-aware incremental writer.
-- Keeps generated output as editable PowerPoint content instead of screenshots.
-- Reports editable, partially editable, preserved, and unsupported deck features through `InspectFeatures()` before edit-heavy round trips.
-- Composes reusable semantic plans through one `presentation.Compose(plan, options)` workflow.
-- Provides semantic executive-summary, chart-story, comparison, screenshot-story, appendix-table, architecture, and closing families with two editable variants each.
-- Inspects deck rhythm before rendering so repetitive layouts, dense streaks, long sections, and missing closings are visible to automation.
-- Authors every `OfficeIMO.Drawing.OfficeChartKind` family from one shared chart contract, including categorical combo charts and secondary value axes.
-- Authors bounded semantic SmartArt, shared custom geometry, classic and modern threaded comments, custom shows, embedded OLE objects, and opaque VBA projects through the normal presentation model.
-- Preserves and reports broader animation timelines while exposing first-party shape, text, and chart animation workflows for supported effects.
-- Supports encrypted Open XML and RC4 CryptoAPI binary presentation save/load workflows.
-- Uses Open XML directly, making it suitable for services, build agents, desktop apps, and automation hosts.
-
-### Imported charts, SmartArt, timelines, media, and OLE
-
-Imported 3-D bar, line, area, and pie charts, of-pie charts, stock charts, and
-surface charts support in-place data updates when their referenced caches and
-embedded workbook can be changed consistently. `InspectImportedContent()`
-reports the native family and export boundary. Image and PDF export draw these
-families as an explicit flat 2-D projection and report what it leaves out
-(`chart-projected` in both PDF and images);
-producer-specific storage or chart groups that do not have a safe model remain
-preservation-only. Series and slices that store no colour or marker take the
-colours and markers PowerPoint gives them, from the chart's classic style
-number and the theme.
-
-Image and PDF export draw SmartArt from the shapes PowerPoint caches with the
-diagram, so producer layouts keep their geometry, colours and text. When that
-drawing is missing or no longer matches the diagram text, export falls back to
-the supported semantic layouts.
-
-`PowerPointSmartArt.TryGetTopology(...)` exposes text, sibling order, and parent
-connections only when the imported layout can be represented safely.
-`UpdateTopology(...)` rejects node creation/deletion, cycles, and connections
-that would change the meaning of the supported SmartArt family.
-
-Slides can append motion, rotation, and command timeline actions without
-rebuilding an imported timing tree. Actions can be edited or removed by native
-timing ID. Linked and embedded audio/video expose playback, trim, fade, target,
-and payload controls; linked and embedded OLE objects expose their appropriate
-URI or package-payload controls. Unmodeled timing and package content remains in
-the source package unless a caller explicitly targets a supported node.
-
-## Runnable samples
-
-```powershell
-dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint
-dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --modern-powerpoint
-dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint-design-brief
-dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint-deck-plan
-```
-
-## Examples
-
-The quick start creates one simple slide. These examples show the editable deck features that belong in `OfficeIMO.PowerPoint`.
-
-### Title, content, and bullets
-
-```csharp
-var slide = presentation.AddSlide();
-slide.AddTitle("Quarterly Review");
-
-slide.AddTextBox("Agenda",
-    PowerPointUnits.FromCentimeters(1.5), PowerPointUnits.FromCentimeters(2.0),
-    PowerPointUnits.FromCentimeters(8.0), PowerPointUnits.FromCentimeters(1.0));
-
-var agenda = slide.AddTextBox("Topics",
-    PowerPointUnits.FromCentimeters(1.5), PowerPointUnits.FromCentimeters(3.0),
-    PowerPointUnits.FromCentimeters(10.0), PowerPointUnits.FromCentimeters(3.0));
-agenda.AddBullets(new[] { "Intro", "KPIs", "Next steps" });
-```
-
-### Custom paragraph tab stops
-
-`SetTabStops` replaces the paragraph's explicit stops and `TabStops` reads them back. Positions use points; alignment can be left, center, right, or decimal. Passing an empty sequence removes local stops while leaving inherited defaults unchanged.
-
-```csharp
-var paragraph = slide.AddTextBox("Label\t12.50").Paragraphs[0];
-paragraph.SetTabStops(new[] {
-    new PowerPointTabStop(72, PowerPointTabAlignment.Decimal)
-});
-```
-
-### Images and SVGs
-
-```csharp
-using OfficeIMO.Drawing;
-using OfficeIMO.PowerPoint;
-
-slide.AddPicture("logo.png",
-    PowerPointUnits.FromCentimeters(23), PowerPointUnits.FromCentimeters(1.2),
-    PowerPointUnits.FromCentimeters(5), PowerPointUnits.FromCentimeters(2));
-
-using var logo = File.OpenRead("logo.png");
-slide.AddPicture(logo, OfficeImageFormat.Png,
-    PowerPointUnits.FromCentimeters(2), PowerPointUnits.FromCentimeters(2),
-    PowerPointUnits.FromCentimeters(5), PowerPointUnits.FromCentimeters(2));
-
-slide.AddPicture("diagram.svg",
-    PowerPointUnits.FromCentimeters(2), PowerPointUnits.FromCentimeters(5),
-    PowerPointUnits.FromCentimeters(8), PowerPointUnits.FromCentimeters(4));
-```
-
-### Shapes and layout
-
-```csharp
-slide.AddRectangle(
-        PowerPointUnits.FromCentimeters(1), PowerPointUnits.FromCentimeters(1),
-        PowerPointUnits.FromCentimeters(3), PowerPointUnits.FromCentimeters(1))
-    .Fill("#E7F7FF")
-    .Stroke("#007ACC");
-
-slide.AddLine(
-        PowerPointUnits.FromCentimeters(1), PowerPointUnits.FromCentimeters(3),
-        PowerPointUnits.FromCentimeters(8), PowerPointUnits.FromCentimeters(3))
-    .Stroke("#404040");
-```
-
-### Tables from data
-
-```csharp
-using OfficeIMO.PowerPoint;
-
-var rows = new[] {
-    new SalesRow("Alpha", 12, 15),
-    new SalesRow("Beta", 9, 11)
-};
-
-var columns = new[] {
-    PowerPointTableColumn<SalesRow>.Create("Product", row => row.Product).WithWidthCm(4.0),
-    PowerPointTableColumn<SalesRow>.Create("Q1", row => row.Q1),
-    PowerPointTableColumn<SalesRow>.Create("Q2", row => row.Q2)
-};
-
-slide.AddTable(rows, columns,
-    left: PowerPointUnits.FromCentimeters(1.5),
-    top: PowerPointUnits.FromCentimeters(4),
-    width: PowerPointUnits.FromCentimeters(20),
-    height: PowerPointUnits.FromCentimeters(6));
-
-record SalesRow(string Product, int Q1, int Q2);
-```
-
-Use `slide.BackgroundColor` for a solid slide background or `slide.SetBackgroundNoFill()` for an explicit no-fill override that suppresses inherited layout or master fills. No-fill survives save/reopen and is returned as `PowerPointSlideBackgroundKind.None` by `GetBackground()`.
-
-Set `table.GetCell(row, column).FillColor` to an RGB hex color to replace the cell's local fill. Set `NoFill = true` to show the slide background through that cell and suppress table-theme shading. Setting `NoFill = false` removes that override; setting `FillColor = null` removes only a local solid fill. Cell indexes are zero-based. Explicit no-fill survives PPTX save/reopen, image export and native PPT conversion.
-
-Use `cell.SetBorders(PowerPointTableCellBorders.Bottom, "FF0000", 3)` to set selected edges while preserving the others. Widths are in points and must fit DrawingML's 0–1584-point range. `cell.HideBorders(...)` explicitly hides selected edges and overrides table styling; `cell.ClearBorders(...)` removes local edge declarations so they can inherit the table style. Setting a solid border after hiding it replaces the no-fill declaration.
-
-### Charts from data
-
-```csharp
-using DocumentFormat.OpenXml.Drawing.Charts;
-using OfficeIMO.Drawing;
-
-var metrics = new[] {
-    new MetricRow("Q1", 120, 32),
-    new MetricRow("Q2", 145, 36),
-    new MetricRow("Q3", 172, 41),
-    new MetricRow("Q4", 190, 44)
-};
-
-var chartData = new OfficeChartData(
-    metrics.Select(row => row.Quarter),
-    new[] {
-        new OfficeChartSeries("Revenue", metrics.Select(row => row.Revenue)),
-        new OfficeChartSeries("Margin", metrics.Select(row => row.Margin))
-    });
-
-var slide = presentation.AddSlide();
-slide.AddTitle("Revenue and margin");
-
-slide.AddChartCm(OfficeChartKind.ColumnClustered, chartData,
-        leftCm: 1.4, topCm: 3.0, widthCm: 13.2, heightCm: 8.0)
-    .SetTitle("Quarterly performance")
-    .SetCategoryAxisTitle("Quarter")
-    .SetValueAxisTitle("Value")
-    .SetLegend(OfficeChartLegendPosition.Bottom)
-    .SetChartAreaStyle(fillColor: "FFFFFF", lineColor: "D9E2F3")
-    .SetPlotAreaStyle(fillColor: "F8FAFC", lineColor: "D9E2F3");
-
-record MetricRow(string Quarter, double Revenue, double Margin);
-```
-
-### Shared chart families, combo axes, and accessibility
-
-Use `OfficeChartData` when the same categories and series should drive PowerPoint, Excel, Drawing, HTML, PDF,
-or image workflows. A series can choose its own chart kind and primary or secondary value axis without a
-PowerPoint-only chart model.
-
-`OfficeChartSeries.PointColors` assigns solid colours by point index. Native chart snapshots preserve
-these overrides, including sparse and theme-based fills, so saved and reopened pie, doughnut, and column
-charts retain their colours in managed image and PDF exports. A null entry inherits the chart's normal
-colour selection. The [image export capability matrix](../Docs/officeimo.image-export-capability-matrix.md#powerpoint)
-tracks the exact chart appearance boundary.
-PDF export uses the native chart style unless `PowerPointToPdfOptions.ChartStyle` supplies an override.
-
-```csharp
-using OfficeIMO.Drawing;
-
-var sharedData = new OfficeChartData(
-    new[] { "Q1", "Q2", "Q3", "Q4" },
-    new[] {
-        new OfficeChartSeries("Revenue", new[] { 120d, 145d, 172d, 190d },
-            xValues: null, color: OfficeColor.Parse("#0B7FAB"), pointColors: null,
-            showMarkers: false, renderKind: OfficeChartKind.ColumnClustered),
-        new OfficeChartSeries("Margin", new[] { 22d, 26d, 31d, 35d },
-            xValues: null, color: OfficeColor.Parse("#E85D04"), pointColors: null,
-            showMarkers: true, markerSize: 8, renderKind: OfficeChartKind.Line,
-            axisGroup: OfficeChartAxisGroup.Secondary)
-    });
-
-PowerPointChart chart = slide.AddChartCm(
-    OfficeChartKind.ColumnClustered, sharedData,
-    leftCm: 1.5, topCm: 3, widthCm: 22, heightCm: 9,
-    accessibility: new PowerPointChartAccessibilityOptions {
-        AlternativeText = "Revenue columns with margin line on a secondary axis"
-    });
-
-chart.SaveDataSummary("quarterly-chart.txt");
-```
-
-Use `chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 40,
-majorUnit: 10, numberFormat: "0").WithTitle("Margin"))` to give the secondary value axis an independent linear
-scale. Native data updates preserve these settings, and snapshots carry its bounds, tick units,
-tick appearance, number format, and title separately from the primary axis. Use the optional
-`majorTickMark` and `minorTickMark` settings for independent inside, outside, or crossing ticks.
-Static snapshots reject secondary logarithmic or reversed scales, display units, and explicit
-numeric crossing values. Native data updates preserve these settings.
-
-The shared authoring overload covers clustered, stacked, and 100% stacked column/bar; line variants; area
-variants; scatter; radar; pie; and doughnut. `TryGetOfficeSnapshot()` returns the same dependency-free contract
-used by PNG/SVG, HTML, and PDF paths.
-
-Category and scatter readback retains supported marker shape, size and outline,
-connecting-line visibility, and stroke width and dash. Group marker settings and
-scatter styles apply when a series does not override them. Static projections
-reject unqualified dashes, curved lines, distinct marker and line colours, and
-unfilled marker treatments. Native data editing remains available. Cached chart
-projections are bounded to 100,000 positions across all native layers.
-Point overrides retain their separate 100,000-record limit, including stale and
-duplicate records. Native series retain their plotting order, including combination
-layers. Gradients, custom or compound outlines, and per-point marker overrides reject
-static projection. Supported filled-series outlines are inherited by points, with
-explicit point outlines taking precedence. Picture markers reject static projection. Radar series inherit
-visible markers only from the native marker style unless the series supplies a marker.
-
-Category discovery checks all populated series before generating fallback labels.
-The longest available category cache supplies labels, and shorter series retain
-their positions with zero padding. Mixed snapshots require matching category
-caches and share one budget for native and normalized positions across the plot.
-Marker-only plots use the marker fill; a marker fill cannot replace an unresolved
-connecting-line colour in a static export.
-
-Data updates retain cached formula-linked chart and axis titles and custom
-labels as native rich text, and custom error bars as numeric literals when
-replacing the embedded worksheet. Uncached bindings and unqualified workbook-linked
-extensions reject the update before changing chart data or workbook bytes.
-Externally linked or unresolved workbook references reject shared and legacy
-updates. Compatible repeated layers retain separate native formatting when
-they share an axis pair; repeated layers of the same family and axis group
-with different axis pairs reject shared replacement.
-Legacy category-only updates require a single native chart layer; use shared
-`OfficeChartData` for supported combinations. For shared scatter and bubble
-authoring, each series' `RenderKind` must match the chart kind or be omitted.
-
-```csharp
-var mix = new OfficeChartData(
-    new[] { "Services", "Licenses", "Support" },
-    new[] { new OfficeChartSeries("Share", new[] { 55d, 30d, 15d }) });
-
-slide.AddChartCm(OfficeChartKind.Doughnut, mix,
-        leftCm: 15.2, topCm: 3.0, widthCm: 8.0, heightCm: 8.0)
-    .SetTitle("Revenue mix")
-    .SetLegend(OfficeChartLegendPosition.Right);
-```
-
-### Individual chart point styles
-
-Attach `OfficeChartSeries.WithPointStyles` when authoring shared chart data, or call
-`chart.SetDataPointStyle(seriesIndex, pointIndex, style)` to edit an existing native chart.
-Styles support solid fill, explicit no-fill, outlines, and seven hatch patterns from
-`OfficeIMO.Drawing.OfficeChartHatchPattern`. A null style clears the point's fill and outline
-overrides. Values remain unchanged and the chart remains editable in PowerPoint.
-
-Supported point appearances survive save/reopen, shared data updates, snapshots, image and
-PDF export, and PowerPoint semantic HTML round trips. Static pie and doughnut legends use
-the same colours and styles as the slices. Per-point area styling is retained in native
-files but static export reports an approximation and uses the series fill.
-See the [shared point-style example](../OfficeIMO.Core/README.md#style-individual-chart-points)
-for an outlined unknown-status slice and a hatched slice.
-
-### Pie and doughnut geometry
-
-Use `chart.SetRadialLayout(new OfficeChartRadialLayout(90, 70))` on an existing native
-two-dimensional pie or doughnut chart. The first argument rotates the first slice boundary
-clockwise from the top (0–360 degrees); the second sets the doughnut hole percentage (10–90).
-`chart.RadialLayout` reads the native settings. Save/reopen, data updates, snapshots,
-managed image/PDF exports, and semantic HTML round trips preserve them.
-
-### Table and chart together
-
-```csharp
-var segments = new[] {
-    new SegmentRow("Enterprise", 18, 22, 29, 35),
-    new SegmentRow("SMB", 12, 14, 18, 21),
-    new SegmentRow("Public", 9, 11, 12, 16)
-};
-
-var dashboard = presentation.AddSlide();
-dashboard.AddTitle("Segment dashboard");
-
-dashboard.AddTableCm(segments, new[] {
-        PowerPointTableColumn<SegmentRow>.Create("Segment", row => row.Segment).WithWidthCm(4.0),
-        PowerPointTableColumn<SegmentRow>.Create("Q1", row => row.Q1),
-        PowerPointTableColumn<SegmentRow>.Create("Q2", row => row.Q2),
-        PowerPointTableColumn<SegmentRow>.Create("Q3", row => row.Q3),
-        PowerPointTableColumn<SegmentRow>.Create("Q4", row => row.Q4)
-    },
-    leftCm: 1.4, topCm: 3.0, widthCm: 10.0, heightCm: 5.0);
-
-var segmentChart = new OfficeChartData(
-    segments.Select(row => row.Segment),
-    new[] {
-        new OfficeChartSeries("Q1", segments.Select(row => (double)row.Q1)),
-        new OfficeChartSeries("Q2", segments.Select(row => (double)row.Q2)),
-        new OfficeChartSeries("Q3", segments.Select(row => (double)row.Q3)),
-        new OfficeChartSeries("Q4", segments.Select(row => (double)row.Q4))
-    });
-
-dashboard.AddChartCm(OfficeChartKind.Line, segmentChart,
-        leftCm: 12.2, topCm: 3.0, widthCm: 12.0, heightCm: 6.5)
-    .SetTitle("Segment trend")
-    .SetLegend(OfficeChartLegendPosition.Bottom);
-
-record SegmentRow(string Segment, int Q1, int Q2, int Q3, int Q4);
-```
-
-### Slides, notes, and duplication
-
-```csharp
-var duplicate = presentation.DuplicateSlide(0);
-duplicate.Hidden = true;
-duplicate.Notes.Text = "Backup slide for Q&A.";
-```
-
-### Feature inspection
-
-Use `InspectFeatures()` before broad edits or automated round trips when input decks may contain package features outside the editable OfficeIMO surface:
-
-```csharp
-using var presentation = PowerPointPresentation.Load("incoming.pptx");
-
-PowerPointFeatureReport report = presentation.InspectFeatures();
-report.EnsureNoUnsupportedFeatures();
-
-foreach (PowerPointFeatureFinding feature in report.PreservedFeatures) {
-    Console.WriteLine($"{feature.Name}: {feature.Count}");
-}
-```
-
-### Accessibility, review, and animation inspection
-
-Generated and imported decks can be inspected with structured policies before they enter CI or a publishing workflow:
-
-```csharp
-using var presentation = PowerPointPresentation.Load("incoming.pptx",
-    new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
-
-var options = new PowerPointInspectionOptions {
-    InspectFeatures = true,
-    InspectReviewComments = true,
-    InspectAnimations = true,
-    Accessibility = PowerPointAccessibilityOptions.ForProfile(PowerPointAccessibilityPolicyProfile.Strict)
-};
-PowerPointInspectionReport inspection = presentation.Inspect(options);
-inspection.Accessibility!.SaveJson("incoming.accessibility.json");
-inspection.Accessibility.EnsureCompliant();
-Console.WriteLine($"{inspection.ReviewComments!.Comments.Count} comments, " +
-                  $"{inspection.Animations!.Nodes.Count} timing nodes");
-```
-
-Shapes expose `Title`, `Description`, `Decorative`, `ReadingOrder`, `MoveToReadingOrder(...)`, and language helpers. Designer slides apply accessible defaults. The default report treats missing alternative text, table headers, slide titles, and resolvable contrast failures as errors; the strict profile also requires explicit document and shape metadata.
-
-Saving a signed package is blocked by default because mutation invalidates existing signatures. Choose `RemoveInvalidatedSignatures` or `PreserveSignatureMarkup` explicitly only after inspecting `InspectSignatures()`.
-
-### Review threads, custom shows, and VBA projects
-
-Classic comments round-trip through supported PPTX and binary PPT workflows. Modern comments remain an Open XML feature and support replies, status changes, reassignment, and removal. Adding a modern comment writes its explicit slide reference; removing the last comment removes that reference while preserving other slide extensions:
-
-```csharp
-var reviewer = new PowerPointCommentAuthor("A. Reviewer", "AR", "reviewer@example.test");
-PowerPointModernComment comment = presentation.AddModernComment(
-    slide, reviewer, "Verify the release numbers.");
-comment.AddReply(reviewer, "Verified against the source report.");
-
-presentation.AddCustomShow("Executive review", new[] { titleSlide, summarySlide });
-```
-
-`GetVbaProjectBytes()`, `SetVbaProject(byte[], ...)`, and `RemoveVbaProject()` handle
-validated, bounded compound-storage content. `ReadVbaProject()` and the typed
-`SetVbaProject(OfficeVbaProject, ...)` overload use the
-[shared native VBA source model](../OfficeIMO.Core/README.md#native-vba-projects):
+`AddTable` and `AddChart` take any `IEnumerable<T>`, the same way as in Word and Excel, and return the native table or chart:
 
 ```csharp
 using OfficeIMO;
+using OfficeIMO.PowerPoint;
 
-var project = OfficeVbaProject.Create("Automation");
-project.AddModule("Helpers",
-    "Public Function Value() As Long\r\nValue = 42\r\nEnd Function\r\n");
-presentation.SetVbaProject(project);
+Region[] regions = [new("North", 5.7m, 0.36), new("South", 4.1m, 0.31), new("West", 2.9m, 0.27)];
+
+using var deck = PowerPointDocument.Create("Regions.pptx");
+PowerPointLayoutBox page = deck.SlideSize.GetContentBox(OfficeLength.Centimeters(1.5));
+PowerPointLayoutBox titleBand = page.TakeTop(OfficeLength.Centimeters(2.5));
+PowerPointLayoutBox[] halves = page.Inset(OfficeLength.Zero, OfficeLength.Centimeters(3.5), OfficeLength.Zero, OfficeLength.Zero)
+    .SplitColumns(2, OfficeLength.Centimeters(1));
+
+PowerPointSlide slide = deck.AddSlide();
+slide.AddTitle("Revenue by region", titleBand);
+
+PowerPointTable table = slide.AddTable(regions);
+halves[0].ApplyTo(table);
+
+slide.AddChart(OfficeChartType.Column, regions, nameof(Region.Name), new PowerPointChartOptions {
+    Title = "Revenue (USD m)",
+    Left = halves[1].Left, Top = halves[1].Top, Width = halves[1].Width, Height = halves[1].Height
+}, nameof(Region.Revenue));
+
+deck.Save();
+
+record Region(string Name, decimal Revenue, double Margin);
 ```
 
-Existing projects can be read, edited, and applied through the same model.
-Document modules bound to Word or Excel are rejected before the project part changes.
-Changed signed projects require explicit
-`OfficeVbaWriteOptions.AllowSignatureRemoval`; unchanged bytes retain signatures.
-Save macro content only to matching macro-enabled Open XML package formats such
-as `.pptm`, `.potm`, or `.ppsm`. Source editing adds no runtime dependency and
-does not execute VBA or edit binary `.ppt` carriers.
-
-`InspectVbaSignatures(...)` reports legacy, agile, and V3 profile evidence for `.pptm`, `.potm`, `.ppsm`, and `.ppam`. `ValidateVbaSignatures(...)` adds managed content binding plus provider-backed CMS, certificate, revocation, and timestamp evidence. `SignVbaProject(...)` clears and recreates the three Microsoft profiles atomically on every supported platform. A registered Microsoft Office SIP is an optional Windows differential check. Apply VBA signatures before an OPC package signature.
-
-### SmartArt and visual proof
-
-Use the bounded semantic SmartArt workflows when native editable diagram data is more useful than flattened artwork:
+## Images
 
 ```csharp
-PowerPointSmartArt process = slide.AddSmartArt(
-    PowerPointSmartArtType.BasicRelationship,
-    new[] { "Discover", "Design", "Deliver" });
+using OfficeIMO;
+using OfficeIMO.PowerPoint;
 
-PowerPointVisualProofReport proof = presentation.InspectVisuals();
-proof.RecordArtifact("deck.pptx",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    File.ReadAllBytes("deck.pptx"));
-proof.SaveJson("deck.visual-proof.json");
+using var deck = PowerPointDocument.Create("Logo.pptx");
+PowerPointSlide slide = deck.AddSlide();
+slide.AddTitle("Northwind Traders");
+slide.AddImage("logo.png", left: OfficeLength.Centimeters(2), top: OfficeLength.Centimeters(5),
+    width: OfficeLength.Centimeters(6), height: OfficeLength.Centimeters(6));
+deck.Save();
 ```
 
-The bounded semantic layouts cover process, hierarchy, cycle, list, matrix, pyramid, and relationship diagrams. `AddCustomGeometry(...)` accepts shared `OfficeShape` path or polygon geometry and writes editable DrawingML `custGeom` content.
-
-The visual proof report records structural and extraction evidence, accessibility results, shared-snapshot diagnostics, PNG/SVG hashes, caller-supplied conversion artifacts, and perceptual-comparison results. PowerPoint Desktop reference rendering is available through `PowerPointDesktopReferenceRenderer.TryRender(...)` only when the caller explicitly enables it; normal generation and export never use Office automation.
-
-### Designer composition
-
-Use a semantic plan when a deck needs readable business composition without hand-positioning every object.
-`PowerPointDeckPlan` owns intent and `PowerPointPresentation.Compose(...)` is the only public rendering operation:
+## Edit an existing deck
 
 ```csharp
-using var presentation = PowerPointPresentation.Create("proposal.pptx");
+using OfficeIMO.PowerPoint;
 
-var brief = PowerPointDesignBrief
-    .FromBrand("#008C95", "client-demo", "technical rollout proposal")
-    .WithIdentity("Client Theme", footerLeft: "CLIENT", footerRight: "Service deck");
-
-var plan = new PowerPointDeckPlan()
-    .AddSection("Delivery plan", "Implementation overview")
-    .AddProcess("Rollout", "Editable native shapes", new[] {
-        new PowerPointProcessStep("Discover", "Confirm scope and dependencies."),
-        new PowerPointProcessStep("Deliver", "Implement in controlled waves."),
-        new PowerPointProcessStep("Operate", "Hand over evidence and ownership.")
-    });
-
-PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromBrief(brief);
-composition.SelectBestAlternative = false;
-composition.AlternativeIndex = 0;
-PowerPointCompositionResult result = presentation.Compose(plan, composition);
-presentation.Save();
+using var deck = PowerPointDocument.Load("Review.pptx");
+int replaced = deck.ReplaceText("Quarterly", "Annual", includeNotes: true);
+foreach (PowerPointSlide slide in deck.Slides) {
+    Console.WriteLine(slide.Notes.Text);
+}
+deck.Save("Review-annual.pptx");
 ```
 
-Use a semantic plan when the whole story should stay reusable. Story slides render as native charts, tables,
-pictures, shapes, and connectors rather than flattened artwork. Oversized appendix tables continue across slides,
-and the rhythm report can be evaluated before the deck is created.
+For files from outside your organization, load with `PowerPointLoadOptions.UntrustedDefaults`, which rejects macros, embedded objects, ActiveX and external relationships before parsing.
+
+## Save as PDF or images
 
 ```csharp
-using OfficeIMO.Drawing;
-
-var chartStory = new PowerPointChartStoryContent(
-    OfficeChartKind.ColumnClustered,
-    new OfficeChartData(
-        new[] { "Q1", "Q2", "Q3", "Q4" },
-        new[] { new OfficeChartSeries("Adoption", new[] { 28d, 43d, 61d, 72d }) }),
-    new[] { "Adoption improved every quarter." }) {
-    Provenance = "Customer success dataset",
-    AlternativeText = "Quarterly adoption columns",
-    DataSummary = "Adoption rose from 28 to 72 percent."
-};
-
-var plan = new PowerPointDeckPlan()
-    .AddSection("Quarterly review", "Decision-ready evidence")
-    .AddChartStory("Adoption", null, chartStory)
-    .AddClosing("Next action", new PowerPointClosingContent(
-        "Turn the evidence into action.", "Approve the pilot"));
-
-PowerPointCompositionResult result = presentation.Compose(plan,
-    PowerPointCompositionOptions.FromBrief(brief));
-PowerPointDeckRhythmReport rhythm = result.Plan.InspectRhythm(result.Design);
-```
-
-### Corporate templates and brand import
-
-Inventory a real `.pptx` or `.potx` before generating slides. The inventory exposes masters, named layouts, semantic placeholders, theme tokens, likely logos, footer content, slide size, and layout safe areas. Missing or ambiguous semantic names fail with candidate diagnostics instead of selecting an arbitrary layout.
-
-```csharp
-PowerPointTemplateInventory inventory =
-    PowerPointTemplate.Inspect("Corporate.potx");
-
-PowerPointTemplateLayoutInfo contentLayout =
-    inventory.ResolveLayout("Executive Summary");
-
-var layoutMap = new PowerPointTemplateLayoutMap()
-    .Map(PowerPointDeckPlanSlideKind.Section, inventory, "Title")
-    .Map(PowerPointDeckPlanSlideKind.Capability, contentLayout);
-
-using var presentation = PowerPointTemplate.CreatePresentation(
-    "Corporate.potx",
-    "Proposal.pptx",
-    new PowerPointTemplateCreationOptions {
-        SlideRetention = PowerPointTemplateSlideRetention.None
-    });
-
-var plan = new PowerPointDeckPlan()
-    .AddSection("Service proposal", "Generated into named corporate layouts.")
-    .AddCapability("Operating model", null, new[] {
-        new PowerPointCapabilitySection("Governance", "Clear ownership and decisions."),
-        new PowerPointCapabilitySection("Delivery", "Repeatable rollout evidence.")
-    });
-
-PowerPointDesignBrief brief = inventory.CreateDesignBrief("proposal-seed", "service proposal");
-PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromBrief(brief);
-composition.TemplateLayouts = layoutMap;
-composition.ApplyTheme = false; // the copied template remains the native theme owner
-presentation.Compose(plan, composition);
-presentation.Save();
-```
-
-Use `layout.ResolvePlaceholder("Customer Screenshot")` or `ResolvePlaceholder(PowerPointTemplatePlaceholderRole.Image)` when placing a native image, chart, table, or text box into authored placeholder bounds. `CreateDesignBrief(...)` maps the imported brand into designer tokens; `ApplyBrandTo(...)` applies the same colors and fonts to native theme parts in another presentation.
-
-Concrete `PowerPointPresentation`, `PowerPointSlide`, and `PowerPointShape` objects are the editing API. There is
-no separate PowerPoint builder vocabulary to learn or keep synchronized.
-
-The concrete `PowerPointPresentation`, `PowerPointSlide`, and `PowerPointShape` types shown here are the supported editing surface. Semantic plans remain optional composition input and do not replace the concrete document model.
-
-## PDF export
-
-Forward PDF conversion is part of `OfficeIMO.PowerPoint`:
-
-```csharp
+using OfficeIMO;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 
-using var presentation = PowerPointPresentation.Load("deck.pptx");
-presentation.SaveAsPdf("deck.pdf");
-byte[] pdfBytes = presentation.ToPdfBytes();
+using var deck = PowerPointDocument.Load("Regions.pptx");
+OfficeConversionReport pdf = deck.SaveAsPdf("Regions.pdf");
+Console.WriteLine($"{pdf.ItemsWritten} slides, loss: {pdf.HasLoss}");
+
+File.WriteAllBytes("Regions-1.png", deck.Slides[0].ToImage());
 ```
 
-Installed document fonts are embedded by default. Inspect `ToPdfDocumentResult().Warnings`
-for substitutions, approximations, and omissions. Add `OfficeIMO.PowerPoint.Pdf` when
-importing PDF content as editable slides.
+## More
 
-## Managed image export
+- [PowerPoint guide](../Docs/officeimo.powerpoint-guide.md): text and paragraph formatting, shapes, the full chart API, designer composition and deck plans, corporate templates, sections, transitions, review threads, SmartArt, accessibility checks, legacy `.ppt` and image export.
+- [Generated operation contract](../Docs/Compatibility/generated/package-operations.md): exactly what is supported, preserved or rejected.
+- Adapters: [OfficeIMO.PowerPoint.Pdf](../OfficeIMO.PowerPoint.Pdf/README.md), [Html](../OfficeIMO.PowerPoint.Html/README.md), [OpenDocument](../OfficeIMO.PowerPoint.OpenDocument/README.md), [GoogleSlides](../OfficeIMO.PowerPoint.GoogleSlides/README.md) and [IWork](../OfficeIMO.PowerPoint.IWork/README.md). PDF back to PowerPoint lives in [OfficeIMO.Pdf.PowerPoint](../OfficeIMO.Pdf.PowerPoint/README.md).
+- [Examples](../OfficeIMO.Examples/PowerPoint) and the [migration guide](../MIGRATION.md). `PowerPointPresentation` is now `PowerPointDocument`.
+- PowerShell: [PSWriteOffice](../PowerShell/PSWriteOffice/README.MD) (`New-OfficePowerPoint`, `Export-OfficePowerPoint`).
 
-Slides and presentation batches can be exported as PNG, JPEG, TIFF, lossless WebP, or SVG:
-
-```csharp
-using OfficeIMO.Drawing;
-
-byte[] jpeg = slide.ToJpeg(new PowerPointImageExportOptions {
-    RasterEncoding = new OfficeRasterEncodingOptions {
-        Jpeg = new OfficeJpegEncodeOptions { Quality = 92 }
-    }
-});
-
-presentation.ToImages()
-    .ForSlideRange(1, 3)
-    .IncludeCharts()
-    .IncludeTables()
-    .FitWithin(1600, 900)
-    .AsWebp()
-    .Save("slide-previews");
-```
-
-PowerPoint PDF and slide images use the same layout and font policy through `OfficeIMO.Pdf`; `OfficeIMO.Drawing` owns sizing and the common raster encoders. Set `PowerPointImageExportOptions.LayoutOptions` to configure that layout. `CreateVisualSnapshot().TextSpans` exposes its text geometry. Normal autofit uses stored scaling or shrinks overflowing text, shape autofit grows the exported frame, and fixed frames retain text without ellipses. Tables apply PowerPoint margins and grow rows for their content. The fluent builder can include or exclude backgrounds, pictures, auto shapes, SmartArt, text boxes, tables, charts, hidden shapes, and hidden slides. `SaveAsJpeg`, `SaveAsTiff`, and `SaveAsWebp` remain thin wrappers over the shared export builder.
-
-## Content provenance
-
-`PowerPointPresentation.InspectProvenance("input.pptx")` reports C2PA and AI-specific IPTC metadata in the presentation and its supported embedded images. `PowerPointPresentation.RemoveProvenance("input.pptx", "clean.pptx")` removes the selected carriers. Signed-package mutation is blocked unless `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` is selected explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
-
-When the presentation is already in memory, inspect its encoded package bytes directly. This overload validates the package and inspects supported provenance without accessing the filesystem:
-
-```csharp
-using OfficeIMO.PowerPoint;
-using OfficeIMO.Provenance;
-
-static OfficeProvenanceReport InspectUploadedPowerPoint(byte[] packageBytes) =>
-    PowerPointPresentation.InspectProvenance(packageBytes, "upload.pptx");
-```
-
-## Concealed-content inspection and cleanup
-
-`PowerPointPresentation.InspectContentSafety(...)` reports hidden slides/shapes/groups, zero or fully off-canvas geometry, tiny/transparent/low-contrast text, notes, classic and modern comments, alternative text, and Unicode evidence. `PowerPointPresentation.RemoveSelectedContent(...)` uses the native PPTX/PPTM or legacy PPT writer and reinspects the output. Existing signature mutation is blocked unless an explicit supported policy is selected.
-
-## Adjacent packages
-
-| Package | Use it for |
-| --- | --- |
-| [OfficeIMO.PowerPoint.Pdf](../OfficeIMO.PowerPoint.Pdf/README.md) | Import PDF text, tables, shapes, and images as editable PowerPoint slides. |
-| [OfficeIMO.Markup.PowerPoint](../OfficeIMO.Markup.PowerPoint/README.md) | Render semantic markup documents to PowerPoint. |
-
-## Related packages
-
-- `OfficeIMO.PowerPoint` provides editable PowerPoint creation and manipulation.
-- `OfficeIMO.PowerPoint` exports PDF through `OfficeIMO.Pdf`; add `OfficeIMO.PowerPoint.Pdf` for reverse PDF import.
-- See `OfficeIMO.Examples` for complete showcase decks and design examples.
-
-## Targets and license
-
-- Targets: `netstandard2.0`, `net8.0`, `net10.0`; `net472` is included when building on Windows.
-- License: MIT.
-- Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
-
-## Dependency footprint
-
-- **External:** Open XML SDK for `.pptx` package mechanics. Microsoft BCL compatibility packages are used on older targets.
-- **OfficeIMO:** `OfficeIMO.Core` and `OfficeIMO.Pdf`. The presentation model, composition system, inspection, encryption workflow, PDF layout, and PNG/JPEG/TIFF/WebP/SVG export are first-party.
-- **Security:** Open XML, legacy binary, and VBA signature carriers are inspected and signed-presentation mutations fail safely without a cryptographic dependency. OPC and VBA creation and cryptographic validation accept an explicit `IOfficeSecurityProvider`; `OfficeIMO.Security` is not pulled transitively.
-
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
-
-### Hyperlink text colors
-
-Assigning `PowerPointTextRun.Color` keeps that explicit color on hyperlinks in readers supporting the native text-color extension. New links without an explicit color use the theme hyperlink color. To use a style-inherited text color, create the link and set `run.HyperlinkUsesTextColor = true`; set it to `false` to select the theme hyperlink color. Clearing `run.Color` preserves this policy, so a link using text color then inherits its color from the surrounding style. The extension is supported by Office 2019 and newer; older readers may ignore it.
+Dependencies: the [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) and `OfficeIMO.Core`. MIT licensed.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

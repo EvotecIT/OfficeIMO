@@ -49,7 +49,7 @@ public sealed partial class IWorkBoundaryTests {
         } else if (kind == IWorkDocumentKind.Numbers) {
             using var result = source.ToExcelDocumentResult(preview); report = result.Report;
         } else {
-            using var result = source.ToPowerPointPresentationResult(preview); report = result.Report;
+            using var result = source.ToPowerPointDocumentResult(preview); report = result.Report;
         }
         Assert.Equal(IWorkProjectionKind.VisualFallback, report.ProjectionKind);
         Assert.False(report.HasCompleteVisualCoverage);
@@ -61,7 +61,7 @@ public sealed partial class IWorkBoundaryTests {
         using IDisposable value = source.Kind switch {
             IWorkDocumentKind.Pages => source.ToWordDocument(options),
             IWorkDocumentKind.Numbers => source.ToExcelDocument(options),
-            _ => source.ToPowerPointPresentation(options)
+            _ => source.ToPowerPointDocument(options)
         };
     }
 

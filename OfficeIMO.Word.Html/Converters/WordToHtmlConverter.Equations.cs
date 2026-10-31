@@ -10,7 +10,7 @@ namespace OfficeIMO.Word.Html {
             IHtmlDocument htmlDocument,
             IElement context,
             WordEquation equation,
-            WordToHtmlOptions options) {
+            WordHtmlExportOptions options) {
             string label;
             string mathMl;
             try {
@@ -20,7 +20,7 @@ namespace OfficeIMO.Word.Html {
                 } catch (WordMathMlOutputLimitExceededException exception) {
                     ThrowExportLimitExceeded(
                         options,
-                        "WordHtmlOutputLimitExceeded",
+                        "word-html-output-limit-exceeded",
                         "Generated equation accessibility text exceeds the configured HTML output-character limit before materialization.",
                         "EquationAriaLabel",
                         GetCumulativeOutputCharacters(options, exception),
@@ -47,7 +47,7 @@ namespace OfficeIMO.Word.Html {
             } catch (WordMathMlOutputLimitExceededException exception) {
                 ThrowExportLimitExceeded(
                     options,
-                    "WordHtmlOutputLimitExceeded",
+                    "word-html-output-limit-exceeded",
                     "Generated MathML exceeds the configured HTML output-character limit before DOM construction.",
                     "EquationMathMl",
                     GetCumulativeOutputCharacters(options, exception),
@@ -56,7 +56,7 @@ namespace OfficeIMO.Word.Html {
             } catch (InvalidDataException exception) {
                 ThrowExportLimitExceeded(
                     options,
-                    "WordEquationDepthLimitExceeded",
+                    "word-equation-depth-limit-exceeded",
                     exception.Message,
                     "EquationOmml",
                     SaturatingAdd(options.MaxEquationNestingDepth, 1),
@@ -82,7 +82,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static long GetCumulativeOutputCharacters(
-            WordToHtmlOptions options,
+            WordHtmlExportOptions options,
             WordMathMlOutputLimitExceededException exception) {
             long consumedBeforeProjection = Math.Max(0, options.MaxOutputCharacters - exception.Limit);
             return SaturatingAdd(consumedBeforeProjection, exception.Actual);
@@ -93,7 +93,7 @@ namespace OfficeIMO.Word.Html {
             WordDocument document,
             WordParagraph run,
             string text,
-            WordToHtmlOptions options,
+            WordHtmlExportOptions options,
             string? documentLanguage,
             ISet<string> runStyles,
             bool includeHyperlink = true) {
@@ -150,7 +150,7 @@ namespace OfficeIMO.Word.Html {
                         htmlDocument,
                         span,
                         "style",
-                        $"font-family:{QuoteCssString(font!)}",
+                        $"font-family:{FontFamilyCss(font!)}",
                         "EquationRunFontStyle");
                     span.AppendChild(node);
                     node = span;

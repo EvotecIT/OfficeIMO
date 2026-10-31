@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Neutral workbook model produced from a legacy BIFF `.xls` stream.
     /// </summary>
-    public sealed partial class LegacyXlsWorkbook {
+    internal sealed partial class LegacyXlsWorkbook {
         private readonly List<LegacyXlsWorksheet> _worksheets = new();
         private readonly List<LegacyXlsNumberFormat> _numberFormats = new();
         private readonly List<LegacyXlsFont> _fonts = new();
@@ -667,7 +667,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 if (workbook.MutableDiagnostics.Count == 0) {
                     workbook.MutableDiagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Error,
-                        "XLS-COMPOUND-INVALID",
+                        "xls-compound-invalid",
                         "The input is not a supported OLE compound XLS file."));
                 }
 
@@ -680,7 +680,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 var workbook = new LegacyXlsWorkbook();
                 workbook.MutableDiagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Error,
-                    "XLS-WORKBOOK-STREAM-MISSING",
+                    "xls-workbook-stream-missing",
                     "The OLE compound file does not contain a Workbook or Book stream."));
                 return workbook;
             }
@@ -689,7 +689,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 var workbook = new LegacyXlsWorkbook();
                 workbook.MutableDiagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Error,
-                    "XLS-WORKBOOK-STREAM-TOO-LARGE",
+                    "xls-workbook-stream-too-large",
                     $"The BIFF workbook stream is {workbookStream.Length} bytes, which exceeds the configured limit of {options.MaxInputBytes} bytes."));
                 return workbook;
             }
@@ -713,20 +713,20 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             if (message.IndexOf("signature", StringComparison.OrdinalIgnoreCase) >= 0) {
                 return new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Error,
-                    "XLS-COMPOUND-SIGNATURE",
+                    "xls-compound-signature",
                     message);
             }
 
             if (message.IndexOf("sector sizes", StringComparison.OrdinalIgnoreCase) >= 0) {
                 return new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Error,
-                    "XLS-COMPOUND-SECTOR-SIZE",
+                    "xls-compound-sector-size",
                     message);
             }
 
             return new LegacyXlsImportDiagnostic(
                 LegacyXlsDiagnosticSeverity.Error,
-                "XLS-COMPOUND-CORRUPT",
+                "xls-compound-corrupt",
                 message);
         }
 

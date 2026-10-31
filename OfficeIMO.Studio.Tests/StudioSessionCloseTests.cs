@@ -18,8 +18,8 @@ public sealed class StudioSessionCloseTests {
         await app.Dispatch(async () => {
             var services = ((App)Application.Current!).Services;
             Directory.CreateDirectory(services.Paths.Root);
-            byte[] plain = PdfDocument.Create(document => document.Page(page => page.Size(200, 300))).ToBytes();
-            byte[] encrypted = PdfDocument.Load(plain).Security.Encrypt(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" }).Pdf;
+            byte[] plain = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)))).ToBytes();
+            byte[] encrypted = PdfDocument.Load(new System.IO.MemoryStream(plain)).Security.Encrypt(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" }).Pdf;
             string first = Path.Combine(services.Paths.Root, "first.pdf"), second = Path.Combine(services.Paths.Root, "second.pdf");
             File.WriteAllBytes(first, encrypted); File.WriteAllBytes(second, encrypted);
             var firstReached = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

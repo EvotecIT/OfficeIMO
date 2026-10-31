@@ -16,12 +16,12 @@ Add-OfficeMarkdownTable [-InputObject] <Object> [-View <OfficeTableView>] [-Coll
 
 ### Document
 ```powershell
-Add-OfficeMarkdownTable [-InputObject] <Object> -Document <MarkdownDoc> [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-DisableAutoAlign] [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownTable [-InputObject] <Object> -Document <MarkdownDocument> [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-DisableAutoAlign] [-PassThru] [<CommonParameters>]
 ```
 
 ### PipelineDocument
 ```powershell
-Add-OfficeMarkdownTable [-InputObject] <Object> -Document <MarkdownDoc> [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-DisableAutoAlign] [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownTable [-InputObject] <Object> -Document <MarkdownDocument> [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-DisableAutoAlign] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -114,7 +114,7 @@ Accept wildcard characters: False
 Markdown document to update outside the DSL context.
 
 ```yaml
-Type: MarkdownDoc
+Type: MarkdownDocument
 Parameter Sets: Document, PipelineDocument
 Aliases: None
 Possible values:
@@ -211,12 +211,12 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 - `System.Object`
 
 ## OUTPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## RELATED LINKS
 

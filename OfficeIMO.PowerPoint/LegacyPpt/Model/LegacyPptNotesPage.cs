@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents one notes page associated with a binary presentation slide.</summary>
-    public sealed class LegacyPptNotesPage {
+    internal sealed class LegacyPptNotesPage {
         private readonly List<LegacyPptShape> _shapes = new();
         private readonly List<LegacyPptConnectorRule> _connectorRules = new();
 

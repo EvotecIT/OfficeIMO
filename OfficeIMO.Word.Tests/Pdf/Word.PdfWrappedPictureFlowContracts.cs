@@ -24,7 +24,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         double remaining = paragraphHeight + Line / 2D;
         Assert.True(2D * Line <= remaining && paragraphHeight <= remaining && paragraphHeight + Line > remaining);
         using var control = KeepDocument(WordImageTextWrapping.InFrontOfText, remaining);
-        var controlResult = control.ToPdfDocumentResult(Options());
+        var controlResult = control.ConvertToPdfWithEvidence(Options());
         byte[] controlBytes = Save("keep-control-" + wrapping, control, controlResult);
         using var controlPdf = PdfPigDocument.Open(controlBytes);
         Assert.Equal(1, TokenPage(controlPdf, "ANCHOR"));
@@ -32,7 +32,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         using var word = KeepDocument(wrapping, remaining);
         string source = SourceXml(word);
         Assert.Empty(word.ValidateDocument());
-        var result = word.ToPdfDocumentResult(Options());
+        var result = word.ConvertToPdfWithEvidence(Options());
         byte[] bytes = Save("keep-" + wrapping, word, result);
         Assert.Equal(source, SourceXml(word));
         AssertAdmitted(result);
@@ -62,7 +62,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         Configure(word.AddParagraph(), "BODY");
         string source = SourceXml(word);
         Assert.Empty(word.ValidateDocument());
-        var result = word.ToPdfDocumentResult(Options());
+        var result = word.ConvertToPdfWithEvidence(Options());
         byte[] bytes = Save("heading-" + header + "-" + wrapping, word, result);
         Assert.Equal(source, SourceXml(word));
         AssertAdmitted(result);
@@ -92,7 +92,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         anchor.KeepWithNextOverride = false;
         Assert.Empty(word.ValidateDocument());
         string source = SourceXml(word);
-        var result = word.ToPdfDocumentResult(Options());
+        var result = word.ConvertToPdfWithEvidence(Options());
         using var pdf = PdfPigDocument.Open(Save("keep-together", word, result));
         Assert.Equal(source, SourceXml(word));
         AssertAdmitted(result);
@@ -114,7 +114,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         anchor.AvoidWidowAndOrphan = true;
         Assert.Empty(word.ValidateDocument());
         string source = SourceXml(word);
-        var result = word.ToPdfDocumentResult(Options());
+        var result = word.ConvertToPdfWithEvidence(Options());
         using var pdf = PdfPigDocument.Open(Save("widow-rows", word, result));
         Assert.Equal(source, SourceXml(word));
         AssertAdmitted(result);
@@ -145,7 +145,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         File.WriteAllBytes(Path.Combine(output, "crosspage-continuation.docx"), word.ToBytes());
         string source = SourceXml(word);
         Assert.Empty(word.ValidateDocument());
-        var result = word.ToPdfDocumentResult(Options());
+        var result = word.ConvertToPdfWithEvidence(Options());
         using var pdf = PdfPigDocument.Open(Save("crosspage-continuation", word, result));
         File.WriteAllText(Path.Combine(output, "crosspage-continuation.report.json"), JsonSerializer.Serialize(result.Warnings));
         Assert.Equal(source, SourceXml(word));
@@ -170,7 +170,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         int lines = (int)Math.Floor(fillerHeight / Line);
         WordParagraph? last = null;
         for (int index = 0; index < lines; index++) Configure(last = word.AddParagraph(), "FILL" + index);
-        if (last != null) last.LineSpacingAfterPoints = fillerHeight - lines * Line;
+        if (last != null) last.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(fillerHeight - lines * Line);
         var anchor = word.AddParagraph();
         Configure(anchor, "ANCHOR WORD TWO");
         anchor.KeepWithNext = true;
@@ -184,20 +184,19 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         var word = WordDocument.Create();
         word.Settings.FontFamily = ManagedTextShapingTestAssets.FamilyName;
         var section = word.Sections[0];
-        section.PageSettings.Width = 4800; section.PageSettings.Height = 6000;
-        section.Margins.Left = section.Margins.Right = 600;
-        section.Margins.Top = section.Margins.Bottom = 600;
-        section.Margins.HeaderDistance = section.Margins.FooterDistance = 360;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(240D); section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
+        section.Margins.Left = section.Margins.Right = global::OfficeIMO.OfficeLength.Points(30D);
+        section.Margins.Top = section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(30D);
+        section.Margins.HeaderDistance = section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(18D);
         return word;
     }
 
     private static void Configure(WordParagraph paragraph, string text) {
         paragraph.Text = text;
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
-        paragraph.FontSize = 12;
-        paragraph.LineSpacingPoints = Line;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-        paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0D;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(Line));
+        paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph.AvoidWidowAndOrphan = false;
     }
 
@@ -205,11 +204,11 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         double distance = Distance, double verticalOffset = 0D) {
         byte[] png = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(2, 2, OfficeColor.Black), OfficeImageExportFormat.Png);
         using var stream = new MemoryStream(png);
-        var image = paragraph.AddText(string.Empty).InsertImage(stream, "picture.png", ImageWidth / .75D, ImageHeight / .75D, wrapping);
+        var image = paragraph.AddText(string.Empty).AddImage(stream, "picture.png", OfficeIMO.OfficeLength.Pixels(ImageWidth / .75D), OfficeIMO.OfficeLength.Pixels(ImageHeight / .75D), options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrapping });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-        image.HorizontalPositionOffset = 30L * 12700L;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(30L * 12700L);
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Paragraph;
-        image.VerticalPositionOffset = (long)(verticalOffset * 12700D);
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus((long)(verticalOffset * 12700D));
         var main = word.OpenXmlDocument!.MainDocumentPart!;
         var anchor = main.Document!.Descendants<DW.Anchor>()
             .Concat(main.HeaderParts.SelectMany(part => part.Header!.Descendants<DW.Anchor>())).Single();
@@ -217,16 +216,16 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         foreach (var extent in anchor.Descendants<DW.EffectExtent>()) extent.LeftEdge = extent.TopEdge = extent.RightEdge = extent.BottomEdge = 0L;
     }
 
-    private static WordToPdfOptions Options() {
-        var pdf = new PdfOptions();
+    private static WordPdfExportOptions Options() {
+        var pdf = new PdfCreateOptions();
         pdf.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, Enumerable.Range(32, 95).ToArray())));
-        return new WordToPdfOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = pdf };
+        return new WordPdfExportOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = pdf };
     }
 
     private static int TokenPage(PdfPigDocument pdf, string token) => Assert.Single(pdf.GetPages(), page => page.GetWords().Any(word => word.Text == token)).Number;
     private static void AssertAdmitted(PdfDocumentConversionResult result) => Assert.DoesNotContain(result.Warnings,
-        warning => warning.Code is "NativeAnchoredImageFlowed" or "NativeAnchoredImageWrapApproximated");
+        warning => warning.Code is "native-anchored-image-flowed" or "native-anchored-image-wrap-approximated");
     private static string SourceXml(WordDocument word) {
         var main = word.OpenXmlDocument!.MainDocumentPart!;
         return main.Document!.OuterXml + main.StyleDefinitionsPart!.Styles!.OuterXml +

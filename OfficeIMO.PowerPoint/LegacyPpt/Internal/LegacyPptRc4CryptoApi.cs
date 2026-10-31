@@ -28,7 +28,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
             if (options.Password == null) {
                 throw new CryptographicException(
-                    "The binary PowerPoint presentation is encrypted. Provide LegacyPptImportOptions.Password or use PowerPointPresentation.LoadEncrypted.");
+                    "The binary PowerPoint presentation is encrypted. Provide LegacyPptImportOptions.Password or use PowerPointDocument.LoadEncrypted.");
             }
             cancellationToken.ThrowIfCancellationRequested();
             byte[] documentStream = GetRequiredStream(source,

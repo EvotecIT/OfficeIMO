@@ -13,14 +13,17 @@ namespace OfficeIMO.PowerPoint {
         ///     Represents a chart on a slide.
         /// </summary>
         public partial class PowerPointChart : PowerPointShape {
-        private readonly OpenXmlPartContainer _ownerPart;
+        private readonly OpenXmlPartContainer _initialOwnerPart;
+        private OpenXmlPartContainer _ownerPart => _initialOwnerPart is SlidePart
+            ? Element.Ancestors<Slide>().FirstOrDefault()?.SlidePart ?? _initialOwnerPart
+            : _initialOwnerPart;
 
         internal PowerPointChart(GraphicFrame frame, SlidePart slidePart) : base(frame) {
-            _ownerPart = slidePart ?? throw new ArgumentNullException(nameof(slidePart));
+            _initialOwnerPart = slidePart ?? throw new ArgumentNullException(nameof(slidePart));
         }
 
         internal PowerPointChart(GraphicFrame frame, OpenXmlPartContainer ownerPart) : base(frame) {
-            _ownerPart = ownerPart ?? throw new ArgumentNullException(nameof(ownerPart));
+            _initialOwnerPart = ownerPart ?? throw new ArgumentNullException(nameof(ownerPart));
         }
 
         private GraphicFrame Frame => (GraphicFrame)Element;
@@ -104,14 +107,16 @@ namespace OfficeIMO.PowerPoint {
 
             C.Title chartTitle = chart.GetFirstChild<C.Title>() ?? new C.Title();
             chartTitle.RemoveAllChildren<C.ChartText>();
-            chartTitle.Append(CreateChartText(title));
+            chartTitle.AddChild(CreateChartText(title), true);
             if (chartTitle.GetFirstChild<C.Layout>() == null) {
-                chartTitle.Append(new C.Layout());
+                chartTitle.AddChild(new C.Layout(), true);
             }
             chartTitle.RemoveAllChildren<C.Overlay>();
-            chartTitle.Append(new C.Overlay { Val = false });
+            chartTitle.AddChild(new C.Overlay { Val = false }, true);
 
             if (chart.GetFirstChild<C.Title>() == null) {
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.ApplyTitle(chartTitle,
+                    OwnerSlide?.OwnerDocument?.LayoutTheme.Theme ?? OfficeTheme.Default);
                 chart.InsertAt(chartTitle, 0);
             }
 
@@ -122,9 +127,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the chart title text style.
         /// </summary>
-        public PowerPointChart SetTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null,
+        public PowerPointChart SetTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null,
             string? color = null, string? fontName = null) {
-            ValidateTextStyle(fontSizePoints, color, fontName);
+            ValidateTextStyle(fontSize, color, fontName);
 
             C.Chart chart = GetChart();
             C.Title? title = chart.GetFirstChild<C.Title>();
@@ -137,7 +142,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            ApplyTextStyle(EnsureChartTextRunProperties(chartText), fontSizePoints, bold, italic, color, fontName);
+            ApplyTextStyle(EnsureChartTextRunProperties(chartText), fontSize, bold, italic, color, fontName);
             Save();
             return this;
         }
@@ -181,10 +186,10 @@ namespace OfficeIMO.PowerPoint {
             var legendPosition = legend.GetFirstChild<C.LegendPosition>() ?? new C.LegendPosition();
             legendPosition.Val = position.ToOpenXml();
             if (legendPosition.Parent == null) {
-                legend.Append(legendPosition);
+                legend.AddChild(legendPosition, true);
             }
             if (legend.GetFirstChild<C.Layout>() == null) {
-                legend.Append(new C.Layout());
+                legend.AddChild(new C.Layout(), true);
             }
             legend.RemoveAllChildren<C.Overlay>();
             InsertLegendOverlay(legend, new C.Overlay { Val = overlay });
@@ -205,9 +210,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the legend text style.
         /// </summary>
-        public PowerPointChart SetLegendTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null,
+        public PowerPointChart SetLegendTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null,
             string? color = null, string? fontName = null) {
-            ValidateTextStyle(fontSizePoints, color, fontName);
+            ValidateTextStyle(fontSize, color, fontName);
 
             C.Chart chart = GetChart();
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
@@ -215,7 +220,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            ApplyTextStyle(EnsureTextPropertiesRunProperties(legend), fontSizePoints, bold, italic, color, fontName);
+            ApplyTextStyle(EnsureTextPropertiesRunProperties(legend), fontSize, bold, italic, color, fontName);
             Save();
             return this;
         }
@@ -250,7 +255,7 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
-        private C.Chart GetChart() {
+        internal C.Chart GetChart() {
             ChartPart chartPart = GetChartPart();
             C.Chart? chart = chartPart.ChartSpace?.GetFirstChild<C.Chart>();
             if (chart == null) {
@@ -270,7 +275,7 @@ namespace OfficeIMO.PowerPoint {
             return (ChartPart)_ownerPart.GetPartById(relId);
         }
 
-        private void Save() {
+        internal void Save() {
             ChartPart chartPart = GetChartPart();
             chartPart.ChartSpace?.Save();
         }

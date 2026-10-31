@@ -160,7 +160,247 @@ namespace PSWriteOffice.DevelopmentModuleLoadContext
                 }
                 $PowerForgeDevelopmentModuleAssembly = [PSWriteOffice.DevelopmentModuleLoadContext.ModuleAssemblyLoadContext]::LoadModule($PowerForgeDevelopmentBinaryPath, 'PSWriteOffice.Development')
                 $PowerForgeDevelopmentInnerModule = & $ImportModule -Assembly $PowerForgeDevelopmentModuleAssembly -Force -PassThru -ErrorAction Stop
+                $ModuleAssembly = $PowerForgeDevelopmentModuleAssembly
+                $LibFolder = [IO.Path]::GetDirectoryName($PowerForgeDevelopmentBinaryPath)
+                        # Type accelerator registration relies on $ModuleAssembly and $LibFolder from this ALC loader scope.
+                $RegisterPowerForgeAssemblyTypeAccelerators = {
+                    param(
+                        [Parameter(Mandatory = $true)][System.Reflection.Assembly] $ModuleAssembly,
+                        [Parameter(Mandatory = $true)][string] $LibFolder
+                    )
 
+                    $Mode = 'Assembly'
+                    $RequestedTypes = @()
+                    $RequestedAssemblies = @('OfficeIMO.Core', 'OfficeIMO.Word', 'OfficeIMO.Excel', 'OfficeIMO.PowerPoint', 'OfficeIMO.Pdf')
+
+                    if ($null -eq $ModuleAssembly) {
+                        Write-Warning -Message 'Module assembly was not available. ALC dependency type exposure is disabled.'
+                        return
+                    }
+
+                    if ([string]::IsNullOrWhiteSpace($LibFolder)) {
+                        Write-Warning -Message 'Module library folder was not available. ALC dependency type exposure is disabled.'
+                        return
+                    }
+
+                    $PowerForgeAlcLibraryDirectory = $null
+                    if ([IO.Path]::IsPathRooted($LibFolder)) {
+                        $PowerForgeAlcLibraryDirectory = [IO.Path]::GetFullPath($LibFolder)
+                    } elseif ($LibFolder.Contains('..') -or $LibFolder.IndexOfAny([IO.Path]::GetInvalidFileNameChars()) -ge 0) {
+                        Write-Warning -Message "Module library folder '$LibFolder' must be a simple folder name or a rooted development binary directory. ALC dependency type exposure is disabled."
+                        return
+                    } else {
+                        $PowerForgeAlcLibraryDirectory = [IO.Path]::Combine($PSScriptRoot, 'Lib', $LibFolder)
+                    }
+
+                    if ($Mode -eq 'AllowList' -and $RequestedTypes.Count -eq 0) {
+                        Write-Warning -Message 'AllowList type accelerator mode was configured without type names. No ALC dependency type accelerators will be registered.'
+                        return
+                    }
+
+                    if (($Mode -eq 'Assembly' -or $Mode -eq 'Enums') -and $RequestedAssemblies.Count -eq 0) {
+                        if ($RequestedTypes.Count -eq 0) {
+                            Write-Warning -Message "$Mode type accelerator mode was configured without assembly names or type names. No ALC dependency type accelerators will be registered."
+                            return
+                        }
+
+                        Write-Warning -Message "$Mode type accelerator mode was configured without assembly names. Only explicitly configured type names will be registered."
+                    }
+
+                    $TypeAccelerators = [psobject].Assembly.GetType('System.Management.Automation.TypeAccelerators')
+                    if ($null -eq $TypeAccelerators) {
+                        Write-Warning -Message 'PowerShell type accelerator APIs are not available. ALC dependency type exposure is disabled.'
+                        return
+                    }
+
+                    $AddTypeAccelerator = $TypeAccelerators.GetMethod('Add', [type[]]@([string], [type]))
+                    $GetTypeAccelerators = $TypeAccelerators.GetProperty('Get', [System.Reflection.BindingFlags] 'Static,Public,NonPublic')
+                    if ($null -eq $AddTypeAccelerator -or $null -eq $GetTypeAccelerators) {
+                        Write-Warning -Message 'PowerShell type accelerator APIs are incomplete. ALC dependency type exposure is disabled.'
+                        return
+                    }
+
+                    $ModuleAlc = [System.Runtime.Loader.AssemblyLoadContext]::GetLoadContext($ModuleAssembly)
+                    if ($null -eq $ModuleAlc) {
+                        Write-Warning -Message 'Unable to resolve the module AssemblyLoadContext. ALC dependency type exposure is disabled.'
+                        return
+                    }
+
+                    if ($null -eq $script:PowerForgeRegisteredAssemblyTypeAccelerators) {
+                        $script:PowerForgeRegisteredAssemblyTypeAccelerators = @{}
+                    }
+
+                    $ImportPowerForgeAlcAssembly = {
+                        param([Parameter(Mandatory = $true)][string] $AssemblyName)
+
+                        foreach ($Assembly in $ModuleAlc.Assemblies) {
+                            if ($Assembly.GetName().Name -eq $AssemblyName) {
+                                return $Assembly
+                            }
+                        }
+
+                        try {
+                            return $ModuleAlc.LoadFromAssemblyName([System.Reflection.AssemblyName]::new($AssemblyName))
+                        } catch {
+                            $AssemblyPath = [IO.Path]::Combine($PowerForgeAlcLibraryDirectory, $AssemblyName + '.dll')
+                            if (Test-Path -LiteralPath $AssemblyPath) {
+                                try {
+                                    $AssemblyNameObject = [System.Reflection.AssemblyName]::GetAssemblyName($AssemblyPath)
+                                    return $ModuleAlc.LoadFromAssemblyName($AssemblyNameObject)
+                                } catch {
+                                    Write-Warning -Message "Could not load ALC assembly '$AssemblyName' for type accelerator exposure: $($_.Exception.Message)"
+                                }
+                            }
+                        }
+
+                        return $null
+                    }
+
+                    $FindPowerForgeAlcType = {
+                        param([Parameter(Mandatory = $true)][string] $TypeName)
+
+                        foreach ($Assembly in $ModuleAlc.Assemblies) {
+                            $Type = $Assembly.GetType($TypeName, $false, $false)
+                            if ($null -ne $Type) {
+                                return $Type
+                            }
+                        }
+
+                        $LibDirectory = $PowerForgeAlcLibraryDirectory
+                        if (-not (Test-Path -LiteralPath $LibDirectory)) {
+                            return $null
+                        }
+
+                        foreach ($File in Get-ChildItem -LiteralPath $LibDirectory -File -ErrorAction SilentlyContinue | Where-Object Extension -IEQ '.dll') {
+                            try {
+                                $AssemblyName = [System.Reflection.AssemblyName]::GetAssemblyName($File.FullName)
+                                $Assembly = & $ImportPowerForgeAlcAssembly -AssemblyName $AssemblyName.Name
+                                if ($null -eq $Assembly) {
+                                    continue
+                                }
+
+                                $Type = $Assembly.GetType($TypeName, $false, $false)
+                                if ($null -ne $Type) {
+                                    return $Type
+                                }
+                            } catch {
+                                continue
+                            }
+                        }
+
+                        return $null
+                    }
+
+                    $AddPowerForgeTypeAccelerator = {
+                        param([Parameter(Mandatory = $true)][type] $Type)
+
+                        if ([string]::IsNullOrWhiteSpace($Type.FullName)) {
+                            return
+                        }
+
+                        $Name = $Type.FullName
+                        $Existing = $GetTypeAccelerators.GetValue($null)
+                        if ($Existing.ContainsKey($Name)) {
+                            $ExistingType = $Existing[$Name]
+                            if ([object]::ReferenceEquals($ExistingType, $Type)) {
+                                return
+                            } else {
+                                $ExistingAssemblyName = $ExistingType.Assembly.GetName()
+                                $TypeAssemblyName = $Type.Assembly.GetName()
+                                $ExistingLoadContext = [System.Runtime.Loader.AssemblyLoadContext]::GetLoadContext($ExistingType.Assembly)
+                                $TypeLoadContext = [System.Runtime.Loader.AssemblyLoadContext]::GetLoadContext($Type.Assembly)
+                                if ([object]::ReferenceEquals($ExistingLoadContext, $TypeLoadContext) -and [object]::Equals($ExistingAssemblyName.FullName, $TypeAssemblyName.FullName)) {
+                                    Write-Verbose -Message "Type accelerator '$Name' already exists in the same AssemblyLoadContext from the same assembly identity. Keeping the existing accelerator and skipping the duplicate type from $($TypeAssemblyName.Name)."
+                                } else {
+                                    Write-Warning -Message "Type accelerator '$Name' already exists from $($ExistingAssemblyName.FullName). Keeping the existing accelerator and skipping the ALC type from $($TypeAssemblyName.FullName)."
+                                }
+                            }
+                            return
+                        }
+
+                        try {
+                            $AddTypeAccelerator.Invoke($null, @($Name, $Type)) | Out-Null
+                        } catch {
+                            Write-Warning -Message "Type accelerator '$Name' could not be registered from $($Type.Assembly.GetName().Name): $($_.Exception.Message)"
+                            return
+                        }
+
+                        $script:PowerForgeRegisteredAssemblyTypeAccelerators[$Name] = $Type
+                    }
+
+                    if ($Mode -eq 'Assembly' -or $Mode -eq 'Enums') {
+                        foreach ($AssemblyName in $RequestedAssemblies) {
+                            $Assembly = & $ImportPowerForgeAlcAssembly -AssemblyName $AssemblyName
+                            if ($null -eq $Assembly) {
+                                Write-Warning -Message "Assembly '$AssemblyName' was not found in the module AssemblyLoadContext. No type accelerators were registered for it."
+                                continue
+                            }
+
+                            try {
+                                $ExportedTypes = @($Assembly.GetExportedTypes())
+                            } catch {
+                                Write-Warning -Message "Could not enumerate exported types from assembly '$AssemblyName' for type accelerator exposure: $($_.Exception.Message)"
+                                continue
+                            }
+
+                            foreach ($Type in $ExportedTypes) {
+                                if ($Mode -eq 'Enums' -and -not $Type.IsEnum) {
+                                    continue
+                                }
+
+                                & $AddPowerForgeTypeAccelerator -Type $Type
+                            }
+                        }
+                    }
+
+                    foreach ($TypeName in $RequestedTypes) {
+                        $Type = & $FindPowerForgeAlcType -TypeName $TypeName
+                        if ($null -eq $Type) {
+                            Write-Warning -Message "Type '$TypeName' was not found in the module AssemblyLoadContext. No type accelerator was registered."
+                            continue
+                        }
+
+                        & $AddPowerForgeTypeAccelerator -Type $Type
+                    }
+
+                    if ($script:PowerForgeAssemblyTypeAcceleratorCleanupRegistered -ne $true) {
+                        $script:PowerForgeAssemblyTypeAcceleratorCleanupRegistered = $true
+                        $RegisteredPowerForgeTypeAccelerators = $script:PowerForgeRegisteredAssemblyTypeAccelerators
+                        $PreviousPowerForgeOnRemove = $ExecutionContext.SessionState.Module.OnRemove
+                        $ExecutionContext.SessionState.Module.OnRemove = {
+                            try {
+                                $TypeAccelerators = [psobject].Assembly.GetType('System.Management.Automation.TypeAccelerators')
+                                if ($null -eq $TypeAccelerators -or $null -eq $RegisteredPowerForgeTypeAccelerators) {
+                                    return
+                                }
+
+                                $GetTypeAccelerators = $TypeAccelerators.GetProperty('Get', [System.Reflection.BindingFlags] 'Static,Public,NonPublic')
+                                $RemoveTypeAccelerator = $TypeAccelerators.GetMethod('Remove', [type[]]@([string]))
+                                if ($null -eq $GetTypeAccelerators -or $null -eq $RemoveTypeAccelerator) {
+                                    return
+                                }
+
+                                $Existing = $GetTypeAccelerators.GetValue($null)
+                                foreach ($Entry in @($RegisteredPowerForgeTypeAccelerators.GetEnumerator())) {
+                                    if ($Existing.ContainsKey($Entry.Key) -and [object]::ReferenceEquals($Existing[$Entry.Key], $Entry.Value)) {
+                                        $RemoveTypeAccelerator.Invoke($null, @($Entry.Key)) | Out-Null
+                                    }
+                                }
+                            } finally {
+                                if ($null -ne $PreviousPowerForgeOnRemove) {
+                                    & $PreviousPowerForgeOnRemove @args
+                                }
+                            }
+                        }.GetNewClosure()
+                    }
+                }
+
+                # Type accelerator exposure is PowerShell Core-only because it depends on AssemblyLoadContext.
+                try {
+                    & $RegisterPowerForgeAssemblyTypeAccelerators -ModuleAssembly $ModuleAssembly -LibFolder $LibFolder
+                } catch {
+                    Write-Warning -Message "ALC type accelerator registration failed: $($_.Exception.Message)"
+                }
                 if ($PowerForgeDevelopmentInnerModule) {
                     # Import-Module -Assembly loads the inner binary module into its own module object. PowerShell has no
                     # public API to copy those exported cmdlets back to the script-module wrapper, so this uses the same
@@ -265,7 +505,349 @@ namespace PSWriteOffice.DevelopmentModuleLoadContext
                     & $ImportModule $PowerForgeDevelopmentBinaryPath -ErrorAction Stop
                 }
             }
+            if ($PSEdition -ne 'Core') {
+                # Desktop loads module dependencies into the default AppDomain, so expose the same configured scripting types as Core.
+                $RegisterPowerForgeDesktopAssemblyTypeAccelerators = {
+                    param([Parameter(Mandatory = $true)][string] $LibraryDirectory)
 
+                    $Mode = 'Assembly'
+                    $RequestedTypes = @()
+                    $RequestedAssemblies = @('OfficeIMO.Core', 'OfficeIMO.Word', 'OfficeIMO.Excel', 'OfficeIMO.PowerPoint', 'OfficeIMO.Pdf')
+                    $IgnoredLibraryFileNames = @()
+
+                    if ([string]::IsNullOrWhiteSpace($LibraryDirectory) -or -not (Test-Path -LiteralPath $LibraryDirectory)) {
+                        Write-Warning -Message 'Module library directory was not available. Desktop dependency type exposure is disabled.'
+                        return
+                    }
+
+                    if ($Mode -eq 'AllowList' -and $RequestedTypes.Count -eq 0) {
+                        Write-Warning -Message 'AllowList type accelerator mode was configured without type names. No Desktop dependency type accelerators will be registered.'
+                        return
+                    }
+
+                    if (($Mode -eq 'Assembly' -or $Mode -eq 'Enums') -and $RequestedAssemblies.Count -eq 0) {
+                        if ($RequestedTypes.Count -eq 0) {
+                            Write-Warning -Message "$Mode type accelerator mode was configured without assembly names or type names. No Desktop dependency type accelerators will be registered."
+                            return
+                        }
+
+                        Write-Warning -Message "$Mode type accelerator mode was configured without assembly names. Only explicitly configured type names will be registered."
+                    }
+
+                    $TypeAccelerators = [psobject].Assembly.GetType('System.Management.Automation.TypeAccelerators')
+                    if ($null -eq $TypeAccelerators) {
+                        Write-Warning -Message 'PowerShell type accelerator APIs are not available. Desktop dependency type exposure is disabled.'
+                        return
+                    }
+
+                    $AddTypeAccelerator = $TypeAccelerators.GetMethod('Add', [type[]]@([string], [type]))
+                    $GetTypeAccelerators = $TypeAccelerators.GetProperty('Get', [System.Reflection.BindingFlags] 'Static,Public,NonPublic')
+                    if ($null -eq $AddTypeAccelerator -or $null -eq $GetTypeAccelerators) {
+                        Write-Warning -Message 'PowerShell type accelerator APIs are incomplete. Desktop dependency type exposure is disabled.'
+                        return
+                    }
+
+                    if ($null -eq $script:PowerForgeRegisteredAssemblyTypeAccelerators) {
+                        $script:PowerForgeRegisteredAssemblyTypeAccelerators = @{}
+                    }
+
+                    $ResolvedPowerForgeDesktopAssemblies = @{}
+                    $FailedPowerForgeDesktopAssemblies = @{}
+                    $LibraryDirectoryFullPath = [IO.Path]::GetFullPath($LibraryDirectory)
+                    $LibraryDirectoryPrefix = $LibraryDirectoryFullPath.TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+
+                    $TestPowerForgeDesktopIgnoredAssembly = {
+                        param([Parameter(Mandatory = $true)] $Assembly)
+
+                        return $IgnoredLibraryFileNames -contains ($Assembly.GetName().Name + '.dll')
+                    }
+
+                    $TestPowerForgeDesktopModuleAssembly = {
+                        param([Parameter(Mandatory = $true)] $Assembly)
+
+                        if ($Assembly.IsDynamic) {
+                            return $false
+                        }
+
+                        try {
+                            if ([string]::IsNullOrWhiteSpace($Assembly.Location)) {
+                                return $false
+                            }
+
+                            $AssemblyFullPath = [IO.Path]::GetFullPath($Assembly.Location)
+                            return $AssemblyFullPath.StartsWith($LibraryDirectoryPrefix, [StringComparison]::OrdinalIgnoreCase)
+                        } catch {
+                            return $false
+                        }
+                    }
+
+                    $TestPowerForgeDesktopAssemblyContentMatch = {
+                        param(
+                            [Parameter(Mandatory = $true)] $Assembly,
+                            [Parameter(Mandatory = $true)][string] $ExpectedPath
+                        )
+
+                        if ($Assembly.IsDynamic -or
+                            [string]::IsNullOrWhiteSpace($Assembly.Location) -or
+                            -not (Test-Path -LiteralPath $ExpectedPath)) {
+                            return $false
+                        }
+
+                        try {
+                            $ExpectedName = [Reflection.AssemblyName]::GetAssemblyName($ExpectedPath)
+                            if ($Assembly.GetName().FullName -ne $ExpectedName.FullName) {
+                                return $false
+                            }
+
+                            $LoadedPath = [IO.Path]::GetFullPath($Assembly.Location)
+                            $ExpectedFullPath = [IO.Path]::GetFullPath($ExpectedPath)
+                            if ([string]::Equals($LoadedPath, $ExpectedFullPath, [StringComparison]::OrdinalIgnoreCase)) {
+                                return $true
+                            }
+
+                            $ComputePowerForgeDesktopAssemblyHash = {
+                                param([Parameter(Mandatory = $true)][string] $Path)
+
+                                $Stream = $null
+                                $Hasher = $null
+                                try {
+                                    $Stream = [IO.File]::OpenRead($Path)
+                                    $Hasher = [Security.Cryptography.SHA256]::Create()
+                                    return [Convert]::ToBase64String($Hasher.ComputeHash($Stream))
+                                } finally {
+                                    if ($null -ne $Hasher) {
+                                        $Hasher.Dispose()
+                                    }
+                                    if ($null -ne $Stream) {
+                                        $Stream.Dispose()
+                                    }
+                                }
+                            }
+
+                            $LoadedHash = & $ComputePowerForgeDesktopAssemblyHash -Path $LoadedPath
+                            $ExpectedHash = & $ComputePowerForgeDesktopAssemblyHash -Path $ExpectedFullPath
+                            return $LoadedHash -eq $ExpectedHash
+                        } catch {
+                            return $false
+                        }
+                    }
+
+                    $ImportPowerForgeDesktopAssembly = {
+                        param([Parameter(Mandatory = $true)][string] $AssemblyName)
+
+                        $SimpleName = if ($AssemblyName.EndsWith('.dll', [StringComparison]::OrdinalIgnoreCase)) {
+                            [IO.Path]::GetFileNameWithoutExtension($AssemblyName)
+                        } else {
+                            $AssemblyName
+                        }
+                        $AssemblyFileName = $SimpleName + '.dll'
+                        if ($IgnoredLibraryFileNames -contains $AssemblyFileName) {
+                            $FailedPowerForgeDesktopAssemblies[$SimpleName] = $true
+                            return $null
+                        }
+
+                        if ($ResolvedPowerForgeDesktopAssemblies.ContainsKey($SimpleName)) {
+                            return $ResolvedPowerForgeDesktopAssemblies[$SimpleName]
+                        }
+                        if ($FailedPowerForgeDesktopAssemblies.ContainsKey($SimpleName)) {
+                            return $null
+                        }
+
+                        $AssemblyPath = [IO.Path]::Combine($LibraryDirectory, $AssemblyFileName)
+                        foreach ($Assembly in [AppDomain]::CurrentDomain.GetAssemblies()) {
+                            if ($Assembly.GetName().Name -eq $SimpleName) {
+                                if ((& $TestPowerForgeDesktopModuleAssembly -Assembly $Assembly) -or
+                                    (& $TestPowerForgeDesktopAssemblyContentMatch -Assembly $Assembly -ExpectedPath $AssemblyPath)) {
+                                    $ResolvedPowerForgeDesktopAssemblies[$SimpleName] = $Assembly
+                                    return $Assembly
+                                }
+                            }
+                        }
+
+                        if (Test-Path -LiteralPath $AssemblyPath) {
+                            try {
+                                $LoadedAssembly = [System.Reflection.Assembly]::LoadFrom($AssemblyPath)
+                                if ((& $TestPowerForgeDesktopModuleAssembly -Assembly $LoadedAssembly) -or
+                                    (& $TestPowerForgeDesktopAssemblyContentMatch -Assembly $LoadedAssembly -ExpectedPath $AssemblyPath)) {
+                                    $ResolvedPowerForgeDesktopAssemblies[$SimpleName] = $LoadedAssembly
+                                    return $LoadedAssembly
+                                }
+
+                                $FailedPowerForgeDesktopAssemblies[$SimpleName] = $true
+                                Write-Warning -Message "Desktop assembly '$SimpleName' resolved outside the module library directory. Skipping type accelerator exposure to avoid registering the wrong assembly version."
+                                return $null
+                            } catch {
+                                $FailedPowerForgeDesktopAssemblies[$SimpleName] = $true
+                                Write-Warning -Message "Could not load Desktop assembly '$SimpleName' for type accelerator exposure: $($_.Exception.Message)"
+                                return $null
+                            }
+                        }
+
+                        foreach ($Assembly in [AppDomain]::CurrentDomain.GetAssemblies()) {
+                            if ($Assembly.GetName().Name -eq $SimpleName) {
+                                $ResolvedPowerForgeDesktopAssemblies[$SimpleName] = $Assembly
+                                return $Assembly
+                            }
+                        }
+
+                        $FailedPowerForgeDesktopAssemblies[$SimpleName] = $true
+                        return $null
+                    }
+
+                    $FindPowerForgeDesktopType = {
+                        param([Parameter(Mandatory = $true)][string] $TypeName)
+
+                        foreach ($Assembly in [AppDomain]::CurrentDomain.GetAssemblies()) {
+                            if ((& $TestPowerForgeDesktopIgnoredAssembly -Assembly $Assembly) -or
+                                -not (& $TestPowerForgeDesktopModuleAssembly -Assembly $Assembly)) {
+                                continue
+                            }
+
+                            $Type = $Assembly.GetType($TypeName, $false, $false)
+                            if ($null -ne $Type) {
+                                return $Type
+                            }
+                        }
+
+                        foreach ($File in Get-ChildItem -LiteralPath $LibraryDirectory -File -ErrorAction SilentlyContinue | Where-Object Extension -IEQ '.dll') {
+                            if ($IgnoredLibraryFileNames -contains $File.Name) {
+                                continue
+                            }
+
+                            $Assembly = & $ImportPowerForgeDesktopAssembly -AssemblyName $File.BaseName
+                            if ($null -eq $Assembly) {
+                                continue
+                            }
+
+                            $Type = $Assembly.GetType($TypeName, $false, $false)
+                            if ($null -ne $Type) {
+                                return $Type
+                            }
+                        }
+
+                        foreach ($Assembly in [AppDomain]::CurrentDomain.GetAssemblies()) {
+                            if (& $TestPowerForgeDesktopIgnoredAssembly -Assembly $Assembly) {
+                                continue
+                            }
+
+                            $AssemblyFileName = $Assembly.GetName().Name + '.dll'
+                            if (Test-Path -LiteralPath ([IO.Path]::Combine($LibraryDirectory, $AssemblyFileName))) {
+                                # A module-owned assembly with this identity exists but could not be selected above. Do not
+                                # silently fall back to a globally loaded copy with a different location or version.
+                                continue
+                            }
+
+                            $Type = $Assembly.GetType($TypeName, $false, $false)
+                            if ($null -ne $Type) {
+                                return $Type
+                            }
+                        }
+
+                        return $null
+                    }
+
+                    $AddPowerForgeDesktopTypeAccelerator = {
+                        param([Parameter(Mandatory = $true)][type] $Type)
+
+                        if ([string]::IsNullOrWhiteSpace($Type.FullName)) {
+                            return
+                        }
+
+                        $Name = $Type.FullName
+                        $Existing = $GetTypeAccelerators.GetValue($null)
+                        if ($Existing.ContainsKey($Name)) {
+                            $ExistingType = $Existing[$Name]
+                            if ([object]::ReferenceEquals($ExistingType, $Type)) {
+                                return
+                            }
+
+                            Write-Warning -Message "Type accelerator '$Name' already exists from $($ExistingType.Assembly.GetName().FullName). Keeping it and skipping the Desktop type from $($Type.Assembly.GetName().FullName)."
+                            return
+                        }
+
+                        try {
+                            $AddTypeAccelerator.Invoke($null, @($Name, $Type)) | Out-Null
+                        } catch {
+                            Write-Warning -Message "Type accelerator '$Name' could not be registered from $($Type.Assembly.GetName().Name): $($_.Exception.Message)"
+                            return
+                        }
+
+                        $script:PowerForgeRegisteredAssemblyTypeAccelerators[$Name] = $Type
+                    }
+
+                    if ($Mode -eq 'Assembly' -or $Mode -eq 'Enums') {
+                        foreach ($AssemblyName in $RequestedAssemblies) {
+                            $Assembly = & $ImportPowerForgeDesktopAssembly -AssemblyName $AssemblyName
+                            if ($null -eq $Assembly) {
+                                Write-Warning -Message "Assembly '$AssemblyName' was not found in the module library directory. No Desktop type accelerators were registered for it."
+                                continue
+                            }
+
+                            try {
+                                $ExportedTypes = @($Assembly.GetExportedTypes())
+                            } catch {
+                                Write-Warning -Message "Could not enumerate exported types from Desktop assembly '$AssemblyName' for type accelerator exposure: $($_.Exception.Message)"
+                                continue
+                            }
+
+                            foreach ($Type in $ExportedTypes) {
+                                if ($Mode -eq 'Enums' -and -not $Type.IsEnum) {
+                                    continue
+                                }
+
+                                & $AddPowerForgeDesktopTypeAccelerator -Type $Type
+                            }
+                        }
+                    }
+
+                    foreach ($TypeName in $RequestedTypes) {
+                        $Type = & $FindPowerForgeDesktopType -TypeName $TypeName
+                        if ($null -eq $Type) {
+                            Write-Warning -Message "Type '$TypeName' was not found in the module AppDomain. No Desktop type accelerator was registered."
+                            continue
+                        }
+
+                        & $AddPowerForgeDesktopTypeAccelerator -Type $Type
+                    }
+
+                    if ($script:PowerForgeAssemblyTypeAcceleratorCleanupRegistered -ne $true) {
+                        $script:PowerForgeAssemblyTypeAcceleratorCleanupRegistered = $true
+                        $RegisteredPowerForgeTypeAccelerators = $script:PowerForgeRegisteredAssemblyTypeAccelerators
+                        $PreviousPowerForgeOnRemove = $ExecutionContext.SessionState.Module.OnRemove
+                        $ExecutionContext.SessionState.Module.OnRemove = {
+                            try {
+                                $TypeAccelerators = [psobject].Assembly.GetType('System.Management.Automation.TypeAccelerators')
+                                if ($null -eq $TypeAccelerators -or $null -eq $RegisteredPowerForgeTypeAccelerators) {
+                                    return
+                                }
+
+                                $GetTypeAccelerators = $TypeAccelerators.GetProperty('Get', [System.Reflection.BindingFlags] 'Static,Public,NonPublic')
+                                $RemoveTypeAccelerator = $TypeAccelerators.GetMethod('Remove', [type[]]@([string]))
+                                if ($null -eq $GetTypeAccelerators -or $null -eq $RemoveTypeAccelerator) {
+                                    return
+                                }
+
+                                $Existing = $GetTypeAccelerators.GetValue($null)
+                                foreach ($Entry in @($RegisteredPowerForgeTypeAccelerators.GetEnumerator())) {
+                                    if ($Existing.ContainsKey($Entry.Key) -and [object]::ReferenceEquals($Existing[$Entry.Key], $Entry.Value)) {
+                                        $RemoveTypeAccelerator.Invoke($null, @($Entry.Key)) | Out-Null
+                                    }
+                                }
+                            } finally {
+                                if ($null -ne $PreviousPowerForgeOnRemove) {
+                                    & $PreviousPowerForgeOnRemove @args
+                                }
+                            }
+                        }.GetNewClosure()
+                    }
+                }
+
+                try {
+                    & $RegisterPowerForgeDesktopAssemblyTypeAccelerators -LibraryDirectory ([IO.Path]::GetDirectoryName($PowerForgeDevelopmentBinaryPath))
+                } catch {
+                    Write-Warning -Message "Desktop type accelerator registration failed: $($_.Exception.Message)"
+                }
+            }
             $PowerForgeDevelopmentBinaryLoaded = $true
         } catch {
             if ($ErrorActionPreference -eq 'Stop') {
@@ -278,12 +860,39 @@ namespace PSWriteOffice.DevelopmentModuleLoadContext
 }
 
 # PowerForge script payload begin
+# Get public and private function definition files.
+$Public  = [string[]]@(Get-ChildItem -Path ([IO.Path]::Combine($PSScriptRoot, 'Public', '*.ps1')) -ErrorAction SilentlyContinue -Recurse | Select-Object -ExpandProperty FullName)
+$Private = [string[]]@(Get-ChildItem -Path ([IO.Path]::Combine($PSScriptRoot, 'Private', '*.ps1')) -ErrorAction SilentlyContinue -Recurse | Select-Object -ExpandProperty FullName)
+$Classes = [string[]]@(Get-ChildItem -Path ([IO.Path]::Combine($PSScriptRoot, 'Classes', '*.ps1')) -ErrorAction SilentlyContinue -Recurse | Select-Object -ExpandProperty FullName)
+$Enums   = [string[]]@(Get-ChildItem -Path ([IO.Path]::Combine($PSScriptRoot, 'Enums', '*.ps1')) -ErrorAction SilentlyContinue -Recurse | Select-Object -ExpandProperty FullName)
+[Array]::Sort($Public, [StringComparer]::Ordinal)
+[Array]::Sort($Private, [StringComparer]::Ordinal)
+[Array]::Sort($Classes, [StringComparer]::Ordinal)
+[Array]::Sort($Enums, [StringComparer]::Ordinal)
+
+$FoundErrors = @(
+    # Dot source the files (Classes/Enums first).
+    foreach ($Import in @($Enums + $Classes + $Private + $Public)) {
+        try {
+            . $Import
+        } catch {
+            Write-Error -Message "Failed to import functions from ${Import}: $_"
+            $true
+        }
+    }
+)
+
+if ($FoundErrors.Count -gt 0) {
+    $ModuleName = (Get-ChildItem -Path ([IO.Path]::Combine($PSScriptRoot, '*.psd1'))).BaseName
+    Write-Warning "Importing module $ModuleName failed. Fix errors before continuing."
+    break
+}
 
 # PowerForge script payload end
 # PowerForge exports begin
 $FunctionsToExport = @()
-$CmdletsToExport = @('Add-OfficeAccessColumn', 'Add-OfficeAccessRow', 'Add-OfficeAccessTable', 'Add-OfficeEpubChapter', 'Add-OfficeEpubResource', 'Add-OfficeExcelAutoFilter', 'Add-OfficeExcelChart', 'Add-OfficeExcelComment', 'Add-OfficeExcelConditionalColorScale', 'Add-OfficeExcelConditionalDataBar', 'Add-OfficeExcelConditionalIconSet', 'Add-OfficeExcelConditionalRule', 'Add-OfficeExcelDashboardChart', 'Add-OfficeExcelDataSet', 'Add-OfficeExcelImage', 'Add-OfficeExcelImageFromUrl', 'Add-OfficeExcelPackageMetadata', 'Add-OfficeExcelPageBreak', 'Add-OfficeExcelPivotTable', 'Add-OfficeExcelPowerQueryMetadata', 'Add-OfficeExcelReportCallout', 'Add-OfficeExcelReportKpiRow', 'Add-OfficeExcelReportLegend', 'Add-OfficeExcelReportParagraph', 'Add-OfficeExcelReportSection', 'Add-OfficeExcelReportSheet', 'Add-OfficeExcelReportSpacer', 'Add-OfficeExcelReportTable', 'Add-OfficeExcelReportTitle', 'Add-OfficeExcelSheet', 'Add-OfficeExcelSlicer', 'Add-OfficeExcelSparkline', 'Add-OfficeExcelSubtotalSummary', 'Add-OfficeExcelTable', 'Add-OfficeExcelTableOfContents', 'Add-OfficeExcelTableRow', 'Add-OfficeExcelThreadedComment', 'Add-OfficeExcelTimeline', 'Add-OfficeExcelValidationCustomFormula', 'Add-OfficeExcelValidationDate', 'Add-OfficeExcelValidationDecimal', 'Add-OfficeExcelValidationList', 'Add-OfficeExcelValidationTextLength', 'Add-OfficeExcelValidationTime', 'Add-OfficeExcelValidationWholeNumber', 'Add-OfficeExcelVisual', 'Add-OfficeInvoiceLine', 'Add-OfficeMarkdownCallout', 'Add-OfficeMarkdownCode', 'Add-OfficeMarkdownDefinitionList', 'Add-OfficeMarkdownDetails', 'Add-OfficeMarkdownFrontMatter', 'Add-OfficeMarkdownHeading', 'Add-OfficeMarkdownHorizontalRule', 'Add-OfficeMarkdownImage', 'Add-OfficeMarkdownList', 'Add-OfficeMarkdownParagraph', 'Add-OfficeMarkdownQuote', 'Add-OfficeMarkdownTable', 'Add-OfficeMarkdownTableOfContents', 'Add-OfficeMarkdownTaskList', 'Add-OfficeOpenDocumentHeading', 'Add-OfficeOpenDocumentParagraph', 'Add-OfficeOpenDocumentSheet', 'Add-OfficeOpenDocumentSlide', 'Add-OfficeOpenDocumentTextBox', 'Add-OfficePdfAttachment', 'Add-OfficePdfBackgroundShape', 'Add-OfficePdfBookmark', 'Add-OfficePdfCanvas', 'Add-OfficePdfCanvasText', 'Add-OfficePdfFormField', 'Add-OfficePdfHeading', 'Add-OfficePdfHorizontalRule', 'Add-OfficePdfImage', 'Add-OfficePdfList', 'Add-OfficePdfPageBreak', 'Add-OfficePdfPageOverlay', 'Add-OfficePdfPanel', 'Add-OfficePdfParagraph', 'Add-OfficePdfRow', 'Add-OfficePdfSpacer', 'Add-OfficePdfStamp', 'Add-OfficePdfTable', 'Add-OfficePdfText', 'Add-OfficePdfVisual', 'Add-OfficePdfWatermark', 'Add-OfficePowerPointBullets', 'Add-OfficePowerPointChart', 'Add-OfficePowerPointDesignerDeck', 'Add-OfficePowerPointImage', 'Add-OfficePowerPointPlanCapability', 'Add-OfficePowerPointPlanCardGrid', 'Add-OfficePowerPointPlanCaseStudy', 'Add-OfficePowerPointPlanCoverage', 'Add-OfficePowerPointPlanLogoWall', 'Add-OfficePowerPointPlanProcess', 'Add-OfficePowerPointPlanSection', 'Add-OfficePowerPointSection', 'Add-OfficePowerPointShape', 'Add-OfficePowerPointSlide', 'Add-OfficePowerPointTable', 'Add-OfficePowerPointTableRow', 'Add-OfficePowerPointTextBox', 'Add-OfficePowerPointVisual', 'Add-OfficeProjectAssignment', 'Add-OfficeProjectDependency', 'Add-OfficeProjectResource', 'Add-OfficeProjectTask', 'Add-OfficeVisioConnector', 'Add-OfficeVisioContainer', 'Add-OfficeVisioDiamond', 'Add-OfficeVisioEllipse', 'Add-OfficeVisioPage', 'Add-OfficeVisioRectangle', 'Add-OfficeVisioStencilShape', 'Add-OfficeVisioTextBox', 'Add-OfficeWordBookmark', 'Add-OfficeWordBreak', 'Add-OfficeWordChart', 'Add-OfficeWordCheckBox', 'Add-OfficeWordComboBox', 'Add-OfficeWordContentControl', 'Add-OfficeWordCoverPage', 'Add-OfficeWordDatePicker', 'Add-OfficeWordDropDownList', 'Add-OfficeWordEndnote', 'Add-OfficeWordEquation', 'Add-OfficeWordField', 'Add-OfficeWordFooter', 'Add-OfficeWordFootnote', 'Add-OfficeWordHeader', 'Add-OfficeWordHyperlink', 'Add-OfficeWordImage', 'Add-OfficeWordList', 'Add-OfficeWordListItem', 'Add-OfficeWordPageNumber', 'Add-OfficeWordParagraph', 'Add-OfficeWordPictureControl', 'Add-OfficeWordRepeatingSection', 'Add-OfficeWordSection', 'Add-OfficeWordShape', 'Add-OfficeWordTable', 'Add-OfficeWordTableCell', 'Add-OfficeWordTableCondition', 'Add-OfficeWordTableOfContents', 'Add-OfficeWordTableRow', 'Add-OfficeWordTabStop', 'Add-OfficeWordText', 'Add-OfficeWordTextBox', 'Add-OfficeWordVisual', 'Add-OfficeWordWatermark', 'Clear-OfficeExcelAutoFilter', 'Clear-OfficeExcelComment', 'Clear-OfficeExcelConditionalFormatting', 'Clear-OfficeExcelDataValidation', 'Clear-OfficeExcelPageBreak', 'Clear-OfficeExcelRange', 'Clear-OfficeExcelWriteReservation', 'Clear-OfficePdfBackgroundShape', 'Close-OfficeAccess', 'Close-OfficeExcel', 'Close-OfficePowerPoint', 'Close-OfficeProject', 'Close-OfficeWord', 'Compare-OfficeExcelRange', 'Compare-OfficeExcelWorkbook', 'Compare-OfficePdfVisual', 'Compare-OfficeWordDocument', 'ConvertFrom-OfficeAsciiDocMarkdown', 'ConvertFrom-OfficeCsv', 'ConvertFrom-OfficeImage', 'ConvertFrom-OfficeIWork', 'ConvertFrom-OfficeLatexMarkdown', 'ConvertFrom-OfficeMarkdownHtml', 'ConvertFrom-OfficeOneNote', 'ConvertFrom-OfficeOpenDocument', 'ConvertFrom-OfficePdfHtml', 'ConvertFrom-OfficeRtf', 'ConvertFrom-OfficeWordHtml', 'ConvertFrom-OfficeWordMarkdown', 'ConvertTo-OfficeAsciiDocMarkdown', 'ConvertTo-OfficeCsv', 'ConvertTo-OfficeDocument', 'ConvertTo-OfficeExcelHtml', 'ConvertTo-OfficeExcelWorkbook', 'ConvertTo-OfficeLatexMarkdown', 'ConvertTo-OfficeMarkdown', 'ConvertTo-OfficeMarkdownHtml', 'ConvertTo-OfficeOpenDocument', 'ConvertTo-OfficePdfExcel', 'ConvertTo-OfficePdfFlatAnnotation', 'ConvertTo-OfficePdfFlatForm', 'ConvertTo-OfficePdfHtml', 'ConvertTo-OfficePdfMarkdown', 'ConvertTo-OfficePdfOptimized', 'ConvertTo-OfficePdfPowerPoint', 'ConvertTo-OfficePdfRedacted', 'ConvertTo-OfficePdfSanitized', 'ConvertTo-OfficePdfSearchable', 'ConvertTo-OfficePdfTextRun', 'ConvertTo-OfficePdfWord', 'ConvertTo-OfficePowerPointHtml', 'ConvertTo-OfficeProjectTable', 'ConvertTo-OfficeRtf', 'ConvertTo-OfficeVisioPng', 'ConvertTo-OfficeVisioSvg', 'ConvertTo-OfficeVisioVisual', 'ConvertTo-OfficeVisual', 'ConvertTo-OfficeWordDocument', 'ConvertTo-OfficeWordHtml', 'ConvertTo-OfficeWordMarkdown', 'Copy-OfficeExcelSheet', 'Copy-OfficeExcelWorkbook', 'Copy-OfficePdfPage', 'Copy-OfficePowerPointSlide', 'Edit-OfficeExcelRow', 'Export-OfficeConversionJob', 'Export-OfficeCsv', 'Export-OfficeDocumentPdf', 'Export-OfficeExcel', 'Export-OfficeExcelChartImage', 'Export-OfficeExcelGoogleSpreadsheet', 'Export-OfficeExcelImage', 'Export-OfficeExcelRangeImage', 'Export-OfficeHtmlImage', 'Export-OfficeInvoicePdf', 'Export-OfficePdfImage', 'Export-OfficePdfLayoutOverlay', 'Export-OfficePdfXfdf', 'Export-OfficePowerPointImage', 'Export-OfficeProjectReport', 'Export-OfficeProjectTable', 'Export-OfficeVisioImage', 'Export-OfficeVisioStencilPreviewGallery', 'Export-OfficeVisioVisual', 'Export-OfficeWordGoogleDocument', 'Export-OfficeWordImage', 'Find-OfficeExcel', 'Find-OfficePowerPointShape', 'Find-OfficeVisioStencil', 'Find-OfficeWord', 'Find-OfficeWordList', 'Find-OfficeWordTable', 'Get-OfficeAccess', 'Get-OfficeAccessRow', 'Get-OfficeAccessTable', 'Get-OfficeAsciiDoc', 'Get-OfficeConfluenceAttachment', 'Get-OfficeConfluencePage', 'Get-OfficeConversionJobReport', 'Get-OfficeConversionRoute', 'Get-OfficeCsv', 'Get-OfficeDocument', 'Get-OfficeDocumentAsset', 'Get-OfficeDocumentBatch', 'Get-OfficeDocumentCapability', 'Get-OfficeDocumentChunk', 'Get-OfficeDocumentDetection', 'Get-OfficeDocumentHierarchy', 'Get-OfficeDocumentIngest', 'Get-OfficeDocumentPageMarkdown', 'Get-OfficeDocumentStructured', 'Get-OfficeDocumentTable', 'Get-OfficeDocumentVisual', 'Get-OfficeEmail', 'Get-OfficeEmailMailbox', 'Get-OfficeEpub', 'Get-OfficeEpubChapter', 'Get-OfficeExcel', 'Get-OfficeExcelComment', 'Get-OfficeExcelCommentAudit', 'Get-OfficeExcelConditionalFormatting', 'Get-OfficeExcelData', 'Get-OfficeExcelDataModel', 'Get-OfficeExcelDataValidation', 'Get-OfficeExcelDocumentProperty', 'Get-OfficeExcelFormulaAnalysis', 'Get-OfficeExcelNamedRange', 'Get-OfficeExcelNumberFormatPreset', 'Get-OfficeExcelPageBreak', 'Get-OfficeExcelPivotTable', 'Get-OfficeExcelPreflight', 'Get-OfficeExcelRange', 'Get-OfficeExcelRichText', 'Get-OfficeExcelRuntimePreflight', 'Get-OfficeExcelStreamingContract', 'Get-OfficeExcelSummary', 'Get-OfficeExcelTable', 'Get-OfficeExcelTableStyle', 'Get-OfficeExcelTemplateMarker', 'Get-OfficeExcelUsedRange', 'Get-OfficeExcelWorksheetView', 'Get-OfficeExcelWriteReservation', 'Get-OfficeImageDocument', 'Get-OfficeImageText', 'Get-OfficeInvoice', 'Get-OfficeInvoiceLine', 'Get-OfficeInvoiceTarget', 'Get-OfficeIWork', 'Get-OfficeLatex', 'Get-OfficeMarkdown', 'Get-OfficeMarkdownFrontMatter', 'Get-OfficeMarkdownHeading', 'Get-OfficeMarkdownNode', 'Get-OfficeMarkdownTable', 'Get-OfficeOneNote', 'Get-OfficeOpenDocument', 'Get-OfficePackageSecurity', 'Get-OfficePdf', 'Get-OfficePdfAnnotation', 'Get-OfficePdfAppendOnlyMutation', 'Get-OfficePdfAttachment', 'Get-OfficePdfCompliance', 'Get-OfficePdfDiagnostic', 'Get-OfficePdfFont', 'Get-OfficePdfFormField', 'Get-OfficePdfImage', 'Get-OfficePdfInfo', 'Get-OfficePdfInteractionMap', 'Get-OfficePdfOptimization', 'Get-OfficePdfPreflight', 'Get-OfficePdfRedactionPlan', 'Get-OfficePdfSignature', 'Get-OfficePdfText', 'Get-OfficePdfTextDiagnostic', 'Get-OfficePowerPoint', 'Get-OfficePowerPointInspection', 'Get-OfficePowerPointLayout', 'Get-OfficePowerPointLayoutBox', 'Get-OfficePowerPointLayoutPlaceholder', 'Get-OfficePowerPointNotes', 'Get-OfficePowerPointPlaceholder', 'Get-OfficePowerPointSection', 'Get-OfficePowerPointShape', 'Get-OfficePowerPointSlide', 'Get-OfficePowerPointSlideSummary', 'Get-OfficePowerPointTheme', 'Get-OfficePrinter', 'Get-OfficeProject', 'Get-OfficeProjectAssignment', 'Get-OfficeProjectDependency', 'Get-OfficeProjectResource', 'Get-OfficeProjectTask', 'Get-OfficeProjectView', 'Get-OfficeProtectionCapability', 'Get-OfficeProvenance', 'Get-OfficeRtf', 'Get-OfficeVisio', 'Get-OfficeVisioInfo', 'Get-OfficeVisioStencilCatalog', 'Get-OfficeWord', 'Get-OfficeWordBookmark', 'Get-OfficeWordCheckBox', 'Get-OfficeWordComboBox', 'Get-OfficeWordContentControl', 'Get-OfficeWordDatePicker', 'Get-OfficeWordDocumentProperty', 'Get-OfficeWordDropDownList', 'Get-OfficeWordEndnote', 'Get-OfficeWordField', 'Get-OfficeWordFootnote', 'Get-OfficeWordHyperlink', 'Get-OfficeWordImage', 'Get-OfficeWordList', 'Get-OfficeWordParagraph', 'Get-OfficeWordPictureControl', 'Get-OfficeWordRepeatingSection', 'Get-OfficeWordReview', 'Get-OfficeWordSection', 'Get-OfficeWordShape', 'Get-OfficeWordStatistics', 'Get-OfficeWordTable', 'Get-OfficeWordTableCell', 'Get-OfficeWordTableOfContents', 'Get-OfficeWordText', 'Import-OfficeCsv', 'Import-OfficeExcel', 'Import-OfficeExcelDelimitedText', 'Import-OfficePdfXfdf', 'Import-OfficePowerPointSlide', 'Import-OfficeProjectTable', 'Import-OfficeVisioStencil', 'Invoke-OfficeConversionJob', 'Invoke-OfficeExcelAutoFit', 'Invoke-OfficeExcelSort', 'Invoke-OfficeExcelTemplate', 'Invoke-OfficeExcelTemplateOptionalRow', 'Invoke-OfficeExcelTemplateRow', 'Invoke-OfficeExcelTemplateSheet', 'Invoke-OfficePdfOcrMerge', 'Invoke-OfficeProjectSchedule', 'Invoke-OfficeWordMailMerge', 'Join-OfficeExcelSheet', 'Join-OfficeExcelWorkbook', 'Join-OfficePdf', 'Join-OfficeWordDocument', 'Move-OfficeExcelSheet', 'Move-OfficePdfPage', 'New-OfficeAccess', 'New-OfficeConfluenceSession', 'New-OfficeConversionOptions', 'New-OfficeDocumentReader', 'New-OfficeEmailMailboxReaderOptions', 'New-OfficeEmailMailboxWriterOptions', 'New-OfficeEmailReaderOptions', 'New-OfficeEmailStoreReaderOptions', 'New-OfficeEmailWriterOptions', 'New-OfficeEpub', 'New-OfficeExcel', 'New-OfficeExcelDashboard', 'New-OfficeExcelImageOptions', 'New-OfficeExcelOpenDocumentOptions', 'New-OfficeExcelPdfOptions', 'New-OfficeExcelWorkbookImageOptions', 'New-OfficeHtmlConversionOptions', 'New-OfficeHtmlPdfOptions', 'New-OfficeHtmlRenderOptions', 'New-OfficeInvoice', 'New-OfficeInvoiceParty', 'New-OfficeMarkdown', 'New-OfficeMarkdownPdfOptions', 'New-OfficeOpenDocument', 'New-OfficePdf', 'New-OfficePdfExcelImportOptions', 'New-OfficePdfImageOptions', 'New-OfficePdfSignature', 'New-OfficePdfTableCell', 'New-OfficePdfTableCellCheckBox', 'New-OfficePdfTableCellField', 'New-OfficePdfTableCellImage', 'New-OfficePdfToPowerPointOptions', 'New-OfficePdfToWordOptions', 'New-OfficePdfVisualComparisonOptions', 'New-OfficePowerPoint', 'New-OfficePowerPointDeckPlan', 'New-OfficePowerPointImageOptions', 'New-OfficePowerPointOpenDocumentOptions', 'New-OfficePowerPointPdfOptions', 'New-OfficeProject', 'New-OfficeReaderHierarchyOptions', 'New-OfficeRtf', 'New-OfficeRtfPdfOptions', 'New-OfficeTextPdfOptions', 'New-OfficeTextRun', 'New-OfficeVisio', 'New-OfficeVisioGallery', 'New-OfficeVisioImageOptions', 'New-OfficeWord', 'New-OfficeWordComparisonOptions', 'New-OfficeWordImageOptions', 'New-OfficeWordOpenDocumentOptions', 'New-OfficeWordPdfOptions', 'New-OfficeWordRevisionFilter', 'New-OfficeWordTableCell', 'Protect-OfficeExcelSheet', 'Protect-OfficeExcelWorkbook', 'Protect-OfficeWordDocument', 'Publish-OfficeConfluencePage', 'Read-OfficePdf', 'Remove-OfficeConfluencePage', 'Remove-OfficeExcelComment', 'Remove-OfficeExcelNamedRange', 'Remove-OfficePdfAnnotation', 'Remove-OfficePdfPage', 'Remove-OfficePowerPointSlide', 'Remove-OfficeWordTableOfContents', 'Rename-OfficeExcelNamedRange', 'Rename-OfficePowerPointSection', 'Repair-OfficeExcelWorkbook', 'Resolve-OfficeWordRevision', 'Save-OfficeAccess', 'Save-OfficeAsciiDoc', 'Save-OfficeEmail', 'Save-OfficeEmailMailbox', 'Save-OfficeEpub', 'Save-OfficeExcel', 'Save-OfficeInvoice', 'Save-OfficeLatex', 'Save-OfficeMarkdown', 'Save-OfficeOpenDocument', 'Save-OfficePdf', 'Save-OfficePowerPoint', 'Save-OfficeProject', 'Save-OfficeVisio', 'Save-OfficeWord', 'Search-OfficeDocument', 'Send-OfficeConfluenceAttachment', 'Send-OfficePdfPrinter', 'Set-OfficeConfluenceManagedSection', 'Set-OfficeEpubMetadata', 'Set-OfficeExcelActiveSheet', 'Set-OfficeExcelAutoFilter', 'Set-OfficeExcelCell', 'Set-OfficeExcelChartAxis', 'Set-OfficeExcelChartDataLabels', 'Set-OfficeExcelChartLegend', 'Set-OfficeExcelChartPoint', 'Set-OfficeExcelChartSeries', 'Set-OfficeExcelChartStyle', 'Set-OfficeExcelChartTrendline', 'Set-OfficeExcelColumn', 'Set-OfficeExcelColumnGroup', 'Set-OfficeExcelColumnStyleByHeader', 'Set-OfficeExcelDataValidationMessage', 'Set-OfficeExcelDateSystem', 'Set-OfficeExcelDocumentProperty', 'Set-OfficeExcelExecutionPolicy', 'Set-OfficeExcelFormula', 'Set-OfficeExcelFreeze', 'Set-OfficeExcelGridlines', 'Set-OfficeExcelHeaderFooter', 'Set-OfficeExcelHostHyperlink', 'Set-OfficeExcelHyperlink', 'Set-OfficeExcelInternalLinks', 'Set-OfficeExcelInternalLinksByHeader', 'Set-OfficeExcelMargins', 'Set-OfficeExcelNamedRange', 'Set-OfficeExcelOrientation', 'Set-OfficeExcelPageSetup', 'Set-OfficeExcelPrintArea', 'Set-OfficeExcelPrintLayout', 'Set-OfficeExcelPrintTitles', 'Set-OfficeExcelRefreshOnOpen', 'Set-OfficeExcelRichText', 'Set-OfficeExcelRow', 'Set-OfficeExcelRowGroup', 'Set-OfficeExcelSheetTabColor', 'Set-OfficeExcelSheetVisibility', 'Set-OfficeExcelSmartHyperlink', 'Set-OfficeExcelTheme', 'Set-OfficeExcelUrlLinks', 'Set-OfficeExcelUrlLinksByHeader', 'Set-OfficeExcelWorksheetView', 'Set-OfficeExcelWriteReservation', 'Set-OfficeInvoice', 'Set-OfficeInvoiceLine', 'Set-OfficeOpenDocumentCell', 'Set-OfficePdfAnnotation', 'Set-OfficePdfBackground', 'Set-OfficePdfBackgroundImage', 'Set-OfficePdfCompliance', 'Set-OfficePdfElectronicInvoice', 'Set-OfficePdfFooter', 'Set-OfficePdfForm', 'Set-OfficePdfHeader', 'Set-OfficePdfMetadata', 'Set-OfficePdfPage', 'Set-OfficePdfPageBorder', 'Set-OfficePdfPageSetup', 'Set-OfficePdfSignature', 'Set-OfficePdfTheme', 'Set-OfficePowerPointBackground', 'Set-OfficePowerPointLayoutPlaceholderBounds', 'Set-OfficePowerPointLayoutPlaceholderTextMargins', 'Set-OfficePowerPointLayoutPlaceholderTextStyle', 'Set-OfficePowerPointNotes', 'Set-OfficePowerPointPlaceholderText', 'Set-OfficePowerPointShapeLayout', 'Set-OfficePowerPointShapeText', 'Set-OfficePowerPointSlideLayout', 'Set-OfficePowerPointSlideSize', 'Set-OfficePowerPointSlideTitle', 'Set-OfficePowerPointSlideTransition', 'Set-OfficePowerPointTableCell', 'Set-OfficePowerPointThemeColor', 'Set-OfficePowerPointThemeFonts', 'Set-OfficePowerPointThemeName', 'Set-OfficeProjectTask', 'Set-OfficeVisioShapeLayout', 'Set-OfficeWordBackground', 'Set-OfficeWordDocumentProperty', 'Set-OfficeWordImage', 'Set-OfficeWordPageSetup', 'Set-OfficeWordParagraphStyle', 'Set-OfficeWordShape', 'Set-OfficeWordTableCell', 'Set-OfficeWordTableOfContents', 'Set-OfficeWordTextStyle', 'Split-OfficePdf', 'Test-OfficeExcelAccessibility', 'Test-OfficeExcelTemplateBinding', 'Test-OfficeExcelWorkbook', 'Test-OfficeInvoice', 'Test-OfficePdfRewrite', 'Unprotect-OfficeExcelSheet', 'Unprotect-OfficeExcelWorkbook', 'Update-OfficeExcelComment', 'Update-OfficeExcelText', 'Update-OfficePowerPointText', 'Update-OfficeRtfText', 'Update-OfficeWordFields', 'Update-OfficeWordTableOfContents', 'Update-OfficeWordText')
-$AliasesToExport = @('Compare-OfficeExcelSheet', 'ConvertFrom-MarkdownHtml', 'ConvertFrom-PdfHtml', 'ConvertFrom-Rtf', 'ConvertFrom-WordHtml', 'ConvertFrom-WordMarkdown', 'ConvertTo-ExcelHtml', 'ConvertTo-MarkdownHtml', 'ConvertTo-PdfExcel', 'ConvertTo-PdfHtml', 'ConvertTo-PdfPowerPoint', 'ConvertTo-PdfWord', 'ConvertTo-PowerPointHtml', 'ConvertTo-Rtf', 'ConvertTo-VisioPng', 'ConvertTo-VisioSvg', 'ConvertTo-WordHtml', 'ConvertTo-WordMarkdown', 'Edit-ExcelRow', 'ExcelAccessibility', 'ExcelActiveSheet', 'ExcelAutoFilter', 'ExcelAutoFilterClear', 'ExcelAutoFilterSet', 'ExcelAutoFit', 'ExcelCell', 'ExcelChart', 'ExcelChartAxis', 'ExcelChartPoint', 'ExcelChartSeries', 'ExcelChartTrendline', 'ExcelColumn', 'ExcelColumnGroup', 'ExcelColumnStyle', 'ExcelColumnStyleByHeader', 'ExcelComment', 'ExcelCommentAudit', 'ExcelCommentClear', 'ExcelCommentRemove', 'ExcelComments', 'ExcelCommentsAudit', 'ExcelCommentUpdate', 'ExcelCompare', 'ExcelConditionalColorScale', 'ExcelConditionalDataBar', 'ExcelConditionalFormatting', 'ExcelConditionalFormattingClear', 'ExcelConditionalIconSet', 'ExcelConditionalRule', 'ExcelConnectionMetadata', 'ExcelCsvImport', 'ExcelDashboard', 'ExcelDashboardChart', 'ExcelDataModel', 'ExcelDataSet', 'ExcelDataValidation', 'ExcelDataValidationClear', 'ExcelDataValidationMessage', 'ExcelDateSystem', 'ExcelDelimitedImport', 'ExcelDoctor', 'ExcelExecutionPolicy', 'ExcelExport', 'ExcelFormula', 'ExcelFormulaAnalysis', 'ExcelFormulaAudit', 'ExcelFreeze', 'ExcelGridlines', 'ExcelHeaderFooter', 'ExcelHyperlink', 'ExcelHyperlinkHost', 'ExcelHyperlinkSmart', 'ExcelImage', 'ExcelImageFromUrl', 'ExcelImport', 'ExcelInternalLinks', 'ExcelInternalLinksByHeader', 'ExcelMargins', 'ExcelNamedRange', 'ExcelNamedRangeRemove', 'ExcelNamedRangeRename', 'ExcelNew', 'ExcelNumberFormatPreset', 'ExcelOrientation', 'ExcelPackageCopy', 'ExcelPackageMetadata', 'ExcelPageBreak', 'ExcelPageBreakClear', 'ExcelPageBreaks', 'ExcelPageSetup', 'ExcelPivotTable', 'ExcelPivotTables', 'ExcelPowerQuery', 'ExcelPowerQueryMetadata', 'ExcelPreflight', 'ExcelPrintArea', 'ExcelPrintLayout', 'ExcelPrintTitles', 'ExcelProtect', 'ExcelQueryMetadata', 'ExcelRangeClear', 'ExcelRefreshOnOpen', 'ExcelRepair', 'ExcelReportCallout', 'ExcelReportKpiRow', 'ExcelReportLegend', 'ExcelReportParagraph', 'ExcelReportSection', 'ExcelReportSheet', 'ExcelReportSpacer', 'ExcelReportTable', 'ExcelReportTitle', 'ExcelRichText', 'ExcelRichTextRuns', 'ExcelRow', 'ExcelRowEdit', 'ExcelRowGroup', 'ExcelRuntimePreflight', 'ExcelSheet', 'ExcelSheetCopy', 'ExcelSheetJoin', 'ExcelSheetMerge', 'ExcelSheetOrder', 'ExcelSheetTabColor', 'ExcelSheetView', 'ExcelSheetVisibility', 'ExcelSlicer', 'ExcelSort', 'ExcelSparkline', 'ExcelStreamingContract', 'ExcelSubtotals', 'ExcelSubtotalSummary', 'ExcelSummary', 'ExcelTable', 'ExcelTableOfContents', 'ExcelTableStyle', 'ExcelTemplate', 'ExcelTemplateApply', 'ExcelTemplateBinding', 'ExcelTemplateMarkers', 'ExcelTemplateOptionalRow', 'ExcelTemplateOptionalRows', 'ExcelTemplateRow', 'ExcelTemplateRows', 'ExcelTemplateSheet', 'ExcelTemplateSheets', 'ExcelTemplateValidate', 'ExcelTextRun', 'ExcelTheme', 'ExcelThreadedComment', 'ExcelTimeline', 'ExcelUnprotect', 'ExcelUrlLinks', 'ExcelUrlLinksByHeader', 'ExcelValidationCustomFormula', 'ExcelValidationDate', 'ExcelValidationDecimal', 'ExcelValidationList', 'ExcelValidationTextLength', 'ExcelValidationTime', 'ExcelValidationWholeNumber', 'ExcelVisual', 'ExcelWorkbookCompare', 'ExcelWorkbookCopy', 'ExcelWorkbookDoctor', 'ExcelWorkbookJoin', 'ExcelWorkbookMerge', 'ExcelWorkbookProtect', 'ExcelWorkbookRepair', 'ExcelWorkbookUnprotect', 'ExcelWorksheetView', 'ExcelWriteReservation', 'ExcelWriteReservationClear', 'ExcelWriteReservationSet', 'Export-OfficeDocumentAsset', 'Export-VisioStencilPreviewGallery', 'Find-VisioStencil', 'Get-OfficeReaderCapability', 'Import-VisioStencil', 'MarkdownCallout', 'MarkdownCode', 'MarkdownDefinitionList', 'MarkdownDetails', 'MarkdownFrontMatter', 'MarkdownHeading', 'MarkdownHorizontalRule', 'MarkdownHr', 'MarkdownImage', 'MarkdownList', 'MarkdownNew', 'MarkdownParagraph', 'MarkdownQuote', 'MarkdownTable', 'MarkdownTableOfContents', 'MarkdownTaskList', 'MarkdownToc', 'Merge-OfficeExcelSheet', 'Merge-OfficeExcelWorkbook', 'Merge-OfficeWordDocument', 'New-OfficePdfPowerPointImportOptions', 'New-OfficePdfWordImportOptions', 'New-VisioGallery', 'OfficeExcel', 'OfficeMarkdown', 'OfficeOpenDocument', 'OfficePdf', 'OfficePowerPoint', 'OfficeRtf', 'OfficeVisio', 'OfficeVisual', 'OfficeWord', 'OpenDocumentNew', 'PdfAttachment', 'PdfBackground', 'PdfBackgroundImage', 'PdfBackgroundShape', 'PdfBookmark', 'PdfCanvasStamp', 'PdfCanvasText', 'PdfCompliance', 'PdfElectronicInvoice', 'PdfFooter', 'PdfFormField', 'PdfHeader', 'PdfHeading', 'PdfHorizontalRule', 'PdfHr', 'PdfImage', 'PdfList', 'PdfMetadata', 'PdfNativeTextRun', 'PdfNew', 'PdfPageBorder', 'PdfPageBreak', 'PdfPageOverlay', 'PdfPageSetup', 'PdfPanel', 'PdfParagraph', 'PdfRow', 'PdfSpace', 'PdfSpacer', 'PdfStamp', 'PdfTable', 'PdfTableCell', 'PdfTableCellCheckBox', 'PdfTableCellField', 'PdfTableCellImage', 'PdfText', 'PdfTextRun', 'PdfTheme', 'PdfVisual', 'PdfWatermark', 'PowerPointNew', 'PowerPointTextRun', 'PptArrange', 'PptBackground', 'PptBullets', 'PptChart', 'PptDeckPlan', 'PptDesignerDeck', 'PptImage', 'PptLayoutBox', 'PptLayoutPlaceholderBounds', 'PptLayoutPlaceholderMargins', 'PptLayoutPlaceholders', 'PptLayoutPlaceholderTextStyle', 'PptNew', 'PptNotes', 'PptPlaceholderText', 'PptPlanCapability', 'PptPlanCardGrid', 'PptPlanCaseStudy', 'PptPlanCoverage', 'PptPlanLogoWall', 'PptPlanProcess', 'PptPlanSection', 'PptSection', 'PptShape', 'PptShapeLayout', 'PptSlide', 'PptSlideLayout', 'PptSlideSize', 'PptTable', 'PptTextBox', 'PptTextRun', 'PptTheme', 'PptThemeColor', 'PptThemeFonts', 'PptThemeName', 'PptTitle', 'PptTransition', 'PptVisual', 'Read-OfficeDocument', 'Read-OfficeDocumentAsset', 'Read-OfficeDocumentChunk', 'Read-OfficeDocumentTable', 'Read-OfficeDocumentVisual', 'Replace-OfficeExcelText', 'Replace-OfficePowerPointText', 'Replace-OfficeRtfText', 'Replace-OfficeWordText', 'RtfNew', 'RtfOpen', 'RtfText', 'Set-OfficeExcelSheetOrder', 'TextRun', 'VisioArrange', 'VisioConnector', 'VisioContainer', 'VisioDiamond', 'VisioEllipse', 'VisioInfo', 'VisioLayout', 'VisioNew', 'VisioOpen', 'VisioPage', 'VisioRect', 'VisioRectangle', 'VisioSave', 'VisioStencil', 'VisioStencilCatalog', 'VisioStencilImport', 'VisioText', 'VisioTextBox', 'WordBold', 'WordBookmark', 'WordBreak', 'WordChart', 'WordCheckBox', 'WordCheckBoxes', 'WordComboBox', 'WordComboBoxes', 'WordContentControl', 'WordContentControls', 'WordCoverPage', 'WordDatePicker', 'WordDatePickers', 'WordDocumentJoin', 'WordDropDownList', 'WordDropDownLists', 'WordEndnote', 'WordEndnotes', 'WordEquation', 'WordField', 'WordFooter', 'WordFootnote', 'WordFootnotes', 'WordHeader', 'WordHyperlink', 'WordImage', 'WordImages', 'WordImageStyle', 'WordItalic', 'WordList', 'WordListItem', 'WordNew', 'WordPageNumber', 'WordPageSetup', 'WordParagraph', 'WordParagraphStyle', 'WordPictureControl', 'WordPictureControls', 'WordRepeatingSection', 'WordRepeatingSections', 'WordSection', 'WordShape', 'WordShapes', 'WordShapeStyle', 'WordStatistics', 'WordTable', 'WordTableCell', 'WordTableCells', 'WordTableCellSpec', 'WordTableCellStyle', 'WordTableCondition', 'WordTableOfContents', 'WordTabStop', 'WordText', 'WordTextBox', 'WordTextRun', 'WordTextStyle', 'WordVisual', 'WordWatermark')
+$CmdletsToExport = @('Add-OfficeAccessColumn', 'Add-OfficeAccessRow', 'Add-OfficeAccessTable', 'Add-OfficeEpubChapter', 'Add-OfficeEpubResource', 'Add-OfficeExcelAutoFilter', 'Add-OfficeExcelChart', 'Add-OfficeExcelComment', 'Add-OfficeExcelConditionalColorScale', 'Add-OfficeExcelConditionalDataBar', 'Add-OfficeExcelConditionalIconSet', 'Add-OfficeExcelConditionalRule', 'Add-OfficeExcelDashboardChart', 'Add-OfficeExcelDataSet', 'Add-OfficeExcelImage', 'Add-OfficeExcelImageFromUrl', 'Add-OfficeExcelPackageMetadata', 'Add-OfficeExcelPageBreak', 'Add-OfficeExcelPivotTable', 'Add-OfficeExcelPowerQueryMetadata', 'Add-OfficeExcelReportCallout', 'Add-OfficeExcelReportKpiRow', 'Add-OfficeExcelReportLegend', 'Add-OfficeExcelReportParagraph', 'Add-OfficeExcelReportSection', 'Add-OfficeExcelReportSheet', 'Add-OfficeExcelReportSpacer', 'Add-OfficeExcelReportTable', 'Add-OfficeExcelReportTitle', 'Add-OfficeExcelSheet', 'Add-OfficeExcelSlicer', 'Add-OfficeExcelSparkline', 'Add-OfficeExcelSubtotalSummary', 'Add-OfficeExcelTable', 'Add-OfficeExcelTableOfContents', 'Add-OfficeExcelTableRow', 'Add-OfficeExcelThreadedComment', 'Add-OfficeExcelTimeline', 'Add-OfficeExcelValidationCustomFormula', 'Add-OfficeExcelValidationDate', 'Add-OfficeExcelValidationDecimal', 'Add-OfficeExcelValidationList', 'Add-OfficeExcelValidationTextLength', 'Add-OfficeExcelValidationTime', 'Add-OfficeExcelValidationWholeNumber', 'Add-OfficeExcelVisual', 'Add-OfficeMarkdownCallout', 'Add-OfficeMarkdownCode', 'Add-OfficeMarkdownDefinitionList', 'Add-OfficeMarkdownDetails', 'Add-OfficeMarkdownFrontMatter', 'Add-OfficeMarkdownHeading', 'Add-OfficeMarkdownHorizontalRule', 'Add-OfficeMarkdownImage', 'Add-OfficeMarkdownList', 'Add-OfficeMarkdownParagraph', 'Add-OfficeMarkdownQuote', 'Add-OfficeMarkdownTable', 'Add-OfficeMarkdownTableOfContents', 'Add-OfficeMarkdownTaskList', 'Add-OfficeOpenDocumentHeading', 'Add-OfficeOpenDocumentParagraph', 'Add-OfficeOpenDocumentSheet', 'Add-OfficeOpenDocumentSlide', 'Add-OfficeOpenDocumentTextBox', 'Add-OfficePdfAttachment', 'Add-OfficePdfBackgroundShape', 'Add-OfficePdfBookmark', 'Add-OfficePdfCanvas', 'Add-OfficePdfCanvasText', 'Add-OfficePdfFormField', 'Add-OfficePdfHeading', 'Add-OfficePdfHorizontalRule', 'Add-OfficePdfImage', 'Add-OfficePdfList', 'Add-OfficePdfPageBreak', 'Add-OfficePdfPageOverlay', 'Add-OfficePdfPanel', 'Add-OfficePdfParagraph', 'Add-OfficePdfRow', 'Add-OfficePdfSpacer', 'Add-OfficePdfStamp', 'Add-OfficePdfTable', 'Add-OfficePdfText', 'Add-OfficePdfVisual', 'Add-OfficePdfWatermark', 'Add-OfficePowerPointBullets', 'Add-OfficePowerPointCard', 'Add-OfficePowerPointChart', 'Add-OfficePowerPointColumn', 'Add-OfficePowerPointDesignerDeck', 'Add-OfficePowerPointImage', 'Add-OfficePowerPointKpi', 'Add-OfficePowerPointList', 'Add-OfficePowerPointListItem', 'Add-OfficePowerPointLocation', 'Add-OfficePowerPointParagraph', 'Add-OfficePowerPointPlanCapability', 'Add-OfficePowerPointPlanCardGrid', 'Add-OfficePowerPointPlanCaseStudy', 'Add-OfficePowerPointPlanCoverage', 'Add-OfficePowerPointPlanLogoWall', 'Add-OfficePowerPointPlanProcess', 'Add-OfficePowerPointPlanSection', 'Add-OfficePowerPointQuote', 'Add-OfficePowerPointSection', 'Add-OfficePowerPointShape', 'Add-OfficePowerPointSlide', 'Add-OfficePowerPointStep', 'Add-OfficePowerPointTable', 'Add-OfficePowerPointTableRow', 'Add-OfficePowerPointText', 'Add-OfficePowerPointTextBox', 'Add-OfficePowerPointVisual', 'Add-OfficeProjectAssignment', 'Add-OfficeProjectDependency', 'Add-OfficeProjectResource', 'Add-OfficeProjectTask', 'Add-OfficeVisioConnector', 'Add-OfficeVisioContainer', 'Add-OfficeVisioDiamond', 'Add-OfficeVisioEllipse', 'Add-OfficeVisioPage', 'Add-OfficeVisioRectangle', 'Add-OfficeVisioStencilShape', 'Add-OfficeVisioTextBox', 'Add-OfficeWordBookmark', 'Add-OfficeWordBreak', 'Add-OfficeWordChart', 'Add-OfficeWordCheckBox', 'Add-OfficeWordComboBox', 'Add-OfficeWordContentControl', 'Add-OfficeWordCoverPage', 'Add-OfficeWordDatePicker', 'Add-OfficeWordDropDownList', 'Add-OfficeWordEndnote', 'Add-OfficeWordEquation', 'Add-OfficeWordField', 'Add-OfficeWordFooter', 'Add-OfficeWordFootnote', 'Add-OfficeWordHeader', 'Add-OfficeWordHeading', 'Add-OfficeWordImage', 'Add-OfficeWordList', 'Add-OfficeWordListItem', 'Add-OfficeWordPageNumber', 'Add-OfficeWordParagraph', 'Add-OfficeWordPictureControl', 'Add-OfficeWordRepeatingSection', 'Add-OfficeWordSection', 'Add-OfficeWordShape', 'Add-OfficeWordTable', 'Add-OfficeWordTableCell', 'Add-OfficeWordTableCondition', 'Add-OfficeWordTableOfContents', 'Add-OfficeWordTableRow', 'Add-OfficeWordTabStop', 'Add-OfficeWordText', 'Add-OfficeWordTextBox', 'Add-OfficeWordVisual', 'Add-OfficeWordWatermark', 'Clear-OfficeExcelAutoFilter', 'Clear-OfficeExcelComment', 'Clear-OfficeExcelConditionalFormatting', 'Clear-OfficeExcelDataValidation', 'Clear-OfficeExcelPageBreak', 'Clear-OfficeExcelRange', 'Clear-OfficeExcelWriteReservation', 'Clear-OfficePdfBackgroundShape', 'Close-OfficeAccess', 'Close-OfficeEpub', 'Close-OfficeExcel', 'Close-OfficeMarkdown', 'Close-OfficePdf', 'Close-OfficePowerPoint', 'Close-OfficeProject', 'Close-OfficeWord', 'Compare-OfficeExcelRange', 'Compare-OfficeExcelWorkbook', 'Compare-OfficePdfVisual', 'Compare-OfficeWordDocument', 'Convert-OfficeDocument', 'ConvertFrom-OfficeAsciiDocMarkdown', 'ConvertFrom-OfficeCsv', 'ConvertFrom-OfficeImage', 'ConvertFrom-OfficeIWork', 'ConvertFrom-OfficeLatexMarkdown', 'ConvertFrom-OfficeMarkdownHtml', 'ConvertFrom-OfficeOneNote', 'ConvertFrom-OfficeOpenDocument', 'ConvertFrom-OfficePdfHtml', 'ConvertFrom-OfficeRtf', 'ConvertFrom-OfficeWordHtml', 'ConvertFrom-OfficeWordMarkdown', 'ConvertTo-OfficeAsciiDocMarkdown', 'ConvertTo-OfficeCsv', 'ConvertTo-OfficeDocument', 'ConvertTo-OfficeExcelHtml', 'ConvertTo-OfficeExcelWorkbook', 'ConvertTo-OfficeLatexMarkdown', 'ConvertTo-OfficeMarkdown', 'ConvertTo-OfficeMarkdownHtml', 'ConvertTo-OfficeOpenDocument', 'ConvertTo-OfficePdfExcel', 'ConvertTo-OfficePdfFlatAnnotation', 'ConvertTo-OfficePdfFlatForm', 'ConvertTo-OfficePdfHtml', 'ConvertTo-OfficePdfMarkdown', 'ConvertTo-OfficePdfOptimized', 'ConvertTo-OfficePdfPowerPoint', 'ConvertTo-OfficePdfRedacted', 'ConvertTo-OfficePdfSanitized', 'ConvertTo-OfficePdfSearchable', 'ConvertTo-OfficePdfTextRun', 'ConvertTo-OfficePdfWord', 'ConvertTo-OfficePowerPointHtml', 'ConvertTo-OfficeProjectTable', 'ConvertTo-OfficeRtf', 'ConvertTo-OfficeVisioPng', 'ConvertTo-OfficeVisioSvg', 'ConvertTo-OfficeVisioVisual', 'ConvertTo-OfficeVisual', 'ConvertTo-OfficeWordDocument', 'ConvertTo-OfficeWordHtml', 'ConvertTo-OfficeWordMarkdown', 'Copy-OfficeExcelSheet', 'Copy-OfficeExcelWorkbook', 'Copy-OfficePdfPage', 'Copy-OfficePowerPointSlide', 'Edit-OfficeExcelRow', 'Export-OfficeConversionJob', 'Export-OfficeCsv', 'Export-OfficeDocumentAsset', 'Export-OfficeDocumentPdf', 'Export-OfficeExcel', 'Export-OfficeExcelChartImage', 'Export-OfficeExcelGoogleSpreadsheet', 'Export-OfficeExcelImage', 'Export-OfficeExcelRangeImage', 'Export-OfficeHtmlImage', 'Export-OfficePdfImage', 'Export-OfficePdfLayoutOverlay', 'Export-OfficePdfXfdf', 'Export-OfficePowerPoint', 'Export-OfficePowerPointImage', 'Export-OfficeProjectReport', 'Export-OfficeProjectTable', 'Export-OfficeVisioImage', 'Export-OfficeVisioStencilPreviewGallery', 'Export-OfficeVisioVisual', 'Export-OfficeWord', 'Export-OfficeWordGoogleDocument', 'Export-OfficeWordImage', 'Find-OfficeExcel', 'Find-OfficePowerPointShape', 'Find-OfficeVisioStencil', 'Find-OfficeWord', 'Find-OfficeWordList', 'Find-OfficeWordTable', 'Get-OfficeAccess', 'Get-OfficeAccessRow', 'Get-OfficeAccessTable', 'Get-OfficeAsciiDoc', 'Get-OfficeConfluenceAttachment', 'Get-OfficeConfluencePage', 'Get-OfficeCsv', 'Get-OfficeDocumentCapability', 'Get-OfficeDocumentInfo', 'Get-OfficeDocumentProvenance', 'Get-OfficeEmail', 'Get-OfficeEmailMailbox', 'Get-OfficeEpubChapter', 'Get-OfficeExcelComment', 'Get-OfficeExcelCommentAudit', 'Get-OfficeExcelConditionalFormatting', 'Get-OfficeExcelData', 'Get-OfficeExcelDataModel', 'Get-OfficeExcelDataValidation', 'Get-OfficeExcelDocumentProperty', 'Get-OfficeExcelFormulaAnalysis', 'Get-OfficeExcelNamedRange', 'Get-OfficeExcelNumberFormatPreset', 'Get-OfficeExcelPageBreak', 'Get-OfficeExcelPivotTable', 'Get-OfficeExcelPreflight', 'Get-OfficeExcelRange', 'Get-OfficeExcelRichText', 'Get-OfficeExcelRuntimePreflight', 'Get-OfficeExcelStreamingContract', 'Get-OfficeExcelSummary', 'Get-OfficeExcelTable', 'Get-OfficeExcelTableStyle', 'Get-OfficeExcelTemplateMarker', 'Get-OfficeExcelUsedRange', 'Get-OfficeExcelWorksheetView', 'Get-OfficeExcelWriteReservation', 'Get-OfficeImageDocument', 'Get-OfficeImageText', 'Get-OfficeIWork', 'Get-OfficeLatex', 'Get-OfficeMarkdownFrontMatter', 'Get-OfficeMarkdownHeading', 'Get-OfficeMarkdownNode', 'Get-OfficeMarkdownTable', 'Get-OfficeOneNote', 'Get-OfficeOpenDocument', 'Get-OfficePackageSecurity', 'Get-OfficePdfAnnotation', 'Get-OfficePdfAppendOnlyMutation', 'Get-OfficePdfAttachment', 'Get-OfficePdfCompliance', 'Get-OfficePdfDiagnostic', 'Get-OfficePdfFont', 'Get-OfficePdfFormField', 'Get-OfficePdfImage', 'Get-OfficePdfInfo', 'Get-OfficePdfInteractionMap', 'Get-OfficePdfOptimization', 'Get-OfficePdfPreflight', 'Get-OfficePdfRedactionPlan', 'Get-OfficePdfSignature', 'Get-OfficePdfText', 'Get-OfficePdfTextDiagnostic', 'Get-OfficePowerPointLayout', 'Get-OfficePowerPointLayoutBox', 'Get-OfficePowerPointLayoutPlaceholder', 'Get-OfficePowerPointNotes', 'Get-OfficePowerPointPlaceholder', 'Get-OfficePowerPointSection', 'Get-OfficePowerPointShape', 'Get-OfficePowerPointSlide', 'Get-OfficePowerPointTheme', 'Get-OfficePrinter', 'Get-OfficeProject', 'Get-OfficeProjectAssignment', 'Get-OfficeProjectDependency', 'Get-OfficeProjectResource', 'Get-OfficeProjectTask', 'Get-OfficeProjectView', 'Get-OfficeRtf', 'Get-OfficeVisio', 'Get-OfficeVisioInfo', 'Get-OfficeVisioStencilCatalog', 'Get-OfficeWordBookmark', 'Get-OfficeWordCheckBox', 'Get-OfficeWordComboBox', 'Get-OfficeWordContentControl', 'Get-OfficeWordDatePicker', 'Get-OfficeWordDocumentProperty', 'Get-OfficeWordDropDownList', 'Get-OfficeWordEndnote', 'Get-OfficeWordField', 'Get-OfficeWordFootnote', 'Get-OfficeWordHyperlink', 'Get-OfficeWordImage', 'Get-OfficeWordList', 'Get-OfficeWordParagraph', 'Get-OfficeWordPictureControl', 'Get-OfficeWordRepeatingSection', 'Get-OfficeWordReview', 'Get-OfficeWordSection', 'Get-OfficeWordShape', 'Get-OfficeWordStatistics', 'Get-OfficeWordTable', 'Get-OfficeWordTableCell', 'Get-OfficeWordTableOfContents', 'Get-OfficeWordText', 'Import-OfficeConversionReport', 'Import-OfficeCsv', 'Import-OfficeExcel', 'Import-OfficeExcelDelimitedText', 'Import-OfficePdfXfdf', 'Import-OfficePowerPointSlide', 'Import-OfficeProjectTable', 'Import-OfficeVisioStencil', 'Invoke-OfficeConversionJob', 'Invoke-OfficeExcelAutoFit', 'Invoke-OfficeExcelSort', 'Invoke-OfficeExcelTemplate', 'Invoke-OfficeExcelTemplateOptionalRow', 'Invoke-OfficeExcelTemplateRow', 'Invoke-OfficeExcelTemplateSheet', 'Invoke-OfficePdfOcrMerge', 'Invoke-OfficeProjectSchedule', 'Invoke-OfficeWordMailMerge', 'Join-OfficeExcelSheet', 'Join-OfficeExcelWorkbook', 'Join-OfficePdf', 'Join-OfficeWordDocument', 'Merge-OfficeDocument', 'Move-OfficeExcelSheet', 'Move-OfficePdfPage', 'New-OfficeAccess', 'New-OfficeConfluenceSession', 'New-OfficeConversionOptions', 'New-OfficeDocumentHierarchyOptions', 'New-OfficeDocumentProvenanceOptions', 'New-OfficeDocumentReader', 'New-OfficeDocumentReaderOptions', 'New-OfficeEmailMailboxReaderOptions', 'New-OfficeEmailMailboxWriterOptions', 'New-OfficeEmailReaderOptions', 'New-OfficeEmailStoreReaderOptions', 'New-OfficeEmailWriterOptions', 'New-OfficeEpub', 'New-OfficeExcel', 'New-OfficeExcelDashboard', 'New-OfficeExcelImageOptions', 'New-OfficeExcelOpenDocumentOptions', 'New-OfficeExcelPdfOptions', 'New-OfficeExcelSaveOptions', 'New-OfficeExcelWorkbookImageOptions', 'New-OfficeHtmlConversionOptions', 'New-OfficeHtmlPdfOptions', 'New-OfficeHtmlRenderOptions', 'New-OfficeMarkdown', 'New-OfficeMarkdownPdfOptions', 'New-OfficeMarkdownReaderOptions', 'New-OfficeOcrOptions', 'New-OfficeOpenDocument', 'New-OfficePdf', 'New-OfficePdfExcelImportOptions', 'New-OfficePdfImageOptions', 'New-OfficePdfSignature', 'New-OfficePdfTableCell', 'New-OfficePdfTableCellCheckBox', 'New-OfficePdfTableCellField', 'New-OfficePdfTableCellImage', 'New-OfficePdfToPowerPointOptions', 'New-OfficePdfToWordOptions', 'New-OfficePdfVisualComparisonOptions', 'New-OfficePowerPoint', 'New-OfficePowerPointDeckPlan', 'New-OfficePowerPointImageOptions', 'New-OfficePowerPointInspectionOptions', 'New-OfficePowerPointOpenDocumentOptions', 'New-OfficePowerPointPdfOptions', 'New-OfficeProject', 'New-OfficeRtf', 'New-OfficeRtfPdfOptions', 'New-OfficeTextPdfOptions', 'New-OfficeTextRun', 'New-OfficeVisio', 'New-OfficeVisioGallery', 'New-OfficeVisioImageOptions', 'New-OfficeWord', 'New-OfficeWordComparisonOptions', 'New-OfficeWordImageOptions', 'New-OfficeWordOpenDocumentOptions', 'New-OfficeWordPdfOptions', 'New-OfficeWordRevisionFilter', 'New-OfficeWordTableCell', 'Open-OfficeEpub', 'Open-OfficeExcel', 'Open-OfficeMarkdown', 'Open-OfficePdf', 'Open-OfficePowerPoint', 'Open-OfficeWord', 'Protect-OfficeDocument', 'Protect-OfficeExcelSheet', 'Protect-OfficeExcelWorkbook', 'Protect-OfficeWordDocument', 'Publish-OfficeConfluencePage', 'Read-OfficeDocument', 'Read-OfficePdf', 'Remove-OfficeConfluencePage', 'Remove-OfficeExcelComment', 'Remove-OfficeExcelNamedRange', 'Remove-OfficePdfAnnotation', 'Remove-OfficePdfPage', 'Remove-OfficePowerPointSlide', 'Remove-OfficeWordTableOfContents', 'Rename-OfficeExcelNamedRange', 'Rename-OfficePowerPointSection', 'Repair-OfficeExcelWorkbook', 'Resolve-OfficeWordRevision', 'Save-OfficeAccess', 'Save-OfficeAsciiDoc', 'Save-OfficeEmail', 'Save-OfficeEmailMailbox', 'Save-OfficeEpub', 'Save-OfficeExcel', 'Save-OfficeLatex', 'Save-OfficeMarkdown', 'Save-OfficeOpenDocument', 'Save-OfficePdf', 'Save-OfficePowerPoint', 'Save-OfficeProject', 'Save-OfficeVisio', 'Save-OfficeWord', 'Search-OfficeDocument', 'Send-OfficeConfluenceAttachment', 'Send-OfficePdfPrinter', 'Set-OfficeConfluenceManagedSection', 'Set-OfficeEpubMetadata', 'Set-OfficeExcelActiveSheet', 'Set-OfficeExcelAutoFilter', 'Set-OfficeExcelCell', 'Set-OfficeExcelChartAxis', 'Set-OfficeExcelChartDataLabels', 'Set-OfficeExcelChartLegend', 'Set-OfficeExcelChartPoint', 'Set-OfficeExcelChartSeries', 'Set-OfficeExcelChartStyle', 'Set-OfficeExcelChartTrendline', 'Set-OfficeExcelColumn', 'Set-OfficeExcelColumnGroup', 'Set-OfficeExcelColumnStyleByHeader', 'Set-OfficeExcelDataValidationMessage', 'Set-OfficeExcelDateSystem', 'Set-OfficeExcelDocumentProperty', 'Set-OfficeExcelExecutionPolicy', 'Set-OfficeExcelFormula', 'Set-OfficeExcelFreeze', 'Set-OfficeExcelGridlines', 'Set-OfficeExcelHeaderFooter', 'Set-OfficeExcelHostHyperlink', 'Set-OfficeExcelHyperlink', 'Set-OfficeExcelInternalLinks', 'Set-OfficeExcelInternalLinksByHeader', 'Set-OfficeExcelMargins', 'Set-OfficeExcelNamedRange', 'Set-OfficeExcelOrientation', 'Set-OfficeExcelPageSetup', 'Set-OfficeExcelPrintArea', 'Set-OfficeExcelPrintLayout', 'Set-OfficeExcelPrintTitles', 'Set-OfficeExcelRefreshOnOpen', 'Set-OfficeExcelRichText', 'Set-OfficeExcelRow', 'Set-OfficeExcelRowGroup', 'Set-OfficeExcelSheetTabColor', 'Set-OfficeExcelSheetVisibility', 'Set-OfficeExcelSmartHyperlink', 'Set-OfficeExcelTheme', 'Set-OfficeExcelUrlLinks', 'Set-OfficeExcelUrlLinksByHeader', 'Set-OfficeExcelWorksheetView', 'Set-OfficeExcelWriteReservation', 'Set-OfficeOpenDocumentCell', 'Set-OfficePdfAnnotation', 'Set-OfficePdfBackground', 'Set-OfficePdfBackgroundImage', 'Set-OfficePdfCompliance', 'Set-OfficePdfFooter', 'Set-OfficePdfForm', 'Set-OfficePdfHeader', 'Set-OfficePdfMetadata', 'Set-OfficePdfPage', 'Set-OfficePdfPageBorder', 'Set-OfficePdfPageSetup', 'Set-OfficePdfSignature', 'Set-OfficePdfTheme', 'Set-OfficePowerPointLayoutPlaceholder', 'Set-OfficePowerPointNotes', 'Set-OfficePowerPointPlaceholderText', 'Set-OfficePowerPointShapeLayout', 'Set-OfficePowerPointShapeText', 'Set-OfficePowerPointSlide', 'Set-OfficePowerPointSlideSize', 'Set-OfficePowerPointTableCell', 'Set-OfficePowerPointThemeColor', 'Set-OfficePowerPointThemeFonts', 'Set-OfficePowerPointThemeName', 'Set-OfficeProjectTask', 'Set-OfficeVisioShapeLayout', 'Set-OfficeWordBackground', 'Set-OfficeWordDocumentProperty', 'Set-OfficeWordImage', 'Set-OfficeWordPageSetup', 'Set-OfficeWordParagraphStyle', 'Set-OfficeWordShape', 'Set-OfficeWordTableCell', 'Set-OfficeWordTableOfContents', 'Set-OfficeWordTextStyle', 'Split-OfficePdf', 'Test-OfficeExcelAccessibility', 'Test-OfficeExcelTemplateBinding', 'Test-OfficeExcelWorkbook', 'Test-OfficePdfRewrite', 'Test-OfficePowerPoint', 'Unprotect-OfficeExcelSheet', 'Unprotect-OfficeExcelWorkbook', 'Update-OfficeExcelComment', 'Update-OfficeExcelText', 'Update-OfficePowerPointText', 'Update-OfficeRtfText', 'Update-OfficeWordFields', 'Update-OfficeWordTableOfContents', 'Update-OfficeWordText')
+$AliasesToExport = @('Compare-OfficeExcelSheet', 'ConvertFrom-MarkdownHtml', 'ConvertFrom-PdfHtml', 'ConvertFrom-Rtf', 'ConvertFrom-WordHtml', 'ConvertFrom-WordMarkdown', 'ConvertTo-ExcelHtml', 'ConvertTo-MarkdownHtml', 'ConvertTo-PdfExcel', 'ConvertTo-PdfHtml', 'ConvertTo-PdfPowerPoint', 'ConvertTo-PdfWord', 'ConvertTo-PowerPointHtml', 'ConvertTo-Rtf', 'ConvertTo-VisioPng', 'ConvertTo-VisioSvg', 'ConvertTo-WordHtml', 'ConvertTo-WordMarkdown', 'Edit-ExcelRow', 'EpubChapter', 'EpubResource', 'ExcelAccessibility', 'ExcelActiveSheet', 'ExcelAutoFilter', 'ExcelAutoFilterClear', 'ExcelAutoFilterSet', 'ExcelAutoFit', 'ExcelCell', 'ExcelChart', 'ExcelChartAxis', 'ExcelChartPoint', 'ExcelChartSeries', 'ExcelChartTrendline', 'ExcelColumn', 'ExcelColumnGroup', 'ExcelColumnStyle', 'ExcelColumnStyleByHeader', 'ExcelComment', 'ExcelCommentAudit', 'ExcelCommentClear', 'ExcelCommentRemove', 'ExcelComments', 'ExcelCommentsAudit', 'ExcelCommentUpdate', 'ExcelCompare', 'ExcelConditionalColorScale', 'ExcelConditionalDataBar', 'ExcelConditionalFormatting', 'ExcelConditionalFormattingClear', 'ExcelConditionalIconSet', 'ExcelConditionalRule', 'ExcelConnectionMetadata', 'ExcelCsvImport', 'ExcelDashboard', 'ExcelDashboardChart', 'ExcelDataModel', 'ExcelDataSet', 'ExcelDataValidation', 'ExcelDataValidationClear', 'ExcelDataValidationMessage', 'ExcelDateSystem', 'ExcelDelimitedImport', 'ExcelDoctor', 'ExcelExecutionPolicy', 'ExcelExport', 'ExcelFormula', 'ExcelFormulaAnalysis', 'ExcelFormulaAudit', 'ExcelFreeze', 'ExcelGridlines', 'ExcelHeaderFooter', 'ExcelHyperlink', 'ExcelHyperlinkHost', 'ExcelHyperlinkSmart', 'ExcelImage', 'ExcelImageFromUrl', 'ExcelImport', 'ExcelInternalLinks', 'ExcelInternalLinksByHeader', 'ExcelMargins', 'ExcelNamedRange', 'ExcelNamedRangeRemove', 'ExcelNamedRangeRename', 'ExcelNumberFormatPreset', 'ExcelOrientation', 'ExcelPackageCopy', 'ExcelPackageMetadata', 'ExcelPageBreak', 'ExcelPageBreakClear', 'ExcelPageBreaks', 'ExcelPageSetup', 'ExcelPivotTable', 'ExcelPivotTables', 'ExcelPowerQuery', 'ExcelPowerQueryMetadata', 'ExcelPreflight', 'ExcelPrintArea', 'ExcelPrintLayout', 'ExcelPrintTitles', 'ExcelProtect', 'ExcelQueryMetadata', 'ExcelRangeClear', 'ExcelRefreshOnOpen', 'ExcelRepair', 'ExcelReportCallout', 'ExcelReportKpiRow', 'ExcelReportLegend', 'ExcelReportParagraph', 'ExcelReportSection', 'ExcelReportSheet', 'ExcelReportSpacer', 'ExcelReportTable', 'ExcelReportTitle', 'ExcelRichText', 'ExcelRichTextRuns', 'ExcelRow', 'ExcelRowEdit', 'ExcelRowGroup', 'ExcelRuntimePreflight', 'ExcelSheet', 'ExcelSheetCopy', 'ExcelSheetJoin', 'ExcelSheetMerge', 'ExcelSheetOrder', 'ExcelSheetTabColor', 'ExcelSheetView', 'ExcelSheetVisibility', 'ExcelSlicer', 'ExcelSort', 'ExcelSparkline', 'ExcelStreamingContract', 'ExcelSubtotals', 'ExcelSubtotalSummary', 'ExcelSummary', 'ExcelTable', 'ExcelTableOfContents', 'ExcelTableStyle', 'ExcelTemplate', 'ExcelTemplateApply', 'ExcelTemplateBinding', 'ExcelTemplateMarkers', 'ExcelTemplateOptionalRow', 'ExcelTemplateOptionalRows', 'ExcelTemplateRow', 'ExcelTemplateRows', 'ExcelTemplateSheet', 'ExcelTemplateSheets', 'ExcelTemplateValidate', 'ExcelTextRun', 'ExcelTheme', 'ExcelThreadedComment', 'ExcelTimeline', 'ExcelUnprotect', 'ExcelUrlLinks', 'ExcelUrlLinksByHeader', 'ExcelValidationCustomFormula', 'ExcelValidationDate', 'ExcelValidationDecimal', 'ExcelValidationList', 'ExcelValidationTextLength', 'ExcelValidationTime', 'ExcelValidationWholeNumber', 'ExcelVisual', 'ExcelWorkbookCompare', 'ExcelWorkbookCopy', 'ExcelWorkbookDoctor', 'ExcelWorkbookJoin', 'ExcelWorkbookMerge', 'ExcelWorkbookProtect', 'ExcelWorkbookRepair', 'ExcelWorkbookUnprotect', 'ExcelWorksheetView', 'ExcelWriteReservation', 'ExcelWriteReservationClear', 'ExcelWriteReservationSet', 'Export-VisioStencilPreviewGallery', 'Find-VisioStencil', 'Import-VisioStencil', 'MarkdownCallout', 'MarkdownCode', 'MarkdownDefinitionList', 'MarkdownDetails', 'MarkdownFrontMatter', 'MarkdownHeading', 'MarkdownHorizontalRule', 'MarkdownHr', 'MarkdownImage', 'MarkdownList', 'MarkdownParagraph', 'MarkdownQuote', 'MarkdownTable', 'MarkdownTableOfContents', 'MarkdownTaskList', 'MarkdownToc', 'Merge-OfficeExcelSheet', 'Merge-OfficeExcelWorkbook', 'Merge-OfficeWordDocument', 'New-OfficePdfPowerPointImportOptions', 'New-OfficePdfWordImportOptions', 'New-VisioGallery', 'OfficeRtf', 'OfficeVisual', 'PdfAttachment', 'PdfBackground', 'PdfBackgroundImage', 'PdfBackgroundShape', 'PdfBookmark', 'PdfCanvasStamp', 'PdfCanvasText', 'PdfCompliance', 'PdfFooter', 'PdfFormField', 'PdfHeader', 'PdfHeading', 'PdfHorizontalRule', 'PdfHr', 'PdfImage', 'PdfList', 'PdfMetadata', 'PdfNativeTextRun', 'PdfPageBorder', 'PdfPageBreak', 'PdfPageOverlay', 'PdfPageSetup', 'PdfPanel', 'PdfParagraph', 'PdfRow', 'PdfSpace', 'PdfSpacer', 'PdfStamp', 'PdfTable', 'PdfTableCell', 'PdfTableCellCheckBox', 'PdfTableCellField', 'PdfTableCellImage', 'PdfText', 'PdfTextRun', 'PdfTheme', 'PdfVisual', 'PdfWatermark', 'PowerPointCard', 'PowerPointChart', 'PowerPointColumn', 'PowerPointImage', 'PowerPointKpi', 'PowerPointList', 'PowerPointListItem', 'PowerPointLocation', 'PowerPointNotes', 'PowerPointParagraph', 'PowerPointQuote', 'PowerPointSection', 'PowerPointSlide', 'PowerPointStep', 'PowerPointTable', 'PowerPointText', 'PowerPointTextRun', 'PptArrange', 'PptBullets', 'PptDeckPlan', 'PptDesignerDeck', 'PptLayoutBox', 'PptLayoutPlaceholders', 'PptPlaceholderText', 'PptPlanCapability', 'PptPlanCardGrid', 'PptPlanCaseStudy', 'PptPlanCoverage', 'PptPlanLogoWall', 'PptPlanProcess', 'PptPlanSection', 'PptShape', 'PptShapeLayout', 'PptTextBox', 'PptTextRun', 'PptThemeColor', 'PptThemeFonts', 'PptThemeName', 'PptVisual', 'Replace-OfficeExcelText', 'Replace-OfficePowerPointText', 'Replace-OfficeRtfText', 'Replace-OfficeWordText', 'RtfNew', 'RtfOpen', 'RtfText', 'Set-OfficeExcelSheetOrder', 'TextRun', 'VisioArrange', 'VisioConnector', 'VisioContainer', 'VisioDiamond', 'VisioEllipse', 'VisioInfo', 'VisioLayout', 'VisioOpen', 'VisioPage', 'VisioRectangle', 'VisioSave', 'VisioStencil', 'VisioStencilCatalog', 'VisioStencilImport', 'VisioTextBox', 'WordBookmark', 'WordBreak', 'WordChart', 'WordCheckBox', 'WordCheckBoxes', 'WordComboBox', 'WordComboBoxes', 'WordContentControl', 'WordContentControls', 'WordCoverPage', 'WordDatePicker', 'WordDatePickers', 'WordDocumentJoin', 'WordDropDownList', 'WordDropDownLists', 'WordEndnote', 'WordEndnotes', 'WordEquation', 'WordField', 'WordFooter', 'WordFootnote', 'WordFootnotes', 'WordHeader', 'WordHeading', 'WordImage', 'WordImages', 'WordImageStyle', 'WordList', 'WordListItem', 'WordPageNumber', 'WordPageSetup', 'WordParagraph', 'WordParagraphStyle', 'WordPictureControl', 'WordPictureControls', 'WordRepeatingSection', 'WordRepeatingSections', 'WordSection', 'WordShape', 'WordShapes', 'WordShapeStyle', 'WordStatistics', 'WordTable', 'WordTableCell', 'WordTableCells', 'WordTableCellSpec', 'WordTableCellStyle', 'WordTableCondition', 'WordTableOfContents', 'WordTabStop', 'WordText', 'WordTextBox', 'WordTextRun', 'WordTextStyle', 'WordVisual', 'WordWatermark')
 Export-ModuleMember -Function $FunctionsToExport -Alias $AliasesToExport -Cmdlet $CmdletsToExport
 # PowerForge exports end
     $PowerForgeModuleImportCompleted = $true

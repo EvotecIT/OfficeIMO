@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ConnectionParameters_FollowTheirQualifiedWorksheetAcrossOwners() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet config = document.AddWorksheet("Config");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet config = document.AddSheet("Config");
             Parameter parameter = AttachCellBackedConnection(document, data, "Config!A2");
 
             data.InsertRows(2);
@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMutations_RejectPartialPivotCacheSources() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             PivotTableCacheDefinitionPart cachePart =
                 document.WorkbookPartRoot.AddNewPart<PivotTableCacheDefinitionPart>();
             cachePart.PivotCacheDefinition = new PivotCacheDefinition(
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_CellShifts_RejectWorkbookVmlControls() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             DialogsheetPart dialogPart = document.WorkbookPartRoot.AddNewPart<DialogsheetPart>();
             dialogPart.DialogSheet = new DialogSheet();
             VmlDrawingPart vmlPart = dialogPart.AddNewPart<VmlDrawingPart>();
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableResize_RemapSortRangesAndRequestsFullCalculation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(2, 1, 1);
@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMove_ReplacesDestinationHyperlinksAndRelationships() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetHyperlink(1, 1, "https://source.example/", display: "Source", style: false);
             sheet.SetHyperlink(1, 2, "https://destination.example/", display: "Destination", style: false);
 
@@ -122,9 +122,13 @@ namespace OfficeIMO.Tests {
             try {
                 byte[] imageBytes = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
                 using (var document = ExcelDocument.Create(path)) {
-                    ExcelSheet sheet = document.AddWorksheet("Data");
+                    ExcelSheet sheet = document.AddSheet("Data");
                     sheet.CellValue(1, 1, "Move");
-                    sheet.AddImage(1, 1, imageBytes, "image/png", widthPixels: 16, heightPixels: 16);
+                    sheet.AddImage(1, 1, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                        ContentType = "image/png",
+                        Width = OfficeIMO.OfficeLength.Pixels(16),
+                        Height = OfficeIMO.OfficeLength.Pixels(16)
+                    });
                     document.Save();
                 }
                 using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {

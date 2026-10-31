@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Controls how raw HTML blocks, inline fragments, and HTML comments are emitted during HTML rendering.
 /// </summary>
-public enum RawHtmlHandling {
+public enum MarkdownRawHtmlHandling {
     /// <summary>Emit raw HTML verbatim (unsafe for untrusted input).</summary>
     Allow = 0,
     /// <summary>Escape raw HTML so it is displayed as text.</summary>

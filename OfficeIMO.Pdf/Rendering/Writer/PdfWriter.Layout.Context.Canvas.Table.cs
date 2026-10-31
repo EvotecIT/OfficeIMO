@@ -20,7 +20,7 @@ internal static partial class PdfWriter {
                 throw new InvalidOperationException($"Canvas table grid contains {gridCells} logical cells, exceeding the supported limit of {MaximumCanvasTableGridCells}.");
             }
 
-            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
             ValidateCanvasTableStyle(style, rows, columns);
             style = PreparePairedTableBorders(table, style);
             StringBuilder? pairedBorders = null;
@@ -38,7 +38,7 @@ internal static partial class PdfWriter {
             var rowLeadings = new double[rows];
             for (int rowIndex = 0; rowIndex < rows; rowIndex++) {
                 bool rowUsesBold = GetTableRowBold(style, rowIndex, headerRowCount, footerStart);
-                double originalRowFontSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStart, currentOpts.DefaultFontSize);
+                double originalRowFontSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStart, currentOpts.DefaultFontSize.ToPoints());
                 TableRowTextSizing sizing = ResolveTableRowTextSizing(table, style, rowIndex, columns, columnWidths, columnGap, originalRowFontSize, rowUsesBold, currentOpts);
                 rowFontSizes[rowIndex] = sizing.FontSize;
                 rowFontSizeScales[rowIndex] = sizing.RunFontSizeScale;
@@ -48,14 +48,14 @@ internal static partial class PdfWriter {
             double tableWidth = GetTableCellWidth(columnWidths, 0, columns, columnGap);
             double tableHeight = GetTableRowsHeight(rowHeights, 0, rows, rowGap);
             double tableCornerRadius = ResolveTableCornerRadius(
-                style.CornerRadius,
+                style.CornerRadius.ToPoints(),
                 tableWidth,
                 rowHeights[0],
                 rowHeights[rowHeights.Length - 1],
                 columnWidths[0],
                 columnWidths[columnWidths.Length - 1]);
             double xOrigin = item.X;
-            double topY = currentOpts.PageHeight - item.Y;
+            double topY = currentOpts.PageHeight.ToPoints() - item.Y;
             double bottomY = topY - item.Height;
             int annotationStart = currentPage!.Annotations.Count;
             int imageStart = currentPage.Images.Count;
@@ -190,7 +190,7 @@ internal static partial class PdfWriter {
                 _canvasStructureParentElement = previousStructureParent;
             }
 
-            if (style.BorderColor is not null && style.BorderWidth > 0D) {
+            if (style.BorderColor is not null && style.BorderWidth.ToPoints() > 0D) {
                 DrawCanvasTableGrid(table, style, columns, rows, xOrigin, topY, tableHeight, tableCornerRadius, columnWidths, rowHeights, columnGap, rowGap, cellLayoutsByRow);
             }
 
@@ -211,8 +211,8 @@ internal static partial class PdfWriter {
             ValidateTableCellStyleCoordinates(style, rows, columns);
             ValidateTableColumnStyleBounds(style, columns);
             ValidateTableRowStyleBounds(style, rows);
-            if (style.CellSpacing * Math.Max(0, columns - 1) >= double.MaxValue ||
-                style.CellSpacing * Math.Max(0, rows - 1) >= double.MaxValue) {
+            if (style.CellSpacing.ToPoints() * Math.Max(0, columns - 1) >= double.MaxValue ||
+                style.CellSpacing.ToPoints() * Math.Max(0, rows - 1) >= double.MaxValue) {
                 throw new ArgumentException("Canvas table cell spacing must be finite.");
             }
         }
@@ -225,12 +225,12 @@ internal static partial class PdfWriter {
 
             var widths = new double[columns];
             double total = 0D;
-            bool allFixed = style.ColumnWidthPoints != null && style.ColumnWidthPoints.Count >= columns;
+            bool allFixed = style.ColumnWidths != null && style.ColumnWidths.Count >= columns;
             for (int column = 0; column < columns; column++) {
-                double? fixedWidth = style.ColumnWidthPoints != null &&
-                    column < style.ColumnWidthPoints.Count &&
-                    style.ColumnWidthPoints[column].HasValue
-                        ? style.ColumnWidthPoints[column]!.Value
+                double? fixedWidth = style.ColumnWidths != null &&
+                    column < style.ColumnWidths.Count &&
+                    style.ColumnWidths[column].HasValue
+                        ? style.ColumnWidths[column]!.Value.ToPoints()
                         : (double?)null;
                 if (!fixedWidth.HasValue) {
                     allFixed = false;
@@ -274,8 +274,8 @@ internal static partial class PdfWriter {
                     style.RowMinHeights != null &&
                     row < style.RowMinHeights.Count &&
                     style.RowMinHeights[row].HasValue &&
-                    style.RowMinHeights[row]!.Value > 0D) {
-                    fixedHeight = style.RowMinHeights[row]!.Value;
+                    style.RowMinHeights[row]!.Value.ToPoints() > 0D) {
+                    fixedHeight = style.RowMinHeights[row]!.Value.ToPoints();
                 }
 
                 if (!fixedHeight.HasValue) {
@@ -305,7 +305,7 @@ internal static partial class PdfWriter {
         }
 
         private void DrawCanvasTableRowBackground(PdfTableStyle style, int rowIndex, bool rowIsHeader, bool rowIsFooter, double x, double y, double[] columnWidths, double columnGap, bool[] skipColumns, double height) {
-            PdfColor? fill = rowIsHeader
+            global::OfficeIMO.OfficeColor? fill = rowIsHeader
                 ? style.HeaderFill
                 : rowIsFooter
                     ? style.FooterFill
@@ -316,7 +316,7 @@ internal static partial class PdfWriter {
         }
 
         private void DrawCanvasTableCellBackground(PdfTableStyle style, int rowIndex, int columnIndex, bool rowIsHeader, bool rowIsFooter, double x, double y, double width, double height) {
-            PdfColor? fill = null;
+            global::OfficeIMO.OfficeColor? fill = null;
             if (style.BodyColumnFills != null &&
                 !rowIsHeader &&
                 !rowIsFooter &&
@@ -324,7 +324,7 @@ internal static partial class PdfWriter {
                 fill = style.BodyColumnFills[columnIndex];
             }
 
-            if (style.CellFills != null && style.CellFills.TryGetValue((rowIndex, columnIndex), out PdfColor cellFill)) {
+            if (style.CellFills != null && style.CellFills.TryGetValue((rowIndex, columnIndex), out global::OfficeIMO.OfficeColor cellFill)) {
                 fill = cellFill;
             }
 
@@ -338,13 +338,13 @@ internal static partial class PdfWriter {
             TableCellContentFrame contentFrame = GetTableCellContentFrame(cell, cellX, cellTop, cellWidth, cellHeight);
             if (cell.TextRotation != 0) {
                 PdfColumnAlign orientedAlign = GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text);
-                PdfColor? orientedColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
+                global::OfficeIMO.OfficeColor? orientedColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
                 var orientedParagraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, cell.LinkUri, cell.LinkDestinationName), MapTableCellAlignment(orientedAlign), orientedColor);
                 string orientedRole = rowIsHeader ? "TH" : "TD";
                 int? orientedId = RegisterTextStructureElement(orientedRole, _canvasStructureParentElement, rowIsHeader ? "Column" : string.Empty, cell.ColumnSpan, cell.RowSpan);
                 RenderOrientedTableCellContent(cell, style, rowIndex, columnIndex, contentFrame, cellX, cellTop, cellWidth, cellHeight,
                     GetTableRowFont(currentOpts, rowUsesBold), fontSize, leading, runFontSizeScale, orientedParagraph, orientedRole, orientedId,
-                    diagnosticTransform: CreateCanvasRotationTransform(item.X, currentOpts.PageHeight - item.Y - item.Height, item.Width, item.Height, item.RotationAngle));
+                    diagnosticTransform: CreateCanvasRotationTransform(item.X, currentOpts.PageHeight.ToPoints() - item.Y - item.Height, item.Width, item.Height, item.RotationAngle));
                 MarkRichFonts(cell.Runs, forceBold: rowUsesBold);
                 AddTableCellNamedDestinationName(cell.NamedDestinationName, cellTop, orientedId);
                 if (HasCellLinkTarget(cell.LinkUri, cell.LinkDestinationName))
@@ -360,7 +360,7 @@ internal static partial class PdfWriter {
             double padBottom = GetTableCellPaddingBottom(style, rowIndex, columnIndex);
             double innerWidth = Math.Max(1D, contentFrame.Width - padLeft - padRight);
             double availableHeight = Math.Max(0D, contentFrame.Height - padTop - padBottom);
-            var lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, fontSize, leading, currentOpts, runFontSizeScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum, cancellationToken: cancellationToken);
+            var lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, fontSize, leading, currentOpts, runFontSizeScale, style.MinimumShrinkFontSize?.ToPoints() ?? 6D, style.AutoFitWidthUsesContentMinimum, cancellationToken: cancellationToken);
             int lineCount = Math.Max(1, lines.LineCount);
             double contentHeight = MeasureTableCellContentHeight(cell, lines, 0, lineCount, leading, innerWidth);
             if (contentHeight > availableHeight + 0.01D) {
@@ -368,10 +368,10 @@ internal static partial class PdfWriter {
                     PdfLayoutDiagnosticKind.ClippedContent,
                     "PdfCanvasTableCell",
                     "The PDF table render pass clipped cell text because wrapped content exceeded the available cell area.",
-                    cellX,
-                    cellYFromTop,
-                    cellWidth,
-                    cellHeight));
+                    global::OfficeIMO.OfficeLength.Points(cellX),
+                    global::OfficeIMO.OfficeLength.Points(cellYFromTop),
+                    global::OfficeIMO.OfficeLength.Points(cellWidth),
+                    global::OfficeIMO.OfficeLength.Points(cellHeight)));
             }
 
             double verticalOffset = 0D;
@@ -388,7 +388,7 @@ internal static partial class PdfWriter {
                 cellX, cellTop, cellWidth, cellHeight, leading, innerWidth, verticalOffset, includeObjects: true,
                 assessPageBounds: item.RotationAngle == 0D);
 
-            double firstBaseline = contentFrame.Top - padTop - verticalOffset - lines.TopSpacing - GetAscenderForOptions(cellFont, fontSize, currentOpts) + style.RowBaselineOffset;
+            double firstBaseline = contentFrame.Top - padTop - verticalOffset - lines.TopSpacing - GetAscenderForOptions(cellFont, fontSize, currentOpts) + style.RowBaselineOffset.ToPoints();
             var visibleLines = SliceTableCellLines(lines, 0, lineCount);
             var visibleHeights = SliceTableCellLineHeights(lines, 0, lineCount, leading);
             var visibleAlignments = SliceTableCellLineAlignments(lines, 0, lineCount);
@@ -402,20 +402,20 @@ internal static partial class PdfWriter {
             }
 
             PdfColumnAlign align = GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text);
-            PdfColor? textColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
+            global::OfficeIMO.OfficeColor? textColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
             var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
             TableCellContentFrame inkClip = GetTableCellInkClipFrame(style, rowIndex, columnIndex, cellX, cellTop, cellWidth, cellHeight);
             if (cell.Viewport == null)
-                ReportFullyClippedFrameLine("TableCellContentClipped", "PdfTableCell[" + rowIndex + "," + columnIndex + "]",
+                ReportFullyClippedFrameLine("table-cell-content-clipped", "PdfTableCell[" + rowIndex + "," + columnIndex + "]",
                     visibleLines, visibleHeights, firstBaseline, fontSize, leading, cellFont,
                     inkClip.Top - inkClip.Height - textClipBleed, inkClip.Height + textClipBleed * 2D,
                     cellX, cellTop, cellWidth, cellHeight);
-            ReportRichPaintDiagnostics("TableCell", "PdfTableCell[" + rowIndex + "," + columnIndex + "]", paragraph,
+            ReportRichPaintDiagnostics(PaintDiagnosticCodes.TableCell, "PdfTableCell[" + rowIndex + "," + columnIndex + "]", paragraph,
                 visibleLines, visibleHeights, firstBaseline, fontSize, leading, contentFrame.Left + padLeft, innerWidth,
                 new TableCellContentFrame(inkClip.Left - textClipBleed, inkClip.Top + textClipBleed,
                     inkClip.Width + 2D * textClipBleed, inkClip.Height + 2D * textClipBleed),
                 alignments: visibleAlignments, offsets: visibleXOffsets, widths: visibleWidths, baselineFont: cellFont,
-                localTransform: CreateCanvasRotationTransform(item.X, currentOpts.PageHeight - item.Y - item.Height, item.Width, item.Height, item.RotationAngle));
+                localTransform: CreateCanvasRotationTransform(item.X, currentOpts.PageHeight.ToPoints() - item.Y - item.Height, item.Width, item.Height, item.RotationAngle));
             if (cell.Viewport != null || style.PreservePartialCellLines)
                 OmitInvisibleTableCellViewportLines(visibleLines, visibleHeights, visibleAlignments, visibleXOffsets, visibleWidths,
                     paragraph.Align, firstBaseline, contentFrame.Left + padLeft, innerWidth,
@@ -487,7 +487,7 @@ internal static partial class PdfWriter {
                 HasRenderableCellBorder(border)) {
                 StringBuilder borderOutput = HasPairedCellBorder(border) ? pairedBorders ??= new StringBuilder() : sb;
                 if (!border.HasHiddenSegments && cornerRadius > 0D && (topLeft || topRight || bottomRight || bottomLeft)) {
-                    double outerBorderWidth = style.BorderColor is not null && style.BorderWidth > 0D ? style.BorderWidth : 0D;
+                    double outerBorderWidth = style.BorderColor is not null && style.BorderWidth.ToPoints() > 0D ? style.BorderWidth.ToPoints() : 0D;
                     DrawRoundedCellBorder(borderOutput, border, x, y, width, height, cornerRadius, outerBorderWidth, topLeft, topRight, bottomRight, bottomLeft, true, GetTableCellDiagonalFrame(cell, x, y, width, height));
                 } else {
                     DrawCellBorder(borderOutput, border, x, y, width, height, true, rowSegmentHeights, columnSegmentWidths, GetTableCellDiagonalFrame(cell, x, y, width, height));
@@ -496,8 +496,8 @@ internal static partial class PdfWriter {
         }
 
         private void DrawCanvasTableGrid(TableBlock table, PdfTableStyle style, int columns, int rows, double x, double topY, double height, double cornerRadius, double[] columnWidths, double[] rowHeights, double columnGap, double rowGap, System.Collections.Generic.IReadOnlyList<TableCellLayout>[] cellLayoutsByRow) {
-            PdfColor color = style.BorderColor!.Value;
-            double width = style.BorderWidth;
+            global::OfficeIMO.OfficeColor color = style.BorderColor!.Value;
+            double width = style.BorderWidth.ToPoints();
             double tableWidth = GetTableCellWidth(columnWidths, 0, columns, columnGap);
             DrawRoundedRowRect(sb, color, width, x, topY - height, tableWidth, height, cornerRadius, true, true, true, true, true);
             bool[][] verticalBoundarySkips = GetCanvasTableVerticalBoundarySkips(cellLayoutsByRow, rows, columns);

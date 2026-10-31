@@ -31,7 +31,7 @@ public partial class Word {
             reference.Remove();
             revision.Append(reference);
         }
-        using var reopened = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using var reopened = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Run imported = reopened._document!.Body!.Descendants<Run>().Single(run => run.Elements<CommentReference>().Any());
         Assert.Equal("28", imported.RunProperties?.FontSize?.Val?.Value);
         Assert.Equal("Arial", imported.RunProperties?.RunFonts?.Ascii?.Value);

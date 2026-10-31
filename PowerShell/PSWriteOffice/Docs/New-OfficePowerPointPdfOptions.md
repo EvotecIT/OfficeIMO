@@ -6,23 +6,30 @@ schema: 2.0.0
 ---
 # New-OfficePowerPointPdfOptions
 ## SYNOPSIS
-Creates discoverable PowerPoint-to-PDF conversion options for Export-OfficeDocumentPdf.
+Creates native PowerPoint-to-PDF options for Convert-OfficeDocument.
 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficePowerPointPdfOptions [-PdfOptions <PdfOptions>] [-FontFamily <string>] [-IncludePictures] [-IncludeAutoShapes] [-IncludeTextBoxes] [-IncludeSlideBackgrounds] [-IncludeTables] [-IncludeCharts] [-IncludeSmartArt] [-IncludeHiddenSlides] [-PageLayout <PowerPointPdfPageLayout>] [-HandoutSlidesPerPage <Int32>] [-IncludeSpeakerNotes] [-MaxGroupShapeDepth <Int32>] [-PictureFit <OfficeImageFit>] [-WarnOnPictureAspectRatioDistortion] [-ChartStyle <OfficeChartStyle>] [-ChartLayout <OfficeChartLayout>] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
+New-OfficePowerPointPdfOptions [-PdfOptions <PdfCreateOptions>] [-Font <string>] [-NoPictures] [-NoAutoShapes] [-NoTextBoxes] [-NoSlideBackgrounds] [-NoTables] [-NoCharts] [-NoSmartArt] [-IncludeHiddenSlides] [-PageLayout <PowerPointPdfPageLayout>] [-HandoutSlidesPerPage <Int32>] [-NoSpeakerNotes] [-MaxGroupShapeDepth <Int32>] [-PictureFit <OfficeImageFit>] [-WarnOnPictureAspectRatioDistortion] [-ChartStyle <OfficeChartStyle>] [-ChartLayout <OfficeChartLayout>] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates discoverable PowerPoint-to-PDF conversion options for Export-OfficeDocumentPdf.
+Creates native PowerPoint-to-PDF options for Convert-OfficeDocument.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficePowerPointPdfOptions -PageLayout Handouts -HandoutSlidesPerPage 3 -IncludeSpeakerNotes -IncludeHiddenSlides
-Export-OfficeDocumentPdf -InputPath .\Briefing.pptx -Path .\Briefing.pdf -PowerPointOptions $options
+$options = New-OfficePowerPointPdfOptions -PageLayout Handouts -HandoutSlidesPerPage 3 -IncludeHiddenSlides
+Convert-OfficeDocument -Path ./Briefing.pptx -To Pdf -OutputPath ./Briefing.pdf -Options $options
+```
+
+
+### EXAMPLE 2
+```powershell
+$options = New-OfficePowerPointPdfOptions -NoCharts -NoSmartArt -Font Aptos
+Convert-OfficeDocument -Path ./Briefing.pptx -To Pdf -OutputPath ./Review.pdf -Options $options
 ```
 
 
@@ -92,7 +99,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FontFamily
+### -Font
 Default font family used when the presentation does not specify one.
 
 ```yaml
@@ -124,136 +131,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -IncludeAutoShapes
-Render automatic shapes.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludeCharts
-Render charts.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -IncludeHiddenSlides
 Include slides marked hidden.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludePictures
-Render pictures.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludeSlideBackgrounds
-Render slide backgrounds.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludeSmartArt
-Render SmartArt.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludeSpeakerNotes
-Include speaker notes.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludeTables
-Render tables.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludeTextBoxes
-Render text boxes.
 
 ```yaml
 Type: SwitchParameter
@@ -273,6 +152,134 @@ Maximum nested group-shape depth to render.
 
 ```yaml
 Type: Int32
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoAutoShapes
+Omit automatic shapes.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoCharts
+Omit charts.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoPictures
+Omit pictures.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoSlideBackgrounds
+Omit slide backgrounds.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoSmartArt
+Omit SmartArt.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoSpeakerNotes
+Omit speaker notes.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoTables
+Omit tables.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoTextBoxes
+Omit text boxes.
+
+```yaml
+Type: SwitchParameter
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -304,7 +311,7 @@ Accept wildcard characters: False
 Underlying low-level OfficeIMO PDF options.
 
 ```yaml
-Type: PdfOptions
+Type: PdfCreateOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -357,7 +364,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions`
+- `OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions`
 
 ## RELATED LINKS
 

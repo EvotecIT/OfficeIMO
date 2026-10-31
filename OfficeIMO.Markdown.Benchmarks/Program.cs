@@ -17,7 +17,7 @@ if (args.Length == 1 && string.Equals(args[0], "--validate-equivalence", StringC
         MarkdownBenchmarkValidation.AssertCommonMarkEquivalent(
             corpusName,
             MarkdownBenchmarkCorpus.Get(corpusName),
-            MarkdownReaderOptions.CreateCommonMarkProfile(),
+            MarkdownLoadOptions.CreateCommonMarkProfile(),
             MarkdownBenchmarkValidation.CreateOfficeCommonMarkHtmlOptions());
     }
 

@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests;
 public sealed class PowerPointSlideBatchTests {
     [Fact]
     public void BatchSlidesRespectCurrentRelationshipsIdsOrderAndSavedPackage() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         presentation.AddSlide().AddTextBox("First");
         var part = presentation.OpenXmlDocument.PresentationPart!;
         part.Presentation.SlideIdList!.Elements<SlideId>().Single().Id = 1000U;
@@ -32,7 +32,7 @@ public sealed class PowerPointSlideBatchTests {
         using var saved = new MemoryStream();
         presentation.Save(saved);
         saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Equal(new[] { "First", "Batch 0", "Batch 2", "Batch 3", "Last" },
             reopened.Slides.Select(slide => Assert.Single(slide.TextBoxes).Text));
         Assert.Empty(new OpenXmlValidator().Validate(reopened.OpenXmlDocument));
@@ -40,7 +40,7 @@ public sealed class PowerPointSlideBatchTests {
 
     [Fact]
     public void InvalidOrCancelledSlideRequestsDoNotCreateOrphanParts() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var part = presentation.OpenXmlDocument.PresentationPart!;
         int before = part.Parts.Count();
         Assert.Throws<ArgumentOutOfRangeException>(() => presentation.AddSlide(masterIndex: -1));
@@ -67,13 +67,13 @@ public sealed class PowerPointSlideBatchTests {
     [InlineData(1)]
     [InlineData(2)]
     public void ExhaustedSlideIdsRejectCopiesWithoutChangingThePackage(int copyOperation) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         PowerPointSlide original = presentation.AddSlide();
         original.AddTextBox("Original");
         original.Notes.Text = "Original notes";
         var part = presentation.OpenXmlDocument.PresentationPart!;
         part.Presentation.SlideIdList!.Elements<SlideId>().Single().Id = 2147483647U;
-        using var other = PowerPointPresentation.Create();
+        using var other = PowerPointDocument.Create();
         other.AddSlide().AddTextBox("Imported");
         var relationships = part.Parts.Select(pair => pair.RelationshipId).OrderBy(id => id).ToArray();
         string slideIds = part.Presentation.SlideIdList.OuterXml;
@@ -91,7 +91,7 @@ public sealed class PowerPointSlideBatchTests {
         using var saved = new MemoryStream();
         presentation.Save(saved);
         saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Equal("Original", Assert.Single(Assert.Single(reopened.Slides).TextBoxes).Text);
         Assert.Equal("Original notes", reopened.Slides[0].Notes.Text);
         Assert.Empty(new OpenXmlValidator().Validate(reopened.OpenXmlDocument));

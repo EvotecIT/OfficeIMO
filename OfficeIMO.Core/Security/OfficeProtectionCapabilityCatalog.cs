@@ -146,7 +146,7 @@ public sealed class OfficeProtectionCapabilityCatalog {
             Roadmap(OfficeProtectionOperation.Mutate, "Encrypted-XLS authoring and round-trip"),
             Roadmap(OfficeProtectionOperation.Remove, "Encrypted-XLS authoring and explicit plaintext output")),
         Row("ppt-password", "PPT", "OfficeIMO.PowerPoint", OfficeProtectionKind.PasswordEncryption,
-            S(), S(), S(), N(), S(), S(), "PowerPointPresentation.Load / Save", "Legacy PPT RC4 password protection is format-owned."),
+            S(), S(), S(), N(), S(), S(), "PowerPointDocument.Load / Save", "Legacy PPT RC4 password protection is format-owned."),
         Row("pdf-password", "PDF", "OfficeIMO.Pdf", OfficeProtectionKind.PasswordEncryption,
             S(), S(), S(), N(), S(), S(), "PdfDocument.Security", "Typed PDF security options and operation results report encryption policy."),
         Row("odf-password", "ODT/ODS/ODP", "OfficeIMO.OpenDocument", OfficeProtectionKind.PasswordEncryption,

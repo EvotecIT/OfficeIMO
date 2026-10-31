@@ -32,7 +32,7 @@ public static class SampleMarkdownRenderer {
     /// <summary>
     /// Vendor-specific HTML element converter for status-panel blocks that do not use the shared visual contract.
     /// </summary>
-    public static HtmlElementBlockConverter StatusPanelVendorHtmlConverter { get; } = new HtmlElementBlockConverter(
+    public static MarkdownHtmlBlockConverter StatusPanelVendorHtmlConverter { get; } = new MarkdownHtmlBlockConverter(
         "sample.status-panel-vendor-html",
         "Sample status-panel vendor HTML",
         TryConvertVendorStatusPanelElement);
@@ -40,7 +40,7 @@ public static class SampleMarkdownRenderer {
     /// <summary>
     /// Vendor-specific inline HTML converter for sample status badges.
     /// </summary>
-    public static HtmlInlineElementConverter StatusBadgeInlineConverter { get; } = new HtmlInlineElementConverter(
+    public static MarkdownHtmlInlineConverter StatusBadgeInlineConverter { get; } = new MarkdownHtmlInlineConverter(
         "sample.status-badge-inline",
         "Sample status badge inline HTML",
         TryConvertStatusBadgeInlineElement);
@@ -131,7 +131,7 @@ public static class SampleMarkdownRenderer {
     /// <summary>
     /// Registers the sample plugin's shared visual-host HTML round-trip hints on HTML-to-markdown options.
     /// </summary>
-    public static void ApplyHtmlRoundTripHints(HtmlToMarkdownOptions options) {
+    public static void ApplyHtmlRoundTripHints(MarkdownHtmlImportOptions options) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }
@@ -227,7 +227,7 @@ public static class SampleMarkdownRenderer {
         return null;
     }
 
-    private static IReadOnlyList<IMarkdownBlock>? TryConvertVendorStatusPanelElement(HtmlElementBlockConversionContext context) {
+    private static IReadOnlyList<IMarkdownBlock>? TryConvertVendorStatusPanelElement(MarkdownHtmlBlockConversionContext context) {
         if (context == null) {
             throw new ArgumentNullException(nameof(context));
         }
@@ -283,7 +283,7 @@ public static class SampleMarkdownRenderer {
         return "\"" + escaped + "\"";
     }
 
-    private static IReadOnlyList<IMarkdownInline>? TryConvertStatusBadgeInlineElement(HtmlInlineElementConversionContext context) {
+    private static IReadOnlyList<IMarkdownInline>? TryConvertStatusBadgeInlineElement(MarkdownHtmlInlineConversionContext context) {
         if (context == null) {
             throw new ArgumentNullException(nameof(context));
         }
@@ -314,7 +314,7 @@ public static class SampleMarkdownRenderer {
     private sealed class StatusBadgeInlineTokenTransform : IMarkdownDocumentTransform {
         private static readonly Regex StatusTokenRegex = new(@"\{\{status:(?<label>[^}\r\n]+)\}\}", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
@@ -323,7 +323,7 @@ public static class SampleMarkdownRenderer {
                 throw new ArgumentNullException(nameof(context));
             }
 
-            var rewritten = MarkdownDoc.Create();
+            var rewritten = MarkdownDocument.Create();
             for (int i = 0; i < document.Blocks.Count; i++) {
                 rewritten.Add(RewriteBlock(document.Blocks[i]));
             }
@@ -432,7 +432,7 @@ public static class SampleMarkdownRenderer {
     }
 
     private sealed class StatusPanelCodeBlockTransform : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
@@ -441,7 +441,7 @@ public static class SampleMarkdownRenderer {
                 throw new ArgumentNullException(nameof(context));
             }
 
-            var rewritten = MarkdownDoc.Create();
+            var rewritten = MarkdownDocument.Create();
             for (int i = 0; i < document.Blocks.Count; i++) {
                 rewritten.Add(RewriteBlock(document.Blocks[i]));
             }

@@ -17,7 +17,7 @@ public sealed class WordPaperTablesTests {
             new KeyValuePair<string, string>("Generated recommendations", "12"),
             new KeyValuePair<string, string>("Approved", "2")
         });
-        Assert.Equal(WordTableWidthUnit.Auto, table.WidthType);
+        Assert.Equal(WordTableWidthKind.Auto, table.Width?.Kind);
         Assert.All(table.Rows, row => {
             Assert.All(row.Cells[0].Paragraphs, paragraph => Assert.Equal(WordParagraphAlignment.Left, paragraph.ParagraphAlignment));
             Assert.All(row.Cells[1].Paragraphs, paragraph => Assert.Equal(WordParagraphAlignment.Right, paragraph.ParagraphAlignment));

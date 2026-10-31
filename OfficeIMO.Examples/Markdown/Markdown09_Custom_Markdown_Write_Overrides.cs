@@ -33,8 +33,8 @@ namespace OfficeIMO.Examples.Markdown {
             }
         }
 
-        private static MarkdownDoc CreateDocument() {
-            return MarkdownDoc.Create()
+        private static MarkdownDocument CreateDocument() {
+            return MarkdownDocument.Create()
                 .H1("Extension Output Profiles")
                 .Callout("note", "Heads up", "This sample customizes markdown writing without changing the underlying document model.")
                 .H2("Reader Hooks")
@@ -48,8 +48,8 @@ namespace OfficeIMO.Examples.Markdown {
                 .TocForPreviousHeading("Writer hooks contents", min: 3, max: 3, ordered: false, titleLevel: 3);
         }
 
-        private static MarkdownWriteOptions CreateWriteOptions() {
-            var options = new MarkdownWriteOptions();
+        private static MarkdownSaveOptions CreateWriteOptions() {
+            var options = new MarkdownSaveOptions();
             options.BlockRenderExtensions.Add(MarkdownBlockMarkdownRenderExtension.CreateContextual(
                 "section-toc",
                 typeof(TocBlock),
@@ -59,8 +59,8 @@ namespace OfficeIMO.Examples.Markdown {
                     }
 
                     var blockIndex = context.GetBlockIndex(toc);
-                    var tocOptions = new TocOptions {
-                        Scope = TocScope.PreviousHeading,
+                    var tocOptions = new MarkdownTocOptions {
+                        Scope = MarkdownTocScope.PreviousHeading,
                         IncludeTitle = true,
                         Title = "Writer hooks contents",
                         TitleLevel = 3,
@@ -99,7 +99,7 @@ namespace OfficeIMO.Examples.Markdown {
             return options;
         }
 
-        private static string RenderPortableCallout(CalloutBlock callout, MarkdownWriteOptions writerOptions) {
+        private static string RenderPortableCallout(CalloutBlock callout, MarkdownSaveOptions writerOptions) {
             var lines = new List<string>();
             if (!string.IsNullOrWhiteSpace(callout.Title)) {
                 lines.Add($"> **{callout.Title}**");

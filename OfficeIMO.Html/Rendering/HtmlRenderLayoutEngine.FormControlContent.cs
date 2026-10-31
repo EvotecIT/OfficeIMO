@@ -267,11 +267,34 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool listBox = element.HasAttribute("multiple")
             || HtmlFormControlSemantics.GetSelectDisplaySize(element) > 1;
         if (listBox) {
-            string[] values = HtmlFormControlSemantics.GetEffectiveSelectedOptions(element)
-                .Select(HtmlFormControlSemantics.GetOptionLabel)
-                .Where(value => value.Length > 0)
-                .ToArray();
-            AddMultilineControlText(visuals, string.Join("\n", values), x, y, width, height, style, false, source, softWrap: false);
+            IElement[] options = element.QuerySelectorAll("option").ToArray();
+            var selectedOptions = new HashSet<IElement>(HtmlFormControlSemantics.GetEffectiveSelectedOptions(element));
+            double rowHeight = ResolveUsedReplacedDimension(style.LineHeight);
+            int visibleRows = (int)Math.Min(options.Length, Math.Max(1D, Math.Floor(height / rowHeight)));
+            int firstSelected = Array.FindIndex(options, selectedOptions.Contains);
+            // Match the initial viewport of the native PDF choice appearance.
+            int first = Math.Min(Math.Max(0, firstSelected), Math.Max(0, options.Length - visibleRows));
+            for (int row = 0; row < visibleRows; row++) {
+                IElement option = options[first + row];
+                double rowY = y + row * rowHeight;
+                double visibleHeight = Math.Min(rowHeight, Math.Max(0D, height - row * rowHeight));
+                HtmlRenderBoxStyle rowStyle = style;
+                bool disabled = HtmlFormControlSemantics.IsEffectivelyDisabled(element)
+                    || HtmlFormControlSemantics.IsOptionEffectivelyDisabled(option);
+                if (selectedOptions.Contains(option)) {
+                    OfficeShape selection = OfficeShape.Rectangle(width, visibleHeight);
+                    selection.FillColor = disabled ? ControlDisabledFillColor : ControlAccentColor;
+                    selection.StrokeWidth = 0D;
+                    if (style.PaintVisible) visuals.Add(new HtmlRenderShape(selection, x, rowY, visuals.Count, source: source + ":selection"));
+                    rowStyle = style.Clone();
+                    rowStyle.Color = disabled ? style.Color : OfficeColor.White;
+                } else if (disabled) {
+                    rowStyle = style.Clone();
+                    rowStyle.Color = ControlDisabledBorderColor;
+                }
+                AddSingleLineControlText(visuals, HtmlFormControlSemantics.GetOptionLabel(option),
+                    x, rowY, width, visibleHeight, rowStyle, false, OfficeTextAlignment.Left, source);
+            }
             return;
         }
 
@@ -349,7 +372,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool softWrap) {
         if (text.Length == 0 || width <= 0D || height <= 0D) return;
         IReadOnlyList<string> lines = WrapTextToWidth(text, width, style, softWrap);
-        double lineHeight = Math.Max(0.01D, style.LineHeight);
+        double lineHeight = ResolveUsedReplacedDimension(style.LineHeight);
         int maximumLines = Math.Max(1, (int)Math.Floor(height / lineHeight));
         for (int index = 0; index < Math.Min(lines.Count, maximumLines); index++) {
             string line = lines[index];

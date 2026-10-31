@@ -45,7 +45,8 @@ public class PdfWordStructureScalingBenchmarks {
     public byte[] ConvertWordToPdf() {
         using var stream = new MemoryStream(_sourceBytes, writable: false);
         using WordDocument document = WordDocument.Load(stream);
-        return _result = document.ToPdfBytes();
+        using PdfDocument pdf = document.ToPdf();
+        return _result = pdf.ToBytes();
     }
 
     [GlobalCleanup]
@@ -158,8 +159,9 @@ public class PdfWordStructureScalingBenchmarks {
     }
 
     private static void ValidateListStructure(byte[] pdf, int recordCount) {
-        PdfReadDocument document = PdfReadDocument.Open(pdf);
-        StructuredLine[] recordLines = document
+        using var documentStream = new MemoryStream(pdf, writable: false);
+        using PdfDocument document = PdfDocument.Load(documentStream);
+        PdfStructuredLine[] recordLines = document
             .ExtractStructuredPages(new PdfTextLayoutOptions { ForceSingleColumn = true })
             .SelectMany(page => page.LinesDetailed)
             .Where(line => line.Text.Contains("WORD-RECORD-", StringComparison.Ordinal))

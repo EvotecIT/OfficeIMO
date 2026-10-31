@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             primaryParagraph.AddComboBox(new[] { "Red", "Blue" }, defaultValue: "Red");
 
             var pictureParagraph = document.AddParagraph();
-            pictureParagraph.AddPictureControl(imagePath, 50, 50);
+            pictureParagraph.AddPictureControl(imagePath, OfficeLength.Pixels(50), OfficeLength.Pixels(50));
 
             var repeatingParagraph = document.AddParagraph();
             repeatingParagraph.AddRepeatingSection(sectionTitle: "Items");

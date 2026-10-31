@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Stencils;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Visio {
     public static class QueryAndSelection {
@@ -41,7 +41,7 @@ namespace OfficeIMO.Examples.Visio {
                 .EndArrow(EndArrow.Triangle)
                 .Label("handoff");
 
-            page.SelectConnectors(connector => connector.To.Data.TryGetValue("Owner", out string? owner) && owner == "Records")
+            page.SelectConnectors(connector => connector.To is { } target && target.Data.TryGetValue("Owner", out string? owner) && owner == "Records")
                 .LinePattern(2)
                 .LineColor(Color.FromRgb(91, 155, 213));
 

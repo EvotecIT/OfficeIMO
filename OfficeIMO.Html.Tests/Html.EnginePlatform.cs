@@ -279,12 +279,12 @@ public partial class Html {
         Assert.Contains(resourceManifest.Resources, resource => resource.ElementName == "source" && resource.AttributeName == "srcset" && resource.Kind == HtmlResourceKind.Image && resource.IsAllowed);
         Assert.DoesNotContain(resourceManifest.Resources, resource => resource.ElementName == "source" && resource.AttributeName == "data-srcset" && resource.Source == "https://example.test/reports/images/chart-lazy.png");
         Assert.Contains(resourceManifest.Resources, resource => resource.ElementName == "object" && resource.AttributeName == "data" && resource.DiagnosticCode == "HtmlResourceRejectedByPolicy");
-        Assert.Contains(resourceManifest.Resources, resource => resource.ElementName == "style" && resource.AttributeName == "css-import" && resource.DiagnosticCode == "StylesheetResourceRejectedByPolicy");
+        Assert.Contains(resourceManifest.Resources, resource => resource.ElementName == "style" && resource.AttributeName == "css-import" && resource.DiagnosticCode == "stylesheet-resource-rejected-by-policy");
         Assert.DoesNotContain(resourceManifest.Resources, resource => resource.ElementName == "style" && resource.AttributeName == "css-url" && resource.Source == "file:///secret/print.css");
         Assert.Contains(resourceManifest.Resources, resource => resource.ElementName == "style" && resource.AttributeName == "css-url" && resource.Kind == HtmlResourceKind.Font && resource.DiagnosticCode == "FontResourceRejectedByPolicy");
         Assert.Contains(resourceManifest.Resources, resource => resource.ElementName == "style" && resource.AttributeName == "css-url" && resource.Kind == HtmlResourceKind.Image && resource.IsAllowed);
         Assert.DoesNotContain(resourceManifest.Resources, resource => resource.ElementName == "base");
-        Assert.Contains(resourceManifest.Resources, resource => resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(resourceManifest.Resources, resource => resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.Contains(resourceManifest.Resources, resource => resource.DiagnosticCode == "HyperlinkRejectedByPolicy");
         Assert.Contains(resourceManifest.Resources, resource => resource.DiagnosticCode == "ScriptResourceRejectedByPolicy");
         Assert.Contains(resourceManifest.Diagnostics, diagnostic => diagnostic.Code == "HyperlinkRejectedByPolicy");
@@ -296,7 +296,7 @@ public partial class Html {
         Assert.InRange(score.Dimensions["styles"], 0D, 0.50D);
         Assert.InRange(score.Dimensions["resources"], 0D, 0.50D);
 
-        Assert.True(HtmlDiagnosticCatalog.TryGet("ImageResourceRejectedByPolicy", out HtmlDiagnosticDefinition imageDefinition));
+        Assert.True(HtmlDiagnosticCatalog.TryGet("image-resource-rejected-by-policy", out HtmlDiagnosticDefinition imageDefinition));
         Assert.Equal("ResourcePolicy", imageDefinition.Category);
         Assert.Contains("data URI", imageDefinition.Remediation, StringComparison.OrdinalIgnoreCase);
         Assert.True(HtmlDiagnosticCatalog.TryGet("ScriptResourceRejectedByPolicy", out HtmlDiagnosticDefinition scriptDefinition));
@@ -324,11 +324,11 @@ public partial class Html {
         var galleryResult = new HtmlCapabilityGalleryResult(
             galleryScenario,
             new[] { new HtmlCapabilityGalleryArtifact("source", "input-html", "market-report.input.html", "text/html", sourceHtml.Length, new string('0', 64)) },
-            new[] { new HtmlDiagnostic("OfficeIMO.Tests", "HtmlCommentSkipped", "Comment skipped for manifest catalog coverage.", HtmlDiagnosticSeverity.Info) });
+            new[] { new HtmlDiagnostic("OfficeIMO.Tests", "html-comment-skipped", "Comment skipped for manifest catalog coverage.", HtmlDiagnosticSeverity.Info) });
         var expectations = new[] {
             new HtmlCapabilityGalleryExpectation("headings", HtmlCapabilityGalleryExpectationOutcome.Preserved, "roundtrip HTML contains h1"),
             new HtmlCapabilityGalleryExpectation("blocked resources", HtmlCapabilityGalleryExpectationOutcome.Blocked, "resource manifest reports rejected data URI image"),
-            new HtmlCapabilityGalleryExpectation("comments", HtmlCapabilityGalleryExpectationOutcome.Reported, "HtmlCommentSkipped diagnostic is present")
+            new HtmlCapabilityGalleryExpectation("comments", HtmlCapabilityGalleryExpectationOutcome.Reported, "html-comment-skipped diagnostic is present")
         };
         var manifest = new HtmlCapabilityGalleryManifest(galleryResult, HtmlConversionProfile.Document, score, resourceManifest, expectations);
         string manifestMarkdown = HtmlCapabilityGalleryManifestWriter.ToMarkdown(manifest);
@@ -345,7 +345,7 @@ public partial class Html {
         Assert.Contains("Round Trip Score", manifestMarkdown);
         Assert.Contains("Schema version: 2", manifestMarkdown);
         Assert.Contains("Dimensions:", manifestMarkdown);
-        Assert.Contains("ImageResourceRejectedByPolicy", manifestMarkdown);
+        Assert.Contains("image-resource-rejected-by-policy", manifestMarkdown);
         Assert.Contains("[ContentSimplification]", manifestMarkdown);
         Assert.Equal("officeimo.html.capability-gallery", manifestJsonRoot.GetProperty("schemaId").GetString());
         Assert.Equal("1.1", manifestJsonRoot.GetProperty("schemaVersion").GetString());
@@ -360,7 +360,7 @@ public partial class Html {
         Assert.True(manifestScore.TryGetProperty("artifactKind", out _));
         Assert.Equal(score.Dimensions.Count, manifestScore.GetProperty("dimensions").EnumerateObject().Count());
         Assert.True(manifestJsonRoot.GetProperty("resources").GetProperty("blockedCount").GetInt32() > 0);
-        Assert.Contains("ImageResourceRejectedByPolicy", manifestJson);
+        Assert.Contains("image-resource-rejected-by-policy", manifestJson);
         Assert.Contains("\"origin\": \"resource\"", manifestJson);
 
         var manifestWithoutOptionalEvidence = new HtmlCapabilityGalleryManifest(
@@ -373,9 +373,9 @@ public partial class Html {
         Assert.Equal(JsonValueKind.Null, optionalJsonDocument.RootElement.GetProperty("roundTripScore").ValueKind);
         Assert.Equal(JsonValueKind.Null, optionalJsonDocument.RootElement.GetProperty("resources").ValueKind);
 
-        HtmlToWordOptions untrusted = HtmlToWordOptions.CreateUntrustedHtmlProfile();
-        HtmlToWordOptions trusted = HtmlToWordOptions.CreateTrustedDocumentProfile();
-        Assert.Equal(ImageProcessingMode.EmbedDataUriOnly, untrusted.ImageProcessing);
+        WordHtmlImportOptions untrusted = WordHtmlImportOptions.CreateUntrustedHtmlProfile();
+        WordHtmlImportOptions trusted = WordHtmlImportOptions.CreateTrustedDocumentProfile();
+        Assert.Equal(WordHtmlImageProcessingMode.EmbedDataUriOnly, untrusted.ImageProcessing);
         Assert.True(trusted.Clone().AllowDocumentStylesheetLinks);
     }
 
@@ -520,17 +520,17 @@ public partial class Html {
         Assert.DoesNotContain("onclick", conversion.NormalizedHtml, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("file:///secret", conversion.NormalizedHtml, StringComparison.OrdinalIgnoreCase);
 
-        string markdown = conversion.ToMarkdown();
+        string markdown = conversion.ToMarkdown().ToMarkdown();
         Assert.Contains("# Canonical Contract", markdown);
         Assert.DoesNotContain("file:///secret", markdown, StringComparison.OrdinalIgnoreCase);
-        HtmlToWordOptions sharedWordDefaults = WordHtmlConverterExtensions.CreateWordOptionsForSharedDocument();
-        Assert.Equal(ImageProcessingMode.EmbedDataUriOnly, sharedWordDefaults.ImageProcessing);
+        WordHtmlImportOptions sharedWordDefaults = WordHtmlConverterExtensions.CreateWordOptionsForSharedDocument();
+        Assert.Equal(WordHtmlImageProcessingMode.EmbedDataUriOnly, sharedWordDefaults.ImageProcessing);
         Assert.False(sharedWordDefaults.AllowDocumentStylesheetLinks);
-        HtmlToWordOptions trustedWordDefaults = WordHtmlConverterExtensions.CreateWordOptionsForSharedDocument(
+        WordHtmlImportOptions trustedWordDefaults = WordHtmlConverterExtensions.CreateWordOptionsForSharedDocument(
             HtmlInputTrust.Trusted);
-        Assert.Equal(ImageProcessingMode.Embed, trustedWordDefaults.ImageProcessing);
+        Assert.Equal(WordHtmlImageProcessingMode.Embed, trustedWordDefaults.ImageProcessing);
         Assert.True(trustedWordDefaults.AllowDocumentStylesheetLinks);
-        using var wordDocument = WordHtmlConverterExtensions.ToWordDocument(conversion);
+        using var wordDocument = WordHtmlConverterExtensions.ToWord(conversion);
         Assert.NotNull(wordDocument);
 
         HtmlConversionDocument nullPolicyConversion = OfficeIMO.Html.HtmlConversionDocument.Parse(
@@ -647,9 +647,9 @@ public partial class Html {
 
         Assert.DoesNotContain(screen.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-total.png");
         Assert.DoesNotContain(screen.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-only-link.css");
-        Assert.Contains(print.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-total.png" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(print.ResourceManifest.Resources, resource => resource.Source == "file:///secret/commented-print-link.css" && resource.DiagnosticCode == "StylesheetResourceRejectedByPolicy");
-        Assert.Contains(print.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-only-link.css" && resource.DiagnosticCode == "StylesheetResourceRejectedByPolicy");
+        Assert.Contains(print.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-total.png" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(print.ResourceManifest.Resources, resource => resource.Source == "file:///secret/commented-print-link.css" && resource.DiagnosticCode == "stylesheet-resource-rejected-by-policy");
+        Assert.Contains(print.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-only-link.css" && resource.DiagnosticCode == "stylesheet-resource-rejected-by-policy");
         Assert.DoesNotContain(print.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-future.png");
         Assert.Contains("background-image", print.StyleSummary.PropertyNames);
 
@@ -663,22 +663,22 @@ public partial class Html {
         Assert.Contains("https://example.test/images/print-chart.png", printWordHtml);
         Assert.DoesNotContain(".print-only { display: none; }", screenRetargetedToPrint, StringComparison.Ordinal);
         Assert.Contains(".print-only { display: block; }", screenRetargetedToPrint, StringComparison.Ordinal);
-        string printMarkdown = print.ToMarkdown();
+        string printMarkdown = print.ToMarkdown().ToMarkdown();
         Assert.DoesNotContain("https://example.test/images/screen-chart.png", printMarkdown);
         Assert.DoesNotContain("https://example.test/images/ignored-print-chart.avif", printMarkdown);
         Assert.Contains("https://example.test/images/print-chart.png", printMarkdown);
 
-        using var screenWordDocument = WordHtmlConverterExtensions.ToWordDocument(screen);
+        using var screenWordDocument = WordHtmlConverterExtensions.ToWord(screen);
         var screenRun = screenWordDocument.Paragraphs.Single(paragraph => paragraph.Text.Contains("Total", StringComparison.Ordinal)).GetRuns().First();
         Assert.Equal("FF0000", screenRun.ColorHex);
 
-        using var printWordDocument = WordHtmlConverterExtensions.ToWordDocument(print);
+        using var printWordDocument = WordHtmlConverterExtensions.ToWord(print);
         var printRun = printWordDocument.Paragraphs.Single(paragraph => paragraph.Text.Contains("Total", StringComparison.Ordinal)).GetRuns().First();
         Assert.Equal("123456", printRun.ColorHex);
 
-        byte[] printPdf = print.ToPdfBytes();
+        byte[] printPdf = (print.ToPdf()).ToBytes();
         Assert.NotEmpty(printPdf);
-        string retargetedPdfText = OfficeIMO.Pdf.PdfReadDocument.Open(screen.ToPdfBytes()).ExtractText();
+        string retargetedPdfText = OfficeIMO.Pdf.PdfReadDocument.Open((screen.ToPdf()).ToBytes()).ExtractText();
         Assert.Contains("Print target retained", retargetedPdfText, StringComparison.Ordinal);
     }
 
@@ -713,7 +713,7 @@ public partial class Html {
         });
 
         Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "https://example.test/images/mailto-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src");
-        Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "mailto:ops@example.test" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "mailto:ops@example.test" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.DoesNotContain(document.ResourceManifest.Resources, resource => resource.Source == "https://example.test/images/ignored.avif");
         Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "https://example.test/images/adapter-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src");
         Assert.DoesNotContain(document.ResourceManifest.Resources, resource => resource.Source == "https://example.test/images/ignored.apng");
@@ -721,16 +721,16 @@ public partial class Html {
         Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "https://example.test/images/late-candidate.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset");
         Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "mailto:media@example.test" && resource.Kind == HtmlResourceKind.Media && resource.DiagnosticCode == "MediaResourceRejectedByPolicy");
         Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "https://example.test/media/fallback.mp4" && resource.Kind == HtmlResourceKind.Media && resource.AttributeName == "src");
-        Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "file:///secret/invalid-var-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "file:///secret/escaped-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "file:///secret/invalid-var-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "file:///secret/escaped-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
 
-        string markdown = document.ToMarkdown();
+        string markdown = document.ToMarkdown().ToMarkdown();
         Assert.DoesNotContain("https://example.test/images/ignored.avif", markdown);
         Assert.Contains("https://example.test/images/adapter-fallback.png", markdown);
         Assert.DoesNotContain("https://example.test/images/ignored.apng", markdown);
         Assert.Contains("https://example.test/images/apng-fallback.png", markdown);
 
-        byte[] pdf = document.ToPdfBytes();
+        byte[] pdf = (document.ToPdf()).ToBytes();
         Assert.NotEmpty(pdf);
 
         string filteredFragment = HtmlActiveMediaFilter.Filter(
@@ -776,7 +776,7 @@ public partial class Html {
             resource.ElementName == "img"
             && resource.AttributeName == "src"
             && resource.Source == "file:///secret/fallback-image.png"
-            && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+            && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.Contains(manifest.Resources, resource =>
             resource.ElementName == "blockquote"
             && resource.AttributeName == "cite"
@@ -786,7 +786,7 @@ public partial class Html {
             resource.ElementName == "style"
             && resource.AttributeName == "css-var-url"
             && resource.Source == "file:///secret/escaped-var.png"
-            && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+            && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.Contains(manifest.Resources, resource =>
             resource.ElementName == "style"
             && resource.AttributeName == "css-var-url"
@@ -801,7 +801,7 @@ public partial class Html {
             resource.ElementName == "style"
             && resource.AttributeName == "css-var-url"
             && resource.Source == "file:///secret/important-inline.png"
-            && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+            && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/stylesheet-var.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/pseudo-var.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/inline-overridden.png");
@@ -848,13 +848,13 @@ public partial class Html {
             });
 
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/ok.png" && resource.IsAllowed);
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/alias-fallback.png" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/outer-fallback.png" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/alias-fallback.png" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/outer-fallback.png" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/inherited.png" && resource.IsAllowed);
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/unicode.png" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/escaped-name.png" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/hover.png" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/bare-before.png" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/unicode.png" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/escaped-name.png" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/hover.png" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/bare-before.png" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/resolved-fallback.png");
     }
 
@@ -1304,7 +1304,7 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/print-custom-property.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inactive-var-use.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/projection-only.png");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/not-projection.png" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/not-projection.png" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inactive-media-style.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inactive-preload.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inactive-preload-2x.png");
@@ -1343,41 +1343,41 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/ignored-child-source.mp4");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/unsupported-child-source.mp4");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/non-important-property.png");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/custom-property-used.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/cross-block-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/important-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/inherited-custom-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/dom-inherited-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/nearer-custom-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/custom-property-used.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/cross-block-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/important-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/inherited-custom-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/dom-inherited-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/nearer-custom-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/nearest-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/spaced-important-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/spaced-important-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/later-root-property.png");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/rank-local.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/split-selector-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/specific-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/split-selector-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/specific-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/specific-property.png");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/where-ok.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/is-ok.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/inherited-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/element-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/element-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/element-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/cascaded-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/same-element-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/multi-property-a.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/same-element-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/multi-property-a.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/multi-property-b.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/grouped-custom-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/alias-target.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/inline-inherited-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "style-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/inline-card-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "style-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/inline-ancestor-stylesheet-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/inline-self-stylesheet-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/grouped-custom-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/alias-target.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/inline-inherited-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "style-var-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/inline-card-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "style-var-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/inline-ancestor-stylesheet-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/inline-self-stylesheet-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/inline-override.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/hover-var.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/escaped.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/escaped-function.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/custom-supports.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/hero.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-image-set" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/escaped-image-set.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-image-set" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/hover-var.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/escaped.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/escaped-function.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/custom-supports.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/hero.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-image-set" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/escaped-image-set.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-image-set" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/typed.avif" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-image-set");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/commented-type.avif" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-image-set");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "image/avif");
@@ -1389,7 +1389,7 @@ public partial class Html {
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/inline.png" && resource.Kind == HtmlResourceKind.Image);
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/app.js" && resource.Kind == HtmlResourceKind.Script);
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/favicon.png" && resource.Kind == HtmlResourceKind.Image);
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/preload.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "imagesrcset" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/preload.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "imagesrcset" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/spaced-submit.png");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/preload-large.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "imagesrcset");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/picture-source.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset");
@@ -1397,12 +1397,12 @@ public partial class Html {
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/lazy-only.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "data-srcset");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/source-url-only.png");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/source-url-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/policy-source.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/policy-source.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/policy-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/blocked-wide.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/blocked-wide.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/next-wide.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/unused-wide-fallback.png");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/mixed-picture.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/mixed-picture.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/mixed-picture.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/unused-mixed-next.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/unused-mixed-fallback.png");
@@ -1410,42 +1410,42 @@ public partial class Html {
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/word-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src");
         Assert.Contains(manifest.Resources, resource => resource.Source == "mailto:ops@example.test" && resource.Kind == HtmlResourceKind.Script && !resource.IsAllowed && resource.DiagnosticCode == "ScriptResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/svg-script.js" && resource.Kind == HtmlResourceKind.Script && resource.AttributeName == "href" && resource.DiagnosticCode == "ScriptResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "mailto:ops@example.test" && resource.Kind == HtmlResourceKind.Image && !resource.IsAllowed && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "mailto:ops@example.test" && resource.Kind == HtmlResourceKind.Image && !resource.IsAllowed && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/vector.png" && resource.Kind == HtmlResourceKind.Image && resource.ElementName == "image");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/vector-xlink.png" && resource.Kind == HtmlResourceKind.Image && resource.ElementName == "image" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/filter-image.png" && resource.Kind == HtmlResourceKind.Image && resource.ElementName == "feimage" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/symbols.svg#icon" && resource.Kind == HtmlResourceKind.Image && resource.ElementName == "use" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/lazy-img.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "data-lazy-src" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/original-img.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "data-original-srcset" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/vector-xlink.png" && resource.Kind == HtmlResourceKind.Image && resource.ElementName == "image" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/filter-image.png" && resource.Kind == HtmlResourceKind.Image && resource.ElementName == "feimage" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/symbols.svg#icon" && resource.Kind == HtmlResourceKind.Image && resource.ElementName == "use" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/lazy-img.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "data-lazy-src" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/original-img.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "data-original-srcset" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/original-img.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "data-original-srcset");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/poster.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "poster" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/poster.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "poster" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/media/movie.mp4" && resource.Kind == HtmlResourceKind.Media && resource.AttributeName == "data-src");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/selected-child-source.mp4" && resource.Kind == HtmlResourceKind.Media && resource.AttributeName == "src" && resource.DiagnosticCode == "MediaResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/media/first-playable.mp4" && resource.Kind == HtmlResourceKind.Media && resource.AttributeName == "src");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/unselected-playable.mp4");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/blocked-video.mp4" && resource.Kind == HtmlResourceKind.Media && resource.AttributeName == "src" && resource.DiagnosticCode == "MediaResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/media/policy-fallback.mp4" && resource.Kind == HtmlResourceKind.Media && resource.AttributeName == "src");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/negated-active-feature.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/negated-active-feature.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/embed.pdf" && resource.Kind == HtmlResourceKind.Other && resource.ElementName == "embed" && resource.AttributeName == "src");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/body-bg.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "background" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/body-bg.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "background" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/upload" && resource.Kind == HtmlResourceKind.Hyperlink && resource.AttributeName == "action");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/delete" && resource.Kind == HtmlResourceKind.Hyperlink && resource.AttributeName == "formaction");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/bogus-delete" && resource.Kind == HtmlResourceKind.Hyperlink && resource.AttributeName == "formaction");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/submit.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/submit.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src" && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/lazy-fallback.png");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/mask.svg" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/filter.svg#f" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/clip.svg#c" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/mask.svg" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/filter.svg#f" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/clip.svg#c" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "#blur");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "#shape");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "#internal-image");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "#inline-sprite");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/input-metadata");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/logo.png" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/logo.png" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/ignored-frame.html");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/empty-srcdoc-frame.html");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/srcdoc.png" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/srcdoc-content.png" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/srcdoc.png" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "image-resource-rejected-by-policy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/srcdoc-content.png" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "image-resource-rejected-by-policy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/bg.png" && resource.Kind == HtmlResourceKind.Image && resource.IsAllowed);
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/bg.png" && resource.Kind == HtmlResourceKind.Font);
 

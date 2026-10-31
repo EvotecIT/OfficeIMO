@@ -32,8 +32,18 @@ public partial class WordDocument {
         try {
             _ = LegacyDocWriter.WriteDocument(
                 document,
+                out OfficeConversionReport nativeReport,
                 CreateLegacyWriterProbeOptions(options.SaveOptions),
                 isTemplate: destinationFormat.DocumentKind == OfficeDocumentKind.Template);
+            bool allowsPaletteLoss = AllowsLoss(options, mode);
+            foreach (OfficeDiagnostic finding in nativeReport.Diagnostics) {
+                diagnostics.Add(new OfficeConversionDiagnostic(finding.Code,
+                    OfficeConversionDiagnosticCategory.DataLoss,
+                    allowsPaletteLoss ? OfficeConversionDiagnosticSeverity.Warning : OfficeConversionDiagnosticSeverity.Error,
+                    finding.Message, representsDataLoss: true,
+                    allowsPaletteLoss ? OfficeCompatibilityState.Approximated : OfficeCompatibilityState.Blocked,
+                    OfficeCompatibilityImpact.Visual, sourceLocation: finding.Location));
+            }
             return null;
         } catch (NotSupportedException exception) {
             bool permitsVisualFallback = mode is OfficeCompatibilityMode.PreferVisual
@@ -41,7 +51,7 @@ public partial class WordDocument {
                 or OfficeCompatibilityMode.PreservationOnly;
             if (!permitsVisualFallback) {
                 diagnostics.Add(new OfficeConversionDiagnostic(
-                    "Word.LegacyWriter.Unsupported",
+                    "word-legacy-writer-unsupported",
                     OfficeConversionDiagnosticCategory.DestinationFormat,
                     OfficeConversionDiagnosticSeverity.Error,
                     exception.Message,
@@ -53,22 +63,15 @@ public partial class WordDocument {
 
             IReadOnlyList<OfficeImageExportResult> pages;
             try {
-                pages = document.ExportImages(
-                    OfficeImageExportFormat.Png,
-                    new WordImageExportOptions {
-                        BackgroundColor = OfficeColor.White,
-                        Policy = new OfficeImageExportPolicy {
-                            RequireNoOmissions = true,
-                            RequireNoFailures = true
-                        }
-                    });
+                pages = (options.VisualFallbackRenderer ?? throw new NotSupportedException(
+                    "Visual DOC fallback requires the Word PDF adapter through OfficeConverter."))(document);
             } catch (OfficeImageExportPolicyException renderException) {
                 string codes = string.Join(", ", renderException.Diagnostics
                     .Select(item => item.Code)
                     .Distinct(StringComparer.Ordinal)
                     .Take(8));
                 diagnostics.Add(new OfficeConversionDiagnostic(
-                    "Word.LegacyWriter.VisualFallbackUnavailable",
+                    "word-legacy-writer-visual-fallback-unavailable",
                     OfficeConversionDiagnosticCategory.DestinationFormat,
                     OfficeConversionDiagnosticSeverity.Error,
                     $"Native DOC output is unsupported and the visual fallback has renderer omissions ({codes}). Native writer: {exception.Message}",
@@ -80,7 +83,7 @@ public partial class WordDocument {
 
             if (pages.Count == 0) {
                 diagnostics.Add(new OfficeConversionDiagnostic(
-                    "Word.LegacyWriter.VisualFallbackUnavailable",
+                    "word-legacy-writer-visual-fallback-unavailable",
                     OfficeConversionDiagnosticCategory.DestinationFormat,
                     OfficeConversionDiagnosticSeverity.Error,
                     "Native DOC output is unsupported and the visual fallback did not render any pages. Native writer: " + exception.Message,
@@ -91,7 +94,7 @@ public partial class WordDocument {
             }
 
             diagnostics.Add(new OfficeConversionDiagnostic(
-                "Word.LegacyWriter.VisualFallback",
+                "word-legacy-writer-visual-fallback",
                 OfficeConversionDiagnosticCategory.DataLoss,
                 OfficeConversionDiagnosticSeverity.Warning,
                 $"The editable document is represented by {pages.Count} static page image(s) because native DOC writing rejected part of the source model. {exception.Message}",
@@ -134,14 +137,14 @@ public partial class WordDocument {
         using WordDocument fallback = WordDocument.Create();
         OfficeImageExportResult firstPage = plan.Pages[0];
         WordSection section = fallback.Sections[0];
-        section.PageSettings.Width = checked((uint)Math.Max(1, firstPage.Width * 20));
-        section.PageSettings.Height = checked((uint)Math.Max(1, firstPage.Height * 20));
-        section.Margins.Left = 0U;
-        section.Margins.Right = 0U;
-        section.Margins.Top = 0;
-        section.Margins.Bottom = 0;
-        section.Margins.HeaderDistance = 0U;
-        section.Margins.FooterDistance = 0U;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Max(1, firstPage.Width * 20))) / 20D);
+        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Max(1, firstPage.Height * 20))) / 20D);
+        section.Margins.Left = global::OfficeIMO.OfficeLength.Zero;
+        section.Margins.Right = global::OfficeIMO.OfficeLength.Zero;
+        section.Margins.Top = global::OfficeIMO.OfficeLength.Zero;
+        section.Margins.Bottom = global::OfficeIMO.OfficeLength.Zero;
+        section.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Zero;
+        section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Zero;
 
         for (int index = 0; index < plan.Pages.Count; index++) {
             OfficeImageExportResult page = plan.Pages[index];
@@ -149,9 +152,9 @@ public partial class WordDocument {
             fallback.AddParagraph().AddImage(
                 image,
                 $"compatibility-page-{index + 1:D4}.png",
-                page.Width * (96D / 72D),
-                page.Height * (96D / 72D),
-                description: $"Static visual compatibility fallback page {index + 1}");
+                OfficeLength.Points(page.Width),
+                OfficeLength.Points(page.Height),
+                new WordImageOptions { Description = $"Static visual compatibility fallback page {index + 1}" });
             if (index + 1 < plan.Pages.Count) fallback.AddPageBreak();
         }
 
@@ -195,7 +198,7 @@ public partial class WordDocument {
         bool embedded,
         bool hasMacros) {
         diagnostics.Add(new OfficeConversionDiagnostic(
-            embedded ? "Word.SourceCarrier.Embedded" : "Word.SourceCarrier.NotEmbedded",
+            embedded ? "word-source-carrier-embedded" : "word-source-carrier-not-embedded",
             OfficeConversionDiagnosticCategory.DataLoss,
             OfficeConversionDiagnosticSeverity.Warning,
             embedded

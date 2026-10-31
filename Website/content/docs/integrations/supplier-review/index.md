@@ -102,7 +102,7 @@ $reviewRows = $offers | Select-Object Item, Supplier,
 
 New-OfficeWord -Path $docx {
     WordHeader { WordParagraph -Text 'PROCUREMENT / OFFER REVIEW' }
-    WordFooter { WordPageNumber -IncludeTotalPages }
+    WordFooter { WordPageNumber -IncludeTotal }
     WordParagraph {
         WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true
         WordText 'Supplier offer review' -Bold -FontSize 26 -Color '17365D'
@@ -119,8 +119,8 @@ New-OfficeWord -Path $docx {
     $table = WordTable -InputObject $reviewRows -Style GridTable4Accent1 `
         -Layout AutoFitToWindow -PassThru
     $table | Get-OfficeWordTableCell | ForEach-Object {
-        $_.MarginTopCentimeters = 0.14
-        $_.MarginBottomCentimeters = 0.14
+        $_.MarginTop = [OfficeIMO.OfficeLength]::Centimeters(0.14)
+        $_.MarginBottom = [OfficeIMO.OfficeLength]::Centimeters(0.14)
     }
     WordParagraph {
         WordParagraphStyle -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
@@ -132,7 +132,7 @@ New-OfficeWord -Path $docx {
         WordListItem -Text 'Record the chosen supplier, reason and approval owner here.'
     }
 }
-Export-OfficeDocumentPdf -InputPath $docx -Path $pdf
+Convert-OfficeDocument -LiteralPath $docx -To Pdf -OutputPath $pdf
 ```
 
 The cell padding makes the table readable without adding empty rows. `SpacingBeforePoints` separates the next heading from the table, and `KeepWithNext` prevents a heading from being stranded at the bottom of a page when you add more offers.
@@ -148,7 +148,7 @@ New-OfficeExcel -Path $xlsx {
         ExcelCell -Address A1 -Value 'Supplier offers / USD per unit'
         ExcelRow -Row 1 -Height 30 -Bold $true
         ExcelCell -Address A2 -Value 'Freight and tax excluded. Compare delivery before ordering.'
-        ExcelTable -InputObject $offers -StartRow 4 -TableName SupplierOffers `
+        ExcelTable -InputObject $offers -StartRow 4 -Name SupplierOffers `
             -TableStyle TableStyleMedium2
         for ($row = 5; $row -lt 5 + $offers.Count; $row++) {
             $price = $offers[$row - 5].UnitPriceUsd

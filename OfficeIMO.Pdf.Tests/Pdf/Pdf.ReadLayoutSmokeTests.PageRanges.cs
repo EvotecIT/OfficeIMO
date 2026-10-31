@@ -72,7 +72,7 @@ public sealed partial class PdfReadLayoutSmokeTests {
                 ForceSingleColumn = true
             }, PdfPageRange.ParseMany("1"));
 
-            StructuredHeadingPage pathHeadingPage = Assert.Single(pathHeadingPages);
+            PdfStructuredHeadingPage pathHeadingPage = Assert.Single(pathHeadingPages);
             Assert.Equal(1, pathHeadingPage.PageNumber);
             Assert.Empty(pathHeadingPage.Headings);
 
@@ -81,7 +81,7 @@ public sealed partial class PdfReadLayoutSmokeTests {
                 ForceSingleColumn = true
             }, PdfPageRange.ParseMany("2"));
 
-            StructuredHeadingPage streamHeadingPage = Assert.Single(streamHeadingPages);
+            PdfStructuredHeadingPage streamHeadingPage = Assert.Single(streamHeadingPages);
             Assert.Equal(2, streamHeadingPage.PageNumber);
             Assert.Empty(streamHeadingPage.Headings);
 
@@ -89,7 +89,7 @@ public sealed partial class PdfReadLayoutSmokeTests {
                 ForceSingleColumn = true
             }, PdfPageRange.ParseMany("1"));
 
-            StructuredParagraphPage pathParagraphPage = Assert.Single(pathParagraphPages);
+            PdfStructuredParagraphPage pathParagraphPage = Assert.Single(pathParagraphPages);
             Assert.Equal(1, pathParagraphPage.PageNumber);
             Assert.Contains(pathParagraphPage.Paragraphs, paragraph => Normalize(paragraph.Text).Contains("Firstpagetable", StringComparison.Ordinal));
 
@@ -98,7 +98,7 @@ public sealed partial class PdfReadLayoutSmokeTests {
                 ForceSingleColumn = true
             }, PdfPageRange.ParseMany("2"));
 
-            StructuredParagraphPage streamParagraphPage = Assert.Single(streamParagraphPages);
+            PdfStructuredParagraphPage streamParagraphPage = Assert.Single(streamParagraphPages);
             Assert.Equal(2, streamParagraphPage.PageNumber);
             Assert.Contains(streamParagraphPage.Paragraphs, paragraph => Normalize(paragraph.Text).Contains("Secondpagemarker", StringComparison.Ordinal));
 

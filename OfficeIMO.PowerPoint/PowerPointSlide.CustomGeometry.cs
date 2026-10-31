@@ -18,15 +18,19 @@ namespace OfficeIMO.PowerPoint {
         /// The shared descriptor supplies the geometry and basic fill/stroke styling; the supplied
         /// bounds control its size and placement on the slide.
         /// </summary>
-        public PowerPointAutoShape AddCustomGeometry(OfficeShape geometry, long left, long top,
-            long width, long height, string? name = null) {
+        public PowerPointAutoShape AddCustomGeometry(OfficeShape geometry, OfficeLength left, OfficeLength top,
+            OfficeLength width, OfficeLength height, string? name = null) {
             if (geometry == null) throw new ArgumentNullException(nameof(geometry));
-            if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-            if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
-            ValidateCustomGeometryTransformCoordinate(left, nameof(left));
-            ValidateCustomGeometryTransformCoordinate(top, nameof(top));
-            ValidateCustomGeometryExtent(width, nameof(width));
-            ValidateCustomGeometryExtent(height, nameof(height));
+            long nativeLeft = left.ToEmus();
+            long nativeTop = top.ToEmus();
+            long nativeWidth = width.ToEmus();
+            long nativeHeight = height.ToEmus();
+            if (nativeWidth <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+            if (nativeHeight <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+            ValidateCustomGeometryTransformCoordinate(nativeLeft, nameof(left));
+            ValidateCustomGeometryTransformCoordinate(nativeTop, nameof(top));
+            ValidateCustomGeometryExtent(nativeWidth, nameof(width));
+            ValidateCustomGeometryExtent(nativeHeight, nameof(height));
             ValidateCustomGeometryOpacity(geometry.FillOpacity,
                 nameof(geometry.FillOpacity));
             ValidateCustomGeometryOpacity(geometry.StrokeOpacity,
@@ -154,39 +158,6 @@ namespace OfficeIMO.PowerPoint {
             OfficePoint second) => first.X.Equals(second.X)
                 && first.Y.Equals(second.Y);
 
-        /// <summary>Adds shared custom geometry using point measurements.</summary>
-        public PowerPointAutoShape AddCustomGeometryPoints(OfficeShape geometry, double leftPoints,
-            double topPoints, double widthPoints, double heightPoints, string? name = null) {
-            return AddCustomGeometry(geometry,
-                PowerPointUnits.FromPoints(leftPoints),
-                PowerPointUnits.FromPoints(topPoints),
-                PowerPointUnits.FromPoints(widthPoints),
-                PowerPointUnits.FromPoints(heightPoints),
-                name);
-        }
-
-        /// <summary>Adds shared custom geometry using centimeter measurements.</summary>
-        public PowerPointAutoShape AddCustomGeometryCm(OfficeShape geometry, double leftCm,
-            double topCm, double widthCm, double heightCm, string? name = null) {
-            return AddCustomGeometry(geometry,
-                PowerPointUnits.FromCentimeters(leftCm),
-                PowerPointUnits.FromCentimeters(topCm),
-                PowerPointUnits.FromCentimeters(widthCm),
-                PowerPointUnits.FromCentimeters(heightCm),
-                name);
-        }
-
-        /// <summary>Adds shared custom geometry using inch measurements.</summary>
-        public PowerPointAutoShape AddCustomGeometryInches(OfficeShape geometry, double leftInches,
-            double topInches, double widthInches, double heightInches, string? name = null) {
-            return AddCustomGeometry(geometry,
-                PowerPointUnits.FromInches(leftInches),
-                PowerPointUnits.FromInches(topInches),
-                PowerPointUnits.FromInches(widthInches),
-                PowerPointUnits.FromInches(heightInches),
-                name);
-        }
-
         private static IReadOnlyList<OfficePathCommand> GetCustomGeometryCommands(OfficeShape geometry) {
             if (geometry.Width <= 0 || geometry.Height <= 0 ||
                 double.IsNaN(geometry.Width) || double.IsInfinity(geometry.Width) ||
@@ -309,7 +280,7 @@ namespace OfficeIMO.PowerPoint {
 
             result.OutlineColor = geometry.StrokeColor?.ToRgbHex();
             if (geometry.StrokeColor is OfficeColor stroke) {
-                result.OutlineWidthPoints = geometry.StrokeWidth;
+                result.OutlineWidth = OfficeLength.Emus(PowerPointShape.ToDrawingLineWidth(geometry.StrokeWidth, nameof(geometry.StrokeWidth)));
                 result.OutlineDash = MapCustomGeometryDash(
                     geometry.StrokeDashStyle).ToOfficeEnum();
                 double combinedOpacity = CombineOpacity(stroke.A,

@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_SecurityRegions_ManageAllowedEditAndIgnoredErrorsWithoutOpenXmlTypes() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.Protect();
 
             sheet.SetAllowedEditRange("Inputs", new[] { "A2:A5", "C2" }, password: "edit");
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_SecurityRegions_RejectAllowedEditRangeBeforeProtection() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
 
             var exception = Assert.Throws<System.InvalidOperationException>(() =>
                 sheet.SetAllowedEditRange("Inputs", new[] { "A1" }));
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_SecurityRegions_CellDeletionRemovesFullyDeletedRegions() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.Protect();
             sheet.SetAllowedEditRange("OnlyCell", new[] { "A1" });
             sheet.AddIgnoredErrorRegion(new[] { "A1" }, ExcelIgnoredErrorKind.NumberStoredAsText);
@@ -66,8 +66,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_SecurityRegions_RejectOtherWorksheetQualifiers() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            document.AddWorksheet("Other");
+            ExcelSheet sheet = document.AddSheet("Data");
+            document.AddSheet("Other");
             sheet.Protect();
 
             Assert.Throws<System.ArgumentException>(() => sheet.SetAllowedEditRange("Inputs", new[] { "Other!A1" }));
@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_SecurityRegions_ReplacementClearsModernPasswordHash() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.Protect();
             sheet.SetAllowedEditRange("Inputs", new[] { "A1" });
             ProtectedRange range = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<ProtectedRange>());

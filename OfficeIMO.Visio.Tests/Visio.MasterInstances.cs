@@ -128,13 +128,13 @@ public class VisioMasterInstancesTests {
         var child = document.Pages[0].Shapes[0].Children[0];
         Assert.Equal(2, child.PinX); Assert.Equal(1, child.PinY); Assert.Equal(4, child.Width); Assert.Equal(2, child.Height);
         Assert.Equal("Inherited child", child.Text);
-        Assert.Equal(OfficeIMO.Drawing.OfficeColor.Red, child.FillColor);
+        Assert.Equal(OfficeIMO.OfficeColor.Red, child.FillColor);
         Assert.Equal("Arial", child.TextStyle!.FontFamily); Assert.Equal(12, child.TextStyle.Size!.Value, 6);
         child.PinX = 3; child.Text = "edited";
         foreach (var saved in new[] { VisioDocument.Load(new MemoryStream(document.ToBytes())), VisioDocument.LoadLegacyXml(new MemoryStream(document.ToLegacyXmlResult().Value)).Value }) {
             var reopened = saved.Pages[0].Shapes[0].Children[0];
             Assert.Equal(3, reopened.PinX); Assert.Equal(4, reopened.Width); Assert.Equal("edited", reopened.Text);
-            Assert.Equal(OfficeIMO.Drawing.OfficeColor.Red, reopened.FillColor);
+            Assert.Equal(OfficeIMO.OfficeColor.Red, reopened.FillColor);
             Assert.Equal("Inherited child", saved.Masters.First().Shape.Children[0].Text);
         }
     }

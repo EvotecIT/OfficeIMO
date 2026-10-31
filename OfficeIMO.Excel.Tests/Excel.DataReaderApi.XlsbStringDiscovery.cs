@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel.Tests {
             string expected = empty ? string.Empty : "A\uFFFDB 🐢\0Z\uFFFD";
             byte[] workbook = CreateStringDiscoveryWorkbook(recordType, units);
             string materialized;
-            using (ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook)) {
+            using (ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbook)) {
                 Assert.True(reader.Read());
                 Assert.Equal("Ready", reader.GetString(0));
                 Assert.True(reader.Read());
@@ -58,7 +58,7 @@ namespace OfficeIMO.Excel.Tests {
         [InlineData(8, "TokenCount")]
         public void NativeXlsbRejectsLateStringPayloadFailuresBeforeReaderDelivery(int recordType, string failure) {
             byte[] workbook = CreateStringDiscoveryWorkbook(recordType, new ushort[] { 0x41, 0x42, 0x43 }, failure);
-            InvalidDataException error = Assert.Throws<InvalidDataException>(() => ExcelDocument.OpenDataReader(workbook));
+            InvalidDataException error = Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(workbook); _ = reader.FieldCount; });
             string expected = failure switch {
                 "Count" => "exceeding the configured limit",
                 "Truncated" => "truncated",
@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel.Tests {
 
         private static byte[] CreateStringDiscoveryWorkbook(int recordType, ushort[] units, string? failure = null) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Text");
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Ready");
@@ -78,7 +78,7 @@ namespace OfficeIMO.Excel.Tests {
             sheet.CellValue(3, 2, 43);
             sheet.CellValue(4, 1, "After");
             sheet.CellValue(4, 2, 44);
-            byte[] original = document.ToBytes(ExcelFileFormat.Xlsb, new ExcelSaveOptions { XlsbUseSharedStrings = false });
+            byte[] original = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = false });
             using MemoryStream package = new MemoryStream();
             package.Write(original, 0, original.Length);
             using (ZipArchive archive = new ZipArchive(package, ZipArchiveMode.Update, leaveOpen: true)) {

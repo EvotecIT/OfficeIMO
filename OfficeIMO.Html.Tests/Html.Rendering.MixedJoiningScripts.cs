@@ -36,7 +36,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expectedGlyphs, painted.Where(glyph => arabicGlyphs.Contains(glyph.GlyphId)).Select(glyph => glyph.GlyphId));
         Assert.DoesNotContain(retained.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
         retained.Document.RequireNoLoss();
-        byte[] pdf = document.ToPdfBytes(options);
+        byte[] pdf = (document.ToPdf(options)).ToBytes();
         var read = OfficeIMO.Pdf.PdfReadDocument.Open(pdf);
         Assert.Contains(logical, read.ExtractText(), StringComparison.Ordinal);
         var expected = OfficeIMO.Pdf.PdfImageExportExtensions.ExportImages(read, OfficeImageExportFormat.Png,

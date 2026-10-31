@@ -144,7 +144,7 @@ public static partial class WordRtfConverterExtensions {
             LeftIndentTwips = ParseInt(source.PreviousParagraphProperties?.Indentation?.Left?.Value),
             FirstLineIndentTwips = ParseInt(source.PreviousParagraphProperties?.Indentation?.FirstLine?.Value)
                 ?? Negate(ParseInt(source.PreviousParagraphProperties?.Indentation?.Hanging?.Value)),
-            Alignment = ToRtfListAlignment(source.LevelJustification?.Val?.Value),
+            Alignment = ToRtfListAlignment(WordListLevel.ReadLevelJustification(source.LevelJustification)),
             FollowCharacter = ToRtfFollowCharacter(source.LevelSuffix?.Val?.Value),
             NoRestart = source.LevelRestart?.Val?.Value == 0 ? true : (bool?)null,
             LegalNumbering = ReadToggle(source.IsLegalNumberingStyle)

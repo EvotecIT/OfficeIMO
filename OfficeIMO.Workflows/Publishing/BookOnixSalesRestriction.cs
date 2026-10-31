@@ -1,3 +1,6 @@
+#if !NET8_0_OR_GREATER
+using DateOnly = System.DateTime;
+#endif
 namespace OfficeIMO.Workflows;
 
 /// <summary>ONIX list 71 restrictions applicable to this digital-download export profile. Internal-only and print-on-demand codes are excluded.</summary>

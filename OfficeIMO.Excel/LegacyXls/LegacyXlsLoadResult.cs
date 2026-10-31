@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel.LegacyXls {
     /// <summary>
     /// Contains the projected OfficeIMO document and the legacy XLS import report produced from the same parse.
     /// </summary>
-    public sealed class LegacyXlsLoadResult : IDisposable, IOfficeConversionReport {
+    internal sealed class LegacyXlsLoadResult : IDisposable, IOfficeConversionReport {
         private readonly ExcelDocument? _document;
         private readonly Lazy<LegacyXlsImportReport> _importReport;
         private readonly Lazy<LegacyXlsImportSummary> _summary;
@@ -172,7 +172,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
             if (ProjectionException != null) {
                 diagnostics.Add(new OfficeConversionFidelityDiagnostic(
-                    "XLS-PROJECTION-FAILED",
+                    "xls-projection-failed",
                     ProjectionException.Message,
                     OfficeConversionLossKind.Failure,
                     "OfficeIMO.Excel.LegacyXls.Projection",
@@ -191,7 +191,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                 feature.Code, feature.Description, OfficeConversionLossKind.Omission,
                 "OfficeIMO.Excel.LegacyXls.Reader", FormatLocation(feature.SheetName, feature.RecordOffset))));
             diagnostics.AddRange(UnsupportedSheets.Select(sheet => new OfficeConversionFidelityDiagnostic(
-                "XLS-UNSUPPORTED-SHEET", $"Sheet '{sheet.Name}' is not projected as an editable worksheet.",
+                "xls-unsupported-sheet", $"Sheet '{sheet.Name}' is not projected as an editable worksheet.",
                 OfficeConversionLossKind.Omission, "OfficeIMO.Excel.LegacyXls.Reader",
                 FormatLocation(sheet.Name, sheet.StreamOffset))));
             diagnostics.AddRange(CompoundFeatures
@@ -210,22 +210,22 @@ namespace OfficeIMO.Excel.LegacyXls {
             if (diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error) return OfficeConversionLossKind.Failure;
             // Unread strings become empty cells; unread sheets and defined names are not
             // projected rather than approximately represented.
-            if (diagnostic.Code is "XLS-BIFF-SST-SHORT" or "XLS-BIFF-SST-STRING-INVALID"
-                or "XLS-BIFF-LBL-SHORT" or "XLS-BIFF-LBL-INVALID"
-                or "XLS-BIFF-LBL-EMPTY-NAME" or "XLS-BIFF-LBL-FORMULA-UNSUPPORTED"
-                or "XLS-BIFF-LBL-SCOPE-INVALID" or "XLS-BIFF-LBL-SCOPE-UNSUPPORTED"
-                or "XLS-BIFF-BOUNDSHEET-SHORT" or "XLS-BIFF-BOUNDSHEET-INVALID"
-                or "XLS-BIFF-SHEET-OFFSET-INVALID" or "XLS-BIFF-SHEET-RECORD-INVALID"
-                or "XLS-BIFF-CHART-SHEET-OFFSET-INVALID"
-                or "XLS-BIFF-UNSUPPORTED-SHEET-OFFSET-INVALID"
-                or "XLS-BIFF-SUPBOOK-SHORT" or "XLS-BIFF-SUPBOOK-INVALID"
-                or "XLS-BIFF-EXTERNSHEET-SHORT" or "XLS-BIFF-EXTERNSHEET-INVALID"
-                or "XLS-BIFF-EXTERNNAME-SHORT" or "XLS-BIFF-EXTERNNAME-INVALID"
-                or "XLS-BIFF-EXTERNNAME-ORPHANED"
-                or "XLS-BIFF-XCT-SHORT" or "XLS-BIFF-XCT-ORPHANED"
-                or "XLS-BIFF-CRN-INVALID" or "XLS-BIFF-CRN-ORPHANED")
+            if (diagnostic.Code is "xls-biff-sst-short" or "xls-biff-sst-string-invalid"
+                or "xls-biff-lbl-short" or "xls-biff-lbl-invalid"
+                or "xls-biff-lbl-empty-name" or "xls-biff-lbl-formula-unsupported"
+                or "xls-biff-lbl-scope-invalid" or "xls-biff-lbl-scope-unsupported"
+                or "xls-biff-boundsheet-short" or "xls-biff-boundsheet-invalid"
+                or "xls-biff-sheet-offset-invalid" or "xls-biff-sheet-record-invalid"
+                or "xls-biff-chart-sheet-offset-invalid"
+                or "xls-biff-unsupported-sheet-offset-invalid"
+                or "xls-biff-supbook-short" or "xls-biff-supbook-invalid"
+                or "xls-biff-externsheet-short" or "xls-biff-externsheet-invalid"
+                or "xls-biff-externname-short" or "xls-biff-externname-invalid"
+                or "xls-biff-externname-orphaned"
+                or "xls-biff-xct-short" or "xls-biff-xct-orphaned"
+                or "xls-biff-crn-invalid" or "xls-biff-crn-orphaned")
                 return OfficeConversionLossKind.Omission;
-            if (diagnostic.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED"
+            if (diagnostic.Code == "xls-biff-formula-tokens-unsupported"
                 && diagnostic.FormulaContext == "DefinedName")
                 return OfficeConversionLossKind.Omission;
             return diagnostic.Severity == LegacyXlsDiagnosticSeverity.Warning

@@ -1,0 +1,548 @@
+{
+  "package": "OfficeIMO.Excel.Pdf",
+  "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
+  "summary": {
+    "changes": 33,
+    "byAction": {
+      "change": 6,
+      "merge": 10,
+      "move": 3,
+      "remove": 7,
+      "rename": 7
+    },
+    "byCategory": {
+      "conversion": 27,
+      "options": 4,
+      "package": 2
+    },
+    "packageMoves": 1
+  },
+  "projectReferences": {
+    "csproj": "OfficeIMO.Excel.Pdf/OfficeIMO.Excel.Pdf.csproj",
+    "targetFrameworks": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "projectReferences": [
+      "OfficeIMO.Excel",
+      "OfficeIMO.Pdf",
+      "OfficeIMO.Core"
+    ],
+    "packageReferences": []
+  },
+  "frameworks": {
+    "current": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "target": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "change": "Preserve the existing framework reach and the Windows-only net472 condition. The front door and Workflows use the full framework set. net8.0 retirement belongs to a later release.",
+    "windowsAdditionalTarget": [
+      "net472"
+    ],
+    "applied": {
+      "status": "applied",
+      "baseTargets": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0"
+      ],
+      "conditionalTargets": [
+        {
+          "condition": " '$([MSBuild]::IsOsPlatform(`Windows`))' ",
+          "value": "$(TargetFrameworks);net472"
+        }
+      ],
+      "authority": "Approved framework decision in c526a10ad2; no framework is dropped in 3.6."
+    },
+    "supersededM0Target": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ]
+  },
+  "openQuestions": [
+    "ExcelPdfExportOptions.UseRenderingProfile/UseProfile depend on OfficeRenderingProfile and PdfExportProfile; align with OfficeTheme (M1)."
+  ],
+  "changes": [
+    {
+      "old": "OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdfDocument(ExcelDocument document, ExcelToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "ExcelDocument.ToPdf(ExcelPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "file": "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdfDocumentResult(ExcelDocument document, ExcelToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "ExcelDocument.ToPdf(ExcelPdfExportOptions options, out OfficeConversionReport report) : PdfDocument",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "PdfDocumentConversionResult carries the document plus warnings; the out-report overload replaces it. Used internally by image export and Workflows.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdfBytes(ExcelDocument document, ExcelToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "doc.SaveAsPdf(stream) or doc.ToPdf().ToBytes(); file-to-file callers use OfficeConverter.",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.SaveAsPdf(ExcelDocument document, string path, ExcelToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "ExcelDocument.SaveAsPdf(string path, ExcelPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "file": "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns PdfSaveResult today; becomes OfficeConversionReport and throws on failure.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.SaveAsPdfResult(ExcelDocument document, string path, ExcelToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "ExcelDocument.SaveAsPdf(string path, ExcelPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "SaveAsPdfResult catches failures into PdfSaveResult; SaveAsPdf throws. Same return type today.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.SaveAsPdf(ExcelDocument document, Stream stream, ExcelToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "ExcelDocument.SaveAsPdf(Stream stream, ExcelPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "file": "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns PdfSaveResult today; becomes OfficeConversionReport and throws on failure.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.SaveAsPdfResult(ExcelDocument document, Stream stream, ExcelToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "ExcelDocument.SaveAsPdf(Stream stream, ExcelPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "SaveAsPdfResult catches failures into PdfSaveResult; SaveAsPdf throws. Same return type today.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.SaveAsPdfAsync(ExcelDocument document, string path, ExcelToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "ExcelDocument.SaveAsPdfAsync(string path, ExcelPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "file": "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.SaveAsPdfAsync(ExcelDocument document, Stream stream, ExcelToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "ExcelDocument.SaveAsPdfAsync(Stream stream, ExcelPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "file": "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.SaveAsPdfResultAsync(ExcelDocument document, string path, ExcelToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "ExcelDocument.SaveAsPdfAsync(string path, ExcelPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.SaveAsPdfResultAsync(ExcelDocument document, Stream stream, ExcelToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "ExcelDocument.SaveAsPdfAsync(Stream stream, ExcelPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.ExcelToPdfOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.Pdf.ExcelPdfExportOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Excel.Pdf/ExcelToPdfOptions.cs",
+      "category": "options",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.PdfTablesToExcelOptions",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.Excel.ExcelPdfImportOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Excel.Pdf/PdfTablesToExcelOptions.cs",
+      "category": "options",
+      "notes": "Moves to the OfficeIMO.Pdf.Excel adapter; table-only import becomes ExcelPdfImportOptions.Mode.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.ExcelPdfExportWarning",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeDiagnostic",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Excel.Pdf/ExcelPdfExportWarning.cs",
+      "category": "conversion",
+      "notes": "ToConversionWarning() maps to PdfConversionWarning today.",
+      "phase": "A/B",
+      "applied": "phase-b-applied",
+      "note": "Only the internal ExcelPdfExportOptions.Warnings collection carries this type; construction and ToConversionWarning are implementation details. The user-facing diagnostics are shared reports. Public lifecycle/conversion routes continue using the shared Core contract."
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.ExcelToPdfOptions.UseRenderingProfile(OfficeRenderingProfile profile, OfficeRenderingProfileApplyMode mode = Replace)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.Pdf.ExcelPdfExportOptions.UseRenderingProfile(...)",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Excel.Pdf/ExcelToPdfOptions.cs",
+      "category": "options",
+      "notes": "Fluent setters on options; keep only if OfficeRenderingProfile stays public after M1 theme work.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.ExcelToPdfOptions.UseProfile(PdfExportProfile profile)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.Pdf.ExcelPdfExportOptions.UseProfile(...)",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Excel.Pdf/ExcelToPdfOptions.cs",
+      "category": "options",
+      "notes": "Fluent setters on options; keep only if OfficeRenderingProfile stays public after M1 theme work.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.ImportTablesToExcelDocument(PdfDocument document, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "PdfDocument.ToExcel(ExcelPdfImportOptions options = null, CancellationToken cancellationToken = default) : ExcelDocument",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "file": "OfficeIMO.Excel.Pdf/PdfExcelTableConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Table import is today's only mode; keep it as ExcelPdfImportOptions.Mode = Tables.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.ImportTablesToExcelDocumentResult(PdfDocument document, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "PdfDocument.ToExcel(ExcelPdfImportOptions options, out OfficeConversionReport report) : ExcelDocument",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Excel.Pdf/PdfExcelTableConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcel(PdfDocument document, string workbookPath, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "PdfDocument.SaveAsExcel(string path, ExcelPdfImportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "file": "OfficeIMO.Excel.Pdf/PdfExcelTableConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcel(PdfDocument document, Stream workbookStream, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "PdfDocument.SaveAsExcel(Stream stream, ExcelPdfImportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "file": "OfficeIMO.Excel.Pdf/PdfExcelTableConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcelAsync(PdfDocument document, string workbookPath, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "PdfDocument.SaveAsExcelAsync(string path, ExcelPdfImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "file": "OfficeIMO.Excel.Pdf/PdfExcelTableConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcelAsync(PdfDocument document, Stream workbookStream, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "PdfDocument.SaveAsExcelAsync(Stream stream, ExcelPdfImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "file": "OfficeIMO.Excel.Pdf/PdfExcelTableConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcel(PdfDocumentReadResult document, string workbookPath, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass the PdfDocument.",
+      "reason": "Parallel overload for the internal read model.",
+      "file": "OfficeIMO.Excel.Pdf/PdfExcelTableConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcel(PdfDocumentReadResult document, Stream workbookStream, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass the PdfDocument.",
+      "reason": "Parallel overload for the internal read model.",
+      "file": "OfficeIMO.Excel.Pdf/PdfExcelTableConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.ImportTablesToExcelDocument(PdfDocumentReadResult document, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass the PdfDocument.",
+      "reason": "Parallel overload for the internal read model.",
+      "file": "OfficeIMO.Excel.Pdf/PdfExcelTableConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.ImportTablesToExcelDocumentResult(PdfDocumentReadResult document, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass the PdfDocument.",
+      "reason": "Parallel overload for the internal read model.",
+      "file": "OfficeIMO.Excel.Pdf/PdfExcelTableConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcelAsync(PdfDocumentReadResult document, string workbookPath, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass the PdfDocument.",
+      "reason": "Parallel overload for the internal read model.",
+      "file": "OfficeIMO.Excel.Pdf/PdfExcelTableConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcelAsync(PdfDocumentReadResult document, Stream workbookStream, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass the PdfDocument.",
+      "reason": "Parallel overload for the internal read model.",
+      "file": "OfficeIMO.Excel.Pdf/PdfExcelTableConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.Excel.PdfExcelTableConverterExtensions (assembly OfficeIMO.Pdf.Excel)",
+      "reason": "Reconstruction from PDF lives in OfficeIMO.Pdf.Excel.",
+      "file": "OfficeIMO.Excel.Pdf/PdfExcelTableConverterExtensions.ColumnGeometry.cs, OfficeIMO.Excel.Pdf/PdfExcelTableConverterExtensions.cs",
+      "category": "package",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.PdfExcelTableImportReport",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.Excel.PdfExcelTableImportReport",
+      "reason": "Retain this documented advanced model or its incoming public options/result contract under the approved visibility rule.",
+      "file": "OfficeIMO.Excel.Pdf/PdfExcelTableImportModels.cs",
+      "category": "conversion",
+      "phase": "A/B",
+      "applied": "phase-b-retained-public-contract",
+      "note": "Keep the report: a documented public ODS result exposes PdfOdsConversionReport.PdfReport, independently of the internal PDF-to-Excel importer. PSWriteOffice also declares this report as cmdlet output. Public lifecycle/conversion routes continue using the shared Core contract."
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.PdfExcelTableImportResult",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionReport",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Excel.Pdf/PdfExcelTableImportModels.cs",
+      "category": "conversion",
+      "phase": "A/B",
+      "applied": "phase-b-applied",
+      "note": "Hide the result wrapper: both incoming ConvertToExcelWithEvidence overloads are internal. ODS consumes this wrapper inside method bodies and returns a different public result containing only its report. Public lifecycle/conversion routes continue using the shared Core contract."
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.PdfExcelTableImportEntry",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.Excel.PdfExcelTableImportEntry",
+      "reason": "Retain this documented advanced model or its incoming public options/result contract under the approved visibility rule.",
+      "file": "OfficeIMO.Excel.Pdf/PdfExcelTableImportModels.cs",
+      "category": "conversion",
+      "phase": "A/B",
+      "applied": "phase-b-retained-public-contract",
+      "note": "Keep the entry model: the documented ODS PdfReport.Entries path exposes these records for table projection evidence. Public lifecycle/conversion routes continue using the shared Core contract."
+    },
+    {
+      "old": "OfficeIMO.Excel.Pdf.PdfExcelTableColumnKind",
+      "kind": "enum",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.Excel.ExcelPdfTableColumnKind",
+      "reason": "Moves with the reconstruction adapter.",
+      "file": "OfficeIMO.Excel.Pdf/PdfExcelTableImportModels.cs",
+      "category": "package",
+      "phase": "A",
+      "applied": "applied"
+    }
+  ],
+  "packageMoves": [
+    {
+      "from": "OfficeIMO.Excel.Pdf",
+      "to": "OfficeIMO.Pdf.Excel",
+      "scope": "PdfExcelTableConverterExtensions, PdfTablesToExcelOptions, PdfExcelTable* (PDF tables -> Excel)",
+      "reason": "Reconstruction from PDF lives in OfficeIMO.Pdf.Excel.",
+      "notes": "Excel -> PDF export (ExcelPdfConverterExtensions*, 28 files) stays."
+    }
+  ],
+  "designResolutions": {
+    "formatEnum": "OfficeDocumentFormat; no OfficeFormat enum is introduced.",
+    "conversionDirection": "Instance extensions on the source document; no static From factories.",
+    "asyncReports": "OfficeConversionResult<T> carries the converted value and OfficeConversionReport.",
+    "frontDoorTarget": "OfficeIMO, its batch engine, OfficeIMO.Workflows and OfficeIMO.Workflows.IWork target netstandard2.0, net8.0 and net10.0, plus net472 through the existing Windows-only project condition (approved c526a10ad2). Modern-only route engines are conditionally referenced and registered.",
+    "frameworks": "Superseded by the approved c526a10ad2 design: retain netstandard2.0, net8.0, net10.0 and the original Windows-only net472 declaration; modern-only packages retain their original targets. Front door and Workflows gain the full set, with explicitly conditional modern engines.",
+    "modernAnalysis": "Directory.Build.targets enables IsAotCompatible, EnableTrimAnalyzer and EnableAotAnalyzer for packable production library builds targeting net8.0/net10.0. Qualification remains in progress; older targets do not enable those analyzers."
+  },
+  "phaseA": {
+    "status": "in-progress",
+    "scope": "Package boundaries, target frameworks, lifecycle, options, conversions and names."
+  },
+  "extraChanges": [
+    {
+      "subject": "Completed PDF model conversion evidence",
+      "note": "ToPdf renders and reopens a private artifact before returning its shared report, so writer-time findings, page counts and FailOnLoss are complete. It returns the original authoring model so callers can continue editing; subsequent native saves retain the normal AllowLoss policy.",
+      "status": "applied"
+    },
+    {
+      "change": "Dispose temporary PDF models after SaveAsPdf and failed ToPdf completion; successful ToPdf retains the authored model for subsequent composition.",
+      "reason": "The unified IDisposable lifecycle transfers ownership only for returned models. Writer-time findings must complete before the public report is returned.",
+      "status": "applied"
+    },
+    {
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied",
+      "note": "Async conversion entry points capture options before deferred work or resource awaits. The same snapshot supplies resource/size limits and final FailOnLoss acceptance; caller-owned template documents and callbacks retain their ownership."
+    },
+    {
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied",
+      "note": "Strict adapter PDF saves use the existing staged writer with shared report acceptance before publication. Source-stage and writer-time losses throw OfficeConversionException carrying OfficeConversionReport; native advanced result policies keep their existing behavior. The same writer and file/stream publication owners are reused. Front-door HTML/TXT saves dispose the generated model."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Canonical PDF export validates destination arguments before conversion. Later serialization and publication failures retain completed evidence; malformed destination arguments keep their ordinary argument exceptions."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "InternalsVisibleTo grants the existing browser engine and its tests access to detailed conversion and serialization evidence. This preserves browser diagnostics while keeping conversion kernels outside the public API."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Worksheet sizing calls use ExcelColumnWidth.Characters for existing stored column units and ExcelColumnWidth.Length(OfficeLength.Points(...)) for existing row points. Default dimension reads convert explicitly at numeric format boundaries. This is a mechanical consumer migration; conversion/layout behavior is retained."
+    },
+    {
+      "change": "Consume shared worksheet image lengths at the PDF geometry boundary",
+      "reason": "Read physical image dimensions and offsets in points directly from OfficeLength rather than passing through integer pixels. Worksheet authoring and inspection retain whole EMUs; raster safety rounding remains in the image renderer.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.WorksheetContent.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "action": "fix",
+      "old": "Merged-cell PDF fragments round full dimensions, offsets and fragment dimensions independently after double containment.",
+      "new": "Convert once, enforce full-size containment in the exact OfficeLength domain, and compare viewport extents without floating-point addition.",
+      "reason": "Imported custom row heights can make rounded fragment plus offset exceed rounded full height by one EMU and abort export across a manual break.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.SheetData.PageProjection.cs",
+        "OfficeIMO.Pdf/Model/PdfTableCellViewport.cs"
+      ],
+      "note": "Both axes retain the positive/nonnegative/out-of-bounds guards. A saved XLSX with15.1236pt custom rows and a split merge reproduces the failure in both WorksheetCanvas and FlowTable; keep the saved PDF page and text assertions."
+    }
+  ],
+  "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
+  "authority": "Docs/officeimo.api-design.md, including the c526a10ad2 framework decision; the approved design overrides M0 open questions.",
+  "questionResolutions": {
+    "conversionForms": "Source.ToTarget, source.SaveAsTarget and OfficeConversionReport; async ToTarget returns OfficeConversionResult<T>. ToHtml returns string. No static From factories.",
+    "frameworks": "No framework is dropped in 3.6. Original library TFMs and Windows net472 conditions remain; the front door and both Workflows projects support the full set. Modern-only engines stay conditional.",
+    "packageDirection": "Word.Pdf and PowerPoint.Pdf export native documents. Reverse reconstruction is Pdf.Word and Pdf.PowerPoint; Excel reconstruction is Pdf.Excel. Word page images live in Word.Pdf.",
+    "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
+  }
+}

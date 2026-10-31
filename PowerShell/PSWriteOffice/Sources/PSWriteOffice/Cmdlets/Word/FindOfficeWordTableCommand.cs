@@ -22,7 +22,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Find the table that contains a marker and append a row.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Report.docx
+///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// $table = Find-OfficeWordTable -Document $doc -Text 'Risk register' | Select-Object -First 1
 /// $table | Add-OfficeWordTableRow -Values 'Contoso', 'Open', 'High'</code>
 ///   <para>Searches table cell paragraphs and returns the matching OfficeIMO table object.</para>
@@ -30,7 +30,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Find a risk table, append a row, and update a status cell.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Handover.docx
+///   <code>$doc = Open-OfficeWord -Path .\Handover.docx
 /// $table = Find-OfficeWordTable -Document $doc -Text 'Risk marker' | Select-Object -First 1
 /// $table | Add-OfficeWordTableRow -Values 'Mitigation plan', 'Service Desk', 'Ready'
 /// $table | Get-OfficeWordTableCell -Row 2 -Column 2 |

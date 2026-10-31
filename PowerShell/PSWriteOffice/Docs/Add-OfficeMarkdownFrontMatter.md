@@ -16,7 +16,7 @@ Add-OfficeMarkdownFrontMatter [-InputObject] <Object> [-PassThru] [<CommonParame
 
 ### Document
 ```powershell
-Add-OfficeMarkdownFrontMatter [-InputObject] <Object> -Document <MarkdownDoc> [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownFrontMatter [-InputObject] <Object> -Document <MarkdownDocument> [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -37,7 +37,7 @@ Sets the document header using the supplied key/value pairs.
 Markdown document to update outside the DSL context.
 
 ```yaml
-Type: MarkdownDoc
+Type: MarkdownDocument
 Parameter Sets: Document
 Aliases: None
 Possible values:
@@ -86,11 +86,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## OUTPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## RELATED LINKS
 

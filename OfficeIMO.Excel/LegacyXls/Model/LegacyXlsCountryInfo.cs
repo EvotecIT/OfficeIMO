@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents workbook locale identifiers decoded from a legacy Country record.
     /// </summary>
-    public sealed class LegacyXlsCountryInfo {
+    internal sealed class LegacyXlsCountryInfo {
         /// <summary>
         /// Creates country metadata.
         /// </summary>

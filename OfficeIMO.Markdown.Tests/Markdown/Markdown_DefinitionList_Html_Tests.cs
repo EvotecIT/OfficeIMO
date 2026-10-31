@@ -8,8 +8,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         [InlineData("Term: Definition with *emphasis* inside.", "<em>emphasis</em>")]
         [InlineData("Term: Includes a [link](https://example.com).", "<a href=\"https://example.com\">link</a>")]
         public void DefinitionList_Renders_Inline_Markup(string markdown, string expectedFragment) {
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
-            var html = doc.ToHtmlFragment();
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
+            var html = doc.ToHtml();
 
             Assert.Contains("<dl>", html);
 
@@ -25,12 +25,12 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void DefinitionList_Tight_Definition_Renders_Paragraph_Attributes() {
-            var options = new MarkdownReaderOptions {
+            var options = new MarkdownLoadOptions {
                 GenericAttributes = true
             };
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Term: Definition {#def .wide}", options);
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse("Term: Definition {#def .wide}", options);
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
             Assert.Contains("<dd><p id=\"def\" class=\"wide\">Definition </p></dd>", html, StringComparison.Ordinal);
             Assert.DoesNotContain("{#def .wide}", html, StringComparison.Ordinal);

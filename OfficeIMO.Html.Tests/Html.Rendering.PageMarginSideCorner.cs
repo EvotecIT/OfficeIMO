@@ -303,7 +303,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage pixels = OfficeDrawingRasterRenderer.Render(page.CreateDrawing());
         Assert.Equal(allowed ? OfficeColor.Red : OfficeColor.Blue, pixels.GetPixel((int)fill.X + 2, (int)fill.Y + 2));
         if (allowed) rendered.RequireNoLoss();
-        else Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceRejectedByPolicy");
+        else Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "image-resource-rejected-by-policy");
     }
 
     [Theory]

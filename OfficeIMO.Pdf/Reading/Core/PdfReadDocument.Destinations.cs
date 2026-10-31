@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfReadDocument {
+internal sealed partial class PdfReadDocument {
     private (int? PageNumber, double? DestinationTop, PdfOpenActionDestinationMode? DestinationMode, double? DestinationLeft, double? DestinationBottom, double? DestinationRight, double? DestinationZoom) GetOutlineDestination(PdfDictionary item,
         System.Threading.CancellationToken cancellationToken) {
         if (item.Items.TryGetValue("Dest", out var destObj) &&

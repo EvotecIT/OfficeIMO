@@ -135,7 +135,7 @@ internal static partial class VisioReaderAdapter {
     }
 
     private static OfficeDocumentReadResult BuildDocumentResult(VisioDocument document, SourceMetadata source, ReaderOptions readerOptions, ReaderVisioOptions visioOptions, CancellationToken cancellationToken) {
-        VisioInspectionSnapshot snapshot = document.CreateInspectionSnapshot();
+        VisioInspectionSnapshot snapshot = document.Inspect();
         ReaderChunk[] chunks = Read(document, source, readerOptions, cancellationToken).ToArray();
         OfficeIMO.OfficeDocumentModel model = document.ToOfficeDocumentModel(
             source.Path,

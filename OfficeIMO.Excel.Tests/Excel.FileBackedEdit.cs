@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
         public void Test_FileBackedEdit_PersistsExplicitlyWithoutChangingLoadFastPath() {
             string path = Path.Combine(_directoryWithFiles, "FileBackedEdit.xlsx");
             using (var created = ExcelDocument.Create()) {
-                created.AddWorksheet("Data").CellValue(1, 1, "before");
+                created.AddSheet("Data").CellValue(1, 1, "before");
                 created.Save(path);
             }
 
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
 
             using ExcelDocument loaded = ExcelDocument.Load(path);
             Assert.False(loaded.UsesFileBackedPackage);
-            Assert.True(loaded.Sheets[0].TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? value));
+            Assert.True(loaded.Sheets[0].TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? value));
             Assert.Equal("after", value!.Text);
         }
 
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
         public void Test_FileBackedEdit_EnforcesBudgetAndCancellationBeforeOpen() {
             string path = Path.Combine(_directoryWithFiles, "FileBackedBudget.xlsx");
             using (var created = ExcelDocument.Create()) {
-                created.AddWorksheet("Data").CellValue(1, 1, "value");
+                created.AddSheet("Data").CellValue(1, 1, "value");
                 created.Save(path);
             }
 
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
         public void Test_FileBackedEdit_SaveOnDisposeUsesAssociatedPath() {
             string path = Path.Combine(_directoryWithFiles, "FileBackedSaveOnDispose.xlsx");
             using (var created = ExcelDocument.Create()) {
-                created.AddWorksheet("Data").CellValue(1, 1, 1);
+                created.AddSheet("Data").CellValue(1, 1, 1);
                 created.Save(path);
             }
 
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
             }
 
             using ExcelDocument loaded = ExcelDocument.Load(path);
-            Assert.True(loaded.Sheets[0].TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? value));
+            Assert.True(loaded.Sheets[0].TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? value));
             Assert.Equal("2", value!.Text);
         }
 
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
         public void Test_FileBackedEdit_SaveUsesTemporaryBudgetWithoutManagedPackageLimit() {
             string path = Path.Combine(_directoryWithFiles, "FileBackedSaveBudget.xlsx");
             using (var created = ExcelDocument.Create()) {
-                created.AddWorksheet("Data").CellValue(1, 1, "before");
+                created.AddSheet("Data").CellValue(1, 1, "before");
                 created.Save(path);
             }
 
@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
             const string value = "First\r\nSecond\rThird\nFourth";
             string path = Path.Combine(_directoryWithFiles, "FileBackedCarriageReturns.xlsx");
             using (var created = ExcelDocument.Create()) {
-                var sheet = created.AddWorksheet("Text");
+                var sheet = created.AddSheet("Text");
                 sheet.CellValue(1, 1, value);
                 sheet.CellValue(1, 2, "inline");
                 sheet.CellValue(1, 3, "plain");

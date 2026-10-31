@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Rtf.Pdf;
 
 internal static class RtfPdfMapping {
-    private static readonly PdfCore.PdfColor DefaultBorderColor = PdfCore.PdfColor.FromRgb(0, 0, 0);
+    private static readonly global::OfficeIMO.OfficeColor DefaultBorderColor = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 0);
 
     internal static PdfCore.PdfAlign ToPdfAlign(RtfTextAlignment alignment) {
         switch (alignment) {
@@ -29,9 +29,9 @@ internal static class RtfPdfMapping {
         }
     }
 
-    internal static PdfCore.PdfColor? ToPdfColor(RtfDocument document, int? oneBasedColorIndex) {
+    internal static global::OfficeIMO.OfficeColor? ToPdfColor(RtfDocument document, int? oneBasedColorIndex) {
         RtfColor? color = oneBasedColorIndex.HasValue ? document.GetColor(oneBasedColorIndex.Value) : null;
-        return color == null ? null : PdfCore.PdfColor.FromRgb(color.Red, color.Green, color.Blue);
+        return color == null ? null : global::OfficeIMO.OfficeColor.FromRgb(color.Red, color.Green, color.Blue);
     }
 
     internal static PdfCore.PdfPageNumberStyle ToPdfPageNumberStyle(RtfPageNumberFormat format) {
@@ -50,7 +50,7 @@ internal static class RtfPdfMapping {
     }
 
     internal static PdfCore.PdfParagraphStyle ToPdfParagraphStyle(RtfDocument document, RtfParagraph paragraph,
-        IReadOnlyList<PdfCore.PdfTextRun> runs, PdfCore.PdfOptions options) {
+        IReadOnlyList<PdfCore.PdfTextRun> runs, PdfCore.PdfCreateOptions options) {
         paragraph = document.GetParagraphFormatting(paragraph);
 
         int? leftIndent = paragraph.LeftIndentTwips;
@@ -69,24 +69,24 @@ internal static class RtfPdfMapping {
         IReadOnlyList<RtfTabStop> tabStops = paragraph.TabStops;
         PdfCore.PdfParagraphStyle pdfStyle = new PdfCore.PdfParagraphStyle();
         double leftIndentPoints = ToNonNegativePoints(leftIndent);
-        pdfStyle.LeftIndent = leftIndentPoints;
-        pdfStyle.RightIndent = ToNonNegativePoints(rightIndent);
-        pdfStyle.FirstLineIndent = ToSafeFirstLineIndent(firstLineIndent, leftIndentPoints);
+        pdfStyle.LeftIndent = global::OfficeIMO.OfficeLength.Points(leftIndentPoints);
+        pdfStyle.RightIndent = global::OfficeIMO.OfficeLength.Points(ToNonNegativePoints(rightIndent));
+        pdfStyle.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(ToSafeFirstLineIndent(firstLineIndent, leftIndentPoints));
 
         if (spaceBefore.HasValue && spaceBefore.Value >= 0) {
-            pdfStyle.SpacingBefore = TwipsToPoints(spaceBefore.Value);
+            pdfStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(TwipsToPoints(spaceBefore.Value));
         } else if (spaceBeforeAuto == true) {
-            pdfStyle.SpacingBefore = 0D;
+            pdfStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
         }
 
         if (spaceAfter.HasValue && spaceAfter.Value >= 0) {
-            pdfStyle.SpacingAfter = TwipsToPoints(spaceAfter.Value);
+            pdfStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(TwipsToPoints(spaceAfter.Value));
         } else if (spaceAfterAuto == true) {
             pdfStyle.SpacingAfter = null;
         } else {
             // RTF's normal paragraph has no after gap. Do not inherit the PDF
             // builder's convenience gap when the source omits this control.
-            pdfStyle.SpacingAfter = 0D;
+            pdfStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
         }
 
         pdfStyle.LineSpacing = ToPdfLineSpacing(lineSpacing, lineSpacingMultiple);
@@ -94,22 +94,22 @@ internal static class RtfPdfMapping {
         if (!exact && PdfCore.PdfWriter.TryResolveImportedLineBoxFloor(runs,
                 options.DefaultFont, options,
                 out double layoutFontSize, out double naturalMultiplier)) {
-            pdfStyle.FontSize = layoutFontSize;
+            pdfStyle.FontSize = global::OfficeIMO.OfficeLength.Points(layoutFontSize);
             double multiple = lineSpacing.HasValue && lineSpacing.Value != 0 && lineSpacingMultiple == true
                 ? Math.Max(0.1D, Math.Abs((double)lineSpacing.Value) / 240D) : 1D;
             pdfStyle.LineSpacing = lineSpacing.HasValue && lineSpacing.Value > 0 && lineSpacingMultiple != true
-                ? PdfCore.PdfLineSpacing.AtLeast(lineSpacing.Value / 20D, naturalMultiplier)
+                ? PdfCore.PdfLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(lineSpacing.Value / 20D), naturalMultiplier)
                     .WithFontLineBoxBaseline(naturalMultiplier)
                 : PdfCore.PdfLineSpacing.Multiple(naturalMultiplier * multiple)
                     .WithFontLineBoxBaseline(naturalMultiplier);
         }
 
         if (defaultTabWidth.HasValue && defaultTabWidth.Value > 0) {
-            pdfStyle.DefaultTabStopWidth = TwipsToPoints(defaultTabWidth.Value);
+            pdfStyle.DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(TwipsToPoints(defaultTabWidth.Value));
         }
 
         foreach (RtfTabStop tabStop in tabStops) {
-            pdfStyle.AddTabStop(TwipsToPoints(tabStop.PositionTwips), ToPdfTabAlignment(tabStop.Alignment), ToPdfTabLeader(tabStop.Leader));
+            pdfStyle.AddTabStop(global::OfficeIMO.OfficeLength.Points(TwipsToPoints(tabStop.PositionTwips)), ToPdfTabAlignment(tabStop.Alignment), ToPdfTabLeader(tabStop.Leader));
         }
 
         pdfStyle.KeepTogether = keepTogether;
@@ -130,11 +130,11 @@ internal static class RtfPdfMapping {
 
         PdfCore.PdfPageBorder border = new PdfCore.PdfPageBorder {
             DashStyle = ToPdfDashStyle(source.Style),
-            Width = source.Width.HasValue && source.Width.Value > 0 ? source.Width.Value / 8D : 1D,
-            Inset = source.Space.HasValue && source.Space.Value >= 0 ? source.Space.Value : 36D
+            Width = global::OfficeIMO.OfficeLength.Points(source.Width.HasValue && source.Width.Value > 0 ? source.Width.Value / 8D : 1D),
+            Inset = global::OfficeIMO.OfficeLength.Points(source.Space.HasValue && source.Space.Value >= 0 ? source.Space.Value : 36D)
         };
 
-        PdfCore.PdfColor? color = ToPdfColor(document, source.ColorIndex);
+        global::OfficeIMO.OfficeColor? color = ToPdfColor(document, source.ColorIndex);
         if (color.HasValue) {
             border.Color = color.Value;
         }
@@ -148,15 +148,15 @@ internal static class RtfPdfMapping {
             : null;
         PdfCore.PdfTableStyle style = callerStyle?.Clone() ?? new PdfCore.PdfTableStyle {
             BorderColor = null,
-            BorderWidth = 0D,
-            CellPaddingX = 0D,
-            CellPaddingY = 0D
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0D),
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D)
         };
         int headerRowCount = GetRenderableHeaderRowCount(table);
         style.HeaderRowCount = headerRowCount;
         style.RepeatHeaderRowCount = headerRowCount;
 
-        var fills = new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
+        var fills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
         var paddings = new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>();
         var verticalAlignments = new Dictionary<(int Row, int Column), PdfCore.PdfCellVerticalAlign>();
         var borders = new Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>();
@@ -173,7 +173,7 @@ internal static class RtfPdfMapping {
 
                 rowHasRenderableCells = true;
                 var key = (pdfRowIndex, cellIndex);
-                PdfCore.PdfColor? fill = ToPdfColor(document, cell.BackgroundColorIndex ?? row.BackgroundColorIndex);
+                global::OfficeIMO.OfficeColor? fill = ToPdfColor(document, cell.BackgroundColorIndex ?? row.BackgroundColorIndex);
                 if (fill.HasValue) {
                     fills[key] = fill.Value;
                 }
@@ -251,10 +251,10 @@ internal static class RtfPdfMapping {
         }
 
         return new PdfCore.PdfCellPadding {
-            Top = top,
-            Left = left,
-            Bottom = bottom,
-            Right = right
+            Top = (top) is { } points12168 ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(points12168) : null,
+            Left = (left) is { } points12192 ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(points12192) : null,
+            Bottom = (bottom) is { } points12219 ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(points12219) : null,
+            Right = (right) is { } points12247 ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(points12247) : null
         };
     }
 
@@ -321,7 +321,7 @@ internal static class RtfPdfMapping {
     private static PdfCore.PdfCellBorderSide CreatePdfCellBorderSide(RtfDocument document, RtfTableCellBorderStyle style, int? width, int? colorIndex) {
         return new PdfCore.PdfCellBorderSide {
             Color = ToPdfColor(document, colorIndex) ?? DefaultBorderColor,
-            Width = width.HasValue && width.Value > 0 ? width.Value / 8D : 0.5D,
+            Width = global::OfficeIMO.OfficeLength.Points(width.HasValue && width.Value > 0 ? width.Value / 8D : 0.5D),
             DashStyle = ToPdfDashStyle(style),
             LineStyle = style == RtfTableCellBorderStyle.Double ? PdfCore.PdfCellBorderLineStyle.TwoLine : PdfCore.PdfCellBorderLineStyle.Standard
         };
@@ -410,8 +410,8 @@ internal static class RtfPdfMapping {
         return lineSpacingTwips.Value < 0
             // Native exact-height RTF lines position the baseline within the
             // authored box independently of the selected run's font metrics.
-            ? PdfCore.PdfLineSpacing.Exactly(points).WithFixedLineBoxBaseline(points * 4D / 5D)
-            : PdfCore.PdfLineSpacing.AtLeast(points);
+            ? PdfCore.PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(points)).WithFixedLineBoxBaseline(points * 4D / 5D)
+            : PdfCore.PdfLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(points));
     }
 
     internal static double TwipsToPoints(int twips) => twips / 20D;

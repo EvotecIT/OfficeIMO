@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Hello World");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     FontFamily = "Times New Roman"
                 });
             }

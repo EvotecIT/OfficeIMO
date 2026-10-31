@@ -178,8 +178,8 @@ internal static class HtmlMhtmlEvidenceRunner {
         options.ResourcePolicy.AllowDocumentFontEmbedding = allowDocumentFontEmbedding;
         if (profile == HtmlRenderIntentProfile.ScreenSnapshotPaged) {
             options.PageSize = new OfficePageSize(
-                ViewportWidth / HtmlRenderOptions.CssPixelsPerInch,
-                ViewportHeight / HtmlRenderOptions.CssPixelsPerInch);
+                global::OfficeIMO.OfficeLength.Inches(ViewportWidth / HtmlRenderOptions.CssPixelsPerInch),
+                global::OfficeIMO.OfficeLength.Inches(ViewportHeight / HtmlRenderOptions.CssPixelsPerInch));
         }
         HtmlRenderRequest request = HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf, options);
         return document.RenderToPdfDocumentResultAsync(request);
@@ -200,7 +200,9 @@ internal static class HtmlMhtmlEvidenceRunner {
             long allocatedBytes = GC.GetTotalAllocatedBytes(precise: true) - allocationStart;
             string file = name + ".pdf";
             await File.WriteAllBytesAsync(Path.Combine(output, file), bytes).ConfigureAwait(false);
-            PdfCore.PdfDocumentInfo inspection = PdfCore.PdfDocument.Load(bytes).Inspect();
+            using var pdfInput = new MemoryStream(bytes, writable: false);
+            using PdfCore.PdfDocument pdfDocument = PdfCore.PdfDocument.Load(pdfInput);
+            PdfCore.PdfDocumentInfo inspection = pdfDocument.Inspect();
             var warnings = result.Report.Warnings.Select(warning => new WarningEvidence(
                 warning.Converter,
                 warning.Code,

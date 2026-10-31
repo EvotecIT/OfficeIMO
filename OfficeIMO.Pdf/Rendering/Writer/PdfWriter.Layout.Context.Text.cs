@@ -4,7 +4,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static void MarkPageRichTextFont(LayoutResult.Page page, PdfOptions options,
+    private static void MarkPageRichTextFont(LayoutResult.Page page, PdfCreateOptions options,
         PdfStandardFont font, PdfNamedFontFace? namedFont) {
         if (namedFont.HasValue) page.UsedNamedFonts.Add(namedFont.Value);
         else {
@@ -14,13 +14,13 @@ internal static partial class PdfWriter {
     }
 
     private sealed partial class LayoutContext {
-        private void WriteLinesInternal(string fontRes, double fontSize, double lineHeight, double x, double widthUsed, double startY, System.Collections.Generic.List<string> lines, PdfAlign align, PdfColor? color = null, bool applyBaselineTweak = false, string? structureType = null, int? markedContentId = null, PdfNamedFontFace? namedFont = null, OfficeTextFeatureSettings? featureSettings = null) {
+        private void WriteLinesInternal(string fontRes, double fontSize, double lineHeight, double x, double widthUsed, double startY, System.Collections.Generic.List<string> lines, PdfAlign align, global::OfficeIMO.OfficeColor? color = null, bool applyBaselineTweak = false, string? structureType = null, int? markedContentId = null, PdfNamedFontFace? namedFont = null, OfficeTextFeatureSettings? featureSettings = null) {
             EnsurePage();
             pageDirty = true;
             AppendMarkedContentBegin(sb, structureType, markedContentId);
             var content = new ContentStreamBuilder(sb)
                 .BeginText()
-                .Font(fontRes, fontSize, currentOpts.NeedsSyntheticOblique(ResolveFontFromResourceName(fontRes, ChooseNormal(currentOpts.DefaultFont)), namedFont))
+                .Font(fontRes, fontSize, currentOpts.NeedsSyntheticOblique(ResolveFontFromResourceName(fontRes, ChooseNormal(currentOpts.DefaultFont)), namedFont), syntheticBold: currentOpts.NeedsSyntheticBold(ResolveFontFromResourceName(fontRes, ChooseNormal(currentOpts.DefaultFont)), namedFont))
                 .TextLeading(lineHeight);
             var lineFont = ResolveFontFromResourceName(fontRes, ChooseNormal(currentOpts.DefaultFont));
             double yStart2 = startY;
@@ -28,7 +28,7 @@ internal static partial class PdfWriter {
                 yStart2 -= GetDescenderForOptions(lineFont, namedFont, fontSize, currentOpts) * 0.0;
             }
             content.TextMatrix(x, yStart2);
-            var effectiveColor = color ?? currentOpts.DefaultTextColor ?? PdfColor.Black;
+            var effectiveColor = color ?? currentOpts.DefaultTextColor ?? global::OfficeIMO.OfficeColor.Black;
             content.FillColor(effectiveColor);
             for (int i = 0; i < lines.Count; i++) {
                 string line = lines[i];
@@ -45,7 +45,7 @@ internal static partial class PdfWriter {
             AppendMarkedContentEnd(sb, markedContentId);
         }
 
-        private void WriteLines(string fontRes, double fontSize, double lineHeight, double x, double startY, System.Collections.Generic.List<string> lines, PdfAlign align, PdfColor? color = null, bool applyBaselineTweak = false, string? structureType = null, int? markedContentId = null)
+        private void WriteLines(string fontRes, double fontSize, double lineHeight, double x, double startY, System.Collections.Generic.List<string> lines, PdfAlign align, global::OfficeIMO.OfficeColor? color = null, bool applyBaselineTweak = false, string? structureType = null, int? markedContentId = null)
             => WriteLinesInternal(fontRes, fontSize, lineHeight, x, width, startY, lines, align, color, applyBaselineTweak, structureType, markedContentId);
 
         private void AddHeadingLinkAnnotations(HeadingBlock heading, System.Collections.Generic.List<string> lines, PdfStandardFont font, double fontSize, double lineHeight, double x, double widthUsed, double startBaselineY, int? structElementIndex = null) {

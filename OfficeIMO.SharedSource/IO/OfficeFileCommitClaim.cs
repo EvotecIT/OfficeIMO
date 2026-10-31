@@ -59,12 +59,51 @@ namespace OfficeIMO.Core.Internal.IO {
             }
         }
 
+        /// <summary>Attempts publication ownership without waiting when another writer already owns the destination.</summary>
+        internal static bool TryAcquire(string destinationPath, out OfficeFileCommitClaim? claim) {
+            try {
+                claim = Acquire(destinationPath);
+                return true;
+            } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) {
+                claim = null;
+                if (File.Exists(destinationPath) || IsSharingContention(exception)) return false;
+                if (exception is IOException &&
+                    ((RuntimeInformation.IsOSPlatform(OSPlatform.Windows) &&
+                      (exception.HResult == unchecked((int)0x80070050) || exception.HResult == unchecked((int)0x800700B7))) ||
+                     (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && exception.HResult == 17))) {
+                    // CreateNew reports the same collision for an owned claim and an
+                    // abandoned one (Unix EEXIST is 17). Verify actual sharing;
+                    // permission and other persistent failures must remain errors.
+                    try {
+                        using (var probe = new FileStream(CreatePath(destinationPath), FileMode.Open, FileAccess.Read, FileShare.Delete)) { }
+                    } catch (Exception probe) when (IsSharingContention(probe) ||
+                        ((probe is FileNotFoundException || probe is DirectoryNotFoundException) && File.Exists(destinationPath))) {
+                        return false;
+                    }
+                }
+                throw;
+            }
+        }
+
         /// <summary>Identifies a claim collision so the caller can apply its own retry policy.</summary>
         internal static bool IsContention(Exception exception, string destinationPath) =>
             IsExistingClaimContention(exception, CreatePath(destinationPath));
 
+        private static bool IsSharingContention(Exception exception) {
+            if (exception is IOException) {
+                int code = exception.HResult;
+                // Exclusive-open failures retain ownership evidence after the incumbent
+                // unlinks its claim. Unix FileStream reports the raw flock errno.
+                if (code == unchecked((int)0x80070020) || code == unchecked((int)0x80070021)
+                    || (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && code == 35)
+                    || (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && code == 11)) return true;
+            }
+            return false;
+        }
+
         private static bool IsExistingClaimContention(Exception exception, string claimPath) =>
-            (exception is IOException || exception is UnauthorizedAccessException) && File.Exists(claimPath);
+            IsSharingContention(exception) ||
+            ((exception is IOException || exception is UnauthorizedAccessException) && File.Exists(claimPath));
 
         private static bool IsPossiblePendingDeletion(UnauthorizedAccessException exception, string claimPath) {
             if (exception.HResult != unchecked((int)0x80070005) || Directory.Exists(claimPath)) return false;
@@ -92,12 +131,20 @@ namespace OfficeIMO.Core.Internal.IO {
             if (stream == null) return;
             stream.Dispose();
             if (_windowsClaimPath != null && _windowsClaimMarker != null) {
-                try {
-                    using (var ownedClaim = new FileStream(_windowsClaimPath, FileMode.Open, FileAccess.Read, FileShare.Delete)) {
-                        if (HasClaimMarker(ownedClaim, _windowsClaimMarker)) File.Delete(_windowsClaimPath);
+                for (int attempt = 0; ; attempt++) {
+                    try {
+                        using (var ownedClaim = new FileStream(_windowsClaimPath, FileMode.Open, FileAccess.Read, FileShare.Delete)) {
+                            if (HasClaimMarker(ownedClaim, _windowsClaimMarker)) File.Delete(_windowsClaimPath);
+                        }
+                        break;
+                    } catch (IOException exception) when (attempt < 9 && IsSharingContention(exception)) {
+                        // A competing publisher can briefly open the released claim to verify
+                        // contention. Let that probe close before checking and deleting our marker.
+                        Thread.Sleep(1);
+                    } catch {
+                        // Best-effort cleanup must not hide the publication failure.
+                        break;
                     }
-                } catch {
-                    // Best-effort cleanup must not hide the publication failure.
                 }
             }
         }

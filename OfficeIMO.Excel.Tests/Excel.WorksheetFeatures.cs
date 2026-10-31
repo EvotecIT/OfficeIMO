@@ -13,14 +13,16 @@ using Threaded = DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Test_WorksheetCommentsLifecycle() {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetComments.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Comments");
+                var sheet = document.AddSheet("Comments");
                 sheet.CellValue(1, 1, "Header");
                 sheet.SetComment(1, 1, "First comment", author: "Tester", initials: "TT");
                 Assert.True(sheet.HasComment(1, 1));
@@ -48,7 +50,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetCommentsMultiline.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Comments");
+                var sheet = document.AddSheet("Comments");
                 sheet.CellValue(1, 1, "Header");
                 sheet.SetComment(1, 1, "Line 1\nLine 2", author: "Tester", initials: "TT");
                 document.Save();
@@ -64,7 +66,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetComments.Filtered.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Comments");
+                var sheet = document.AddSheet("Comments");
                 sheet.SetComment("A1", "Review total", author: "Alice", initials: "AA");
                 sheet.SetComment("B2", "Review status", author: "Alice", initials: "AA");
                 sheet.SetComment("C3", "Keep status", author: "Bob", initials: "BB");
@@ -112,10 +114,10 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetComments.RichText.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Comments");
+                var sheet = document.AddSheet("Comments");
                 sheet.SetCommentRichText("A1", new[] {
                     new ExcelRichTextRun("Important ") { Bold = true, FontColor = "#FF0000" },
-                    new ExcelRichTextRun("note") { Italic = true, Underline = true, Strikethrough = true, FontName = "Arial", FontSize = 14D }
+                    new ExcelRichTextRun("note") { Italic = true, Underline = true, Strikethrough = true, FontName = "Arial", FontSize = global::OfficeIMO.OfficeLength.Points(14D) }
                 }, author: "Alice", initials: "AA");
 
                 var comment = Assert.Single(sheet.GetComments());
@@ -169,7 +171,7 @@ namespace OfficeIMO.Tests {
             const string commentId = "{22222222-2222-2222-2222-222222222222}";
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Threaded");
+                var sheet = document.AddSheet("Threaded");
                 sheet.CellValue(1, 1, "Revenue");
                 document.Save();
             }
@@ -202,7 +204,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
-                var snapshot = document.CreateInspectionSnapshot();
+                var snapshot = document.Inspect();
                 var worksheet = Assert.Single(snapshot.Worksheets);
                 var threadedComment = Assert.Single(worksheet.ThreadedComments);
 
@@ -239,13 +241,18 @@ namespace OfficeIMO.Tests {
             var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Images");
+                var sheet = document.AddSheet("Images");
 
-                var image = sheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10,
-                    name: "Logo", altText: "Company logo");
+                var image = sheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(12),
+                    Height = OfficeIMO.OfficeLength.Pixels(10),
+                    Name = "Logo",
+                    Description = "Company logo"
+                });
                 image.SetAltText("Updated company logo", "Logo title")
                     .LockAspectRatio(false)
-                    .SetSize(24, 18);
+                    .SetSize(OfficeLength.Pixels(24), OfficeLength.Pixels(18));
 
                 Assert.Equal("Logo", sheet.GetImage("Logo")?.Name);
                 Assert.Single(sheet.Images);
@@ -273,7 +280,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetProtection.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Protected");
+                var sheet = document.AddSheet("Protected");
                 var options = new ExcelSheetProtectionOptions {
                     AllowSelectLockedCells = false,
                     AllowSelectUnlockedCells = false,
@@ -319,66 +326,68 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_WorksheetSparklines() {
+        public void Test_WorksheetSparklines()
+        {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetSparklines.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Sparklines");
-                for (int i = 0; i < 6; i++) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
+                var sheet = document.AddSheet("Sparklines");
+                for (int i = 0; i < 6; i++)
+                {
                     sheet.CellValue(2, 2 + i, (double)(i + 1));
                 }
 
-                sheet.AddSparklines("B2:G2", "H2:H2", displayMarkers: true, seriesColor: "#FF0000");
+                sheet.AddSparklines("B2:G2", "H2:H2", displayMarkers: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#FF0000"));
                 document.Save();
             }
 
-            using (var doc = SpreadsheetDocument.Open(filePath, false)) {
+            using (var doc = SpreadsheetDocument.Open(filePath, false))
+            {
                 var wb = doc.WorkbookPart!;
                 var sheet = wb.Workbook.Sheets!.OfType<Sheet>().First(s => s.Name == "Sparklines");
                 var wsPart = (WorksheetPart)wb.GetPartById(sheet.Id!);
                 var groups = wsPart.Worksheet.Descendants<SparklineGroups>().FirstOrDefault();
-                if (groups != null) {
+                if (groups != null)
+                {
                     var group = groups.Elements<SparklineGroup>().FirstOrDefault();
                     Assert.NotNull(group);
                     Assert.Equal(SparklineTypeValues.Line, group!.Type?.Value);
                     var sparkline = group.GetFirstChild<Sparklines>()!.Elements<Sparkline>().Single();
                     Assert.Equal("B2:G2", sparkline.GetFirstChild<OfficeFormula>()!.Text);
                     Assert.Equal("H2:H2", sparkline.GetFirstChild<OfficeReferenceSequence>()!.Text);
-                } else {
+                }
+                else
+                {
                     const string SparklineNamespace = "http://schemas.microsoft.com/office/excel/2009/9/main";
-                    var unknown = wsPart.Worksheet.Descendants<OpenXmlUnknownElement>()
-                        .OfType<OpenXmlUnknownElement>()
-                        .FirstOrDefault(e => e.LocalName == "sparklineGroups" && e.NamespaceUri == SparklineNamespace);
+                    var unknown = wsPart.Worksheet.Descendants<OpenXmlUnknownElement>().OfType<OpenXmlUnknownElement>().FirstOrDefault(e => e.LocalName == "sparklineGroups" && e.NamespaceUri == SparklineNamespace);
                     Assert.NotNull(unknown);
                 }
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
 
         [Fact]
-        public void Test_WorksheetSparklines_FluentBuilder() {
+        public void Test_WorksheetSparklines_FluentBuilder()
+        {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetSparklines.Fluent.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Sparklines");
-                for (int i = 0; i < 6; i++) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
+                var sheet = document.AddSheet("Sparklines");
+                for (int i = 0; i < 6; i++)
+                {
                     sheet.CellValue(2, 2 + i, (double)(i + 1));
                 }
 
-                sheet.Sparklines("B2:G2")
-                    .Column()
-                    .Markers()
-                    .HighLow()
-                    .Axis()
-                    .Color("#4472C4")
-                    .At("H2:H2");
+                sheet.AddSparklines("B2:G2", "H2:H2", ExcelSparklineType.Column, displayMarkers: true, displayHighLow: true, displayAxis: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("4472C4"));
                 document.Save();
             }
 
-            using (var doc = SpreadsheetDocument.Open(filePath, false)) {
+            using (var doc = SpreadsheetDocument.Open(filePath, false))
+            {
                 var wb = doc.WorkbookPart!;
                 var sheet = wb.Workbook.Sheets!.OfType<Sheet>().First(s => s.Name == "Sparklines");
                 var wsPart = (WorksheetPart)wb.GetPartById(sheet.Id!);
@@ -389,81 +398,83 @@ namespace OfficeIMO.Tests {
                 Assert.True(group.Low?.Value);
                 Assert.True(group.DisplayXAxis?.Value);
                 Assert.Equal("FF4472C4", group.SeriesColor!.Rgb!.Value);
-
                 var sparkline = group.GetFirstChild<Sparklines>()!.Elements<Sparkline>().Single();
                 Assert.Equal("B2:G2", sparkline.GetFirstChild<OfficeFormula>()!.Text);
                 Assert.Equal("H2:H2", sparkline.GetFirstChild<OfficeReferenceSequence>()!.Text);
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
 
         [Fact]
-        public void Test_WorksheetSparklines_MultiRowRangesExpandPerTargetCell() {
+        public void Test_WorksheetSparklines_MultiRowRangesExpandPerTargetCell()
+        {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetSparklines.MultiRow.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Sparklines");
-                for (int row = 2; row <= 4; row++) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
+                var sheet = document.AddSheet("Sparklines");
+                for (int row = 2; row <= 4; row++)
+                {
                     sheet.CellValue(row, 3, (double)row);
                     sheet.CellValue(row, 4, (double)(row + 10));
                 }
 
-                sheet.AddSparklines("C2:D4", "E2:E4", displayMarkers: true, seriesColor: "#FF0000");
+                sheet.AddSparklines("C2:D4", "E2:E4", displayMarkers: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#FF0000"));
                 document.Save();
             }
 
-            using (var doc = SpreadsheetDocument.Open(filePath, false)) {
+            using (var doc = SpreadsheetDocument.Open(filePath, false))
+            {
                 var wb = doc.WorkbookPart!;
                 var sheet = wb.Workbook.Sheets!.OfType<Sheet>().First(s => s.Name == "Sparklines");
                 var wsPart = (WorksheetPart)wb.GetPartById(sheet.Id!);
                 var group = wsPart.Worksheet.Descendants<SparklineGroup>().Single();
                 var sparklines = group.GetFirstChild<Sparklines>()!.Elements<Sparkline>().ToList();
-
                 Assert.Equal(3, sparklines.Count);
-                Assert.Equal(new[] { "C2:D2", "C3:D3", "C4:D4" },
-                    sparklines.Select(s => s.GetFirstChild<OfficeFormula>()!.Text).ToArray());
-                Assert.Equal(new[] { "E2", "E3", "E4" },
-                    sparklines.Select(s => s.GetFirstChild<OfficeReferenceSequence>()!.Text).ToArray());
+                Assert.Equal(new[] { "C2:D2", "C3:D3", "C4:D4" }, sparklines.Select(s => s.GetFirstChild<OfficeFormula>()!.Text).ToArray());
+                Assert.Equal(new[] { "E2", "E3", "E4" }, sparklines.Select(s => s.GetFirstChild<OfficeReferenceSequence>()!.Text).ToArray());
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
 
         [Fact]
-        public void Test_WorksheetSparklines_MultiColumnRangesExpandPerTargetCell() {
+        public void Test_WorksheetSparklines_MultiColumnRangesExpandPerTargetCell()
+        {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetSparklines.MultiColumn.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Sparklines");
-                for (int row = 2; row <= 4; row++) {
+            using (var document = ExcelDocument.Create(filePath))
+            {
+                var sheet = document.AddSheet("Sparklines");
+                for (int row = 2; row <= 4; row++)
+                {
                     sheet.CellValue(row, 3, (double)row);
                     sheet.CellValue(row, 4, (double)(row + 10));
                 }
 
-                sheet.AddSparklines("C2:D4", "C5:D5", displayMarkers: true, seriesColor: "#FF0000");
+                sheet.AddSparklines("C2:D4", "C5:D5", displayMarkers: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#FF0000"));
                 document.Save();
             }
 
-            using (var doc = SpreadsheetDocument.Open(filePath, false)) {
+            using (var doc = SpreadsheetDocument.Open(filePath, false))
+            {
                 var wb = doc.WorkbookPart!;
                 var sheet = wb.Workbook.Sheets!.OfType<Sheet>().First(s => s.Name == "Sparklines");
                 var wsPart = (WorksheetPart)wb.GetPartById(sheet.Id!);
                 var group = wsPart.Worksheet.Descendants<SparklineGroup>().Single();
                 var sparklines = group.GetFirstChild<Sparklines>()!.Elements<Sparkline>().ToList();
-
                 Assert.Equal(2, sparklines.Count);
-                Assert.Equal(new[] { "C2:C4", "D2:D4" },
-                    sparklines.Select(s => s.GetFirstChild<OfficeFormula>()!.Text).ToArray());
-                Assert.Equal(new[] { "C5", "D5" },
-                    sparklines.Select(s => s.GetFirstChild<OfficeReferenceSequence>()!.Text).ToArray());
+                Assert.Equal(new[] { "C2:C4", "D2:D4" }, sparklines.Select(s => s.GetFirstChild<OfficeFormula>()!.Text).ToArray());
+                Assert.Equal(new[] { "C5", "D5" }, sparklines.Select(s => s.GetFirstChild<OfficeReferenceSequence>()!.Text).ToArray());
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -473,7 +484,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetSparklines.InvalidShape.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Sparklines");
+                var sheet = document.AddSheet("Sparklines");
 
                 var exception = Assert.Throws<ArgumentException>(() => sheet.AddSparklines("C2:D4", "E2:F4"));
                 Assert.Equal("locationRange", exception.ParamName);
@@ -485,7 +496,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetGridlines.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Gridlines");
+                var sheet = document.AddSheet("Gridlines");
                 sheet.CellValue(1, 1, "Header");
                 sheet.SetGridlinesVisible(false);
                 document.Save();
@@ -521,7 +532,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetRightToLeft.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("RTL");
+                var sheet = document.AddSheet("RTL");
                 sheet.CellValue(1, 1, "RTL");
                 sheet.SetRightToLeft(true);
                 Assert.True(sheet.RightToLeft);
@@ -562,13 +573,13 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetDefaultRowsAndColumns.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Rows");
+                var sheet = document.AddSheet("Rows");
                 sheet.CellValue(1, 1, "Default height");
-                sheet.SetDefaultRowHeight(18.5d);
-                sheet.SetDefaultColumnWidth(12.25d);
-                Assert.Equal(18.5d, sheet.DefaultRowHeight);
+                sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18.5d)));
+                sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(12.25d));
+                Assert.Equal(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18.5d)), sheet.DefaultRowHeight);
                 Assert.False(sheet.DefaultRowsHidden);
-                Assert.Equal(12.25d, sheet.DefaultColumnWidth);
+                Assert.Equal(ExcelColumnWidth.Characters(12.25d), sheet.DefaultColumnWidth);
                 document.Save();
             }
 
@@ -587,13 +598,13 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets.First();
-                Assert.Equal(18.5d, sheet.DefaultRowHeight);
-                Assert.Equal(12.25d, sheet.DefaultColumnWidth);
-                sheet.SetDefaultRowHeight(21d, hidden: true);
-                sheet.SetDefaultColumnWidth(14d);
-                Assert.Equal(21d, sheet.DefaultRowHeight);
+                Assert.Equal(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18.5d)), sheet.DefaultRowHeight);
+                Assert.Equal(ExcelColumnWidth.Characters(12.25d), sheet.DefaultColumnWidth);
+                sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(21d)),hidden: true);
+                sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(14d));
+                Assert.Equal(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(21d)), sheet.DefaultRowHeight);
                 Assert.True(sheet.DefaultRowsHidden);
-                Assert.Equal(14d, sheet.DefaultColumnWidth);
+                Assert.Equal(ExcelColumnWidth.Characters(14d), sheet.DefaultColumnWidth);
                 document.Save();
             }
 
@@ -616,7 +627,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetOutlines.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Outlines");
+                var sheet = document.AddSheet("Outlines");
                 sheet.CellValue(1, 1, "Grouped");
                 sheet.SetRowOutline(3, 2, collapsed: true);
                 sheet.SetColumnOutline(2, 1, collapsed: true);
@@ -640,9 +651,9 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelSheet sheet = document.Sheets.First();
-                ExcelColumnSnapshot column = Assert.Single(sheet.GetColumnDefinitions());
-                ExcelRowSnapshot row = Assert.Single(sheet.GetRowDefinitions());
-                ExcelWorksheetSnapshot worksheet = Assert.Single(document.CreateInspectionSnapshot().Worksheets);
+                ExcelColumnInfo column = Assert.Single(sheet.GetColumnDefinitions());
+                ExcelRowInfo row = Assert.Single(sheet.GetRowDefinitions());
+                ExcelWorksheetInfo worksheet = Assert.Single(document.Inspect().Worksheets);
 
                 Assert.Equal((byte?)1, column.OutlineLevel);
                 Assert.True(column.Collapsed);
@@ -661,7 +672,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetTabColor.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Colored");
+                var sheet = document.AddSheet("Colored");
                 sheet.CellValue(1, 1, "Header");
                 sheet.SetTabColor("#336699");
                 document.Save();
@@ -674,7 +685,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                ExcelWorksheetSnapshot worksheet = Assert.Single(document.CreateInspectionSnapshot().Worksheets);
+                ExcelWorksheetInfo worksheet = Assert.Single(document.Inspect().Worksheets);
                 Assert.Equal("FF336699", worksheet.TabColorArgb);
             }
 
@@ -695,7 +706,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetVeryHidden.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Internal");
+                var sheet = document.AddSheet("Internal");
                 sheet.CellValue(1, 1, "Hidden");
                 sheet.SetVeryHidden(true);
                 Assert.True(sheet.Hidden);
@@ -733,7 +744,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetViewInfo.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("View");
+                var sheet = document.AddSheet("View");
                 sheet.CellValue(1, 1, "Header");
                 sheet.Freeze(2, 1);
                 sheet.SetGridlinesVisible(false);
@@ -762,7 +773,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetViewOptions.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("View");
+                var sheet = document.AddSheet("View");
                 sheet.CellValue(1, 1, "Header");
                 sheet.SetViewOptions(showGridlines: false, rightToLeft: true, zoomScale: 125, zoomScaleNormal: 100, view: ExcelWorksheetViewKind.PageLayout);
                 document.Save();
@@ -787,7 +798,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(100U, view.ZoomScaleNormal);
                 Assert.Equal("pageLayout", view.View);
 
-                ExcelWorksheetSnapshot worksheet = Assert.Single(document.CreateInspectionSnapshot().Worksheets);
+                ExcelWorksheetInfo worksheet = Assert.Single(document.Inspect().Worksheets);
                 Assert.False(worksheet.ShowGridlines);
                 Assert.True(worksheet.RightToLeft);
                 Assert.Equal(125U, worksheet.ZoomScale);
@@ -802,7 +813,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(stream, new ExcelCreateOptions {
                 PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             })) {
-                var sheet = document.AddWorksheet("View");
+                var sheet = document.AddSheet("View");
                 sheet.CellValue(1, 1, "Header");
                 sheet.SetViewOptions(showGridlines: false, rightToLeft: true);
             }
@@ -820,11 +831,11 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorkbookActiveWorksheet.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var summary = document.AddWorksheet("Summary");
+                var summary = document.AddSheet("Summary");
                 summary.CellValue(1, 1, "Summary");
-                var details = document.AddWorksheet("Details");
+                var details = document.AddSheet("Details");
                 details.CellValue(1, 1, "Details");
-                var archive = document.AddWorksheet("Archive");
+                var archive = document.AddSheet("Archive");
                 archive.CellValue(1, 1, "Archive");
                 Assert.Equal(0, document.ActiveWorksheetIndex);
                 Assert.Equal("Summary", document.ActiveWorksheet!.Name);
@@ -857,7 +868,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
+                ExcelWorkbookInfo snapshot = document.Inspect();
                 Assert.Equal(1, snapshot.ActiveWorksheetIndex);
                 Assert.Equal("Details", snapshot.ActiveWorksheetName);
                 Assert.False(snapshot.Worksheets[0].IsActive);
@@ -873,9 +884,9 @@ namespace OfficeIMO.Tests {
         public void Test_WorkbookActiveWorksheetReadsStoredActiveTab(uint? activeTab, int expectedIndex, string expectedName) {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create()) {
-                document.AddWorksheet("First").CellValue(1, 1, "First");
-                document.AddWorksheet("Second").CellValue(1, 1, "Second");
-                document.AddWorksheet("Third").CellValue(1, 1, "Third");
+                document.AddSheet("First").CellValue(1, 1, "First");
+                document.AddSheet("Second").CellValue(1, 1, "Second");
+                document.AddSheet("Third").CellValue(1, 1, "Third");
                 document.Save(stream);
             }
 
@@ -914,9 +925,9 @@ namespace OfficeIMO.Tests {
         public void Test_WorkbookActiveWorksheetResolvesMixedWorkbookTabs(bool cacheSheets, uint? activeTab, int expectedIndex, string? expectedName) {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create()) {
-                document.AddWorksheet("First").CellValue(1, 1, "First value");
-                document.AddWorksheet("Second").CellValue(1, 1, "Second value");
-                document.AddWorksheet("Third").CellValue(1, 1, "Third value");
+                document.AddSheet("First").CellValue(1, 1, "First value");
+                document.AddSheet("Second").CellValue(1, 1, "Second value");
+                document.AddSheet("Third").CellValue(1, 1, "Third value");
                 document.Save(stream);
             }
 
@@ -981,7 +992,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetOutlineGroups.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Outline");
+                var sheet = document.AddSheet("Outline");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(2, 1, "North");
                 sheet.CellValue(3, 1, "South");
@@ -991,9 +1002,9 @@ namespace OfficeIMO.Tests {
                 sheet.SetOutlineSummary(summaryBelow: true, summaryRight: true);
                 sheet.GroupRows(2, 3, outlineLevel: 1, collapsed: true);
                 sheet.GroupColumns(2, 3, outlineLevel: 1, collapsed: true);
-                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupRows(A1.MaxRows, A1.MaxRows, outlineLevel: 1, collapsed: true));
-                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupRows(A1.MaxRows + 1, A1.MaxRows + 1));
-                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupColumns(A1.MaxColumns + 1, A1.MaxColumns + 1));
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupRows(ExcelA1.MaxRows, ExcelA1.MaxRows, outlineLevel: 1, collapsed: true));
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupRows(ExcelA1.MaxRows + 1, ExcelA1.MaxRows + 1));
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupColumns(ExcelA1.MaxColumns + 1, ExcelA1.MaxColumns + 1));
                 document.Save();
             }
 
@@ -1023,18 +1034,18 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                ExcelWorksheetSnapshot worksheet = Assert.Single(document.CreateInspectionSnapshot().Worksheets);
+                ExcelWorksheetInfo worksheet = Assert.Single(document.Inspect().Worksheets);
                 Assert.True(worksheet.OutlineSummaryBelow);
                 Assert.True(worksheet.OutlineSummaryRight);
 
-                ExcelRowSnapshot row2 = Assert.Single(worksheet.Rows, row => row.Index == 2);
-                ExcelRowSnapshot row4 = Assert.Single(worksheet.Rows, row => row.Index == 4);
+                ExcelRowInfo row2 = Assert.Single(worksheet.Rows, row => row.Index == 2);
+                ExcelRowInfo row4 = Assert.Single(worksheet.Rows, row => row.Index == 4);
                 Assert.Equal((byte)1, row2.OutlineLevel.GetValueOrDefault());
                 Assert.True(row2.Hidden);
                 Assert.True(row4.Collapsed);
 
-                ExcelColumnSnapshot column2 = Assert.Single(worksheet.Columns, column => column.StartIndex == 2 && column.EndIndex == 2);
-                ExcelColumnSnapshot column4 = Assert.Single(worksheet.Columns, column => column.StartIndex == 4 && column.EndIndex == 4);
+                ExcelColumnInfo column2 = Assert.Single(worksheet.Columns, column => column.StartIndex == 2 && column.EndIndex == 2);
+                ExcelColumnInfo column4 = Assert.Single(worksheet.Columns, column => column.StartIndex == 4 && column.EndIndex == 4);
                 Assert.Equal((byte)1, column2.OutlineLevel.GetValueOrDefault());
                 Assert.True(column2.Hidden);
                 Assert.True(column4.Collapsed);

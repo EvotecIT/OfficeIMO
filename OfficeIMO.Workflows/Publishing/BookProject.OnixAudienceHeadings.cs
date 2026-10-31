@@ -4,14 +4,14 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class BookProject {
     private static IReadOnlyList<XElement> BuildOnixAudienceHeadings(IReadOnlyList<BookOnixAudienceHeading> headings, CancellationToken token) {
-        ArgumentNullException.ThrowIfNull(headings);
+        if (headings == null) throw new ArgumentNullException(nameof(headings));
         if (headings.Count > 16) throw new ArgumentException("Supply at most 16 audience heading translations.", nameof(headings));
         var result = new List<XElement>();
         var languages = new HashSet<string>(StringComparer.Ordinal);
         XNamespace ns = OnixNamespace;
         foreach (var heading in headings) {
             token.ThrowIfCancellationRequested();
-            ArgumentNullException.ThrowIfNull(heading);
+            if (heading == null) throw new ArgumentNullException(nameof(heading));
             RequireOnixText(heading.Text, nameof(heading.Text));
             RequireOnixTranslationLanguage(heading.LanguageCode, headings.Count, nameof(headings));
             if (!languages.Add(heading.LanguageCode ?? string.Empty))

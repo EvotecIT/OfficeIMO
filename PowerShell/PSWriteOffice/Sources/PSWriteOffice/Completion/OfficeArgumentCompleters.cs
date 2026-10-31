@@ -118,7 +118,7 @@ public sealed class OfficeHighlightColorArgumentCompleter : IArgumentCompleter
 /// <summary>Completes known PDF page sizes while retaining the Custom size option.</summary>
 public sealed class OfficePdfPageSizeArgumentCompleter : IArgumentCompleter
 {
-    private static readonly string[] Names = PageSizes.Names.Concat(new[] { "Custom" }).ToArray();
+    private static readonly string[] Names = PdfPageSizes.Names.Concat(new[] { "Custom" }).ToArray();
 
     /// <inheritdoc />
     public IEnumerable<CompletionResult> CompleteArgument(
@@ -137,7 +137,7 @@ public sealed class OfficePdfTableStyleArgumentCompleter : IArgumentCompleter
         {
             "Light", "Minimal", "RightAlignedNumbers", "TechnicalDocument", "Compact", "Report"
         }
-        .Concat(TableStyles.SupportedWordStyleNames)
+        .Concat(PdfTableStyles.SupportedWordStyleNames)
         .ToArray();
 
     /// <inheritdoc />

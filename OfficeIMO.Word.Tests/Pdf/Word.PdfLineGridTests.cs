@@ -55,8 +55,8 @@ public partial class Word {
         paragraph._paragraph.RemoveAllChildren<Run>();
         paragraph._paragraph.Append(new Run(new RunProperties(new FontSize { Val = (size * 2).ToString() },
             new RunFonts { Ascii = "Arial", HighAnsi = "Arial" }), new Text("A"), new Break(), new Text("B"), new Break(), new Text("C")));
-        paragraph.LineSpacing = line; paragraph.LineSpacingRule = rule;
-        paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacing = (rule) switch { global::OfficeIMO.Word.WordLineSpacingRule.Exact => global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(line) * 635))), global::OfficeIMO.Word.WordLineSpacingRule.AtLeast => global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Emus(checked((long)(line) * 635))), _ => global::OfficeIMO.Word.WordLineSpacing.Multiple((line) / 240D) };
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         if (route == "disabled") paragraph._paragraph.ParagraphProperties!.Append(new SnapToGrid { Val = false });
         if (route is "style-disabled" or "direct-enabled") {
             Styles styles = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
@@ -86,14 +86,14 @@ public partial class Word {
     }
 
     private static double[] ExportGridDocumentBaselines(WordDocument source) {
-        var options = new PdfOptions { DefaultFont = PdfStandardFont.Helvetica };
+        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica };
         options.EmbedStandardFont(PdfStandardFont.Helvetica,
             ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(1200, -300, 0, 300,
                 Enumerable.Range(32, 95).ToArray()), "OfficeIMO-Grid-Regular");
         string original = source._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using var pdf = PdfPigDocument.Open(source.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(source.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(original, source._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         var letters = pdf.GetPages().SelectMany(page => page.Letters).Where(letter => letter.Value is "A" or "B" or "C").ToArray();
         Assert.Equal("ABC", string.Concat(letters.Select(letter => letter.Value)));

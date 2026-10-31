@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
 
             byte[] packageBytes;
             try {
-                packageBytes = projectedDocument.ToBytes(ExcelFileFormat.Xlsx);
+                packageBytes = projectedDocument.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx });
             } finally {
                 projectedDocument.Dispose();
             }

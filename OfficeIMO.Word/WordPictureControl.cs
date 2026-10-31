@@ -76,9 +76,9 @@ namespace OfficeIMO.Word {
         /// Replaces the picture content-control image with the image at the supplied path.
         /// </summary>
         /// <param name="filePath">Image file path.</param>
-        /// <param name="width">Optional width of the image.</param>
-        /// <param name="height">Optional height of the image.</param>
-        public void SetImage(string filePath, double? width = null, double? height = null) {
+        /// <param name="width">Optional physical width of the image.</param>
+        /// <param name="height">Optional physical height of the image.</param>
+        public void SetImage(string filePath, OfficeLength? width = null, OfficeLength? height = null) {
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentNullException(nameof(filePath));
 
             var newRun = new Run();
@@ -93,9 +93,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="imageStream">Image stream.</param>
         /// <param name="fileName">File name used to infer image type.</param>
-        /// <param name="width">Optional width of the image.</param>
-        /// <param name="height">Optional height of the image.</param>
-        public void SetImage(Stream imageStream, string fileName, double? width = null, double? height = null) {
+        /// <param name="width">Optional physical width of the image.</param>
+        /// <param name="height">Optional physical height of the image.</param>
+        public void SetImage(Stream imageStream, string fileName, OfficeLength? width = null, OfficeLength? height = null) {
             if (imageStream == null) throw new ArgumentNullException(nameof(imageStream));
             if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentNullException(nameof(fileName));
 

@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
         public void Test_Markdown_RoundTrip() {
             string md = "# Heading 1\n\nHello **world** and *universe*.";
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument( new MarkdownToWordOptions { FontFamily = "Calibri" });
-            string roundTrip = doc.ToMarkdown(new WordToMarkdownOptions());
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord( new WordMarkdownImportOptions { FontFamily = "Calibri" });
+            string roundTrip = doc.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown();
 
             Assert.Contains("# Heading 1", roundTrip, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("**world**", roundTrip, StringComparison.OrdinalIgnoreCase);
@@ -25,8 +25,8 @@ namespace OfficeIMO.Tests {
         public void Test_Markdown_Lists_RoundTrip() {
             string md = "- Item 1\n- Item 2\n\n1. First\n1. Second";
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument( new MarkdownToWordOptions { FontFamily = "Calibri" });
-            string roundTrip = doc.ToMarkdown(new WordToMarkdownOptions());
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord( new WordMarkdownImportOptions { FontFamily = "Calibri" });
+            string roundTrip = doc.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown();
 
             Assert.Contains("- Item 1", roundTrip, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("1. First", roundTrip, StringComparison.OrdinalIgnoreCase);
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
             string md = "Hello";
             using MemoryStream ms = new MemoryStream();
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument( new MarkdownToWordOptions { FontFamily = "monospace" });
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord( new WordMarkdownImportOptions { FontFamily = "monospace" });
             doc.Save(ms);
 
             ms.Position = 0;
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
             string md = "Visit http://example.com";
             using MemoryStream ms = new MemoryStream();
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument( new MarkdownToWordOptions());
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord( new WordMarkdownImportOptions());
             doc.Save(ms);
 
             ms.Position = 0;
@@ -63,11 +63,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_Markdown_HtmlBlock_RoundTrip() {
-            string md = "<p><strong>Bold</strong> HTML</p>";
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions());
-            string roundTrip = doc.ToMarkdown(new WordToMarkdownOptions());
-            Assert.Contains("**Bold** HTML", roundTrip, StringComparison.OrdinalIgnoreCase);
+        public void Markdown_RawHtmlBlock_RetainsLiteralMarkupAndReportsApproximation() {
+            const string md = "<p><strong>Bold</strong> HTML</p>";
+            using var source = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
+            using var doc = source.ToWord(new WordMarkdownImportOptions(), out OfficeConversionReport report);
+            Assert.Contains(doc.Paragraphs, paragraph => paragraph.Text == md);
+            Assert.Contains(report.Diagnostics, finding => finding.Code == OfficeDiagnosticCodes.HtmlBlockAsText
+                && finding.LossKind == OfficeConversionLossKind.Approximation);
+            string roundTrip = doc.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown();
+            Assert.Equal(md + Environment.NewLine, roundTrip);
         }
 
         [Fact]
@@ -77,7 +81,7 @@ namespace OfficeIMO.Tests {
             string? html = doc.EmbeddedDocuments[0].GetHtml();
             Assert.NotNull(html);
             Assert.Contains("<div>HTML Block</div>", html, StringComparison.OrdinalIgnoreCase);
-            string md = doc.ToMarkdown(new WordToMarkdownOptions());
+            string md = doc.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown();
             Assert.Contains("<div>HTML Block</div>", md, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -85,8 +89,8 @@ namespace OfficeIMO.Tests {
         public void Test_Markdown_InlineIns_DegradesToUnderlineThroughWordRoundTrip() {
             const string md = "Before <ins>inserted</ins> after";
 
-            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions { FontFamily = "Calibri" });
-            string roundTrip = doc.ToMarkdown(new WordToMarkdownOptions { EnableUnderline = true });
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions { FontFamily = "Calibri" });
+            string roundTrip = doc.ToMarkdown(new WordMarkdownExportOptions { EnableUnderline = true }).ToMarkdown();
 
             Assert.Contains("Before", roundTrip, StringComparison.Ordinal);
             Assert.Contains("<u>inserted</u>", roundTrip, StringComparison.Ordinal);
@@ -97,8 +101,8 @@ namespace OfficeIMO.Tests {
         public void Test_Markdown_InlineQuote_DegradesToLiteralQuotesThroughWordRoundTrip() {
             const string md = "Before <q>quoted</q> after";
 
-            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions { FontFamily = "Calibri" });
-            string roundTrip = doc.ToMarkdown(new WordToMarkdownOptions { EnableUnderline = true });
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions { FontFamily = "Calibri" });
+            string roundTrip = doc.ToMarkdown(new WordMarkdownExportOptions { EnableUnderline = true }).ToMarkdown();
 
             Assert.Contains("Before \"quoted\" after", roundTrip, StringComparison.Ordinal);
             Assert.DoesNotContain("<q>", roundTrip, StringComparison.Ordinal);

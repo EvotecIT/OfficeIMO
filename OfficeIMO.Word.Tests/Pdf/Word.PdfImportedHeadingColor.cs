@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.Word;
 using OfficeIMO.Pdf;
 using OfficeIMO.TestAssets;
 using OfficeIMO.Word;
@@ -29,7 +30,7 @@ public sealed class WordPdfImportedHeadingColorTests {
         Assert.Empty(document.ValidateDocument());
         string sourceXml = SourceXml(document);
 
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         AssertRgbWord(page.GetWords(), "IMPORTED", 0, 0, 0);
         Assert.Equal(sourceXml, SourceXml(document));
@@ -50,7 +51,7 @@ public sealed class WordPdfImportedHeadingColorTests {
         Assert.Empty(document.ValidateDocument());
         string sourceXml = SourceXml(document);
 
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         AssertRgbWord(page.GetWords(), "DEFAULT", 51, 102, 153);
         AssertRgbWord(page.GetWords(), "INHERITED", 153, 51, 102);
@@ -73,7 +74,7 @@ public sealed class WordPdfImportedHeadingColorTests {
         Assert.Empty(document.ValidateDocument());
         string sourceXml = SourceXml(document);
 
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         AssertRgbWord(page.GetWords(), "EXPLICIT", 204, 51, 0);
         AssertRgbWord(page.GetWords(), "AUTO", 0, 0, 0);
@@ -86,16 +87,17 @@ public sealed class WordPdfImportedHeadingColorTests {
         using WordDocument document = CreateDocument();
         WordParagraph heading = document.AddParagraph("AUTHORED").SetStyle(WordParagraphStyles.Heading1);
         heading.FontFamily = ManagedTextShapingTestAssets.FamilyName;
-        heading.FontSize = 12;
+        heading.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         W.Style sourceStyle = Assert.Single(document.OpenXmlDocument.MainDocumentPart!
             .StyleDefinitionsPart!.Styles!.Elements<W.Style>(), style => style.StyleId?.Value == "Heading1");
-        Assert.Equal("2F5496", sourceStyle.StyleRunProperties!.GetFirstChild<W.Color>()!.Val!.Value);
+        OfficeColor themeText = OfficeTheme.Default.Palette.Text;
+        Assert.Equal(themeText.ToRgbHex(), sourceStyle.StyleRunProperties!.GetFirstChild<W.Color>()!.Val!.Value);
         Assert.Empty(document.ValidateDocument());
         string sourceXml = SourceXml(document);
 
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
-        AssertRgbWord(page.GetWords(), "AUTHORED", 47, 84, 150);
+        AssertRgbWord(page.GetWords(), "AUTHORED", themeText.R, themeText.G, themeText.B);
         Assert.Equal(sourceXml, SourceXml(document));
     }
 
@@ -104,11 +106,11 @@ public sealed class WordPdfImportedHeadingColorTests {
         document.Settings.FontFamily = ManagedTextShapingTestAssets.FamilyName;
         W.Styles styles = document.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         WordSection section = document.Sections[0];
-        section.PageSettings.Width = 4800;
-        section.PageSettings.Height = 6000;
-        section.Margins.Left = section.Margins.Right = 600;
-        section.Margins.Top = section.Margins.Bottom = 600;
-        section.Margins.HeaderDistance = section.Margins.FooterDistance = 300;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(240D);
+        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
+        section.Margins.Left = section.Margins.Right = global::OfficeIMO.OfficeLength.Points(30D);
+        section.Margins.Top = section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(30D);
+        section.Margins.HeaderDistance = section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(15D);
         var runDefaults = new W.RunPropertiesBaseStyle(
             new W.RunFonts { Ascii = ManagedTextShapingTestAssets.FamilyName, HighAnsi = ManagedTextShapingTestAssets.FamilyName });
         if (defaultColor != null) runDefaults.Append(new W.Color { Val = defaultColor });
@@ -152,12 +154,11 @@ public sealed class WordPdfImportedHeadingColorTests {
         // Match the admitted native heading-color control's source profile:
         // 120x32pt, column/paragraph offsets0, four explicit8pt distances.
         using var png = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(4, 2));
-        WordImage image = paragraph.AddText(string.Empty).InsertImage(png, "heading.png", 160D, 128D / 3D,
-            WordImageTextWrapping.TopAndBottom);
+        WordImage image = paragraph.AddText(string.Empty).AddImage(png, "heading.png", OfficeIMO.OfficeLength.Pixels(160D), OfficeIMO.OfficeLength.Pixels(128D / 3D), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.TopAndBottom });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Column;
-        image.HorizontalPositionOffset = 0L;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(0L);
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Paragraph;
-        image.VerticalPositionOffset = 0L;
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(0L);
         DW.Anchor anchor = image._Image.Anchor!;
         anchor.DistanceFromLeft = anchor.DistanceFromTop = anchor.DistanceFromRight = anchor.DistanceFromBottom = 101600U;
         anchor.BehindDoc = false;
@@ -165,13 +166,13 @@ public sealed class WordPdfImportedHeadingColorTests {
             extent.LeftEdge = extent.TopEdge = extent.RightEdge = extent.BottomEdge = 0L;
     }
 
-    private static WordToPdfOptions Options() {
-        var pdf = new PdfOptions();
+    private static WordPdfExportOptions Options() {
+        var pdf = new PdfCreateOptions();
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500,
             Enumerable.Range(32, 95).ToArray());
         pdf.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
             font, bold: font, italic: font, boldItalic: font));
-        return new WordToPdfOptions {
+        return new WordPdfExportOptions {
             IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = pdf

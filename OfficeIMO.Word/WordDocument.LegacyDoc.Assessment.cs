@@ -39,7 +39,7 @@ namespace OfficeIMO.Word {
                 return new LegacyDocWriteAssessment(
                     false,
                     null,
-                    "LegacyDocWriteUnsupported",
+                    "legacy-doc-write-unsupported",
                     "Document couldn't be saved as legacy DOC because the main document part or document body is missing.");
             }
             using var cloneStream = new MemoryStream();
@@ -70,25 +70,25 @@ namespace OfficeIMO.Word {
                 return new LegacyDocWriteAssessment(
                     true,
                     bytes.LongLength,
-                    "LegacyDocWriteSupported",
+                    "legacy-doc-write-supported",
                     "The document is inside OfficeIMO's tested native DOC writer subset.");
             } catch (NotSupportedException exception) {
                 return new LegacyDocWriteAssessment(
                     false,
                     null,
-                    "LegacyDocWriteUnsupported",
+                    "legacy-doc-write-unsupported",
                     exception.Message);
             } catch (WordSignatureSavePolicyException exception) {
                 return new LegacyDocWriteAssessment(
                     false,
                     null,
-                    "LegacyDocWriteUnsupported",
+                    "legacy-doc-write-unsupported",
                     exception.Message);
             } catch (InvalidOperationException exception) {
                 return new LegacyDocWriteAssessment(
                     false,
                     null,
-                    "LegacyDocWriteUnsupported",
+                    "legacy-doc-write-unsupported",
                     exception.Message);
             }
         }

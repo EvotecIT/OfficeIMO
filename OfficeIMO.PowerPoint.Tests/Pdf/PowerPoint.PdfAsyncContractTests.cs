@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.PowerPoint;
 using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Pdf;
@@ -10,8 +11,8 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PowerPointPdfAsyncContractTests {
     [Fact]
     public async Task PdfAsyncSavesPerformIoAndDoNotTurnCancellationIntoFailureResults() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
-        presentation.AddSlide().AddTextBoxPoints("Async PowerPoint PDF", 36, 36, 240, 48);
+        using PowerPointDocument presentation = PowerPointDocument.Create();
+        presentation.AddSlide().AddTextBox("Async PowerPoint PDF",global::OfficeIMO.OfficeLength.Points(36),global::OfficeIMO.OfficeLength.Points(36),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(48));
         using var output = new MemoryStream();
 
         await presentation.SaveAsPdfAsync(output);
@@ -21,8 +22,6 @@ public sealed class PowerPointPdfAsyncContractTests {
         cancellation.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             presentation.SaveAsPdfAsync(new MemoryStream(), cancellationToken: cancellation.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            presentation.SaveAsPdfResultAsync(new MemoryStream(), cancellationToken: cancellation.Token));
     }
 
     [Fact]
@@ -32,8 +31,8 @@ public sealed class PowerPointPdfAsyncContractTests {
             .ToBytes();
         using var cancellation = new CancellationTokenSource();
         var stage = new CancelingSemanticStage(cancellation);
-        var options = PdfToPowerPointOptions.CreateEditableTables();
-        options.ReadOptions = new PdfReadOptions {
+        var options = PowerPointPdfImportOptions.CreateEditableTables();
+        options.ReadOptions = new PdfLoadOptions {
             Pipeline = new PdfUnderstandingPipelineOptions { SemanticClassification = stage }
         };
         using var output = new MemoryStream();
@@ -50,7 +49,7 @@ public sealed class PowerPointPdfAsyncContractTests {
             .Paragraph(paragraph => paragraph.Text("Save cancellation probe"))
             .ToBytes();
         using var cancellation = new CancellationTokenSource();
-        var options = PdfToPowerPointOptions.CreateEditableContent();
+        var options = PowerPointPdfImportOptions.CreateEditableContent();
         using var output = new CancelOnWriteStream(cancellation);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
@@ -67,10 +66,10 @@ public sealed class PowerPointPdfAsyncContractTests {
         PdfDocumentReadResult logical = PdfDocument.Load(pdf).Read();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        var options = PdfToPowerPointOptions.CreateEditableTables();
+        var options = PowerPointPdfImportOptions.CreateEditableTables();
 
         Assert.ThrowsAny<OperationCanceledException>(() =>
-            logical.ToPowerPointPresentationResult(options, cancellation.Token));
+            logical.ConvertToPowerPointWithEvidence(options, cancellation.Token));
     }
 
     private sealed class CancelingSemanticStage : IPdfSemanticClassificationStage {

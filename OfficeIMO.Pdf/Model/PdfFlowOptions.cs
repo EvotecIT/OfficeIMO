@@ -2,16 +2,16 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Configures conditional, bounded, and replayable document flow.</summary>
 public sealed class PdfFlowOptions {
-    private double _minimumRemainingHeight;
+    private global::OfficeIMO.OfficeLength _minimumRemainingHeight;
 
     /// <summary>Optional predicate evaluated when the group reaches layout.</summary>
     public Func<PdfFlowContext, bool>? ShowIf { get; set; }
 
     /// <summary>Minimum remaining height required before the group starts; otherwise a new page is started.</summary>
-    public double MinimumRemainingHeight {
+    public global::OfficeIMO.OfficeLength MinimumRemainingHeight {
         get => _minimumRemainingHeight;
         set {
-            Guard.NonNegative(value, nameof(value));
+            Guard.NonNegative(value.ToPoints(), nameof(value));
             _minimumRemainingHeight = value;
         }
     }

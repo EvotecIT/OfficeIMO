@@ -68,7 +68,7 @@ public sealed class RtfPdfFontAdmissionTests {
         }
         byte[] sourceBefore = document.ToBytes();
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
         byte[] bytes = result.ToBytes();
         using PdfPigDocument actual = PdfPigDocument.Open(bytes);
         Assert.Equal(1, actual.NumberOfPages);
@@ -101,7 +101,7 @@ public sealed class RtfPdfFontAdmissionTests {
         else body.AddText(" [1]").Note = note;
         byte[] sourceBefore = document.ToBytes();
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options());
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(Options());
         using PdfPigDocument actual = PdfPigDocument.Open(result.ToBytes());
         Assert.Contains("NOTEONLY", string.Concat(actual.GetPage(1).Letters.Select(letter => letter.Value)));
         Assert.Single(result.Warnings, warning => warning.Code == "FontFamilySubstituted"
@@ -139,7 +139,7 @@ public sealed class RtfPdfFontAdmissionTests {
         }
         byte[] before = document.ToBytes();
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options());
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(Options());
         using PdfPigDocument actual = PdfPigDocument.Open(result.ToBytes());
         Assert.Equal(1, actual.NumberOfPages);
         if (scenario != "styled-tab") Assert.NotEmpty(actual.GetPage(1).Letters);
@@ -165,7 +165,7 @@ public sealed class RtfPdfFontAdmissionTests {
         }
         byte[] before = document.ToBytes();
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options());
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(Options());
         using PdfPigDocument actual = PdfPigDocument.Open(result.ToBytes());
         Assert.True(actual.NumberOfPages >= 1);
         Assert.Single(result.Warnings, warning => warning.Code == "FontFamilySubstituted"
@@ -210,7 +210,7 @@ public sealed class RtfPdfFontAdmissionTests {
         options.ImageConverter = _ => { calls++; return scenario == "failed-conversion" ? null : png; };
         byte[] before = document.ToBytes();
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
         byte[] pdf = result.ToBytes();
         var read = PdfCore.PdfReadDocument.Open(pdf);
         Assert.Single(read.Pages);
@@ -235,14 +235,14 @@ public sealed class RtfPdfFontAdmissionTests {
             // conversion with the same caller options must prepare its own data.
             result.ToBytes();
             Assert.Equal(imageCount, calls);
-            document.ToPdfDocumentResult(options).ToBytes();
+            document.ConvertToPdfWithEvidence(options).ToBytes();
             Assert.Equal(imageCount * 2, calls);
         }
         Assert.Equal(before, document.ToBytes());
     }
 
     private static RtfToPdfOptions Options() => new RtfToPdfOptions {
-        PdfOptions = new PdfCore.PdfOptions { DefaultFont = PdfCore.PdfStandardFont.Helvetica },
+        PdfOptions = new PdfCore.PdfCreateOptions { DefaultFont = PdfCore.PdfStandardFont.Helvetica },
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
         MaximumSystemFontFamilies = 0

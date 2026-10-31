@@ -7,7 +7,7 @@ internal static partial class PdfWriter {
             TableCellTextLayout lines, int rowIndex, int sourceStartLine, int requestedLineCount,
             double cellX, double cellTop, double cellWidth, double cellHeight, double rowSize,
             double rowLeading, double runFontSizeScale, bool rowUsesBold, bool renderAsHeader,
-            bool wholeRowSegment, bool suppressCellObjects, PdfColor? textColor,
+            bool wholeRowSegment, bool suppressCellObjects, global::OfficeIMO.OfficeColor? textColor,
             int? rowStructureElementIndex, PageStructElement? rowStructureElement = null,
             int? fragmentRowSpan = null, bool includeNamedDestination = true, double? verticalOffsetOverride = null) {
             int c = cell.Column;
@@ -89,7 +89,7 @@ internal static partial class PdfWriter {
                 }
 
                 if (cell.TextRotation == 0)
-                    ReportRichPaintDiagnostics("TableCell", "PdfTableCell[" + rowIndex + "," + c + "]", paragraph,
+                    ReportRichPaintDiagnostics(PaintDiagnosticCodes.TableCell, "PdfTableCell[" + rowIndex + "," + c + "]", paragraph,
                         visibleLines, visibleHeights, firstBaseline, rowSize, rowLeading, contentFrame.Left + cellPadLeft, innerW,
                         new TableCellContentFrame(textClipX, inkClip.Top + textClipBleed, textClipWidth, inkClip.Height + 2D * textClipBleed),
                         alignments: visibleAlignments, offsets: visibleXOffsets, widths: visibleWidths, baselineFont: cellFont);

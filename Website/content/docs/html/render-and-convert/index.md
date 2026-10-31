@@ -77,14 +77,14 @@ using OfficeIMO.Pdf;
 
 var options = new HtmlToPdfOptions {
     MaxPageCount = 200,
-    PdfOptions = new PdfOptions().EnableTaggedPdfCatalogMarkers()
+    PdfCreateOptions = new PdfCreateOptions().EnableTaggedPdfCatalogMarkers()
 };
 options.AdditionalStylesheets.Add("@page { margin: 18mm } body { color: hsl(215 35% 20%) }");
 
 byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
 ```
 
-PDF writer settings are snapshotted through `PdfOptions`; HTML layout and safety settings remain on the shared `HtmlRenderOptions` base type.
+PDF writer settings are snapshotted through `PdfCreateOptions`; HTML layout and safety settings remain on the shared `HtmlRenderOptions` base type.
 
 Paged PDF output supports `@page` margin boxes, `counter(page)`, `counter(pages)`, `position:running(name)`, `content:element(name)`, CSS bookmark controls, and `-officeimo-pdf-tag-type`. Repeated margin content is emitted as a PDF artifact so decorative headers and footers do not pollute the structure tree.
 

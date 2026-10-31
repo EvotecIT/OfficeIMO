@@ -30,13 +30,66 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             IReadOnlyList<string> transformed = ApplyTextTransformSegments(
-                textRuns.Select(static run => run.Text).ToArray(), first.Style);
+                textRuns.Select(static run => run.Text).ToArray(), first.Style, applySmallCaps: false);
             for (int index = 0; index < textRuns.Count; index++) {
                 textRuns[index].CompleteTextTransform(transformed[index]);
             }
             start = end;
+            if (first.Style.ApproximateSmallCaps) {
+                start += SynthesizeSmallCaps(runs, textRuns);
+            }
         }
         if (!retainSuppressedText) RemoveSuppressedInlineText(runs);
+    }
+
+    // Synthetic small caps, as browsers draw them when a font has no small-cap glyphs: lowercase letters
+    // become capitals at 70 % of the font size, while capitals, digits and punctuation keep their size.
+    internal const double SyntheticSmallCapsScale = 0.7D;
+
+    private static int SynthesizeSmallCaps(IList<HtmlInlineRun> runs, IReadOnlyList<HtmlInlineRun> textRuns) {
+        int inserted = 0;
+        foreach (HtmlInlineRun run in textRuns) {
+            string text = run.Text;
+            int index = runs.IndexOf(run);
+            if (index < 0 || text.Length == 0) continue;
+            CultureInfo culture = ResolveTextTransformCulture(run.Style.Language);
+            var pieces = new List<(string Text, bool Small)>();
+            int pieceStart = 0;
+            bool? small = null;
+            for (int position = 0; position < text.Length; position++) {
+                bool isSmall = char.IsLower(text[position]);
+                if (small.HasValue && small.Value != isSmall) {
+                    pieces.Add((text.Substring(pieceStart, position - pieceStart), small.Value));
+                    pieceStart = position;
+                }
+                small = isSmall;
+            }
+            pieces.Add((text.Substring(pieceStart), small ?? false));
+            if (pieces.Count == 1 && !pieces[0].Small) continue;
+
+            HtmlRenderBoxStyle smallStyle = run.Style.Clone();
+            smallStyle.Font = run.Style.Font.WithSize(run.Style.Font.Size * SyntheticSmallCapsScale);
+            for (int piece = 0; piece < pieces.Count; piece++) {
+                string upper = OfficeTextCaseTransformer.ApplySegments(new[] { pieces[piece].Text }, OfficeTextCase.Uppercase, culture)[0];
+                if (piece == 0) {
+                    if (pieces[piece].Small) {
+                        HtmlInlineRun replacement = run.CloneText(upper, upper, smallStyle);
+                        replacement.CompleteTextTransform(upper);
+                        runs[index] = replacement;
+                    } else {
+                        run.CompleteTextTransform(upper);
+                    }
+                    continue;
+                }
+
+                HtmlInlineRun clone = run.CloneText(upper, upper, pieces[piece].Small ? smallStyle : run.Style);
+                clone.CompleteTextTransform(upper);
+                runs.Insert(index + piece, clone);
+                inserted++;
+            }
+        }
+
+        return inserted;
     }
 
     // A font-changing pseudo-element may restore the selected source fragment.
@@ -76,7 +129,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static IReadOnlyList<string> ApplyTextTransformSegments(
         IReadOnlyList<string> segments,
-        HtmlRenderBoxStyle style) {
+        HtmlRenderBoxStyle style,
+        bool applySmallCaps = true) {
         CultureInfo culture = ResolveTextTransformCulture(style.Language);
         OfficeTextCase textCase = style.TextTransform.ToLowerInvariant() switch {
             "uppercase" => OfficeTextCase.Uppercase,
@@ -87,7 +141,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<string> transformed = string.Equals(style.TextTransform, "math-auto", StringComparison.OrdinalIgnoreCase)
             ? segments.Select(OfficeMathTextTransform.MathAuto).ToArray()
             : OfficeTextCaseTransformer.ApplySegments(segments, textCase, culture);
-        return style.ApproximateSmallCaps
+        return applySmallCaps && style.ApproximateSmallCaps
             ? OfficeTextCaseTransformer.ApplySegments(transformed, OfficeTextCase.Uppercase, culture)
             : transformed;
     }

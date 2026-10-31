@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.PowerPoint;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.PowerPoint;
 using PSWriteOffice.Services.Table;
@@ -21,24 +22,22 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 ///   <para>Creates a table with headers and two data rows.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointTable", DefaultParameterSetName = ParameterSetInputObject)]
-[Alias("PptTable")]
+[Alias("PowerPointTable")]
 public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     private const string ParameterSetInputObject = "InputObject";
     private const string ParameterSetSize = "Size";
 
     /// <summary>Target slide that will receive the table (optional inside DSL).</summary>
-    [Parameter(ValueFromPipeline = true, Position = 0)]
+    [Parameter]
     public PowerPointSlide? Slide { get; set; }
 
     /// <summary>Source objects to convert into table rows.</summary>
-    [Parameter(Mandatory = true, Position = 1, ParameterSetName = ParameterSetInputObject)]
-    [Alias("Data")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = ParameterSetInputObject)]
     public object? InputObject { get; set; }
 
     /// <summary>Optional header order to apply to the table.</summary>
     [Parameter(ParameterSetName = ParameterSetInputObject)]
-    [Alias("Headers")]
-    public string[]? Header { get; set; }
+    public string[]? Property { get; set; }
 
     /// <summary>Skip writing header row.</summary>
     [Parameter(ParameterSetName = ParameterSetInputObject)]
@@ -73,6 +72,14 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
     [ValidateRange(1, int.MaxValue)]
     public int MaxNestingDepth { get; set; } = PowerShellObjectNormalizerOptions.DefaultMaxNestingDepth;
 
+    /// <summary>Maximum data rows per physical slide; omission uses the shared layout capacity.</summary>
+    [Parameter(ParameterSetName = ParameterSetInputObject), ValidateRange(1, int.MaxValue)]
+    public int? MaxRows { get; set; }
+
+    /// <summary>Keep the table together instead of generating continuation slides.</summary>
+    [Parameter(ParameterSetName = ParameterSetInputObject)]
+    public SwitchParameter NoSplit { get; set; }
+
     /// <summary>Row count for an empty table.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetSize)]
     public int Rows { get; set; }
@@ -101,10 +108,22 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
     [Parameter]
     public string? StyleId { get; set; }
 
+    private readonly List<object?> _input = new();
+
     /// <inheritdoc />
     protected override void ProcessRecord() {
+        if (ParameterSetName == ParameterSetInputObject) TableInputCollector.AddInput(_input, InputObject);
+    }
+
+    /// <inheritdoc />
+    protected override void EndProcessing() {
+        if (ParameterSetName == ParameterSetInputObject) InputObject = _input.ToArray();
         PowerPointSlide? slide = null;
         try {
+            if (Slide == null && PowerPointContentScope.Current != null && ParameterSetName == ParameterSetInputObject) {
+                AddLayoutTable();
+                return;
+            }
             ValidateDimensions();
             slide = Slide ?? PowerPointDslContext.Require(this).RequireSlide();
 
@@ -118,8 +137,26 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
 
             WritePassThru(table);
         } catch (Exception ex) {
+            if (PowerPointContentScope.Current != null) ThrowTerminatingError(OfficeError.Create(ex, "invalid-argument", InputObject, ErrorCategory.InvalidArgument));
             WriteError(new ErrorRecord(ex, "PowerPointAddTableFailed", ErrorCategory.InvalidOperation, slide ?? Slide));
         }
+    }
+
+    private void AddLayoutTable() {
+        ValidateDimensions();
+        var scope = PowerPointContentScope.Current!;
+        PowerPointTable table = CreateDataTable(scope.NativeSlide);
+        try {
+            if (!string.IsNullOrWhiteSpace(StyleId)) table.StyleId = StyleId;
+            var native = new PowerPointLayoutNativeTable(table, !NoHeader);
+            scope.AddTable(new PowerPointLayoutTable(native.Headers, native.Rows) {
+                IncludeHeaders = !NoHeader, MaximumRows = MaxRows, NoSplit = NoSplit, NativeBody = native
+            });
+        } catch {
+            table.Remove();
+            throw;
+        }
+        WritePassThru(table);
     }
 
     private PowerPointTable CreateSizedTable(PowerPointSlide slide) {
@@ -131,7 +168,7 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
             throw new ArgumentOutOfRangeException(nameof(Columns), "Columns must be greater than 0.");
         }
 
-        return slide.AddTablePoints(Rows, Columns, X, Y, Width, Height);
+        return slide.AddTable(Rows,Columns,global::OfficeIMO.OfficeLength.Points(X),global::OfficeIMO.OfficeLength.Points(Y),global::OfficeIMO.OfficeLength.Points(Width),global::OfficeIMO.OfficeLength.Points(Height));
     }
 
     private PowerPointTable CreateDataTable(PowerPointSlide slide) {
@@ -169,7 +206,7 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
                 row => row.TryGetValue(header, out var value) ? value : null))
             .ToList();
 
-        return slide.AddTablePoints(rows, columns, includeHeaders: !NoHeader.IsPresent, X, Y, Width, Height);
+        return slide.AddTable(rows,columns,includeHeaders: !NoHeader.IsPresent,global::OfficeIMO.OfficeLength.Points(X),global::OfficeIMO.OfficeLength.Points(Y),global::OfficeIMO.OfficeLength.Points(Width),global::OfficeIMO.OfficeLength.Points(Height));
     }
 
     private PowerPointTable CreateStructuredTable(PowerPointSlide slide, OfficeTableSpec spec) {
@@ -177,7 +214,7 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
             PowerPointTableCellSpecService.Validate(placement.Cell);
         }
 
-        var table = slide.AddTablePoints(spec.RowCount, spec.ColumnCount, X, Y, Width, Height);
+        var table = slide.AddTable(spec.RowCount,spec.ColumnCount,global::OfficeIMO.OfficeLength.Points(X),global::OfficeIMO.OfficeLength.Points(Y),global::OfficeIMO.OfficeLength.Points(Width),global::OfficeIMO.OfficeLength.Points(Height));
         foreach (var placement in spec.Placements) {
             var cell = table.GetCell(placement.RowIndex, placement.ColumnIndex);
             PowerPointTableCellSpecService.Apply(cell, placement.Cell);
@@ -249,17 +286,17 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
     }
 
     private string[]? ResolveExplicitHeaders() {
-        if (Header == null || Header.Length == 0) {
+        if (Property == null || Property.Length == 0) {
             return null;
         }
 
-        var explicitHeaders = Header
+        var explicitHeaders = Property
             .Where(h => !string.IsNullOrWhiteSpace(h))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
         if (explicitHeaders.Length == 0) {
-            throw new PSArgumentException("Header cannot be empty.", nameof(Header));
+            throw new PSArgumentException("Property cannot be empty.", nameof(Property));
         }
 
         return explicitHeaders;

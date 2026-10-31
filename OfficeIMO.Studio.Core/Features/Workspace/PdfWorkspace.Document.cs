@@ -70,14 +70,14 @@ internal sealed partial class PdfWorkspace {
                     .Replace("{date}", date, StringComparison.OrdinalIgnoreCase)
                     .Replace("{file}", fileName, StringComparison.OrdinalIgnoreCase)
                     .Replace("{title}", title, StringComparison.OrdinalIgnoreCase);
-                double width = Math.Max(1D, context.Width - options.Margin * 2D);
+                double width = Math.Max(1D, context.Width.ToPoints() - options.Margin * 2D);
                 double lineHeight = options.FontSize * 1.6D;
                 double headerY = options.Margin * 0.6D;
-                double footerY = Math.Max(0D, context.Height - options.Margin * 0.6D - lineHeight);
+                double footerY = Math.Max(0D, context.Height.ToPoints() - options.Margin * 0.6D - lineHeight);
                 void Draw(string? template, double y, PdfAlign align) {
                     if (string.IsNullOrWhiteSpace(template)) return;
-                    canvas.Text(Expand(template), options.Margin, y, width, lineHeight, fontSize: options.FontSize,
-                        color: PdfColor.FromRgb(71, 84, 103), align: align);
+                    canvas.Text(Expand(template), global::OfficeIMO.OfficeLength.Points(options.Margin), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(lineHeight), fontSize: global::OfficeIMO.OfficeLength.Points(options.FontSize),
+                        color: global::OfficeIMO.OfficeColor.FromRgb(71, 84, 103), align: align);
                 }
                 Draw(options.HeaderLeft, headerY, PdfAlign.Left);
                 Draw(options.HeaderCenter, headerY, PdfAlign.Center);
@@ -90,7 +90,7 @@ internal sealed partial class PdfWorkspace {
     }
 
     /// <summary>Changes the paper size of pages, scaling their content to fit, fill or stretch.</summary>
-    internal Task ResizePagesAsync(IReadOnlyList<int> pageNumbers, PageSize size, PdfPageResizeMode mode, CancellationToken cancellationToken,
+    internal Task ResizePagesAsync(IReadOnlyList<int> pageNumbers, PdfPageSize size, PdfPageResizeMode mode, CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress = null) =>
         MutateBytesAsync(PdfWorkspaceOperationKind.Resize, "Resized pages", pageNumbers,
             bytes => LoadDocument(bytes).Pages.Resize(new PdfPageResizeOptions(size) { Mode = mode }, pageNumbers.ToArray()).ToBytes(),

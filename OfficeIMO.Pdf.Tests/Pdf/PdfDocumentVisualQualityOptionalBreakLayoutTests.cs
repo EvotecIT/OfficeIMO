@@ -10,7 +10,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false)]
     [InlineData(true)]
     public void OptionalBreaksKeepCharacterJustificationGlyphsAndAdvances(bool embedded) {
-        PdfOptions options = JustificationPolicyOptions();
+        PdfCreateOptions options = JustificationPolicyOptions();
         if (embedded) options.UseFontFamily(new PdfEmbeddedFontFamily("Identifier Font",
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'B', 'C', 'D')));
         // A trailing separator keeps these paragraph tests outside the single-identifier
@@ -26,9 +26,9 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void OptionalBreaksKeepCharacterJustificationCombiningClustersAcrossRuns() {
-        PdfOptions options = JustificationPolicyOptions().UseFontFamily(new PdfEmbeddedFontFamily("Cluster Identifier Font",
+        PdfCreateOptions options = JustificationPolicyOptions().UseFontFamily(new PdfEmbeddedFontFamily("Cluster Identifier Font",
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'B', 'C', 0x0301)));
-        PdfTextRun[] Runs(string prefix) => new[] { new PdfTextRun(prefix), new PdfTextRun("\u0301C ", color: new PdfColor(1, 0, 0)) };
+        PdfTextRun[] Runs(string prefix) => new[] { new PdfTextRun(prefix), new PdfTextRun("\u0301C ", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1, 0, 0)) };
         byte[] control = RenderJustificationPolicyRuns(options, Runs("AB"), distributed: true);
         byte[] actual = RenderJustificationPolicyRuns(options, Runs("A\u200BB"), distributed: true);
 
@@ -41,11 +41,11 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false)]
     [InlineData(true)]
     public void OptionalBreaksKeepDecimalTabAtThePaintedSeparator(bool embedded) {
-        PdfOptions options = JustificationPolicyOptions();
+        PdfCreateOptions options = JustificationPolicyOptions();
         if (embedded) options.UseFontFamily(new PdfEmbeddedFontFamily("Numeric Identifier Font",
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'W', '1', '2', '.', '5', '0')));
         var style = new PdfParagraphStyle();
-        style.AddTabStop(150D, PdfTabAlignment.DecimalSeparator).DecimalSeparator = '.';
+        style.AddTabStop(global::OfficeIMO.OfficeLength.Points(150D), PdfTabAlignment.DecimalSeparator).DecimalSeparator = '.';
         byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("\tW\u200B12.50"), style: style).ToBytes();
 
         using var pdf = PdfPigDocument.Open(bytes);

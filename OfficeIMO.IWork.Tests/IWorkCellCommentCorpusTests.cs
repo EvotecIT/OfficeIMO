@@ -42,7 +42,7 @@ public sealed class IWorkCellCommentCorpusTests {
             Assert.Equal(IWorkCellUnsupportedFeatures.None, cell.UnsupportedFeatures & IWorkCellUnsupportedFeatures.Comment);
             string destinationName = result.WorksheetMappings.Single(m => m.SourceSheetName == sourceSheet && m.SourceTableName == sourceTable).DestinationName;
             var destination = Assert.Single(reopened.Sheets.Single(s => s.Name == destinationName).GetThreadedComments(),
-                c => c.CellReference == A1.CellReference(row, column));
+                c => c.CellReference == ExcelA1.CellReference(row, column));
             Assert.Equal(comment.Text, destination.Text); Assert.Equal(comment.Author, destination.Author);
             Assert.Null(destination.ParentId);
             Assert.Equal(comment.CreationDateUtc, destination.Date);
@@ -50,7 +50,7 @@ public sealed class IWorkCellCommentCorpusTests {
             var metadata = Assert.Single(transported.Metadata, m => m.Category == "table.comment"
                 && m.Location!.Sheet == sourceSheet
                 && transported.Pages.Single(p => p.Location.Sheet == sourceSheet).Tables[m.Location.TableIndex!.Value].Title == sourceTable
-                && m.Location.A1Range == A1.CellReference(row, column));
+                && m.Location.A1Range == ExcelA1.CellReference(row, column));
             Assert.Equal(comment.Text, metadata.Value);
             Assert.Equal(comment.Author, metadata.Attributes["author"]);
             Assert.Equal(comment.CreationDateUtc.ToString("O", System.Globalization.CultureInfo.InvariantCulture),

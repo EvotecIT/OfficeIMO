@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfLogicalReadingOrderAnalysis {
+internal static partial class PdfLogicalReadingOrderAnalysis {
     /// <summary>Suppresses a paragraph only when every source line has retained text in a table at its location.</summary>
     private static bool IsParagraphRepresentedByTable(
         PdfLogicalPage page,

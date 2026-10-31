@@ -4,10 +4,10 @@ namespace OfficeIMO.Markdown.Pdf;
 
 // First-party Markdown to PDF conversion helpers.
 public static partial class MarkdownPdfConverterExtensions {
-    private static List<OfficeChartSeries> ReadSeries(MarkdownPdfJsonValue dataElement, List<string> labels, OfficeChartKind chartKind, bool defaultConnectLine, bool defaultShowMarkers, bool horizontalBarChart = false) {
+    private static List<OfficeSeries> ReadSeries(MarkdownPdfJsonValue dataElement, List<string> labels, OfficeChartType chartKind, bool defaultConnectLine, bool defaultShowMarkers, bool horizontalBarChart = false) {
         var drafts = new List<MarkdownChartSeriesDraft>();
-        var series = new List<OfficeChartSeries>();
-        bool captureXValues = chartKind == OfficeChartKind.Scatter;
+        var series = new List<OfficeSeries>();
+        bool captureXValues = chartKind == OfficeChartType.Scatter;
         bool captureCategoryLabels = !captureXValues;
         if (TryGetProperty(dataElement, "datasets", out MarkdownPdfJsonValue datasets) && datasets.Kind == MarkdownPdfJsonValueKind.Array) {
             int index = 0;
@@ -88,7 +88,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static OfficeChartSeries CreateOfficeChartSeries(MarkdownChartSeriesDraft draft, List<string> labels, bool scatter) {
+    private static OfficeSeries CreateOfficeChartSeries(MarkdownChartSeriesDraft draft, List<string> labels, bool scatter) {
         var values = new List<double>(draft.Values);
         List<double>? xValues = draft.XValues == null ? null : new List<double>(draft.XValues);
         List<OfficeColor?>? pointColors = draft.PointColors == null ? null : new List<OfficeColor?>(draft.PointColors);
@@ -111,7 +111,7 @@ public static partial class MarkdownPdfConverterExtensions {
             }
         }
 
-        return new OfficeChartSeries(draft.Name, values, xValues, draft.Color, pointColors, showMarkers: draft.ShowMarkers, showInLegend: true, connectLine: draft.ConnectLine);
+        return new OfficeSeries(draft.Name, values, xValues, draft.Color, pointColors, showMarkers: draft.ShowMarkers, showInLegend: true, connectLine: draft.ConnectLine);
     }
 
     private static bool HasCategoryLabels(IReadOnlyList<string?>? categoryLabels) {
@@ -320,14 +320,14 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static List<OfficeChartSeries> NormalizeSeriesToLabelCount(IReadOnlyList<OfficeChartSeries> series, int labelCount) {
+    private static List<OfficeSeries> NormalizeSeriesToLabelCount(IReadOnlyList<OfficeSeries> series, int labelCount) {
         if (labelCount <= 0) {
-            return new List<OfficeChartSeries>(series);
+            return new List<OfficeSeries>(series);
         }
 
-        var normalized = new List<OfficeChartSeries>(series.Count);
+        var normalized = new List<OfficeSeries>(series.Count);
         for (int i = 0; i < series.Count; i++) {
-            OfficeChartSeries item = series[i];
+            OfficeSeries item = series[i];
             var values = new List<double>(item.Values);
             NormalizeSeriesLength(values, labelCount);
 
@@ -343,7 +343,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 NormalizePointColorLength(pointColors, labelCount);
             }
 
-            normalized.Add(new OfficeChartSeries(item.Name, values, xValues, item.Color, pointColors, item.ShowMarkers, item.ShowInLegend, item.ConnectLine));
+            normalized.Add(new OfficeSeries(item.Name, values, xValues, item.Color, pointColors, item.ShowMarkers, item.ShowInLegend, item.ConnectLine));
         }
 
         return normalized;
@@ -359,7 +359,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static OfficeColor? ReadSeriesColor(MarkdownPdfJsonValue dataset, OfficeChartKind chartKind) {
+    private static OfficeColor? ReadSeriesColor(MarkdownPdfJsonValue dataset, OfficeChartType chartKind) {
         if (UsesFilledSeriesColor(chartKind)) {
             return ReadColor(dataset, "backgroundColor") ?? ReadColor(dataset, "borderColor");
         }
@@ -367,18 +367,18 @@ public static partial class MarkdownPdfConverterExtensions {
         return ReadColor(dataset, "borderColor") ?? ReadColor(dataset, "backgroundColor");
     }
 
-    private static bool UsesFilledSeriesColor(OfficeChartKind chartKind) =>
-        chartKind == OfficeChartKind.BarClustered ||
-        chartKind == OfficeChartKind.BarStacked ||
-        chartKind == OfficeChartKind.BarStacked100 ||
-        chartKind == OfficeChartKind.ColumnClustered ||
-        chartKind == OfficeChartKind.ColumnStacked ||
-        chartKind == OfficeChartKind.ColumnStacked100 ||
-        chartKind == OfficeChartKind.Pie ||
-        chartKind == OfficeChartKind.Doughnut ||
-        chartKind == OfficeChartKind.Area ||
-        chartKind == OfficeChartKind.AreaStacked ||
-        chartKind == OfficeChartKind.AreaStacked100;
+    private static bool UsesFilledSeriesColor(OfficeChartType chartKind) =>
+        chartKind == OfficeChartType.BarClustered ||
+        chartKind == OfficeChartType.BarStacked ||
+        chartKind == OfficeChartType.BarStacked100 ||
+        chartKind == OfficeChartType.ColumnClustered ||
+        chartKind == OfficeChartType.ColumnStacked ||
+        chartKind == OfficeChartType.ColumnStacked100 ||
+        chartKind == OfficeChartType.Pie ||
+        chartKind == OfficeChartType.Doughnut ||
+        chartKind == OfficeChartType.Area ||
+        chartKind == OfficeChartType.AreaStacked ||
+        chartKind == OfficeChartType.AreaStacked100;
 
     private static OfficeColor? ReadColor(MarkdownPdfJsonValue element, string propertyName) {
         if (!TryGetProperty(element, propertyName, out MarkdownPdfJsonValue colorElement)) {

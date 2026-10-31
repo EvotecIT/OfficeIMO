@@ -54,7 +54,7 @@ public partial class Word {
                 new RunFonts { Ascii = "Times New Roman", HighAnsi = "Times New Roman", EastAsia = "Times New Roman", ComplexScript = "Times New Roman" },
                 new Color { Val = "990000" });
         }
-        using var reopened = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using var reopened = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Run imported = reopened._document!.Body!.Descendants<Run>().Single(run => endnote
             ? run.Elements<EndnoteReference>().Any() : run.Elements<FootnoteReference>().Any());
         Assert.Equal(directOverride ? "36" : "28", imported.RunProperties?.FontSize?.Val?.Value);
@@ -81,7 +81,7 @@ public partial class Word {
         reference.InsertBeforeSelf(revision);
         reference.Remove();
         revision.Append(reference);
-        using var reopened = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using var reopened = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Run imported = reopened._document!.Body!.Descendants<Run>().Single(run => endnote
             ? run.Elements<EndnoteReference>().Any() : run.Elements<FootnoteReference>().Any());
         Assert.Equal("28", imported.RunProperties?.FontSize?.Val?.Value);

@@ -15,7 +15,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     [Fact]
     public void DisjointExcelConditionalRangesKeepTheirOwnOrderedMaps() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.GreaterThan,
             "10", null, "FFFF0000", stopIfTrue: true, priority: 1);
         sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.LessThan,
@@ -59,7 +59,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     [Fact]
     public void OverlappingExcelConditionalRangesRemainWholeSheetLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.GreaterThan,
             "0", fillColor: "FFFF0000");
         sheet.AddConditionalRule("A2:A3", ExcelConditionalFormattingOperator.LessThan,
@@ -74,7 +74,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     [Fact]
     public void UnsupportedDisjointExcelRangeDoesNotPartiallyApplyOtherRange() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.GreaterThan,
             "0", fillColor: "FFFF0000");
         sheet.CellAt(1, 3).SetValue("Styled").SetBold();
@@ -90,7 +90,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     [Fact]
     public void DisjointExcelConditionalRangesShareOneCellBudget() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.AddConditionalRule("A1:A2048", ExcelConditionalFormattingOperator.GreaterThan,
             "0", fillColor: "FFFF0000");
         sheet.AddConditionalRule("C1:C2049", ExcelConditionalFormattingOperator.LessThan,
@@ -109,7 +109,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     public void DisjointExcelConditionalRangesShareOneRuleBudget(int ruleCount,
         OdfConversionMappingStatus expectedStatus) {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         for (int index = 0; index < ruleCount; index++) {
             string range = ((char)('A' + index)).ToString() + "1";
             sheet.AddConditionalRule(range, ExcelConditionalFormattingOperator.GreaterThan,
@@ -126,7 +126,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     [Fact]
     public void ExcelOrderedNumericFillRulesBecomeOdsStyleMaps() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.GreaterThan,
             "10", null, "FFFF0000", stopIfTrue: true, priority: 1);
         sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.Between,
@@ -160,7 +160,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     [Fact]
     public void ExcelRulesWithoutFirstMatchSemanticsRemainExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.GreaterThan,
             "10", fillColor: "FFFF0000");
         sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.LessThan,
@@ -175,7 +175,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     [Fact]
     public void ExcelConditionalFillDoesNotReplaceAnExistingCellStyle() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.CellAt(1, 1).SetValue("Styled").SetBold();
         sheet.AddConditionalRule("A1", ExcelConditionalFormattingOperator.GreaterThan,
             "0", fillColor: "FFFF0000");
@@ -194,7 +194,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     [InlineData("0.00000000000000000000000000001")]
     public void ExcelNumericBoundsOutsideExactDecimalSubsetRemainExplicitLoss(string bound) {
         using ExcelDocument source = ExcelDocument.Create();
-        source.AddWorksheet("Data").AddConditionalRule("A1",
+        source.AddSheet("Data").AddConditionalRule("A1",
             ExcelConditionalFormattingOperator.GreaterThan, bound, fillColor: "FFFF0000");
 
         OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
@@ -206,7 +206,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     [Fact]
     public void ExcelIndexedDifferentialFillRemainsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.AddConditionalRule("A1", ExcelConditionalFormattingOperator.GreaterThan,
             "0", fillColor: "FFFF0000");
         using MemoryStream packageStream = new MemoryStream(source.ToBytes());
@@ -229,7 +229,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     [Fact]
     public void ExcelConditionalRuleIsReportedWhenConvertingToOds() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.AddConditionalRule("A1:A3",
             ExcelConditionalFormattingOperator.GreaterThan, "0", fillColor: "FFFF0000");
         sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
@@ -239,7 +239,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
             Formulas = new[] { "A1<0" },
             DifferentialFillColorArgb = "FFC6EFCE"
         });
-        Assert.Equal(2, source.CreateInspectionSnapshot().Worksheets.Single().ConditionalFormattingRuleCount);
+        Assert.Equal(2, source.Inspect().Worksheets.Single().ConditionalFormattingRuleCount);
 
         OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"
@@ -480,7 +480,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         Assert.Equal("FFC00000", rule.DifferentialFontColorArgb);
         Assert.True(rule.DifferentialFontBold);
         Assert.NotNull(rule.DifferentialFontSize);
-        Assert.InRange(rule.DifferentialFontSize.Value, expectedPoints - 0.001D, expectedPoints + 0.001D);
+        Assert.InRange(rule.DifferentialFontSize.Value.ToPoints(), expectedPoints - 0.001D, expectedPoints + 0.001D);
         var schemaErrors = reopenedExcel.ValidateOpenXml();
         Assert.True(schemaErrors.Count == 0, string.Join("\n", schemaErrors));
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"

@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfReadDocument {
+internal sealed partial class PdfReadDocument {
     private IReadOnlyList<PdfFormField> ExtractFormFields(out int javaScriptCount, out long javaScriptBytes, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         javaScriptCount = 0;

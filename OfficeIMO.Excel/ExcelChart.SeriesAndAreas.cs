@@ -38,17 +38,14 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the fill color for a chart series by index.
         /// </summary>
-        public ExcelChart SetSeriesFillColor(int seriesIndex, string color) {
+        public ExcelChart SetSeriesFillColor(int seriesIndex, OfficeColor color) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
-            if (string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Series color cannot be null or empty.", nameof(color));
             }
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
-                ApplySolidFill(props, NormalizeHexColor(color));
+                ApplySolidFill(props, color);
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
             });
 
@@ -63,17 +60,14 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the fill color for a chart series by name.
         /// </summary>
-        public ExcelChart SetSeriesFillColor(string seriesName, string color, bool ignoreCase = true) {
+        public ExcelChart SetSeriesFillColor(string seriesName, OfficeColor color, bool ignoreCase = true) {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
-            }
-            if (string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Series color cannot be null or empty.", nameof(color));
             }
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
-                ApplySolidFill(props, NormalizeHexColor(color));
+                ApplySolidFill(props, color);
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
             });
 
@@ -88,18 +82,15 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the line color for a chart series by index.
         /// </summary>
-        public ExcelChart SetSeriesLineColor(int seriesIndex, string color, double? widthPoints = null) {
-            OfficeChartStyleBounds.ValidateLineWidth(widthPoints, nameof(widthPoints), allowZero: true);
+        public ExcelChart SetSeriesLineColor(int seriesIndex, OfficeColor color, OfficeLength? width = null) {
+            OfficeChartStyleBounds.ValidateLineWidth(width?.ToPoints(), nameof(width), allowZero: true);
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
-            if (string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Series color cannot be null or empty.", nameof(color));
             }
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
-                ApplyLine(props, NormalizeHexColor(color), widthPoints);
+                ApplyLine(props, color, width);
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
             });
 
@@ -114,18 +105,15 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the line color for a chart series by name.
         /// </summary>
-        public ExcelChart SetSeriesLineColor(string seriesName, string color, double? widthPoints = null, bool ignoreCase = true) {
-            OfficeChartStyleBounds.ValidateLineWidth(widthPoints, nameof(widthPoints), allowZero: true);
+        public ExcelChart SetSeriesLineColor(string seriesName, OfficeColor color, OfficeLength? width = null, bool ignoreCase = true) {
+            OfficeChartStyleBounds.ValidateLineWidth(width?.ToPoints(), nameof(width), allowZero: true);
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
-            }
-            if (string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Series color cannot be null or empty.", nameof(color));
             }
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
-                ApplyLine(props, NormalizeHexColor(color), widthPoints);
+                ApplyLine(props, color, width);
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
             });
 
@@ -140,19 +128,16 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the fill color for one point in a chart series by index.
         /// </summary>
-        public ExcelChart SetSeriesPointFillColor(int seriesIndex, int pointIndex, string color) {
+        public ExcelChart SetSeriesPointFillColor(int seriesIndex, int pointIndex, OfficeColor color) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
             if (pointIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(pointIndex));
             }
-            if (string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Point color cannot be null or empty.", nameof(color));
-            }
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                ApplyPointFill(series, pointIndex, NormalizeHexColor(color));
+                ApplyPointFill(series, pointIndex, color);
             });
 
             if (!applied) {
@@ -166,19 +151,16 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the fill color for one point in a chart series by name.
         /// </summary>
-        public ExcelChart SetSeriesPointFillColor(string seriesName, int pointIndex, string color, bool ignoreCase = true) {
+        public ExcelChart SetSeriesPointFillColor(string seriesName, int pointIndex, OfficeColor color, bool ignoreCase = true) {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
             }
             if (pointIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(pointIndex));
             }
-            if (string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Point color cannot be null or empty.", nameof(color));
-            }
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                ApplyPointFill(series, pointIndex, NormalizeHexColor(color));
+                ApplyPointFill(series, pointIndex, color);
             });
 
             if (!applied) {
@@ -192,23 +174,17 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the marker style for a chart series by index.
         /// </summary>
-        public ExcelChart SetSeriesMarker(int seriesIndex, OfficeChartMarkerShape style, int? size = null, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null) {
+        public ExcelChart SetSeriesMarker(int seriesIndex, OfficeChartMarkerShape style, OfficeLength? size = null, OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
-            if (size is < 2 or > 72) {
+            if (size.HasValue && (size.Value < OfficeLength.Points(2) || size.Value > OfficeLength.Points(72))) {
                 throw new ArgumentOutOfRangeException(nameof(size), "Marker size must be between 2 and 72.");
             }
-            if (fillColor != null && string.IsNullOrWhiteSpace(fillColor)) {
-                throw new ArgumentException("Marker fill color cannot be empty.", nameof(fillColor));
-            }
-            if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
-                throw new ArgumentException("Marker line color cannot be empty.", nameof(lineColor));
-            }
 
-            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints), allowZero: true);
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidth?.ToPoints(), nameof(lineWidth), allowZero: true);
             bool applied = ApplySeriesMarkerByIndex(seriesIndex, marker => {
-                ApplyMarker(marker, style, size, fillColor, lineColor, lineWidthPoints);
+                ApplyMarker(marker, style, size, fillColor, lineColor, lineWidth);
             });
 
             if (!applied) {
@@ -222,23 +198,17 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the marker style for a chart series by name.
         /// </summary>
-        public ExcelChart SetSeriesMarker(string seriesName, OfficeChartMarkerShape style, int? size = null, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool ignoreCase = true) {
+        public ExcelChart SetSeriesMarker(string seriesName, OfficeChartMarkerShape style, OfficeLength? size = null, OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null, bool ignoreCase = true) {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
             }
-            if (size is < 2 or > 72) {
+            if (size.HasValue && (size.Value < OfficeLength.Points(2) || size.Value > OfficeLength.Points(72))) {
                 throw new ArgumentOutOfRangeException(nameof(size), "Marker size must be between 2 and 72.");
             }
-            if (fillColor != null && string.IsNullOrWhiteSpace(fillColor)) {
-                throw new ArgumentException("Marker fill color cannot be empty.", nameof(fillColor));
-            }
-            if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
-                throw new ArgumentException("Marker line color cannot be empty.", nameof(lineColor));
-            }
 
-            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints), allowZero: true);
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidth?.ToPoints(), nameof(lineWidth), allowZero: true);
             bool applied = ApplySeriesMarkerByName(seriesName, ignoreCase, marker => {
-                ApplyMarker(marker, style, size, fillColor, lineColor, lineWidthPoints);
+                ApplyMarker(marker, style, size, fillColor, lineColor, lineWidth);
             });
 
             if (!applied) {
@@ -252,9 +222,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets chart area fill/line styling.
         /// </summary>
-        public ExcelChart SetChartAreaStyle(string? fillColor = null, string? lineColor = null,
-            double? lineWidthPoints = null, bool noFill = false, bool noLine = false) {
-            ValidateDataLabelShapeStyle(fillColor, lineColor, lineWidthPoints, noFill, noLine);
+        public ExcelChart SetChartAreaStyle(OfficeColor? fillColor = null, OfficeColor? lineColor = null,
+            OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) {
+            ValidateDataLabelShapeStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
             ChartPart chartPart = GetChartPart();
             C.ChartSpace? chartSpace = chartPart.ChartSpace;
@@ -263,7 +233,7 @@ namespace OfficeIMO.Excel {
             }
 
             C.ShapeProperties props = chartSpace.GetFirstChild<C.ShapeProperties>() ?? new C.ShapeProperties();
-            ApplyAreaStyle(props, fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            ApplyAreaStyle(props, fillColor, lineColor, lineWidth, noFill, noLine);
             if (props.Parent == null) {
                 chartSpace.Append(props);
             }
@@ -275,9 +245,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets plot area fill/line styling.
         /// </summary>
-        public ExcelChart SetPlotAreaStyle(string? fillColor = null, string? lineColor = null,
-            double? lineWidthPoints = null, bool noFill = false, bool noLine = false) {
-            ValidateDataLabelShapeStyle(fillColor, lineColor, lineWidthPoints, noFill, noLine);
+        public ExcelChart SetPlotAreaStyle(OfficeColor? fillColor = null, OfficeColor? lineColor = null,
+            OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) {
+            ValidateDataLabelShapeStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -286,7 +256,7 @@ namespace OfficeIMO.Excel {
             }
 
             C.ShapeProperties props = plotArea.GetFirstChild<C.ShapeProperties>() ?? new C.ShapeProperties();
-            ApplyAreaStyle(props, fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            ApplyAreaStyle(props, fillColor, lineColor, lineWidth, noFill, noLine);
             if (props.Parent == null) {
                 plotArea.Append(props);
             }
@@ -300,14 +270,14 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetSeriesTrendline(int seriesIndex, OfficeChartTrendlineType type,
             int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null,
-            bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, double? lineWidthPoints = null) {
+            bool displayEquation = false, bool displayRSquared = false, OfficeColor? lineColor = null, OfficeLength? lineWidth = null) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
-            ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidthPoints);
+            ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidth);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                ApplyTrendline(series, type, order, period, forward, backward, intercept, displayEquation, displayRSquared, lineColor, lineWidthPoints);
+                ApplyTrendline(series, type, order, period, forward, backward, intercept, displayEquation, displayRSquared, lineColor, lineWidth);
             });
 
             if (!applied) {
@@ -323,15 +293,15 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetSeriesTrendline(string seriesName, OfficeChartTrendlineType type,
             int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null,
-            bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, double? lineWidthPoints = null,
+            bool displayEquation = false, bool displayRSquared = false, OfficeColor? lineColor = null, OfficeLength? lineWidth = null,
             bool ignoreCase = true) {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
             }
-            ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidthPoints);
+            ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidth);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                ApplyTrendline(series, type, order, period, forward, backward, intercept, displayEquation, displayRSquared, lineColor, lineWidthPoints);
+                ApplyTrendline(series, type, order, period, forward, backward, intercept, displayEquation, displayRSquared, lineColor, lineWidth);
             });
 
             if (!applied) {
@@ -382,7 +352,7 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
-        private static void ApplyPointFill(OpenXmlCompositeElement series, int pointIndex, string color) {
+        private static void ApplyPointFill(OpenXmlCompositeElement series, int pointIndex, OfficeColor color) {
             C.DataPoint point = EnsureDataPoint(series, pointIndex);
             C.ChartShapeProperties props = point.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
             ApplySolidFill(props, color);

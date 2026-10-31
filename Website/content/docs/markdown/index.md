@@ -16,8 +16,8 @@ The package has **zero external dependencies** and targets .NET Standard 2.0, .N
 
 | Class | Description |
 |-------|-------------|
-| `MarkdownDoc` | Root document class and fluent API entry point. |
-| `MarkdownReader` | Static parser that converts Markdown text into a `MarkdownDoc` AST. |
+| `MarkdownDocument` | Root document class and fluent API entry point. |
+| `MarkdownReader` | Static parser that converts Markdown text into a `MarkdownDocument` AST. |
 | `HeadingBlock` | AST node representing a heading (H1--H6). |
 | `ParagraphBlock` | AST node for a paragraph with inline formatting. |
 | `CodeBlock` | Fenced or indented code block with language annotation. |
@@ -27,14 +27,14 @@ The package has **zero external dependencies** and targets .NET Standard 2.0, .N
 | `QuoteBlock` | Block quotation. |
 | `ImageBlock` | Image reference with alt text, title, and optional size hints. |
 | `FrontMatterBlock` | YAML front matter parsed into typed entries. |
-| `HtmlOptions` | Configuration for the HTML rendering pipeline. |
+| `MarkdownHtmlExportOptions` | Configuration for the HTML rendering pipeline. |
 
 ## Creating a Markdown Document
 
 ```csharp
 using OfficeIMO.Markdown;
 
-var doc = MarkdownDoc.Create()
+var doc = MarkdownDocument.Create()
     .H1("Project README")
     .P("A short description of the project.")
     .H2("Installation")
@@ -53,7 +53,7 @@ Console.WriteLine(markdown);
 
 ```csharp
 string source = File.ReadAllText("README.md");
-MarkdownDoc doc = MarkdownReader.Parse(source);
+MarkdownDocument doc = MarkdownReader.Parse(source);
 
 // Enumerate headings
 foreach (var heading in doc.DescendantHeadings()) {
@@ -67,14 +67,14 @@ var installSection = doc.FindHeading("Installation");
 ## Rendering to HTML
 
 ```csharp
-var doc = MarkdownDoc.Create()
+var doc = MarkdownDocument.Create()
     .H1("Hello")
     .P("World");
 
-var options = new HtmlOptions {
-    Style = HtmlStyle.GitHub,
+var options = new MarkdownHtmlExportOptions {
+    Style = MarkdownHtmlStyle.GitHub,
     InjectTocAtTop = true,
-    Prism = new PrismOptions { Enabled = true }
+    Prism = new MarkdownPrismOptions { Enabled = true }
 };
 
 string html = doc.ToHtml(options);
@@ -95,10 +95,10 @@ var readme = ReadmeScaffold.Readme("MyProject", opts => {
 File.WriteAllText("README.md", readme.ToString());
 
 // Generate a CHANGELOG scaffold
-var changelog = ChangelogScaffold.Changelog("MyProject");
+var changelog = MarkdownChangelogScaffold.Changelog("MyProject");
 
 // Generate a CONTRIBUTING guide
-var contributing = ContributingScaffold.Contributing("MyProject");
+var contributing = MarkdownContributingScaffold.Contributing("MyProject");
 ```
 
 ## Further Reading

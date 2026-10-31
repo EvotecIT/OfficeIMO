@@ -9,9 +9,9 @@ internal static class MarkdownBenchmarkValidation {
     internal static void AssertCommonMarkEquivalent(
         string corpusName,
         string markdown,
-        MarkdownReaderOptions officeOptions,
-        HtmlOptions officeHtmlOptions) {
-        string officeHtml = NormalizeHtml(MarkdownReader.ParseSemantic(markdown, officeOptions).ToHtmlFragment(officeHtmlOptions));
+        MarkdownLoadOptions officeOptions,
+        MarkdownHtmlExportOptions officeHtmlOptions) {
+        string officeHtml = NormalizeHtml(MarkdownReader.ParseSemantic(markdown, officeOptions).ToHtml(officeHtmlOptions));
         string markdigHtml = NormalizeHtml(Markdig.Markdown.ToHtml(markdown, MarkdigCommonMarkPipeline));
         if (string.Equals(officeHtml, markdigHtml, StringComparison.Ordinal)) {
             return;
@@ -34,7 +34,7 @@ internal static class MarkdownBenchmarkValidation {
         return NormalizeCollapsibleWhitespace(normalized);
     }
 
-    internal static HtmlOptions CreateOfficeCommonMarkHtmlOptions() => new HtmlOptions {
+    internal static MarkdownHtmlExportOptions CreateOfficeCommonMarkHtmlOptions() => new MarkdownHtmlExportOptions {
         AutoHeadingIdentifiers = false,
         BodyClass = null
     };

@@ -26,8 +26,8 @@ public sealed class RtfWordTableCompatibilityGeometryTests {
         // The independently Word-imported DOCX retains legacy layout. Rendering
         // both artifacts through the same owner/resources isolates the bridge's
         // coordinate conversion from different font or PDF producer metrics.
-        using PdfPigDocument expected = PdfPigDocument.Open(native.ToPdfBytes(Options()));
-        using PdfPigDocument actual = PdfPigDocument.Open(reopened.ToPdfBytes(Options()));
+        using PdfPigDocument expected = PdfPigDocument.Open((native.ToPdf(Options())).ToBytes());
+        using PdfPigDocument actual = PdfPigDocument.Open((reopened.ToPdf(Options())).ToBytes());
         Assert.Equal(1, expected.NumberOfPages);
         Assert.Equal(expected.NumberOfPages, actual.NumberOfPages);
         foreach (string marker in new[] { "TABLE-BEFORE", "TABLE-MIN-A", "TABLE-EXACT-A", "TABLE-AFTER" }) {
@@ -65,8 +65,8 @@ public sealed class RtfWordTableCompatibilityGeometryTests {
         Assert.Equal(1020, table._tableProperties.TableIndentation.Width?.Value);
         using WordDocument returned = exported.ToWordDocument();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(returned.ToBytes()));
-        using PdfPigDocument expected = PdfPigDocument.Open(original.ToPdfBytes(Options()));
-        using PdfPigDocument actual = PdfPigDocument.Open(reopened.ToPdfBytes(Options()));
+        using PdfPigDocument expected = PdfPigDocument.Open((original.ToPdf(Options())).ToBytes());
+        using PdfPigDocument actual = PdfPigDocument.Open((reopened.ToPdf(Options())).ToBytes());
         foreach (string marker in new[] { "BODY", "CELL" }) {
             Assert.InRange(Math.Abs(MarkerX(actual, marker) - MarkerX(expected, marker)), 0D, .03D);
         }
@@ -100,7 +100,7 @@ public sealed class RtfWordTableCompatibilityGeometryTests {
         Assert.Single(document.GetPages().SelectMany(page => page.GetWords()), word => word.Text == marker)
             .Letters[0].StartBaseLine.X;
 
-    private static WordToPdfOptions Options() => new() {
+    private static WordPdfExportOptions Options() => new() {
         IncludePageNumbers = false,
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None

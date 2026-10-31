@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using System.Globalization;
 using System.Net.Mail;
 using System.Xml.Linq;
@@ -7,7 +8,7 @@ namespace OfficeIMO.Workflows;
 public sealed partial class BookProject {
     private static IReadOnlyList<XElement> BuildOnixAccessibility(BookOnixAccessibilityMetadata? metadata, CancellationToken token) {
         if (metadata == null) return [];
-        ArgumentNullException.ThrowIfNull(metadata.Features);
+        if (metadata.Features == null) throw new ArgumentNullException("metadata.Features");
         if (metadata.Features.Count > 32) throw new ArgumentException("Supply at most 32 accessibility features.", nameof(metadata));
         var features = metadata.Features.ToArray();
         if (features.Distinct().Count() != features.Length)
@@ -29,7 +30,7 @@ public sealed partial class BookProject {
             _ => throw new ArgumentOutOfRangeException(nameof(metadata.Status))
         });
         foreach (var feature in features) {
-            if (!Enum.IsDefined(feature)) throw new ArgumentOutOfRangeException(nameof(metadata.Features));
+            if (!OfficeRuntimeCompatibility.IsDefined(feature)) throw new ArgumentOutOfRangeException(nameof(metadata.Features));
             Add(((int)feature).ToString("00", CultureInfo.InvariantCulture));
         }
         if (metadata.Conformance is { } conformance) {
@@ -43,7 +44,7 @@ public sealed partial class BookProject {
                 _ => throw new ArgumentOutOfRangeException(nameof(conformance.Level))
             });
         }
-        if (metadata.AssessmentDate is { } date) Add("91", date.ToString("yyyyMMdd", CultureInfo.InvariantCulture));
+        if (metadata.AssessmentDate is { } date) Add("91", FormatOnixDate(date));
         void AddUrl(string code, string? url) {
             if (url == null) return;
             RequireOnixHttpUrl(url, nameof(metadata));
@@ -52,7 +53,10 @@ public sealed partial class BookProject {
         void AddEmail(string code, string? email) {
             if (email == null) return;
             RequireOnixText(email, nameof(metadata));
-            if (!MailAddress.TryCreate(email, out var parsed) || parsed.Address != email || parsed.DisplayName.Length != 0)
+            MailAddress parsed;
+            try { parsed = new MailAddress(email); }
+            catch (FormatException error) { throw new ArgumentException("Supply a plain accessibility contact email address.", nameof(metadata), error); }
+            if (parsed.Address != email || parsed.DisplayName.Length != 0)
                 throw new ArgumentException("Supply a plain accessibility contact email address.", nameof(metadata));
             Add(code, email);
         }

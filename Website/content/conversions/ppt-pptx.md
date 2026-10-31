@@ -23,7 +23,7 @@ meta.howto.steps:
   - name: "Analyze"
     text: "Review slide, shape, media, chart, and preservation findings."
   - name: "Convert"
-    text: "Call PowerPointPresentation.Convert for the PPT and PPTX paths."
+    text: "Call PowerPointDocument.Convert for the PPT and PPTX paths."
   - name: "Review"
     text: "Validate the slides important to the presentation workflow."
 ---
@@ -35,11 +35,11 @@ meta.howto.steps:
 ```csharp
 using OfficeIMO.PowerPoint;
 
-PowerPointPresentationConversionReport preview =
-    PowerPointPresentation.AnalyzeConversion("briefing.ppt", "briefing.pptx");
+PowerPointDocumentConversionReport preview =
+    PowerPointDocument.AnalyzeConversion("briefing.ppt", "briefing.pptx");
 
-PowerPointPresentationConversionResult result =
-    PowerPointPresentation.Convert("briefing.ppt", "briefing.pptx");
+PowerPointDocumentConversionResult result =
+    PowerPointDocument.Convert("briefing.ppt", "briefing.pptx");
 ```
 
 ## PPTX to PPT
@@ -47,8 +47,8 @@ PowerPointPresentationConversionResult result =
 ```csharp
 using OfficeIMO.PowerPoint;
 
-PowerPointPresentationConversionResult result =
-    PowerPointPresentation.Convert("briefing.pptx", "briefing.ppt");
+PowerPointDocumentConversionResult result =
+    PowerPointDocument.Convert("briefing.pptx", "briefing.ppt");
 ```
 
 Slides contain more than text boxes. Masters, layouts, groups, charts, embedded objects, custom XML, animation, media, and drawing effects can cross format generations differently. The compatibility report makes those decisions visible and can block output when the selected policy does not allow the required fallback.

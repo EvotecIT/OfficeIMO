@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
         /// <param name="header">Header text used to resolve the target column after applying any configured normalization.</param>
         /// <param name="includeHeader">True to include the header row when styling; false to begin styling from the first data row.</param>
         /// <param name="options">Read options that control header normalization and other resolution behavior.</param>
-        public ExcelColumnStyleByHeaderBuilder ColumnStyleByHeader(string header, bool includeHeader = false, ExcelReadOptions? options = null) {
+        public ExcelColumnStyleByHeaderBuilder ColumnStyleByHeader(string header, bool includeHeader = false, ExcelReaderOptions? options = null) {
             TryGetColumnStyleByHeader(header, includeHeader, out var builder, out _, options);
             return builder;
         }
@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel {
             bool includeHeader,
             out ExcelColumnStyleByHeaderBuilder builder,
             out int columnIndex,
-            ExcelReadOptions? options = null,
+            ExcelReaderOptions? options = null,
             bool preferDirectTabularMetadata = true) {
             if (preferDirectTabularMetadata && options == null &&
                 _excelDocument.TryGetDirectTabularSaveCandidateColumnByHeader(this, header, includeHeader, options, out int directColumnIndex, out int directStartRow, out int directEndRow)) {
@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel {
             }
 
             var a1 = GetUsedRangeA1();
-            var (r1, _, r2, _) = A1.ParseRange(a1);
+            var (r1, _, r2, _) = ExcelA1.ParseRange(a1);
             int startRow = includeHeader ? r1 : r1 + 1;
             if (!TryGetColumnIndexByHeader(header, out var colIndex, options)) {
                 columnIndex = 0;

@@ -11,7 +11,7 @@ Projects chapters to searchable PowerShell objects.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Get-OfficeEpubChapter -Publication <EpubPublication> [<CommonParameters>]
+Get-OfficeEpubChapter [-Document <EpubPublication>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -27,8 +27,8 @@ $book | Get-OfficeEpubChapter | Select-Object Order, Title, Text
 
 ## PARAMETERS
 
-### -Publication
-Live editable publication.
+### -Document
+Gets or sets an explicit live document; omission uses the enclosing content block.
 
 ```yaml
 Type: EpubPublication
@@ -36,7 +36,7 @@ Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)

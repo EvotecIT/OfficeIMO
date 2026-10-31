@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Identifies a native binary PowerPoint audio or movie object.</summary>
-    public enum LegacyPptMediaKind {
+    internal enum LegacyPptMediaKind {
         /// <summary>An external AVI movie.</summary>
         AviMovie,
         /// <summary>An external Media Control Interface movie.</summary>
@@ -18,7 +18,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>
     /// Represents one external-media definition from a binary PowerPoint file.
     /// </summary>
-    public sealed class LegacyPptMedia {
+    internal sealed class LegacyPptMedia {
         internal LegacyPptMedia(uint id, LegacyPptMediaKind kind,
             bool loop, bool rewind, bool narration, string? path,
             uint? soundId, int? durationMilliseconds,

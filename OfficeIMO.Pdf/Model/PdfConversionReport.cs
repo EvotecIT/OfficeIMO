@@ -157,6 +157,7 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
         Guard.NotNull(warning, nameof(warning));
         EnsureMutable();
         _warnings.Add(warning);
+        PdfOutputDiagnosticScope.Capture(this, warning);
     }
 
     /// <summary>Adds all warnings from another report.</summary>
@@ -169,7 +170,7 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     }
 
     /// <summary>Adds shared text encoding diagnostics as conversion warnings.</summary>
-    public void AddTextDiagnostics(IEnumerable<PdfTextEncodingDiagnostic> diagnostics, string converter = "OfficeIMO.Pdf") {
+    internal void AddTextDiagnostics(IEnumerable<PdfTextEncodingDiagnostic> diagnostics, string converter = "OfficeIMO.Pdf") {
         Guard.NotNull(diagnostics, nameof(diagnostics));
         foreach (PdfTextEncodingDiagnostic diagnostic in diagnostics) {
             Add(diagnostic.ToConversionWarning(converter));
@@ -177,13 +178,13 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     }
 
     /// <summary>Adds missing-glyph diagnostics from an embedded-font fallback plan as conversion warnings.</summary>
-    public void AddTextFallbackPlanDiagnostics(PdfTextFallbackPlan plan, string converter = "OfficeIMO.Pdf") {
+    internal void AddTextFallbackPlanDiagnostics(PdfTextFallbackPlan plan, string converter = "OfficeIMO.Pdf") {
         Guard.NotNull(plan, nameof(plan));
         AddTextDiagnostics(plan.Diagnostics, converter);
     }
 
     /// <summary>Adds shared text shaping diagnostics as conversion warnings.</summary>
-    public void AddTextShapingDiagnostics(IEnumerable<PdfTextShapingDiagnostic> diagnostics, string converter = "OfficeIMO.Pdf") {
+    internal void AddTextShapingDiagnostics(IEnumerable<PdfTextShapingDiagnostic> diagnostics, string converter = "OfficeIMO.Pdf") {
         Guard.NotNull(diagnostics, nameof(diagnostics));
         foreach (PdfTextShapingDiagnostic diagnostic in diagnostics) {
             Add(diagnostic.ToConversionWarning(converter));
@@ -191,7 +192,7 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     }
 
     /// <summary>Adds shared embedded-font diagnostics as conversion warnings.</summary>
-    public void AddFontDiagnostics(IEnumerable<PdfFontEmbeddingDiagnostic> diagnostics, string converter = "OfficeIMO.Pdf") {
+    internal void AddFontDiagnostics(IEnumerable<PdfFontEmbeddingDiagnostic> diagnostics, string converter = "OfficeIMO.Pdf") {
         Guard.NotNull(diagnostics, nameof(diagnostics));
         foreach (PdfFontEmbeddingDiagnostic diagnostic in diagnostics) {
             Add(diagnostic.ToConversionWarning(converter));
@@ -237,7 +238,7 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     private static bool IsDeclaredSubstitutionWarning(PdfConversionWarning warning) =>
         warning.Code.EndsWith("FontFamilySubstituted", StringComparison.OrdinalIgnoreCase) ||
         warning.Code.EndsWith("FontSubstitution", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(warning.Code, "NativeFontFamilySlotExhausted", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(warning.Code, "native-font-family-slot-exhausted", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(warning.Code, "font-family-substitution", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(warning.Code, "unsupported-font-ligature-substitution", StringComparison.OrdinalIgnoreCase);
 }

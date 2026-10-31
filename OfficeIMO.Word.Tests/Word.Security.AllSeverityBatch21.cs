@@ -1,4 +1,3 @@
-using System.Reflection;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
@@ -8,21 +7,6 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
-    [Fact]
-    public void ListInfoUsesOfficeOwnedEnumConstructorSignature() {
-        ConstructorInfo? constructor = typeof(WordDocumentTraversal.ListInfo).GetConstructor(new[] {
-            typeof(int),
-            typeof(bool),
-            typeof(int),
-            typeof(WordNumberFormat?),
-            typeof(string),
-            typeof(int?),
-            typeof(int?)
-        });
-
-        Assert.NotNull(constructor);
-    }
-
     [Fact]
     public void ContinuousSectionWithExplicitRestartStartsNewPdfNumberingGroup() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeContinuousSectionRestart.docx");
@@ -35,10 +19,10 @@ public partial class Word {
             second.AddPageNumbering(1, WordNumberFormat.Decimal);
             document.AddParagraph("AfterRestart");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = true,
-                PageSize = new OfficeIMO.Pdf.PageSize(400, 300),
-                Margins = OfficeIMO.Pdf.PageMargins.Uniform(50)
+                PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(300)),
+                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(50))
             });
         }
 
@@ -80,10 +64,10 @@ public partial class Word {
             table.Rows[1].Cells[1].Paragraphs[0].Text = "BasePeer";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new OfficeIMO.Pdf.PageSize(420, 260),
-                Margins = OfficeIMO.Pdf.PageMargins.Uniform(40)
+                PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(260)),
+                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 

@@ -18,9 +18,9 @@ public partial class Word {
         WordParagraph paragraph = story switch {
             "header" => source.HeaderDefaultOrCreate.AddParagraph("Story heading"),
             "footer" => source.FooterDefaultOrCreate.AddParagraph("Story heading"),
-            "footnote" => source.AddParagraph("Reference").AddFootNote("Story heading").FootNote!.Paragraphs!.Single(item => item.Text == "Story heading"),
+            "footnote" => source.AddParagraph("Reference").AddFootNote("Story heading").Paragraph.FootNote!.Paragraphs!.Single(item => item.Text == "Story heading"),
             "comment" => AddCharacterScaleComment(source),
-            _ => source.AddParagraph("Reference").AddEndNote("Story heading").EndNote!.Paragraphs!.Single(item => item.Text == "Story heading")
+            _ => source.AddParagraph("Reference").AddEndNote("Story heading").Paragraph.EndNote!.Paragraphs!.Single(item => item.Text == "Story heading")
         };
         paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
         paragraph._paragraph.ParagraphProperties.ParagraphStyleId = new ParagraphStyleId { Val = "Heading1" };
@@ -29,7 +29,7 @@ public partial class Word {
         heading.StyleRunProperties ??= new StyleRunProperties();
         heading.StyleRunProperties.CharacterScale = new CharacterScale { Val = 200L };
         heading.StyleRunProperties.Spacing = new Spacing { Val = 20 };
-        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Style imported = loaded._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
             .Elements<Style>().Single(style => style.StyleId == "Heading1");
         Assert.Equal(200L, imported.StyleRunProperties?.CharacterScale?.Val?.Value);
@@ -55,10 +55,10 @@ public partial class Word {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph("Width and tracking");
         paragraph.CharacterScale = percentage;
-        paragraph.Spacing = -10;
-        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        paragraph.Spacing = OfficeLength.Emus((long)(-10) * 635);
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal(percentage, loaded.Paragraphs[0].CharacterScale);
-        Assert.Equal(-10, loaded.Paragraphs[0].Spacing);
+        Assert.Equal(OfficeLength.Emus(-10L * 635), loaded.Paragraphs[0].Spacing);
         using WordDocument docx = WordDocument.Load(new MemoryStream(loaded.ToBytes()));
         Assert.Equal(percentage, docx.Paragraphs[0].CharacterScale);
         Assert.Empty(docx.ValidateDocument());
@@ -68,15 +68,15 @@ public partial class Word {
     public void NativeDocCharacterScalePreservesTablesLinksAndSeparateStories() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Body").CharacterScale = 75;
-        source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].AddText("Cell").CharacterScale = 100;
+        source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0].AddText("Cell").CharacterScale = 100;
         source.HeaderDefaultOrCreate.AddParagraph("Header").CharacterScale = 125;
         source.FooterDefaultOrCreate.AddParagraph("Footer").CharacterScale = 150;
-        source.AddParagraph("Reference").AddFootNote("Footnote").FootNote!.Paragraphs!
+        source.AddParagraph("Reference").AddFootNote("Footnote").Paragraph.FootNote!.Paragraphs!
             .Single(item => item.Text == "Footnote").CharacterScale = 50;
-        source.AddParagraph("Reference").AddEndNote("Endnote").EndNote!.Paragraphs!
+        source.AddParagraph("Reference").AddEndNote("Endnote").Paragraph.EndNote!.Paragraphs!
             .Single(item => item.Text == "Endnote").CharacterScale = 200;
-        source.AddParagraph("Prefix ").AddHyperLink("Link", new Uri("https://example.test/width")).CharacterScale = 175;
-        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        source.AddParagraph("Prefix ").AddHyperLink("Link", new Uri("https://example.test/width")).Paragraph.CharacterScale = 175;
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal(75, loaded.Paragraphs.Single(item => item.Text == "Body").CharacterScale);
         Assert.Equal(100, loaded.Tables[0].Rows[0].Cells[0].Paragraphs.Single(item => item.Text == "Cell").CharacterScale);
         Assert.Equal(125, loaded.Sections[0].Header.Default!.Paragraphs.Single(item => item.Text == "Header").CharacterScale);
@@ -109,7 +109,7 @@ public partial class Word {
         WordParagraph reset = source.AddParagraph("Reset");
         if (!documentDefault) { inherited.SetStyleId("ScaledParagraph"); reset.SetStyleId("ScaledParagraph"); }
         reset.CharacterScale = 100;
-        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordParagraph loadedInherited = loaded.Paragraphs.Single(item => item.Text == "Inherited");
         Assert.Null(loadedInherited.CharacterScale);
         Style loadedStyle = loaded._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
@@ -129,7 +129,7 @@ public partial class Word {
         mark.AddChild(new FontSize { Val = "32" }, true);
         mark.AddChild(new Spacing { Val = -10 }, true);
         properties.AddChild(mark, true);
-        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         ParagraphMarkRunProperties loadedMark = loaded.Paragraphs[0]._paragraphProperties!.GetFirstChild<ParagraphMarkRunProperties>()!;
         Assert.Equal(200L, loadedMark.GetFirstChild<CharacterScale>()!.Val!.Value);
         Assert.Equal(-10, loadedMark.GetFirstChild<Spacing>()!.Val!.Value);
@@ -145,7 +145,7 @@ public partial class Word {
         WordParagraph paragraph = source.AddParagraph("Invalid authored width");
         paragraph._run!.RunProperties ??= new RunProperties();
         paragraph._run.RunProperties.AddChild(new CharacterScale { Val = percentage }, true);
-        NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
+        NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
         Assert.Contains("1 through 600", error.Message);
     }
 

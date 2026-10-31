@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using System.Text.Json.Nodes;
 using OfficeIMO.Provenance;
 
@@ -7,7 +8,7 @@ namespace OfficeIMO.Workflows;
 public static class OfficeProvenanceSarif {
     /// <summary>Creates a SARIF run. Structural presence is evidence, not an authenticity or AI verdict.</summary>
     public static string Serialize(IReadOnlyList<OfficeProvenanceWorkflowResult> reports) {
-        ArgumentNullException.ThrowIfNull(reports);
+        if (reports == null) throw new ArgumentNullException(nameof(reports));
         var results = new JsonArray(); var artifacts = new JsonArray();
         foreach (OfficeProvenanceWorkflowResult report in reports) {
             int artifactIndex = artifacts.Count;
@@ -49,6 +50,6 @@ public static class OfficeProvenanceSarif {
                     item.Checks.Verification != OfficeProvenanceCheckStatus.Failed && item.Checks.ProviderSignals != OfficeProvenanceCheckStatus.Failed) })
             }) }.ToJsonString();
     }
-    private static string ToUri(string path) => Path.IsPathFullyQualified(path)
-        ? new Uri(path).AbsoluteUri : string.Join('/', path.Replace('\\', '/').Split('/').Select(Uri.EscapeDataString));
+    private static string ToUri(string path) => OfficeRuntimeCompatibility.IsPathFullyQualified(path)
+        ? new Uri(path).AbsoluteUri : string.Join("/", path.Replace('\\', '/').Split('/').Select(Uri.EscapeDataString));
 }

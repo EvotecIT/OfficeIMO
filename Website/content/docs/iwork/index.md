@@ -52,7 +52,7 @@ Console.WriteLine(result.HasLoss);
 result.Value.Save("budget.xlsx");
 ```
 
-Use `ToWordDocument[Result]` for Pages, `ToExcelDocument[Result]` for Numbers, and `ToPowerPointPresentation[Result]` for Keynote. The short extension returns the destination document. The result extension also exposes the typed projection, diagnostics, preserved source records, producer build history, and the exact editable or visual-fallback result. The static `ConvertPagesToWord*`, `ConvertNumbersToExcel*`, and `ConvertKeynoteToPowerPoint*` methods are path and stream conveniences over the same source-first conversion pipeline.
+Use `ToWordDocument[Result]` for Pages, `ToExcelDocument[Result]` for Numbers, and `ToPowerPointDocument[Result]` for Keynote. The short extension returns the destination document. The result extension also exposes the typed projection, diagnostics, preserved source records, producer build history, and the exact editable or visual-fallback result. The static `ConvertPagesToWord*`, `ConvertNumbersToExcel*`, and `ConvertKeynoteToPowerPoint*` methods are path and stream conveniences over the same source-first conversion pipeline.
 
 ## Preservation boundary
 

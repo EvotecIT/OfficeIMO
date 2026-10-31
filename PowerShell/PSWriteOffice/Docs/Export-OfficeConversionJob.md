@@ -11,16 +11,16 @@ Saves a portable conversion job for Studio, the command-line tool and PowerShell
 ## SYNTAX
 ### Directory (Default)
 ```powershell
-Export-OfficeConversionJob [-Path] <string> -InputDirectory <string> -OutputDirectory <string> [-TargetExtension <string>] [-ConversionRouteId <string>] [-Name <string>] [-CheckpointDirectory <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeWorkflowConversionOptions>] [-SourcePasswordEnvironmentVariable <string>] [-PdfPasswordEnvironmentVariable <string>] [-SourceExtension <string[]>] [-NoRecurse] [-MaximumFiles <int>] [-MaximumConcurrency <int>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeConversionJob [-Path] <string> -InputDirectory <string> -OutputDirectory <string> [-TargetExtension <string>] [-ConversionRouteId <string>] [-Name <string>] [-CheckpointDirectory <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeConversionOptions>] [-SourcePasswordEnvironmentVariable <string>] [-PdfPasswordEnvironmentVariable <string>] [-SourceExtension <string[]>] [-NoRecurse] [-MaximumFiles <int>] [-MaximumConcurrency <int>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Files
 ```powershell
-Export-OfficeConversionJob [-Path] <string> -InputPath <Object[]> -OutputDirectory <string> [-TargetExtension <string>] [-ConversionRouteId <string>] [-Name <string>] [-CheckpointDirectory <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeWorkflowConversionOptions>] [-SourcePasswordEnvironmentVariable <string>] [-PdfPasswordEnvironmentVariable <string>] [-MaximumFiles <int>] [-MaximumConcurrency <int>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeConversionJob [-Path] <string> -InputPath <Object[]> -OutputDirectory <string> [-TargetExtension <string>] [-ConversionRouteId <string>] [-Name <string>] [-CheckpointDirectory <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeConversionOptions>] [-SourcePasswordEnvironmentVariable <string>] [-PdfPasswordEnvironmentVariable <string>] [-MaximumFiles <int>] [-MaximumConcurrency <int>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Requires PowerShell 7.4 or newer. Saving records intent and never converts documents. Relative paths are based on the saved job's folder. Native renderer callbacks and settings outside the portable contract are rejected instead of omitted.
+Saving records intent and never converts documents. Relative paths are based on the saved job's folder. Native renderer callbacks and settings outside the portable contract are rejected instead of omitted.
 
 ## EXAMPLES
 
@@ -76,7 +76,7 @@ Accept wildcard characters: False
 Portable scalar reconstruction and plain-text settings from New-OfficeConversionOptions. Unsupported native settings are rejected.
 
 ```yaml
-Type: OfficeWorkflowConversionOptions
+Type: OfficeConversionOptions
 Parameter Sets: Directory, Files
 Aliases: None
 Possible values:

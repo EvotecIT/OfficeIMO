@@ -1,0 +1,259 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using OfficeIMO.Drawing;
+using A = DocumentFormat.OpenXml.Drawing;
+
+namespace OfficeIMO.PowerPoint {
+    internal static partial class PowerPointSlideImageRenderer {
+        private static bool TryAddTableCellParagraphFlow(
+            OfficeDrawing drawing,
+            PowerPointTable table,
+            PowerPointTableCell cell,
+            double cellLeft,
+            double cellTop,
+            double cellWidth,
+            double cellHeight,
+            double textWidth,
+            double textHeight,
+            double marginLeft,
+            double marginTop,
+            double tableLeft,
+            double tableTop,
+            double tableWidth,
+            double tableHeight,
+            PowerPointShapeBoundsMapping mapping,
+            A.ColorScheme? colorScheme,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            List<PowerPointParagraph> paragraphs = cell.Paragraphs.ToList();
+            if (!ShouldRenderTableCellParagraphFlow(paragraphs)) {
+                return false;
+            }
+
+            var numberingState = new PowerPointParagraphNumberingState();
+            List<PowerPointParagraphDrawing> paragraphDrawings = CreateTableCellParagraphDrawings(cell, paragraphs, numberingState, textWidth, mapping, colorScheme, OfficeDrawingTextLayout.CreateMetrics(drawing).MeasureText);
+            double flowHeight = paragraphDrawings.Sum(paragraph => paragraph.TotalHeight);
+            double currentY = cellTop + marginTop + ResolveTextBoxVerticalOffset(cell.VerticalAlignment, textHeight, flowHeight);
+            double contentBottom = cellTop + marginTop + textHeight;
+            double rotation = table.Rotation ?? 0D;
+            double rotationCenterX = tableLeft + (tableWidth / 2D);
+            double rotationCenterY = tableTop + (tableHeight / 2D);
+            bool flipHorizontal = table.HorizontalFlip == true;
+            bool flipVertical = table.VerticalFlip == true;
+
+            for (int i = 0; i < paragraphDrawings.Count; i++) {
+                PowerPointParagraphDrawing paragraph = paragraphDrawings[i];
+                currentY += paragraph.SpaceBefore;
+                if (!paragraph.HasContent) {
+                    currentY += paragraph.Height + paragraph.SpaceAfter;
+                    continue;
+                }
+                // Keep the cell as the clipping boundary while paragraph leading controls flow.
+                double visibleHeight = Math.Max(0D, contentBottom - currentY);
+                bool clipped = visibleHeight + 0.001D < Math.Max(paragraph.Height, paragraph.PaintedHeight);
+                if (clipped) {
+                    AddUnsupportedShapeDiagnostic(diagnostics, table, "Clipped PowerPoint table cell paragraph content at the cell text frame boundary.");
+                }
+                if (visibleHeight <= 0D) return true;
+
+                if (paragraph.AbsoluteLineHeight) {
+                    var content = new OfficeDrawing(textWidth, visibleHeight);
+                    content.AddRichTextParagraphs(new[] { new OfficeRichTextParagraph(paragraph.RichRuns,
+                        paragraph.Alignment, lineHeight: paragraph.LineHeight, indent: paragraph.Indent) },
+                        0D, 0D, textWidth, visibleHeight);
+                    drawing.AddDrawingForClippedRendering(content, cellLeft + marginLeft, currentY,
+                        new OfficeImageFrameTransform(rotation, rotationCenterX, rotationCenterY,
+                            flipHorizontal, flipVertical));
+                } else if (paragraph.RichRuns.Count > 0) {
+                    drawing.AddRichText(
+                        paragraph.RichRuns,
+                        cellLeft + marginLeft,
+                        currentY,
+                        textWidth,
+                        visibleHeight,
+                        paragraph.Alignment,
+                        paragraph.LineHeight,
+                        rotationDegrees: rotation,
+                        rotationCenterX: rotationCenterX,
+                        rotationCenterY: rotationCenterY,
+                        wrapText: true,
+                        flipHorizontal: flipHorizontal,
+                        flipVertical: flipVertical,
+                        paragraphIndent: paragraph.Indent);
+                } else {
+                    drawing.AddText(
+                        paragraph.Text,
+                        cellLeft + marginLeft,
+                        currentY,
+                        textWidth,
+                        visibleHeight,
+                        paragraph.Font,
+                        paragraph.Color,
+                        paragraph.Alignment,
+                        paragraph.LineHeight,
+                        rotationDegrees: rotation,
+                        rotationCenterX: rotationCenterX,
+                        rotationCenterY: rotationCenterY,
+                        wrapText: true,
+                        flipHorizontal: flipHorizontal,
+                        flipVertical: flipVertical,
+                        paragraphIndent: paragraph.Indent);
+                }
+
+                if (visibleHeight < paragraph.Height) return true;
+                currentY += paragraph.Height + paragraph.SpaceAfter;
+            }
+
+            return true;
+        }
+
+        private static bool ShouldRenderTableCellParagraphFlow(IReadOnlyList<PowerPointParagraph> paragraphs) =>
+            paragraphs.Any(paragraph => !string.IsNullOrEmpty(paragraph.BulletCharacter) || paragraph.IsNumbered ||
+                paragraph.SpaceBefore.HasValue || paragraph.SpaceAfter.HasValue ||
+                paragraph.LineSpacing.HasValue || paragraph.LineSpacingMultiplier.HasValue) ||
+            paragraphs.Count > 1;
+
+        private static List<PowerPointParagraphDrawing> CreateTableCellParagraphDrawings(
+            PowerPointTableCell cell,
+            IReadOnlyList<PowerPointParagraph> paragraphs,
+            PowerPointParagraphNumberingState numberingState,
+            double textWidth,
+            PowerPointShapeBoundsMapping mapping,
+            A.ColorScheme? colorScheme, Func<string?, double, string?, OfficeFontStyle, double> measure) {
+            var results = new List<PowerPointParagraphDrawing>(paragraphs.Count);
+            for (int i = 0; i < paragraphs.Count; i++) {
+                PowerPointParagraph paragraph = paragraphs[i];
+                string? marker = numberingState.CreateMarker(paragraph);
+                OfficeTextParagraphIndent indent = CreateTableCellParagraphIndent(paragraph, mapping);
+                OfficeTextAlignment alignment = MapTextAlignment(paragraph.Alignment ?? cell.HorizontalAlignment);
+                List<OfficeRichTextRun> richRuns = CreateTableCellParagraphRichTextRuns(cell, paragraph, marker, colorScheme, mapping);
+                double maxFontSize = richRuns.Count == 0
+                    ? ResolveTableCellParagraphFont(cell, paragraph, mapping).Size
+                    : richRuns.Max(run => run.FontSize);
+                double lineHeight = ResolveTableCellParagraphLineHeight(paragraph, maxFontSize, mapping);
+                double height, paintedHeight;
+                if (paragraph.LineSpacing.HasValue) {
+                    var layout = OfficeDrawingTextLayout.CreateParagraphs(
+                        new[] { new OfficeRichTextParagraph(richRuns, lineHeight: lineHeight, indent: indent) },
+                        textWidth, double.MaxValue, measure);
+                    results.Add(new PowerPointParagraphDrawing(string.Empty, richRuns, OfficeFontInfo.Default,
+                        OfficeColor.Black, alignment, indent, lineHeight, Math.Max(lineHeight, layout.Height),
+                        OfficeDrawingTextLayout.PaintedHeight(layout),
+                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBefore?.ToPoints() ?? 0D)),
+                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfter?.ToPoints() ?? 0D)),
+                        layout.Width, layout.Clipped, absoluteLineHeight: true));
+                } else if (ShouldRenderParagraphRichText(richRuns, marker)) {
+                    height = EstimateParagraphRichTextHeight(richRuns, maxFontSize, lineHeight, textWidth, indent, out paintedHeight, measure);
+                    results.Add(new PowerPointParagraphDrawing(
+                        string.Empty,
+                        richRuns,
+                        OfficeFontInfo.Default,
+                        OfficeColor.Black,
+                        alignment,
+                        indent,
+                        lineHeight,
+                        height,
+                        paintedHeight,
+                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBefore?.ToPoints() ?? 0D)),
+                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfter?.ToPoints() ?? 0D))));
+                } else {
+                    string text = CreateParagraphPlainText(paragraph, marker);
+                    OfficeFontInfo font = ResolveTableCellParagraphFont(cell, paragraph, mapping);
+                    height = EstimateParagraphTextHeight(text, font, lineHeight, textWidth, indent, out paintedHeight, measure);
+                    results.Add(new PowerPointParagraphDrawing(
+                        text,
+                        Array.Empty<OfficeRichTextRun>(),
+                        font,
+                        ResolveTableCellParagraphTextColor(cell, paragraph, colorScheme),
+                        alignment,
+                        indent,
+                        lineHeight,
+                        height,
+                        paintedHeight,
+                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBefore?.ToPoints() ?? 0D)),
+                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfter?.ToPoints() ?? 0D))));
+                }
+            }
+
+            return results;
+        }
+
+        private static List<OfficeRichTextRun> CreateTableCellParagraphRichTextRuns(PowerPointTableCell cell, PowerPointParagraph paragraph, string? marker, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping) {
+            IReadOnlyList<PowerPointParagraphInline> inlineNodes = paragraph.InlineNodes;
+            var richRuns = new List<OfficeRichTextRun>(inlineNodes.Count);
+            PowerPointTextRun? firstRun = inlineNodes.FirstOrDefault(node => node.Run != null)?.Run;
+            if (!string.IsNullOrEmpty(marker)) {
+                richRuns.Add(CreateRichTextRun(marker!, firstRun, cell, paragraph, colorScheme, mapping, markerRun: true));
+            }
+
+            for (int i = 0; i < inlineNodes.Count; i++) {
+                PowerPointParagraphInline inline = inlineNodes[i];
+                if (!string.IsNullOrEmpty(inline.Text)) {
+                    richRuns.Add(CreateRichTextRun(inline.Text, inline.Run, cell, paragraph, colorScheme, mapping));
+                }
+            }
+
+            return richRuns;
+        }
+
+        private static OfficeFontInfo ResolveTableCellParagraphFont(PowerPointTableCell cell, PowerPointParagraph paragraph, PowerPointShapeBoundsMapping mapping) {
+            if (!paragraph.InlineNodes.Any(node => !string.IsNullOrEmpty(node.Text))) {
+                PowerPointEffectiveRunStyle effective = PowerPointEffectiveRunStyleResolver.ResolveParagraph(
+                    paragraph, cell.Cell.TextBody?.ListStyle,
+                    cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.TextStyles?.OtherStyle);
+                return new OfficeFontInfo(effective.FontName ?? PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
+                        cell.FontName, cell.OwnerPart) ?? "Calibri",
+                    mapping.MapFontSize(effective.FontSizePoints ?? cell.FontSize?.ToPoints() ?? 10),
+                    ResolveEffectiveFontStyle(effective, cell.Bold, cell.Italic));
+            }
+            PowerPointTextRun? firstRun = paragraph.InlineNodes.FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run
+                ?? paragraph.InlineNodes.FirstOrDefault(node => node.Run != null)?.Run;
+            OfficeFontStyle style = OfficeFontStyle.Regular;
+            if (firstRun?.Bold == true || cell.Bold) {
+                style |= OfficeFontStyle.Bold;
+            }
+
+            if (firstRun?.Italic == true || cell.Italic) {
+                style |= OfficeFontStyle.Italic;
+            }
+
+            if (firstRun?.Underline == true) {
+                style |= OfficeFontStyle.Underline;
+            }
+
+            if (firstRun?.Strikethrough == true) {
+                style |= OfficeFontStyle.Strikethrough;
+            }
+
+            return new OfficeFontInfo(PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
+                firstRun?.FontName ?? cell.FontName, firstRun?.OwnerPart ?? cell.OwnerPart) ?? "Calibri",
+                mapping.MapFontSize(firstRun?.FontSize?.ToPoints() ?? cell.FontSize?.ToPoints() ?? 10), style);
+        }
+
+        private static OfficeColor ResolveTableCellParagraphTextColor(PowerPointTableCell cell, PowerPointParagraph paragraph, A.ColorScheme? colorScheme) {
+            PowerPointTextRun? firstRun = paragraph.InlineNodes.FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run
+                ?? paragraph.InlineNodes.FirstOrDefault(node => node.Run != null)?.Run;
+            return ResolveTableCellTextRunColor(firstRun, cell, colorScheme);
+        }
+
+        private static double ResolveTableCellParagraphLineHeight(PowerPointParagraph paragraph, double fontSize, PowerPointShapeBoundsMapping mapping) {
+            if (paragraph.LineSpacing.HasValue) {
+                return Math.Max(1D, mapping.MapVerticalLength(paragraph.LineSpacing.Value.ToPoints()));
+            }
+
+            if (paragraph.LineSpacingMultiplier.HasValue) {
+                return Math.Max(1D, fontSize * paragraph.LineSpacingMultiplier.Value);
+            }
+
+            return Math.Max(1D, fontSize * 1.2D);
+        }
+
+        private static OfficeTextParagraphIndent CreateTableCellParagraphIndent(PowerPointParagraph paragraph, PowerPointShapeBoundsMapping mapping) {
+            double leftMargin = Math.Max(0D, mapping.MapHorizontalLength(paragraph.LeftMargin?.ToPoints() ?? 0D));
+            double firstLine = Math.Max(0D, leftMargin + mapping.MapHorizontalLength(paragraph.Indent?.ToPoints() ?? 0D));
+            return firstLine > 0D || leftMargin > 0D
+                ? new OfficeTextParagraphIndent(firstLine, leftMargin)
+                : OfficeTextParagraphIndent.Empty;
+        }
+    }
+}

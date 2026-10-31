@@ -241,10 +241,10 @@ public static partial class PowerPointHtmlConverterExtensions {
             .Append("\" data-officeimo-layer-index=\"")
             .Append(shape.DrawingOrder.ToString(CultureInfo.InvariantCulture))
             .Append('"');
-        AppendDataAttribute(body, "data-officeimo-left", shape.LeftPoints, omitWhenZero: false);
-        AppendDataAttribute(body, "data-officeimo-top", shape.TopPoints, omitWhenZero: false);
-        AppendDataAttribute(body, "data-officeimo-width", shape.WidthPoints, omitWhenZero: false);
-        AppendDataAttribute(body, "data-officeimo-height", shape.HeightPoints, omitWhenZero: false);
+        AppendDataAttribute(body, "data-officeimo-left", shape.Left.ToPoints(), omitWhenZero: false);
+        AppendDataAttribute(body, "data-officeimo-top", shape.Top.ToPoints(), omitWhenZero: false);
+        AppendDataAttribute(body, "data-officeimo-width", shape.Width.ToPoints(), omitWhenZero: false);
+        AppendDataAttribute(body, "data-officeimo-height", shape.Height.ToPoints(), omitWhenZero: false);
         AppendDataAttribute(body, "data-officeimo-rotation", shape.Rotation ?? 0D);
         AppendDataAttribute(body, "data-officeimo-flip-horizontal", shape.HorizontalFlip == true);
         AppendDataAttribute(body, "data-officeimo-flip-vertical", shape.VerticalFlip == true);

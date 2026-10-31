@@ -7,6 +7,9 @@ public sealed class ReaderExcelOptions {
     /// <summary>Optional worksheet name. All worksheets are read when omitted.</summary>
     public string? SheetName { get; set; }
 
+    /// <summary>Optional one-based worksheet position. Cannot be combined with SheetName.</summary>
+    public int? SheetNumber { get; set; }
+
     /// <summary>Optional A1 range applied to each selected worksheet.</summary>
     public string? A1Range { get; set; }
 
@@ -17,5 +20,5 @@ public sealed class ReaderExcelOptions {
     public int ChunkRows { get; set; } = 200;
 
     /// <summary>Optional low-level Excel read policy.</summary>
-    public ExcelReadOptions? ReadOptions { get; set; }
+    public ExcelReaderOptions? ReadOptions { get; set; }
 }

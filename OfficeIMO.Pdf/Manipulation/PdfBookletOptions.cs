@@ -3,14 +3,14 @@ namespace OfficeIMO.Pdf;
 /// <summary>Two-up duplex booklet layout in print order, with blank pages padded to a multiple of four.</summary>
 public sealed class PdfBookletOptions {
     /// <summary>Creates a booklet layout using the physical sheet size in PDF points.</summary>
-    public PdfBookletOptions(PageSize sheetSize) => SheetSize = sheetSize;
+    public PdfBookletOptions(PdfPageSize sheetSize) => SheetSize = sheetSize;
 
     /// <summary>Physical sheet dimensions in PDF points.</summary>
-    public PageSize SheetSize { get; }
+    public PdfPageSize SheetSize { get; }
     /// <summary>Outer sheet margin in PDF points.</summary>
-    public double Margin { get; set; } = 18D;
+    public OfficeLength Margin { get; set; } = OfficeIMO.OfficeLength.Points(18D);
     /// <summary>Space between the two page cells in PDF points.</summary>
-    public double Gutter { get; set; } = 9D;
+    public OfficeLength Gutter { get; set; } = OfficeIMO.OfficeLength.Points(9D);
     /// <summary>Swaps left and right cells on every sheet side for right-to-left reading.</summary>
     public bool RightToLeft { get; set; }
     /// <summary>Maximum physical duplex sheets accepted by one operation.</summary>
@@ -29,7 +29,7 @@ public sealed class PdfBookletOptions {
         return new PdfNUpOptions(SheetSize, 2, 1) {
             Margin = Margin,
             HorizontalGutter = Gutter,
-            VerticalGutter = 0D,
+            VerticalGutter = OfficeIMO.OfficeLength.Points(0D),
             MaxSheets = MaxPhysicalSheets * 2,
             MaxSourcePages = MaxSourcePages,
             MaxOutputBytes = MaxOutputBytes,

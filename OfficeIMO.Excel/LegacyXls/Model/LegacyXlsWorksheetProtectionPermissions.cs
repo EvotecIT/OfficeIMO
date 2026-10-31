@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents BIFF8 enhanced worksheet-protection permissions from a FeatHdr ISFPROTECTION record.
     /// </summary>
-    public sealed class LegacyXlsWorksheetProtectionPermissions : IEquatable<LegacyXlsWorksheetProtectionPermissions> {
+    internal sealed class LegacyXlsWorksheetProtectionPermissions : IEquatable<LegacyXlsWorksheetProtectionPermissions> {
         /// <summary>
         /// Creates worksheet-protection permission metadata.
         /// </summary>

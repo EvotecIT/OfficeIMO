@@ -42,16 +42,15 @@ XLS and XLSB use first-party readers and writers with explicit preservation and 
 
 ```csharp
 using System.Collections.Generic;
-using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 
 using var workbook = ExcelDocument.Create("Sales.xlsx");
-var sheet = workbook.AddWorksheet("Q4 Sales");
+var sheet = workbook.AddSheet("Q4 Sales");
 
 // Set headers
-sheet.Cells["A1"].Value = "Product";
-sheet.Cells["B1"].Value = "Units";
-sheet.Cells["C1"].Value = "Revenue";
+sheet.CellValue(1, 1, "Product");
+sheet.CellValue(1, 2, "Units");
+sheet.CellValue(1, 3, "Revenue");
 
 // Add data rows
 string[] products = { "Widget A", "Widget B", "Widget C", "Widget D" };
@@ -61,10 +60,10 @@ decimal[] revenue = { 24000m, 17000m, 63000m, 12900m };
 for (int i = 0; i < products.Length; i++)
 {
     int row = i + 2;
-    sheet.Cells[$"A{row}"].Value = products[i];
-    sheet.Cells[$"B{row}"].Value = units[i];
-    sheet.Cells[$"C{row}"].Value = revenue[i];
-    sheet.Cells[$"C{row}"].NumberFormat = "$#,##0";
+    sheet.CellValue(row, 1, products[i]);
+    sheet.CellValue(row, 2, units[i]);
+    sheet.CellValue(row, 3, revenue[i]);
+    sheet.FormatCell(row, 3, "$#,##0");
 }
 
 // Create a styled table with a totals row
@@ -73,7 +72,7 @@ sheet.AddTable(
     $"A1:C{totalsRow}",
     hasHeader: true,
     name: "SalesTable",
-    style: TableStyle.TableStyleMedium9);
+    style: ExcelTableStyle.TableStyleMedium9);
 sheet.SetTableTotalsByName(
     "SalesTable",
     new Dictionary<string, ExcelTableTotalsFunction>

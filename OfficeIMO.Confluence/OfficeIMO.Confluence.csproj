@@ -33,10 +33,6 @@
     <ProjectReference Include="..\OfficeIMO.Markdown\OfficeIMO.Markdown.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <Reference Include="System.Net.Http" />
-  </ItemGroup>
-
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">
     <PackageReference Include="System.Text.Json" Version="[10.0.7,11.0.0)" />
   </ItemGroup>
@@ -51,4 +47,7 @@
     <Using Include="System.Threading.Tasks" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
 </Project>

@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests.Pdf {
         [InlineData(true)]
         public void SharingPreservesGeneratedOutputReadAllowancesThroughLineageChecks(bool tightContentBudgets) {
             byte[] bytes = PdfDocument.Create(pdf => pdf.Content(content => content.Text("Retained source content")),
-                new PdfOptions { CompressContentStreams = false }).ToBytes();
+                new PdfCreateOptions { CompressContentStreams = false }).ToBytes();
             PdfStream[] streams = PdfSyntax.ParseObjects(bytes).Map.Values
                 .Select(static item => item.Value).OfType<PdfStream>().ToArray();
             int maximumStreamBytes = streams.Max(static stream => stream.Data.Length);

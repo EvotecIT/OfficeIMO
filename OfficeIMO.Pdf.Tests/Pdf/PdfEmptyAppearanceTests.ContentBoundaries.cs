@@ -25,7 +25,7 @@ public sealed partial class PdfEmptyAppearanceTests {
     public void TextReplacementStampPreservesPagePaintWhenTheOriginalStreamHasNoTrailingWhitespace() {
         byte[] source = BuildPdf(null, "[0 0 0 0]");
         var request = new PdfStamper.TextStampRequest(1, "boundary audit", 20D, 20D,
-            PdfStandardFont.Helvetica, 10D, new PdfColor(0D, 0D, 0D), 0D, textRenderingMode: 3);
+            PdfStandardFont.Helvetica, 10D, global::OfficeIMO.OfficeColor.FromNormalizedRgb(0D, 0D, 0D), 0D, textRenderingMode: 3);
 
         byte[] stamped = PdfStamper.StampTextBatch(source, new[] { request });
 

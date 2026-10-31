@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
             } else {
                 using var sourceStream = new MemoryStream();
                 using ExcelDocument source = ExcelDocument.Create(sourceStream);
-                source.AddWorksheet("OpenXml").CellValue(1, 1, "Encrypted Open XML");
+                source.AddSheet("OpenXml").CellValue(1, 1, "Encrypted Open XML");
                 using var encrypted = new MemoryStream();
                 source.SaveEncrypted(encrypted, password);
                 encryptedBytes = encrypted.ToArray();
@@ -294,7 +294,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("OpenXml");
+                    ExcelSheet sheet = document.AddSheet("OpenXml");
                     sheet.CellValue(1, 1, "Open XML payload");
                     document.Save();
                 }
@@ -320,7 +320,7 @@ namespace OfficeIMO.Tests {
                 InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ExcelDocument.Load(sourcePath));
 
                 Assert.Contains("Legacy XLS import failed", exception.Message, StringComparison.OrdinalIgnoreCase);
-                Assert.Contains("XLS-COMPOUND-SIGNATURE", exception.Message, StringComparison.Ordinal);
+                Assert.Contains("xls-compound-signature", exception.Message, StringComparison.Ordinal);
             } finally {
                 TryDelete(sourcePath);
             }
@@ -333,7 +333,7 @@ namespace OfficeIMO.Tests {
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ExcelDocument.Load(new MemoryStream(bytes)));
 
             Assert.Contains("Legacy XLS import failed", exception.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("XLS-COMPOUND-SIGNATURE", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("xls-compound-signature", exception.Message, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -343,7 +343,7 @@ namespace OfficeIMO.Tests {
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ExcelDocument.Load(new MemoryStream(bytes)));
 
             Assert.Contains("Legacy XLS import failed", exception.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("XLS-COMPOUND-CORRUPT", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("xls-compound-corrupt", exception.Message, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -353,7 +353,7 @@ namespace OfficeIMO.Tests {
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ExcelDocument.Load(new MemoryStream(bytes)));
 
             Assert.Contains("Legacy XLS import failed", exception.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("XLS-WORKBOOK-STREAM-MISSING", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("xls-workbook-stream-missing", exception.Message, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -501,7 +501,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Data");
+                    ExcelSheet sheet = document.AddSheet("Data");
                     sheet.CellValue(1, 1, "Name");
                     sheet.CellValue(2, 1, "Alice");
                     sheet.CellValue(2, 2, 42);
@@ -604,7 +604,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(result.HasDocument);
                 Assert.NotNull(result.ProjectionException);
                 Assert.True(result.HasImportErrors);
-                Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FILEPASS-UNSUPPORTED");
+                Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "xls-biff-filepass-unsupported");
                 Assert.Equal(0, result.ImportReport.WorksheetCount);
 
                 InvalidOperationException documentException = Assert.Throws<InvalidOperationException>(() => result.Document);
@@ -625,7 +625,7 @@ namespace OfficeIMO.Tests {
                 InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ExcelDocument.Load(sourcePath));
 
                 Assert.Contains("Legacy XLS import failed", exception.Message, StringComparison.OrdinalIgnoreCase);
-                Assert.Contains("XLS-BIFF-FILEPASS-UNSUPPORTED", exception.Message, StringComparison.Ordinal);
+                Assert.Contains("xls-biff-filepass-unsupported", exception.Message, StringComparison.Ordinal);
             } finally {
                 TryDelete(sourcePath);
             }

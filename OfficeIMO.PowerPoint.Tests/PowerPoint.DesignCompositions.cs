@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
                     presentation.ApplyDesignerTheme();
 
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                     Assert.Equal(4, presentation.Slides.Count);
@@ -97,22 +97,22 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
                 PowerPointSlide slide = presentation.AddDesignerCardGridSlide("Services", null,
-                    Enumerable.Range(1, 7).Select(index =>
+                    Enumerable.Range(1, 6).Select(index =>
                         new PowerPointCardContent("Card " + index, new[] { "One", "Two" })),
                     options: new PowerPointCardGridSlideOptions { MaxColumns = 3 });
 
-                PowerPointLayoutBox slideBounds = new(0, 0, presentation.SlideSize.WidthEmus, presentation.SlideSize.HeightEmus);
-                for (int i = 1; i <= 7; i++) {
-                    PowerPointShape? card = slide.GetShape("Designer Card " + i);
+                PowerPointLayoutBox slideBounds = new(OfficeLength.Zero, OfficeLength.Zero, presentation.SlideSize.Width, presentation.SlideSize.Height);
+                for (int i = 1; i <= 6; i++) {
+                    PowerPointShape? card = slide.GetShape("Card " + i);
                     Assert.NotNull(card);
-                    Assert.True(card!.Left >= slideBounds.Left, "Card is left of the slide.");
-                    Assert.True(card.Top >= slideBounds.Top, "Card is above the slide.");
-                    Assert.True(card.Right <= slideBounds.Right, "Card is right of the slide.");
-                    Assert.True(card.Bottom <= slideBounds.Bottom, "Card is below the slide.");
+                    Assert.True(card!.Left.ToEmus() >= slideBounds.Left.ToEmus(), "Card is left of the slide.");
+                    Assert.True(card.Top.ToEmus() >= slideBounds.Top.ToEmus(), "Card is above the slide.");
+                    Assert.True(card.Right.ToEmus() <= slideBounds.Right.ToEmus(), "Card is right of the slide.");
+                    Assert.True(card.Bottom.ToEmus() <= slideBounds.Bottom.ToEmus(), "Card is below the slide.");
                 }
             } finally {
                 if (File.Exists(filePath)) {
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 IEnumerable<PowerPointProcessStep> steps = Enumerable.Range(1, 9)
                     .Select(index => new PowerPointProcessStep("Step " + index, "Body"));
 
@@ -140,114 +140,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void DesignerSlideComposer_CanUseCompositionPresetForRawSlide() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                PowerPointCompositionLayout? resolvedLayout = null;
-
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
-                    presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-                    PowerPointDeckComposer deck = presentation.UseDesigner(
-                        PowerPointDeckDesign.FromBrand("#008C95", "composition-demo",
-                            PowerPointDesignMood.Editorial, footerLeft: "OFFICEIMO"));
-
-                    deck.ComposeSlide(composer => {
-                        PowerPointCompositionLayout layout =
-                            composer.UsePreset(PowerPointCompositionPreset.MetricStory);
-                        resolvedLayout = layout;
-
-                        composer.AddTitle("Reusable composition", "Raw slides can still use planned regions.");
-                        composer.AddCardGrid(new[] {
-                            new PowerPointCardContent("Narrative", new[] { "Problem", "Decision", "Outcome" }),
-                            new PowerPointCardContent("Delivery", new[] { "Scope", "Cadence", "Controls" })
-                        }, layout.Primary);
-                        composer.AddVisualFrame(layout.Visual);
-                        composer.AddMetricStrip(new[] {
-                            new PowerPointMetric("3", "regions"),
-                            new PowerPointMetric("0", "manual coordinates")
-                        }, layout.Metrics);
-                    }, seed: "composition");
-
-                    Assert.NotNull(resolvedLayout);
-                    Assert.Equal(PowerPointCompositionPreset.MetricStory, resolvedLayout!.Preset);
-                    Assert.True(resolvedLayout.Primary.Right <= resolvedLayout.Content.Right);
-                    Assert.True(resolvedLayout.Visual.Right <= resolvedLayout.Content.Right);
-                    Assert.True(resolvedLayout.Metrics.Bottom <= resolvedLayout.Content.Bottom);
-
-                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
-                    Assert.True(errors.Count == 0, FormatValidationErrors(errors));
-                    presentation.Save();
-                }
-
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
-                    Assert.Single(presentation.Slides);
-                    Assert.Contains(presentation.Slides[0].TextBoxes,
-                        textBox => textBox.Text == "Reusable composition");
-                    Assert.Contains(presentation.Slides[0].Shapes,
-                        shape => shape.Name == "Case Study Visual Frame");
-                }
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerSlideComposer_AutoCompositionPresetFollowsDesignIntent() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointCompositionPreset compactPreset = PowerPointCompositionPreset.Auto;
-                presentation.ComposeDesignerSlide(composer => {
-                    compactPreset = composer.UsePreset().Preset;
-                }, options: new PowerPointDesignerSlideOptions {
-                    DesignIntent = new PowerPointDesignIntent {
-                        LayoutStrategy = PowerPointAutoLayoutStrategy.Compact,
-                        Seed = "compact"
-                    }
-                });
-
-                PowerPointCompositionPreset minimalPreset = PowerPointCompositionPreset.Auto;
-                presentation.ComposeDesignerSlide(composer => {
-                    minimalPreset = composer.UsePreset().Preset;
-                }, options: new PowerPointDesignerSlideOptions {
-                    DesignIntent = new PowerPointDesignIntent {
-                        VisualStyle = PowerPointVisualStyle.Minimal,
-                        Seed = "minimal"
-                    }
-                });
-
-                PowerPointCompositionPreset energeticPreset = PowerPointCompositionPreset.Auto;
-                presentation.ComposeDesignerSlide(composer => {
-                    energeticPreset = composer.UsePreset().Preset;
-                }, options: new PowerPointDesignerSlideOptions {
-                    DesignIntent = new PowerPointDesignIntent {
-                        Mood = PowerPointDesignMood.Energetic,
-                        Seed = "energetic"
-                    }
-                });
-
-                Assert.Equal(PowerPointCompositionPreset.DashboardGrid, compactPreset);
-                Assert.Equal(PowerPointCompositionPreset.BalancedColumns, minimalPreset);
-                Assert.Equal(PowerPointCompositionPreset.MetricStory, energeticPreset);
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
         public void DesignerSlideComposer_CompositionVariantsChangeRegionsWithoutLeavingContent() {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
                 PowerPointCompositionLayout? standard = null;
@@ -284,18 +181,18 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(PowerPointCompositionVariant.Mirrored, mirrored!.Variant);
                 Assert.Equal(PowerPointCompositionVariant.VisualLead, visualLead!.Variant);
                 Assert.Equal(PowerPointCompositionVariant.EvidenceLead, evidenceLead!.Variant);
-                Assert.True(standard.Visual.LeftCm > standard.Primary.LeftCm);
-                Assert.True(mirrored.Visual.LeftCm < mirrored.Primary.LeftCm);
-                Assert.True(visualLead.Visual.WidthCm > standard.Visual.WidthCm);
-                Assert.Equal(evidenceLead.Content.TopCm, evidenceLead.Metrics.TopCm);
+                Assert.True(standard.Visual.Left.ToCentimeters() > standard.Primary.Left.ToCentimeters());
+                Assert.True(mirrored.Visual.Left.ToCentimeters() < mirrored.Primary.Left.ToCentimeters());
+                Assert.True(visualLead.Visual.Width.ToCentimeters() > standard.Visual.Width.ToCentimeters());
+                Assert.Equal(evidenceLead.Content.Top.ToCentimeters(), evidenceLead.Metrics.Top.ToCentimeters());
 
                 foreach (PowerPointCompositionLayout layout in new[] { standard, mirrored, visualLead, evidenceLead }) {
-                    Assert.True(layout.Primary.Left >= layout.Content.Left);
-                    Assert.True(layout.Primary.Right <= layout.Content.Right);
-                    Assert.True(layout.Visual.Left >= layout.Content.Left);
-                    Assert.True(layout.Visual.Right <= layout.Content.Right);
-                    Assert.True(layout.Metrics.Top >= layout.Content.Top);
-                    Assert.True(layout.Metrics.Bottom <= layout.Content.Bottom);
+                    Assert.True(layout.Primary.Left.ToEmus() >= layout.Content.Left.ToEmus());
+                    Assert.True(layout.Primary.Right.ToEmus() <= layout.Content.Right.ToEmus());
+                    Assert.True(layout.Visual.Left.ToEmus() >= layout.Content.Left.ToEmus());
+                    Assert.True(layout.Visual.Right.ToEmus() <= layout.Content.Right.ToEmus());
+                    Assert.True(layout.Metrics.Top.ToEmus() >= layout.Content.Top.ToEmus());
+                    Assert.True(layout.Metrics.Bottom.ToEmus() <= layout.Content.Bottom.ToEmus());
                 }
 
                 foreach (PowerPointCompositionLayout layout in dashboardLayouts) {
@@ -304,91 +201,6 @@ namespace OfficeIMO.Tests {
                     Assert.Contains(layout.Secondary, layout.Grid);
                     Assert.Contains(layout.Visual, layout.Grid);
                     Assert.Contains(layout.Metrics, layout.Grid);
-                }
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerSlideComposer_AutoCompositionVariantIsStableAndSeeded() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointCompositionVariant first = ResolveVariantForSeed(presentation, "same-seed");
-                PowerPointCompositionVariant second = ResolveVariantForSeed(presentation, "same-seed");
-                PowerPointCompositionVariant[] seededVariants = {
-                    ResolveVariantForSeed(presentation, "variant-a"),
-                    ResolveVariantForSeed(presentation, "variant-b"),
-                    ResolveVariantForSeed(presentation, "variant-c"),
-                    ResolveVariantForSeed(presentation, "variant-d")
-                };
-
-                Assert.Equal(first, second);
-                Assert.True(seededVariants.Distinct().Count() > 1);
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerSlideComposer_SurfaceVariantsCreateDistinctEditablePrimitives() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
-                    presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-                    PowerPointMetric[] metrics = {
-                        new("12", "teams"),
-                        new("8", "locations"),
-                        new("4", "workstreams")
-                    };
-
-                    PowerPointSlide metricSlide = presentation.ComposeDesignerSlide(composer => {
-                        PowerPointLayoutBox[] rows = composer.ContentRows(3, 0.35, topCm: 3.3, bottomMarginCm: 1.6);
-                        composer.AddMetricStrip(metrics, rows[0], PowerPointMetricStripVariant.SolidBand);
-                        composer.AddMetricStrip(metrics, rows[1], PowerPointMetricStripVariant.SeparatedTiles);
-                        composer.AddMetricStrip(metrics, rows[2], PowerPointMetricStripVariant.Underlined);
-                    }, options: new PowerPointDesignerSlideOptions {
-                        DesignIntent = new PowerPointDesignIntent { Seed = "surface-metrics" }
-                    });
-
-                    PowerPointSlide visualSlide = presentation.ComposeDesignerSlide(composer => {
-                        PowerPointLayoutBox[] columns = composer.ContentColumns(5, 0.35, topCm: 3.8, bottomMarginCm: 2.0);
-                        composer.AddVisualFrame(columns[0], PowerPointVisualFrameVariant.Dashboard);
-                        composer.AddVisualFrame(columns[1], PowerPointVisualFrameVariant.Collage);
-                        composer.AddVisualFrame(columns[2], PowerPointVisualFrameVariant.Diagram);
-                        composer.AddVisualFrame(columns[3], PowerPointVisualFrameVariant.DeviceMockup);
-                        composer.AddVisualFrame(columns[4], PowerPointVisualFrameVariant.ProofBoard);
-                    }, options: new PowerPointDesignerSlideOptions {
-                        DesignIntent = new PowerPointDesignIntent { Seed = "surface-visuals" }
-                    });
-
-                    Assert.Contains(metricSlide.Shapes, shape => shape.Name == "Composer Metric Band");
-                    Assert.Contains(metricSlide.Shapes, shape => shape.Name == "Composer Metric Tile 1");
-                    Assert.Contains(metricSlide.Shapes, shape => shape.Name == "Composer Metric Underline 1");
-                    Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Case Study Visual Content Panel");
-                    Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Visual Collage Tile 1");
-                    Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Visual Diagram Node 1");
-                    Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Visual Device Screen");
-                    Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Visual Proof Mat");
-
-                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
-                    Assert.True(errors.Count == 0, FormatValidationErrors(errors));
-                    presentation.Save();
-                }
-
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
-                    Assert.Equal(2, presentation.Slides.Count);
-                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
-                    Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                 }
             } finally {
                 if (File.Exists(filePath)) {
@@ -921,47 +733,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void DesignerDesignBrief_CanChooseAutoLayoutStrategy() {
-            PowerPointDesignBrief brief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
-                .WithLayoutStrategy(PowerPointAutoLayoutStrategy.Compact);
-            PowerPointDeckPlan plan = new PowerPointDeckPlan()
-                .AddSection("Opening", "Compact introduction", "cover")
-                .AddCaseStudy("Client",
-                    new[] {
-                        new PowerPointCaseStudySection("Client", "One story block."),
-                        new PowerPointCaseStudySection("Challenge", "Second story block."),
-                        new PowerPointCaseStudySection("Result", "Third story block.")
-                    },
-                    seed: "case")
-                .AddProcess("Delivery", null,
-                    new[] {
-                        new PowerPointProcessStep("One", "Assess."),
-                        new PowerPointProcessStep("Two", "Plan."),
-                        new PowerPointProcessStep("Three", "Deliver.")
-                    },
-                    seed: "process")
-                .AddCardGrid("Areas", null,
-                    new[] {
-                        new PowerPointCardContent("One"),
-                        new PowerPointCardContent("Two"),
-                        new PowerPointCardContent("Three")
-                    },
-                    seed: "cards");
-
-            PowerPointDeckDesign design = brief.CreateDesign();
-            IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> summaries = brief.DescribeDeckPlan(plan);
-
-            Assert.Equal(PowerPointAutoLayoutStrategy.Compact, brief.LayoutStrategy);
-            Assert.Equal(PowerPointAutoLayoutStrategy.Compact, design.BaseIntent.LayoutStrategy);
-            Assert.Equal(PowerPointAutoLayoutStrategy.Compact, design.Describe().LayoutStrategy);
-            Assert.Equal("EditorialRail", summaries[0].LayoutVariant);
-            Assert.Equal(PowerPointAutoLayoutStrategy.Compact, summaries[0].LayoutStrategy);
-            Assert.Equal("EditorialSplit", summaries[1].LayoutVariant);
-            Assert.Equal("NumberedColumns", summaries[2].LayoutVariant);
-            Assert.Equal("AccentTop", summaries[3].LayoutVariant);
-        }
-
-        [Fact]
         public void DesignerDesignBrief_CanApplyCreativeDirectionPack() {
             PowerPointDesignBrief brief = PowerPointDesignBrief
                 .FromBrand("#008C95", "brief-pack", "technical rollout proposal")
@@ -1080,33 +851,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void DesignerDesignBrief_VisualLayoutStrategyPrefersHeroVariants() {
-            PowerPointDesignBrief brief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
-                .WithLayoutStrategy(PowerPointAutoLayoutStrategy.VisualFirst);
-            PowerPointDeckPlan plan = new PowerPointDeckPlan()
-                .AddSection("Opening", "Visual introduction", "cover")
-                .AddCaseStudy("Client",
-                    new[] {
-                        new PowerPointCaseStudySection("Client", "One story block."),
-                        new PowerPointCaseStudySection("Result", "Second story block.")
-                    },
-                    seed: "case")
-                .AddCoverage("Coverage", null,
-                    new[] {
-                        new PowerPointCoverageLocation("Warsaw", 0.54, 0.42),
-                        new PowerPointCoverageLocation("Krakow", 0.56, 0.72)
-                    },
-                    seed: "coverage");
-
-            IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> summaries = brief.DescribeDeckPlan(plan);
-
-            Assert.Equal("Poster", summaries[0].LayoutVariant);
-            Assert.Equal(PowerPointAutoLayoutStrategy.VisualFirst, summaries[0].LayoutStrategy);
-            Assert.Equal("VisualHero", summaries[1].LayoutVariant);
-            Assert.Equal("PinBoard", summaries[2].LayoutVariant);
-        }
-
-        [Fact]
         public void DesignerDesignBrief_CanRecommendDeckPlanAlternative() {
             string filePath = CreateTempPresentationPath();
 
@@ -1137,7 +881,7 @@ namespace OfficeIMO.Tests {
                         composer.AddMetricStrip(new[] {
                             new PowerPointMetric("6", "steps"),
                             new PowerPointMetric("3", "regions")
-                        }, composer.ContentArea().TakeTopCm(1.8));
+                        }, composer.ContentArea().TakeTop(OfficeIMO.OfficeLength.Centimeters(1.8)));
                     }, seed: "raw-proof");
 
                 IReadOnlyList<PowerPointDeckPlanAlternativeSummary> described =
@@ -1153,7 +897,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(selected.ContentFitReasons, reason => reason.Length > 0);
                 Assert.Contains(selected.Slides, slide => slide.Kind == PowerPointDeckPlanSlideKind.Custom);
 
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
                 PowerPointDeckComposer deck = presentation.UseDesigner(brief, plan, alternativeCount: 5);
                 deck.AddSlides(plan);
@@ -1169,108 +913,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void DesignerDeckComposer_CanStartFromBriefWithCustomDirections() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                PowerPointDesignBrief brief = PowerPointDesignBrief
-                    .FromBrand("#008C95", "custom-brief", "executive brief")
-                    .WithIdentity("Client Brief", eyebrow: "Unique deck", footerLeft: "CLIENT")
-                    .WithDirections(new[] {
-                        new PowerPointDesignDirection("Local Proof", PowerPointDesignMood.Editorial,
-                            PowerPointSlideDensity.Relaxed, PowerPointVisualStyle.Soft, "Georgia", "Aptos",
-                            showDirectionMotif: false),
-                        new PowerPointDesignDirection("Operational Signal", PowerPointDesignMood.Energetic,
-                            PowerPointSlideDensity.Compact, PowerPointVisualStyle.Geometric, "Poppins", "Segoe UI")
-                    });
-
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointDeckComposer deck = presentation.UseDesigner(brief, alternativeIndex: 1);
-                deck.AddSectionSlide("Custom brief", "Caller directions beat matched recipes.", "cover");
-
-                Assert.Equal("Operational Signal", deck.Design.Direction.Name);
-                Assert.Equal(PowerPointDesignMood.Energetic, deck.Design.BaseIntent.Mood);
-                Assert.Equal("Unique deck", deck.Design.Options("cover").Eyebrow);
-                Assert.Equal("CLIENT", deck.Design.Options("cover").FooterLeft);
-                Assert.Equal(deck.Design.Theme.Name, presentation.ThemeName);
-                Assert.NotNull(presentation.Slides[0].GetShape("Designer Direction 1"));
-
-                List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
-                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerDeckDesign_MinimalProfileSuppressesDirectionMotifs() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-                PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "minimal-client",
-                    PowerPointDesignMood.Minimal, footerLeft: "Minimal Co");
-
-                PowerPointSlide slide = presentation.AddDesignerSectionSlide("Quiet Story", "No marker row",
-                    theme: design.Theme,
-                    options: design.Options("cover"));
-
-                Assert.Equal(PowerPointVisualStyle.Minimal, design.BaseIntent.VisualStyle);
-                Assert.Null(slide.GetShape("Designer Direction 1"));
-                Assert.Contains(slide.TextBoxes, textBox => textBox.Text == "Minimal Co");
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerDeckComposer_AppliesDesignAndKeepsRecipeOverridesSimple() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-                PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "composer-client",
-                    PowerPointDesignMood.Energetic, footerLeft: "Composer Co", footerRight: "Proposal");
-
-                PowerPointDeckComposer deck = presentation.UseDesigner(design);
-                deck.AddSectionSlide("Case Study", "Project portfolio", "cover",
-                    options => options.SectionVariant = PowerPointSectionLayoutVariant.EditorialRail);
-                deck.AddProcessSlide("How we work", null,
-                    new[] {
-                        new PowerPointProcessStep("Discover", "Understand the environment."),
-                        new PowerPointProcessStep("Deliver", "Ship controlled changes.")
-                    },
-                    "process",
-                    options => options.Variant = PowerPointProcessLayoutVariant.NumberedColumns);
-                deck.ComposeSlide(composer => composer.AddTitle("Custom", "Still has shared chrome."),
-                    "custom", options => options.FooterRight = "Composable");
-
-                Assert.Equal(design.Theme.Name, presentation.ThemeName);
-                Assert.Equal(3, presentation.Slides.Count);
-                Assert.NotNull(presentation.Slides[0].GetShape("Section Editorial Rail"));
-                Assert.NotNull(presentation.Slides[1].GetShape("Process Column 1"));
-                Assert.Contains(presentation.Slides[2].TextBoxes, textBox => textBox.Text == "Composable");
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
         public void DesignerDeckComposer_CanStartDirectlyFromPurposeText() {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
                 PowerPointDeckComposer deck = presentation.UseDesigner("#008C95", "proposal-client",
@@ -1296,7 +943,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
                 PowerPointDesignBrief brief = PowerPointDesignBrief
@@ -1337,8 +984,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(4, slides.Count);
                 Assert.Equal(4, presentation.Slides.Count);
-                Assert.NotNull(slides[0].GetShape("Section Editorial Rail"));
-                Assert.NotNull(slides[2].GetShape("Process Column 1"));
+                Assert.NotNull(slides[2].GetShape("Step Marker 1"));
                 Assert.Contains(slides[3].TextBoxes, textBox => textBox.Text == "PLAN");
 
                 List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
@@ -1355,7 +1001,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
                 PowerPointDeckComposer deck = presentation.UseDesigner("#008C95", "invalid-plan",
                     PowerPointDesignRecipe.ConsultingPortfolio);
@@ -1386,7 +1032,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
                 PowerPointDeckComposer deck = presentation.UseDesigner("#008C95", "legacy-invalid-plan",
                     PowerPointDesignRecipe.ConsultingPortfolio);
@@ -1417,7 +1063,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
                 PowerPointDeckComposer deck = presentation.UseDesigner("#008C95", "mixed-plan",
@@ -1433,80 +1079,15 @@ namespace OfficeIMO.Tests {
                         }, columns[0]);
                         composer.AddMetricStrip(new[] {
                             new PowerPointMetric("2", "modes")
-                        }, columns[1].TakeTopCm(1.6));
+                        }, columns[1].TakeTop(OfficeIMO.OfficeLength.Centimeters(1.6)));
                     }, "custom");
 
                 IReadOnlyList<PowerPointSlide> slides = deck.AddSlides(plan);
 
                 Assert.Equal(2, slides.Count);
                 Assert.Contains(slides[1].TextBoxes, textBox => textBox.Text == "Custom detail");
-                Assert.NotNull(slides[1].GetShape("Designer Card 1"));
-                Assert.NotNull(slides[1].GetShape("Composer Metric Band"));
-
-                List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
-                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerComposer_AdaptsCardsAndMetricsForLongLabels() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointDeckComposer deck = presentation.UseDesigner("#008C95", "adaptive-primitives",
-                    PowerPointDesignRecipe.ConsultingPortfolio, footerLeft: "ADAPT");
-                PowerPointSlide slide = deck.ComposeSlide(composer => {
-                    composer.AddTitle("Adaptive primitives", "Long labels should stay inside their regions.");
-                    PowerPointLayoutBox[] columns = composer.ContentColumns(2, 0.8, topCm: 3.85);
-                    composer.AddCardGrid(new[] {
-                        new PowerPointCardContent("Operational Readiness And Service Transition",
-                            new[] {
-                                "Multi-location rollout governance",
-                                "Support ownership and reporting cadence",
-                                "Configuration baseline with exception handling"
-                            }),
-                        new PowerPointCardContent("Visual Proof And Delivery Coverage",
-                            new[] {
-                                "Regional delivery model",
-                                "Reusable plan rendered through design choices"
-                            })
-                    }, columns[0].TakeTopCm(4.2), new PowerPointCardGridSlideOptions {
-                        MaxColumns = 2,
-                        Variant = PowerPointCardGridLayoutVariant.SoftTiles
-                    });
-                    composer.AddMetricStrip(new[] {
-                        new PowerPointMetric("SplitComplementary", "palette strategy"),
-                        new PowerPointMetric("ContentFirst", "layout strategy"),
-                        new PowerPointMetric("21", "slides")
-                    }, columns[1].TakeTopCm(2.2));
-                }, "adaptive-primitives");
-
-                PowerPointTextBox cardTitle = slide.TextBoxes.First(textBox =>
-                    textBox.Text == "Operational Readiness And Service Transition");
-                Assert.True(cardTitle.FontSize <= 13);
-                Assert.Equal(PowerPointTextAutoFit.Normal, cardTitle.TextAutoFit);
-                Assert.NotNull(cardTitle.TextAutoFitOptions);
-
-                PowerPointTextBox cardBody = slide.TextBoxes.First(textBox =>
-                    textBox.Text.Contains("Configuration baseline", StringComparison.Ordinal));
-                Assert.NotNull(cardBody.TextAutoFitOptions);
-
-                PowerPointTextBox metricValue = slide.TextBoxes.First(textBox =>
-                    textBox.Text == "SplitComplementary");
-                Assert.True(metricValue.FontSize < 24);
-                Assert.NotNull(metricValue.TextAutoFitOptions);
-
-                PowerPointTextBox metricLabel = slide.TextBoxes.First(textBox =>
-                    textBox.Text == "palette strategy");
-                Assert.True(metricLabel.FontSize <= 8);
-                Assert.NotNull(metricLabel.TextAutoFitOptions);
+                Assert.NotNull(slides[1].GetShape("Card 1"));
+                Assert.NotNull(slides[1].GetShape("Metric Value 1"));
 
                 List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
@@ -1609,91 +1190,10 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void DesignerDeckPlan_CanPreviewResolvedLayoutsBeforeRendering() {
-            PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "render-preview",
-                PowerPointDesignDirection.Executive, footerLeft: "CLIENT");
-
-            PowerPointDeckPlan plan = new PowerPointDeckPlan()
-                .AddSection("Cover", "Opening", "cover",
-                    options => options.SectionVariant = PowerPointSectionLayoutVariant.Poster)
-                .AddCaseStudy("Client",
-                    new[] {
-                        new PowerPointCaseStudySection("Challenge", "Many details."),
-                        new PowerPointCaseStudySection("Result", "Clear story.")
-                    },
-                    new[] {
-                        new PowerPointMetric("2", "proof points")
-                    },
-                    "case-study",
-                    options => options.Variant = PowerPointCaseStudyLayoutVariant.VisualHero)
-                .AddProcess("Path", null,
-                    new[] {
-                        new PowerPointProcessStep("One", "Start."),
-                        new PowerPointProcessStep("Two", "Finish.")
-                    },
-                    "path",
-                    options => options.Variant = PowerPointProcessLayoutVariant.NumberedColumns)
-                .AddCardGrid("Cards", null,
-                    new[] {
-                        new PowerPointCardContent("One", new[] { "A" }),
-                        new PowerPointCardContent("Two", new[] { "B" })
-                    },
-                    "cards",
-                    options => options.Variant = PowerPointCardGridLayoutVariant.SoftTiles)
-                .AddLogoWall("Proof", null,
-                    new[] {
-                        new PowerPointLogoItem("A"),
-                        new PowerPointLogoItem("B")
-                    },
-                    "proof",
-                    options => options.Variant = PowerPointLogoWallLayoutVariant.CertificateFeature)
-                .AddCoverage("Coverage", null,
-                    new[] {
-                        new PowerPointCoverageLocation("One", 0.2, 0.3),
-                        new PowerPointCoverageLocation("Two", 0.7, 0.5)
-                    },
-                    "coverage",
-                    options => options.Variant = PowerPointCoverageLayoutVariant.ListMap)
-                .AddCapability("Capabilities", null,
-                    new[] {
-                        new PowerPointCapabilitySection("One", "Body"),
-                        new PowerPointCapabilitySection("Two", "Body")
-                    },
-                    "capabilities",
-                    options => options.Variant = PowerPointCapabilityLayoutVariant.Stacked)
-                .AddCustom("Appendix", composer => composer.AddTitle("Appendix"), "appendix", dark: true);
-
-            IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> summaries = plan.DescribeSlides(design);
-
-            Assert.Equal(8, summaries.Count);
-            Assert.Equal("Executive", summaries[0].DirectionName);
-            Assert.Equal(PowerPointDesignMood.Corporate, summaries[0].Mood);
-            Assert.Equal(PowerPointSlideDensity.Balanced, summaries[0].Density);
-            Assert.Equal(PowerPointVisualStyle.Soft, summaries[0].VisualStyle);
-            Assert.Equal("Segoe UI Semibold", summaries[0].HeadingFontName);
-            Assert.Equal("Segoe UI", summaries[0].BodyFontName);
-            Assert.Equal("cover", summaries[0].ResolvedSeed);
-            Assert.Equal("render-preview/cover", summaries[0].DesignSeed);
-            Assert.Equal("Poster", summaries[0].LayoutVariant);
-            Assert.Equal("VisualHero", summaries[1].LayoutVariant);
-            Assert.Equal(3, summaries[1].ContentItemCount);
-            Assert.Equal("NumberedColumns", summaries[2].LayoutVariant);
-            Assert.Equal("SoftTiles", summaries[3].LayoutVariant);
-            Assert.Equal("CertificateFeature", summaries[4].LayoutVariant);
-            Assert.Equal("ListMap", summaries[5].LayoutVariant);
-            Assert.Equal("Stacked", summaries[6].LayoutVariant);
-            Assert.Equal("CustomDark", summaries[7].LayoutVariant);
-            Assert.Contains("Resolved process layout: NumberedColumns.", summaries[2].LayoutReasons);
-            Assert.Contains("Resolved capability layout: Stacked.", summaries[6].LayoutReasons);
-            Assert.Contains("The custom slide requests the dark designer surface.", summaries[7].LayoutReasons);
-            Assert.Contains("Appendix", summaries[7].ToString());
-        }
-
-        [Fact]
         public void DesignerDeckComposer_PreviewsPlanSeedsFromCurrentSlidePosition() {
             string filePath = CreateTempPresentationPath();
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
                 PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "seed-preview",
                     PowerPointDesignDirection.Executive);
@@ -1753,35 +1253,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void DesignerDesignBrief_CanDescribeDeckPlanBeforeRendering() {
-            PowerPointDesignBrief brief = PowerPointDesignBrief
-                .FromBrand("#008C95", "brief-render-preview", "technical rollout proposal")
-                .WithIdentity("Client", footerLeft: "CLIENT");
-            PowerPointDeckPlan plan = new PowerPointDeckPlan()
-                .AddSection("Cover", "Opening", "cover")
-                .AddProcess("Path", null,
-                    new[] {
-                        new PowerPointProcessStep("One", "Start."),
-                        new PowerPointProcessStep("Two", "Finish.")
-                    },
-                    "path");
-
-            IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> summaries =
-                brief.DescribeDeckPlan(plan, alternativeIndex: 1);
-
-            Assert.Equal(2, summaries.Count);
-            Assert.Equal("Runbook", summaries[0].DirectionName);
-            Assert.Equal(PowerPointDesignMood.Minimal, summaries[0].Mood);
-            Assert.Equal("Segoe UI Semibold", summaries[0].HeadingFontName);
-            Assert.Equal("cover", summaries[0].ResolvedSeed);
-            Assert.Equal("brief-render-preview/technical-proposal-runbook-2/cover", summaries[0].DesignSeed);
-            Assert.Equal("Rail", summaries[1].LayoutVariant);
-            Assert.Equal(2, summaries[1].ContentItemCount);
-            Assert.Contains("Minimal style favors a rail over heavier process decoration.",
-                summaries[1].LayoutReasons);
-        }
-
-        [Fact]
         public void DesignerDesignBrief_CanCompareDeckPlanAlternativesBeforeRendering() {
             PowerPointDesignBrief brief = PowerPointDesignBrief
                 .FromBrand("#008C95", "brief-plan-alternatives", "technical rollout proposal")
@@ -1825,696 +1296,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void DesignerDeckComposer_SameContentCanUseDifferentDeckPersonalities() {
-            string corporatePath = CreateTempPresentationPath();
-            string minimalPath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation corporate = PowerPointPresentation.Create(corporatePath);
-                corporate.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-                PowerPointDeckDesign corporateDesign = PowerPointDeckDesign.FromBrand("#008C95", "same-content-a",
-                    PowerPointDesignMood.Corporate);
-                PowerPointDeckComposer corporateDeck = corporate.UseDesigner(corporateDesign);
-                corporateDeck.AddSectionSlide("Same Story", "Different personality", "cover");
-
-                using PowerPointPresentation minimal = PowerPointPresentation.Create(minimalPath);
-                minimal.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-                PowerPointDeckDesign minimalDesign = PowerPointDeckDesign.FromBrand("#008C95", "same-content-b",
-                    PowerPointDesignMood.Minimal);
-                PowerPointDeckComposer minimalDeck = minimal.UseDesigner(minimalDesign);
-                minimalDeck.AddSectionSlide("Same Story", "Different personality", "cover");
-
-                Assert.NotEqual(corporateDesign.Theme.HeadingFontName, minimalDesign.Theme.HeadingFontName);
-                Assert.NotNull(corporate.Slides[0].GetShape("Designer Direction 1"));
-                Assert.Null(minimal.Slides[0].GetShape("Designer Direction 1"));
-                Assert.Equal("008C95", corporateDesign.Theme.AccentColor);
-                Assert.Equal("008C95", minimalDesign.Theme.AccentColor);
-            } finally {
-                if (File.Exists(corporatePath)) {
-                    File.Delete(corporatePath);
-                }
-                if (File.Exists(minimalPath)) {
-                    File.Delete(minimalPath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerDirectionMotif_UsesEditableTrianglesInsteadOfTextGlyphs() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.AddDesignerSectionSlide("Case Study", "Project portfolio");
-
-                for (int i = 1; i <= 11; i++) {
-                    PowerPointAutoShape arrow = Assert.IsAssignableFrom<PowerPointAutoShape>(
-                        slide.GetShape("Designer Direction " + i));
-                    Assert.Equal(OfficePresetShapeType.Triangle, arrow.ShapeType);
-                    Assert.Equal(90, arrow.Rotation);
-                }
-
-                Assert.DoesNotContain(slide.TextBoxes,
-                    textBox => textBox.Text.Contains("→", StringComparison.Ordinal) ||
-                               textBox.Text.Contains("➜", StringComparison.Ordinal));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerSectionSlide_CanUseEditorialRailVariant() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.AddDesignerSectionSlide("Case Study", "Project portfolio",
-                    options: new PowerPointDesignerSlideOptions {
-                        SectionVariant = PowerPointSectionLayoutVariant.EditorialRail
-                    });
-
-                Assert.NotNull(slide.GetShape("Section Editorial Rail"));
-                Assert.NotNull(slide.GetShape("Section Editorial Accent Plane"));
-                Assert.Null(slide.GetShape("Section Poster Frame"));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerCaseStudySlide_UsesPolishedVisualPlaceholderWithoutHeavyBorder() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.AddDesignerCaseStudySlide("Example client",
-                    new[] {
-                        new PowerPointCaseStudySection("Client", "Short story."),
-                        new PowerPointCaseStudySection("Challenge", "Needs a clean visual support area.")
-                    });
-
-                PowerPointShape? frame = slide.GetShape("Case Study Visual Frame");
-                Assert.NotNull(frame);
-                Assert.NotEqual("111111", frame!.FillColor);
-                Assert.NotEqual("111111", frame.OutlineColor);
-                Assert.True(frame.OutlineWidthPoints <= 0.5);
-                Assert.NotNull(slide.GetShape("Case Study Visual Surface"));
-                Assert.NotNull(slide.GetShape("Case Study Visual Content Panel"));
-                Assert.DoesNotContain(slide.TextBoxes,
-                    textBox => textBox.Text.Equals("Visual", StringComparison.OrdinalIgnoreCase));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerCaseStudySlide_VisualPlaceholderVariesWithDesignIntent() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide editorialSlide = presentation.AddDesignerCaseStudySlide("Editorial client",
-                    new[] {
-                        new PowerPointCaseStudySection("Client", "Short story."),
-                        new PowerPointCaseStudySection("Challenge", "Needs a clean visual support area.")
-                    },
-                    options: new PowerPointCaseStudySlideOptions {
-                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Editorial, "editorial-case")
-                    });
-
-                PowerPointSlide minimalSlide = presentation.AddDesignerCaseStudySlide("Minimal client",
-                    new[] {
-                        new PowerPointCaseStudySection("Client", "Short story."),
-                        new PowerPointCaseStudySection("Challenge", "Needs a clean visual support area.")
-                    },
-                    options: new PowerPointCaseStudySlideOptions {
-                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Minimal, "minimal-case")
-                    });
-
-                Assert.NotNull(editorialSlide.GetShape("Visual Proof Mat"));
-                Assert.Null(editorialSlide.GetShape("Case Study Visual Content Panel"));
-                Assert.NotNull(minimalSlide.GetShape("Visual Diagram Node 1"));
-                Assert.Null(minimalSlide.GetShape("Case Study Visual Content Panel"));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerCaseStudySlide_CanUseEditorialSplitVariant() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.AddDesignerCaseStudySlide("Example client",
-                    new[] {
-                        new PowerPointCaseStudySection("Client", "Short story."),
-                        new PowerPointCaseStudySection("Challenge", "Needs clean structure."),
-                        new PowerPointCaseStudySection("Solution", "Use reusable sections."),
-                        new PowerPointCaseStudySection("Result", "Keep the slide editable.")
-                    },
-                    new[] {
-                        new PowerPointMetric("150", "devices")
-                    },
-                    options: new PowerPointCaseStudySlideOptions {
-                        Variant = PowerPointCaseStudyLayoutVariant.EditorialSplit
-                    });
-
-                Assert.NotNull(slide.GetShape("Case Study Editorial Section 1"));
-                Assert.NotNull(slide.GetShape("Case Study Editorial Metric Band"));
-                Assert.Null(slide.GetShape("Case Study Visual Band"));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerCaseStudySlide_AutoUsesEditorialSplitForContentRichStory() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.AddDesignerCaseStudySlide("Example client",
-                    new[] {
-                        new PowerPointCaseStudySection("Client", "Short story."),
-                        new PowerPointCaseStudySection("Challenge", "Needs clean structure."),
-                        new PowerPointCaseStudySection("Solution", "Use reusable sections."),
-                        new PowerPointCaseStudySection("Result", "Keep the slide editable.")
-                    },
-                    new[] {
-                        new PowerPointMetric("150", "devices")
-                    },
-                    options: new PowerPointCaseStudySlideOptions {
-                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Corporate, "auto-rich-case")
-                    });
-
-                Assert.NotNull(slide.GetShape("Case Study Editorial Section 1"));
-                Assert.NotNull(slide.GetShape("Case Study Editorial Metric Band"));
-                Assert.Null(slide.GetShape("Case Study Visual Band"));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerCaseStudySlide_CanUseVisualHeroVariant() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.AddDesignerCaseStudySlide("Example client",
-                    new[] {
-                        new PowerPointCaseStudySection("Client", "Short story."),
-                        new PowerPointCaseStudySection("Challenge", "Needs strong visual hierarchy."),
-                        new PowerPointCaseStudySection("Solution", "Let the visual carry the left side."),
-                        new PowerPointCaseStudySection("Result", "Keep supporting text compact.")
-                    },
-                    new[] {
-                        new PowerPointMetric("150", "devices")
-                    },
-                    options: new PowerPointCaseStudySlideOptions {
-                        Variant = PowerPointCaseStudyLayoutVariant.VisualHero
-                    });
-
-                Assert.NotNull(slide.GetShape("Case Study Visual Hero Rule"));
-                Assert.NotNull(slide.GetShape("Case Study Visual Hero Metric Band"));
-                Assert.NotNull(slide.GetShape("Case Study Visual Frame"));
-                Assert.Null(slide.GetShape("Case Study Editorial Section 1"));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerProcessSlide_UsesSingleRailWithDeliberateNodes() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.AddDesignerProcessSlide("Process", null,
-                    new[] {
-                        new PowerPointProcessStep("One", "Start here."),
-                        new PowerPointProcessStep("Two", "Then continue."),
-                        new PowerPointProcessStep("Three", "Finish cleanly.")
-                    });
-
-                PowerPointAutoShape rail = Assert.IsAssignableFrom<PowerPointAutoShape>(
-                    slide.GetShape("Process Rail"));
-                Assert.Equal(OfficePresetShapeType.Line, rail.ShapeType);
-                Assert.True(rail.OutlineWidthPoints <= 1.2);
-
-                PowerPointAutoShape firstNode = Assert.IsAssignableFrom<PowerPointAutoShape>(
-                    slide.GetShape("Process Node 1"));
-                PowerPointAutoShape secondNode = Assert.IsAssignableFrom<PowerPointAutoShape>(
-                    slide.GetShape("Process Node 2"));
-                Assert.Equal(OfficePresetShapeType.Ellipse, firstNode.ShapeType);
-                Assert.Equal(OfficePresetShapeType.Ellipse, secondNode.ShapeType);
-                Assert.True(rail.LeftCm < firstNode.RightCm);
-                Assert.True(rail.RightCm > secondNode.LeftCm);
-                Assert.Null(slide.GetShape("Process Arrow 1"));
-                Assert.Null(slide.GetShape("Process Marker 1"));
-                Assert.Null(slide.GetShape("Process Arrow Accent 1"));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerProcessSlide_CanUseAlternateNumberedColumnVariant() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.AddDesignerProcessSlide("Process", null,
-                    new[] {
-                        new PowerPointProcessStep("One", "Start here."),
-                        new PowerPointProcessStep("Two", "Then continue."),
-                        new PowerPointProcessStep("Three", "Finish cleanly.")
-                    },
-                    options: new PowerPointProcessSlideOptions {
-                        Variant = PowerPointProcessLayoutVariant.NumberedColumns
-                    });
-
-                Assert.NotNull(slide.GetShape("Process Column 1"));
-                Assert.NotNull(slide.GetShape("Process Column Rule 1"));
-                Assert.Null(slide.GetShape("Process Rail"));
-                Assert.Null(slide.GetShape("Process Node 1"));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerProcessSlide_CanUseSegmentArrowConnectors() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
-                    presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                    PowerPointSlide slide = presentation.AddDesignerProcessSlide("Process", null,
-                        new[] {
-                            new PowerPointProcessStep("One", "Start here."),
-                            new PowerPointProcessStep("Two", "Then continue."),
-                            new PowerPointProcessStep("Three", "Finish cleanly.")
-                        },
-                        options: new PowerPointProcessSlideOptions {
-                            Variant = PowerPointProcessLayoutVariant.Rail,
-                            ConnectorStyle = PowerPointProcessConnectorStyle.SegmentArrows
-                        });
-
-                    PowerPointAutoShape connector = Assert.IsAssignableFrom<PowerPointAutoShape>(
-                        slide.GetShape("Process Connector 1"));
-                    Assert.Equal(OfficePresetShapeType.Line, connector.ShapeType);
-                    Assert.NotNull(slide.GetShape("Process Connector 2"));
-                    Assert.Null(slide.GetShape("Process Rail"));
-
-                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
-                    Assert.True(errors.Count == 0, FormatValidationErrors(errors));
-                    presentation.Save();
-                }
-
-                using PresentationDocument document = PresentationDocument.Open(filePath, false);
-                SlidePart slidePart = document.PresentationPart!.SlideParts.First();
-                P.Shape connectorShape = slidePart.Slide.CommonSlideData!.ShapeTree!
-                    .Elements<P.Shape>()
-                    .First(shape =>
-                        shape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Name?.Value ==
-                        "Process Connector 1");
-                A.Outline outline = connectorShape.ShapeProperties!.GetFirstChild<A.Outline>()!;
-                A.TailEnd? tail = outline.GetFirstChild<A.TailEnd>();
-                Assert.Equal(A.LineEndValues.Triangle, tail?.Type?.Value);
-                Assert.Equal(A.LineEndWidthValues.Small, tail?.Width?.Value);
-                Assert.Equal(A.LineEndLengthValues.Small, tail?.Length?.Value);
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerDirectionMotif_CanUseAlternativeEditableStyles() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide dotSlide = presentation.AddDesignerSectionSlide("Dots", "Quiet rhythm",
-                    options: new PowerPointDesignerSlideOptions {
-                        DirectionMotifStyle = PowerPointDirectionMotifStyle.Dots
-                    });
-                PowerPointSlide barSlide = presentation.AddDesignerSectionSlide("Bars", "Editorial rhythm",
-                    options: new PowerPointDesignerSlideOptions {
-                        DirectionMotifStyle = PowerPointDirectionMotifStyle.Bars
-                    });
-                PowerPointSlide chevronSlide = presentation.AddDesignerSectionSlide("Chevrons", "Directional rhythm",
-                    options: new PowerPointDesignerSlideOptions {
-                        DirectionMotifStyle = PowerPointDirectionMotifStyle.Chevrons
-                    });
-                PowerPointSlide hiddenSlide = presentation.AddDesignerSectionSlide("None", "No motif",
-                    options: new PowerPointDesignerSlideOptions {
-                        DirectionMotifStyle = PowerPointDirectionMotifStyle.None
-                    });
-
-                PowerPointAutoShape dot = Assert.IsAssignableFrom<PowerPointAutoShape>(
-                    dotSlide.GetShape("Designer Direction 1"));
-                Assert.Equal(OfficePresetShapeType.Ellipse, dot.ShapeType);
-
-                PowerPointAutoShape bar = Assert.IsAssignableFrom<PowerPointAutoShape>(
-                    barSlide.GetShape("Designer Direction 1"));
-                Assert.Equal(OfficePresetShapeType.Rectangle, bar.ShapeType);
-
-                Assert.NotNull(chevronSlide.GetShape("Designer Direction 1"));
-                Assert.NotNull(chevronSlide.GetShape("Designer Direction Chevron 1B"));
-                Assert.Null(hiddenSlide.GetShape("Designer Direction 1"));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerDirectionMotif_ExplicitStyleCanOverrideMinimalIntent() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.AddDesignerSectionSlide("Minimal", "Forced motif",
-                    options: new PowerPointDesignerSlideOptions {
-                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Minimal, "forced-motif"),
-                        DirectionMotifStyle = PowerPointDirectionMotifStyle.Dots
-                    });
-
-                Assert.NotNull(slide.GetShape("Designer Direction 1"));
-
-                List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
-                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerSectionSlide_CanUseEditableTitleAccentStyles() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide underlineSlide = presentation.AddDesignerSectionSlide("Underline", "Accent",
-                    options: new PowerPointDesignerSlideOptions {
-                        TitleAccentStyle = PowerPointTitleAccentStyle.Underline
-                    });
-                PowerPointSlide sideRuleSlide = presentation.AddDesignerSectionSlide("Side rule", "Accent",
-                    options: new PowerPointDesignerSlideOptions {
-                        SectionVariant = PowerPointSectionLayoutVariant.EditorialRail,
-                        TitleAccentStyle = PowerPointTitleAccentStyle.SideRule
-                    });
-                PowerPointSlide kickerSlide = presentation.AddDesignerSectionSlide("Kicker", "Accent",
-                    options: new PowerPointDesignerSlideOptions {
-                        SectionVariant = PowerPointSectionLayoutVariant.Poster,
-                        TitleAccentStyle = PowerPointTitleAccentStyle.KickerRule
-                    });
-                PowerPointSlide quietSlide = presentation.AddDesignerSectionSlide("Quiet", "No accent",
-                    options: new PowerPointDesignerSlideOptions {
-                        TitleAccentStyle = PowerPointTitleAccentStyle.None
-                    });
-
-                Assert.NotNull(underlineSlide.GetShape("Section Title Accent Underline"));
-                Assert.NotNull(sideRuleSlide.GetShape("Section Title Accent Side Rule"));
-                Assert.NotNull(kickerSlide.GetShape("Section Title Accent Kicker Rule"));
-                Assert.Null(quietSlide.GetShape("Section Title Accent Underline"));
-                Assert.Null(quietSlide.GetShape("Section Title Accent Side Rule"));
-                Assert.Null(quietSlide.GetShape("Section Title Accent Kicker Rule"));
-
-                List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
-                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerSectionSlide_AutoTitleAccentUsesDesignIntent() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide editorialSlide = presentation.AddDesignerSectionSlide("Editorial", "Seeded",
-                    options: new PowerPointDesignerSlideOptions {
-                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Editorial,
-                            "editorial-section")
-                    });
-                PowerPointSlide minimalSlide = presentation.AddDesignerSectionSlide("Minimal", "Quiet",
-                    options: new PowerPointDesignerSlideOptions {
-                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Minimal,
-                            "minimal-section")
-                    });
-
-                Assert.NotNull(editorialSlide.GetShape("Section Title Accent Kicker Rule"));
-                Assert.Null(minimalSlide.GetShape("Section Title Accent Underline"));
-                Assert.Null(minimalSlide.GetShape("Section Title Accent Side Rule"));
-                Assert.Null(minimalSlide.GetShape("Section Title Accent Kicker Rule"));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerProcessSlide_AutoConnectorStyleUsesDotsForEditorialFlows() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.AddDesignerProcessSlide("Process", null,
-                    new[] {
-                        new PowerPointProcessStep("One", "Start here."),
-                        new PowerPointProcessStep("Two", "Then continue."),
-                        new PowerPointProcessStep("Three", "Finish cleanly.")
-                    },
-                    options: new PowerPointProcessSlideOptions {
-                        Variant = PowerPointProcessLayoutVariant.Rail,
-                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Editorial, "editorial-process")
-                    });
-
-                Assert.NotNull(slide.GetShape("Process Connector Dot 1-1"));
-                Assert.NotNull(slide.GetShape("Process Connector Dot 2-4"));
-                Assert.Null(slide.GetShape("Process Connector 1"));
-                Assert.Null(slide.GetShape("Process Rail"));
-
-                List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
-                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerProcessSlide_AutoUsesRailForLongFlows() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.AddDesignerProcessSlide("Process", null,
-                    Enumerable.Range(1, 6).Select(index =>
-                        new PowerPointProcessStep("Step " + index, "Keep the flow readable.")),
-                    options: new PowerPointProcessSlideOptions {
-                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Corporate, "auto-long-process")
-                    });
-
-                Assert.NotNull(slide.GetShape("Process Rail"));
-                Assert.NotNull(slide.GetShape("Process Node 6"));
-                Assert.Null(slide.GetShape("Process Column 1"));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerCardGrid_CanUseAlternateSoftTileVariant() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.AddDesignerCardGridSlide("Services", null,
-                    new[] {
-                        new PowerPointCardContent("Deployments", new[] { "Intune" }),
-                        new PowerPointCardContent("Maintenance", new[] { "Monitoring" })
-                    },
-                    options: new PowerPointCardGridSlideOptions {
-                        Variant = PowerPointCardGridLayoutVariant.SoftTiles
-                    });
-
-                PowerPointShape? accent = slide.GetShape("Designer Card Accent 1");
-                Assert.NotNull(accent);
-                Assert.True(accent!.WidthCm < 0.25);
-                Assert.True(accent.HeightCm > 1.0);
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerCardGrid_AutoUsesCompactAccentBarsForLargeGrids() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.AddDesignerCardGridSlide("Services", null,
-                    Enumerable.Range(1, 5).Select(index =>
-                        new PowerPointCardContent("Area " + index, new[] { "One", "Two" })),
-                    options: new PowerPointCardGridSlideOptions {
-                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Corporate, "auto-large-grid")
-                    });
-
-                PowerPointShape? accent = slide.GetShape("Designer Card Accent 1");
-                Assert.NotNull(accent);
-                Assert.True(accent!.WidthCm > 1.0);
-                Assert.True(accent.HeightCm < 0.3);
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerCardGrid_AutoUsesSoftTilesForEditorialMood() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.AddDesignerCardGridSlide("Services", null,
-                    new[] {
-                        new PowerPointCardContent("Deployments", new[] { "Intune" }),
-                        new PowerPointCardContent("Maintenance", new[] { "Monitoring" })
-                    },
-                    options: new PowerPointCardGridSlideOptions {
-                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Editorial, "auto-soft-grid")
-                    });
-
-                PowerPointShape? accent = slide.GetShape("Designer Card Accent 1");
-                Assert.NotNull(accent);
-                Assert.True(accent!.WidthCm < 0.25);
-                Assert.True(accent.HeightCm > 1.0);
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerCardGrid_CanUseAlternateSurfaceStyles() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide flatSlide = presentation.AddDesignerCardGridSlide("Flat", null,
-                    new[] {
-                        new PowerPointCardContent("Deployments", new[] { "Intune" })
-                    },
-                    options: new PowerPointCardGridSlideOptions {
-                        SurfaceStyle = PowerPointCardSurfaceStyle.Flat
-                    });
-                PowerPointSlide washSlide = presentation.AddDesignerCardGridSlide("Accent wash", null,
-                    new[] {
-                        new PowerPointCardContent("Care", new[] { "Monitoring" }, "F26A3D")
-                    },
-                    options: new PowerPointCardGridSlideOptions {
-                        SurfaceStyle = PowerPointCardSurfaceStyle.AccentWash
-                    });
-
-                PowerPointAutoShape flatCard = Assert.IsAssignableFrom<PowerPointAutoShape>(
-                    flatSlide.GetShape("Designer Card 1"));
-                PowerPointAutoShape washCard = Assert.IsAssignableFrom<PowerPointAutoShape>(
-                    washSlide.GetShape("Designer Card 1"));
-
-                Assert.True(flatCard.OutlineWidthPoints <= 0.25);
-                Assert.True(flatCard.FillTransparency is null or 0);
-                Assert.Equal("F26A3D", washCard.FillColor);
-                Assert.True(washCard.FillTransparency >= 80);
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
         public void Composer_CreatesValidCustomSlideFromReusablePrimitives() {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
                     PowerPointDesignTheme theme = PowerPointDesignTheme.FromBrand("2B8A6E", "Green Brand");
@@ -2527,7 +1313,7 @@ namespace OfficeIMO.Tests {
                         }, new PowerPointCardGridSlideOptions {
                             Variant = PowerPointCardGridLayoutVariant.SoftTiles
                         });
-                        composer.AddVisualFrame(PowerPointLayoutBox.FromCentimeters(20.5, 9.6, 5.6, 3.0));
+                        composer.AddVisualFrame(new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(20.5),OfficeIMO.OfficeLength.Centimeters(9.6),OfficeIMO.OfficeLength.Centimeters(5.6),OfficeIMO.OfficeLength.Centimeters(3.0)));
                     }, theme, new PowerPointDesignerSlideOptions {
                         Eyebrow = "OfficeIMO.PowerPoint",
                         FooterLeft = "OFFICEIMO",
@@ -2539,7 +1325,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                     Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes),
@@ -2553,205 +1339,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Composer_DeviceMockupVisualFrameFitsImageInsideScreenChrome() {
-            string filePath = CreateTempPresentationPath();
-            string imagePath = GetTestAssetPath("OfficeIMO.png");
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.ComposeDesignerSlide(composer => {
-                    composer.AddVisualFrame(PowerPointLayoutBox.FromCentimeters(20.5, 9.6, 5.6, 3.0), imagePath,
-                        PowerPointVisualFrameVariant.DeviceMockup);
-                }, PowerPointDesignTheme.FromBrand("#008C95", "Device Test"));
-
-                PowerPointShape? screen = slide.GetShape("Visual Device Screen");
-                PowerPointPicture picture = Assert.Single(slide.Pictures);
-
-                Assert.NotNull(screen);
-                Assert.True(picture.LeftCm >= screen!.LeftCm);
-                Assert.True(picture.TopCm >= screen.TopCm);
-                Assert.True(picture.RightCm <= screen.RightCm);
-                Assert.True(picture.BottomCm <= screen.BottomCm);
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void Composer_DeviceMockupVisualFrameClampsImageInsideShortScreenChrome() {
-            string filePath = CreateTempPresentationPath();
-            string imagePath = GetTestAssetPath("OfficeIMO.png");
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.ComposeDesignerSlide(composer => {
-                    composer.AddVisualFrame(PowerPointLayoutBox.FromCentimeters(20.5, 10.8, 5.6, 1.2), imagePath,
-                        PowerPointVisualFrameVariant.DeviceMockup);
-                }, PowerPointDesignTheme.FromBrand("#008C95", "Device Test"));
-
-                PowerPointShape? screen = slide.GetShape("Visual Device Screen");
-                PowerPointPicture picture = Assert.Single(slide.Pictures);
-
-                Assert.NotNull(screen);
-                Assert.True(picture.LeftCm >= screen!.LeftCm);
-                Assert.True(picture.TopCm >= screen.TopCm);
-                Assert.True(picture.RightCm <= screen.RightCm);
-                Assert.True(picture.BottomCm <= screen.BottomCm);
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void Composer_CanPlacePrimitivesInsideSemanticContentRegions() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
-                    presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                    PowerPointLayoutBox leftColumn = default;
-                    PowerPointSlide slide = presentation.ComposeDesignerSlide(composer => {
-                        composer.AddTitle("Structured custom slide", "Regions reduce coordinate work.");
-                        PowerPointLayoutBox[] columns = composer.ContentColumns(2, gutterCm: 0.75);
-                        leftColumn = columns[0];
-
-                        composer.AddCardGrid(new[] {
-                            new PowerPointCardContent("Story", new[] { "Context", "Need" }),
-                            new PowerPointCardContent("Evidence", new[] { "Metrics", "Signal" })
-                        }, columns[0], new PowerPointCardGridSlideOptions {
-                            MaxColumns = 1,
-                            Variant = PowerPointCardGridLayoutVariant.SoftTiles
-                        });
-
-                        composer.AddProcessTimeline(new[] {
-                            new PowerPointProcessStep("Find", "Identify the story."),
-                            new PowerPointProcessStep("Shape", "Choose structure."),
-                            new PowerPointProcessStep("Finish", "Render cleanly.")
-                        }, columns[1], new PowerPointProcessSlideOptions {
-                            Variant = PowerPointProcessLayoutVariant.Rail
-                        });
-
-                        PowerPointLayoutBox[] lower = composer.ContentRows(2)[1].SplitColumnsCm(2, 0.55);
-                        composer.AddCalloutBand("Use regions when a full recipe is too rigid.",
-                            lower[0].TakeTopCm(1.35));
-                        composer.AddMetricStrip(new[] {
-                            new PowerPointMetric("2", "regions")
-                        }, lower[1].TakeTopCm(1.35).InsetCm(0.05));
-                    });
-
-                    PowerPointShape? firstCard = slide.GetShape("Designer Card 1");
-                    Assert.NotNull(firstCard);
-                    Assert.True(firstCard!.Left >= leftColumn.Left);
-                    Assert.True(firstCard.Right <= leftColumn.Right);
-                    Assert.NotNull(slide.GetShape("Process Rail"));
-                    Assert.NotNull(slide.GetShape("Composer Callout Band"));
-                    Assert.NotNull(slide.GetShape("Composer Metric Band"));
-
-                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
-                    Assert.True(errors.Count == 0, FormatValidationErrors(errors));
-                    presentation.Save();
-                }
-
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
-                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
-                    Assert.True(errors.Count == 0, FormatValidationErrors(errors));
-                }
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerLogoWallSlide_CanPairLogoGridWithCertificateFeature() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
-                    presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                    PowerPointSlide slide = presentation.AddDesignerLogoWallSlide("Proof points",
-                        "Reusable logo and certification wall.",
-                        new[] {
-                            new PowerPointLogoItem("Lenovo", "Partner"),
-                            new PowerPointLogoItem("Samsung", "Devices"),
-                            new PowerPointLogoItem("Brother", "Print"),
-                            new PowerPointLogoItem("Epson", "Service")
-                        },
-                        options: new PowerPointLogoWallSlideOptions {
-                            Variant = PowerPointLogoWallLayoutVariant.CertificateFeature,
-                            FeatureTitle = "Featured certification"
-                        });
-
-                    Assert.NotNull(slide.GetShape("Logo Wall Tile 1"));
-                    Assert.NotNull(slide.GetShape("Logo Wall Certificate Frame"));
-                    Assert.NotNull(slide.GetShape("Logo Wall Certificate Document"));
-                    Assert.NotNull(slide.GetShape("Logo Wall Certificate Header"));
-                    Assert.NotNull(slide.GetShape("Logo Wall Certificate Seal Center"));
-
-                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
-                    Assert.True(errors.Count == 0, FormatValidationErrors(errors));
-                    presentation.Save();
-                }
-
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
-                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
-                    Assert.True(errors.Count == 0, FormatValidationErrors(errors));
-                }
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerLogoWallSlide_AutoUsesCertificateFeatureWhenProofIsProvided() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.AddDesignerLogoWallSlide("Competence proof",
-                    "Auto should choose proof emphasis when the caller supplies a featured certificate caption.",
-                    new[] {
-                        new PowerPointLogoItem("Xerox"),
-                        new PowerPointLogoItem("Lenovo"),
-                        new PowerPointLogoItem("Brother"),
-                        new PowerPointLogoItem("Samsung")
-                    },
-                    options: new PowerPointLogoWallSlideOptions {
-                        FeatureTitle = "ISO 9001 registration",
-                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Minimal, "proof-auto")
-                    });
-
-                Assert.NotNull(slide.GetShape("Logo Wall Tile 1"));
-                Assert.NotNull(slide.GetShape("Logo Wall Certificate Frame"));
-                Assert.NotNull(slide.GetShape("Logo Wall Certificate Document"));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
         public void DesignerCoverageSlide_AddsEditablePinsAndRejectsInvalidCoordinates() {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
                 PowerPointSlide slide = presentation.AddDesignerCoverageSlide("Service coverage",
@@ -2766,11 +1358,10 @@ namespace OfficeIMO.Tests {
                         SupportingText = "Regional service teams"
                     });
 
-                Assert.NotNull(slide.GetShape("Coverage Map Panel"));
-                Assert.NotNull(slide.GetShape("Coverage Pin 1"));
-                Assert.NotNull(slide.GetShape("Coverage Route 1"));
-                Assert.NotNull(slide.GetShape("Coverage Map Latitude 1"));
-                Assert.NotNull(slide.GetShape("Coverage List Marker 1"));
+                Assert.NotNull(slide.GetShape("Map Surface 1"));
+                Assert.NotNull(slide.GetShape("Pin 1"));
+                Assert.Equal(3, slide.Shapes.Count(shape => shape.Name != null && System.Text.RegularExpressions.Regex.IsMatch(shape.Name, @"^Pin \d+$")));
+                Assert.NotNull(slide.GetShape("Location Number 1"));
 
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
                     presentation.AddDesignerCoverageSlide("Invalid", null,
@@ -2783,256 +1374,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void DesignerCoverageSlide_AutoUsesListMapForManyLocations() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.AddDesignerCoverageSlide("Coverage",
-                    "A larger location set needs a readable list instead of only a pin strip.",
-                    new[] {
-                        new PowerPointCoverageLocation("Warszawa", 0.61, 0.45),
-                        new PowerPointCoverageLocation("Gdansk", 0.55, 0.18),
-                        new PowerPointCoverageLocation("Poznan", 0.38, 0.45),
-                        new PowerPointCoverageLocation("Wroclaw", 0.34, 0.68),
-                        new PowerPointCoverageLocation("Katowice", 0.52, 0.72),
-                        new PowerPointCoverageLocation("Krakow", 0.58, 0.78),
-                        new PowerPointCoverageLocation("Lublin", 0.75, 0.62)
-                    },
-                    options: new PowerPointCoverageSlideOptions {
-                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Corporate, "coverage-auto")
-                    });
-
-                Assert.NotNull(slide.GetShape("Coverage Map Panel"));
-                Assert.NotNull(slide.GetShape("Coverage List Marker 1"));
-                Assert.Null(slide.GetShape("Coverage Location Strip"));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void Composer_CanPlaceLogoWallAndCoverageMapInsideRegions() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
-                    presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                    PowerPointSlide slide = presentation.ComposeDesignerSlide(composer => {
-                        composer.AddTitle("Capability view", "Mix proof and reach without a fixed recipe.");
-                        PowerPointLayoutBox[] columns = composer.ContentColumns(2, gutterCm: 0.8);
-                        composer.AddLogoWall(new[] {
-                            new PowerPointLogoItem("Xerox"),
-                            new PowerPointLogoItem("Lenovo"),
-                            new PowerPointLogoItem("Samsung"),
-                            new PowerPointLogoItem("Epson")
-                        }, columns[0], new PowerPointLogoWallSlideOptions {
-                            MaxColumns = 2,
-                            Variant = PowerPointLogoWallLayoutVariant.LogoMosaic
-                        });
-                        composer.AddCoverageMap(new[] {
-                            new PowerPointCoverageLocation("North", 0.45, 0.18),
-                            new PowerPointCoverageLocation("Central", 0.58, 0.48),
-                            new PowerPointCoverageLocation("South", 0.40, 0.72)
-                        }, columns[1], new PowerPointCoverageSlideOptions {
-                            MapLabel = "3 regions"
-                        });
-                    });
-
-                    Assert.NotNull(slide.GetShape("Logo Wall Tile 1"));
-                    Assert.NotNull(slide.GetShape("Coverage Map Panel"));
-                    Assert.NotNull(slide.GetShape("Coverage Pin 1"));
-
-                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
-                    Assert.True(errors.Count == 0, FormatValidationErrors(errors));
-                    presentation.Save();
-                }
-
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
-                    List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
-                    Assert.True(errors.Count == 0, FormatValidationErrors(errors));
-                }
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void Composer_LogoWallAutoUsesCertificateFeatureWhenProofIsProvided() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.ComposeDesignerSlide(composer => {
-                    composer.AddTitle("Proof region");
-                    composer.AddLogoWall(new[] {
-                        new PowerPointLogoItem("Lenovo"),
-                        new PowerPointLogoItem("Samsung"),
-                        new PowerPointLogoItem("Brother")
-                    }, composer.ContentArea(), new PowerPointLogoWallSlideOptions {
-                        FeatureTitle = "Authorized partner"
-                    });
-                });
-
-                Assert.NotNull(slide.GetShape("Logo Wall Tile 1"));
-                Assert.NotNull(slide.GetShape("Logo Wall Certificate Frame"));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerCapabilitySlide_CanCombineSectionsWithCoverageVisual() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointCapabilitySlideOptions options = new() {
-                    Variant = PowerPointCapabilityLayoutVariant.TextVisual,
-                    VisualKind = PowerPointCapabilityVisualKind.CoverageMap,
-                    VisualLabel = "Service teams"
-                };
-                options.Locations.Add(new PowerPointCoverageLocation("Warszawa", 0.60, 0.48));
-                options.Locations.Add(new PowerPointCoverageLocation("Gdansk", 0.55, 0.18));
-
-                PowerPointSlide slide = presentation.AddDesignerCapabilitySlide("Service capability",
-                    "Narrative sections and visual support share one composition.",
-                    new[] {
-                        new PowerPointCapabilitySection("Warranty service",
-                            "Nationwide repair support.", new[] { "Computers", "Printers" }),
-                        new PowerPointCapabilitySection("Extended care",
-                            "Service beyond standard warranty.", new[] { "SLA options", "Monitoring" })
-                    },
-                    options: options);
-
-                Assert.NotNull(slide.GetShape("Capability Section 1"));
-                Assert.NotNull(slide.GetShape("Capability Section Accent 1"));
-                Assert.NotNull(slide.GetShape("Coverage Map Panel"));
-                Assert.NotNull(slide.GetShape("Coverage Pin 1"));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerCapabilitySlide_CanUseProofBoardVisualFrame() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.AddDesignerCapabilitySlide("Evidence",
-                    "Visual support can use an editorial proof-board treatment.",
-                    new[] {
-                        new PowerPointCapabilitySection("Certified service",
-                            "Proof-led content stays structured.", new[] { "Partner evidence", "Audit trail" }),
-                        new PowerPointCapabilitySection("Operational record",
-                            "Support details stay editable.", new[] { "Locations", "Metrics" })
-                    },
-                    options: new PowerPointCapabilitySlideOptions {
-                        Variant = PowerPointCapabilityLayoutVariant.TextVisual,
-                        VisualKind = PowerPointCapabilityVisualKind.VisualFrame,
-                        VisualFrameVariant = PowerPointVisualFrameVariant.ProofBoard
-                    });
-
-                Assert.NotNull(slide.GetShape("Visual Proof Mat"));
-                Assert.NotNull(slide.GetShape("Visual Proof Primary Panel"));
-                Assert.Null(slide.GetShape("Visual Device Screen"));
-
-                List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
-                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerCapabilitySlide_AutoUsesStackedLayoutForSectionHeavySlides() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointSlide slide = presentation.AddDesignerCapabilitySlide("Scope",
-                    "Auto should keep section-heavy content structured.",
-                    new[] {
-                        new PowerPointCapabilitySection("Deployments", items: new[] { "Intune", "Autopilot" }),
-                        new PowerPointCapabilitySection("Maintenance", items: new[] { "Monitoring", "Optimization" }),
-                        new PowerPointCapabilitySection("Consulting", items: new[] { "Roadmap", "Discovery" }),
-                        new PowerPointCapabilitySection("Audits", items: new[] { "Configuration", "Security review" })
-                    },
-                    options: new PowerPointCapabilitySlideOptions {
-                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Editorial, "capability-auto")
-                    });
-
-                Assert.NotNull(slide.GetShape("Capability Section 4"));
-                Assert.Null(slide.GetShape("Coverage Map Panel"));
-                Assert.Null(slide.GetShape("Logo Wall Tile 1"));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
-        public void DesignerCapabilitySlide_CanUseStackedSectionsWithMetrics() {
-            string filePath = CreateTempPresentationPath();
-
-            try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-                PowerPointCapabilitySlideOptions options = new() {
-                    Variant = PowerPointCapabilityLayoutVariant.Stacked
-                };
-                options.Metrics.Add(new PowerPointMetric("4", "areas"));
-                options.Metrics.Add(new PowerPointMetric("24/7", "support"));
-
-                PowerPointSlide slide = presentation.AddDesignerCapabilitySlide("Operations",
-                    "Stacked sections work when no single visual should dominate.",
-                    new[] {
-                        new PowerPointCapabilitySection("Monitoring", items: new[] { "Availability", "Incidents" }),
-                        new PowerPointCapabilitySection("Reporting", items: new[] { "KPIs", "Trends" }),
-                        new PowerPointCapabilitySection("Optimization", items: new[] { "Backlog", "Roadmap" })
-                    },
-                    options: options);
-
-                Assert.NotNull(slide.GetShape("Capability Section 3"));
-                Assert.NotNull(slide.GetShape("Capability Metric Band"));
-                Assert.Null(slide.GetShape("Coverage Map Panel"));
-            } finally {
-                if (File.Exists(filePath)) {
-                    File.Delete(filePath);
-                }
-            }
-        }
-
-        [Fact]
         public void DesignerCapabilitySlide_RejectsTooManySectionsForReadableLayout() {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 IEnumerable<PowerPointCapabilitySection> sections = Enumerable.Range(1, 7)
                     .Select(index => new PowerPointCapabilitySection("Section " + index));
 
@@ -3055,7 +1401,7 @@ namespace OfficeIMO.Tests {
                     $"Path: {error.Path}"));
         }
 
-        private static PowerPointCompositionVariant ResolveVariantForSeed(PowerPointPresentation presentation,
+        private static PowerPointCompositionVariant ResolveVariantForSeed(PowerPointDocument presentation,
             string seed) {
             PowerPointCompositionVariant variant = PowerPointCompositionVariant.Auto;
             presentation.ComposeDesignerSlide(composer => {

@@ -48,7 +48,7 @@ public sealed class PdfSigningWorkflowTests {
             string source = Path.Combine(root, "source.pdf"), output = Path.Combine(root, "output.pdf");
             byte[] original = CreatePdf(); File.WriteAllBytes(source, original); File.WriteAllText(output, "keep");
             var result = await OfficeWorkflow.SignPdf(source, cancelling, new(), new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default))
-                .To(output).OnConflict(OfficeWorkflowConflictPolicy.Replace).RunAsync(cancellationToken: cancellation.Token);
+                .To(output).OnConflict(OfficePublicationPolicy.Replace).RunAsync(cancellationToken: cancellation.Token);
             Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status); Assert.Equal(1, cancelling.Calls);
             Assert.Equal(original, File.ReadAllBytes(source)); Assert.Equal("keep", File.ReadAllText(output));
             Assert.NotEmpty(PdfDocument.Load(original).Security.SignExternal(signer, new()).Pdf);
@@ -125,7 +125,7 @@ public sealed class PdfSigningWorkflowTests {
             var result = await new OfficeWorkflowRunner().RunAsync(new() {
                 Operation = OfficeWorkflowOperation.SignPdf, InputPath = "content://signing/source",
                 InputStream = new("source.pdf", _ => Task.FromResult<Stream>(new MemoryStream(CreatePdf(), false))),
-                OutputPath = "content://signing/output", ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                OutputPath = "content://signing/output", ConflictPolicy = OfficePublicationPolicy.Replace,
                 OutputSigner = signer, OutputSignatureOptions = new(), OutputSignatureValidator = new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default),
                 OutputStream = new("signed.pdf", _ => Task.FromResult<Stream>(new MemoryStream(output, false)), _ => {
                     if (fail) throw new IOException("Write refused");
@@ -156,7 +156,7 @@ public sealed class PdfSigningWorkflowTests {
             using var cancellation = new CancellationTokenSource(); if (failure == "cancel") cancellation.Cancel();
             var result = await new OfficeWorkflowRunner().RunAsync(new() {
                 Operation = OfficeWorkflowOperation.SignPdf, InputPath = source, OutputPath = failure == "same-source" ? source : output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace, PdfPassword = failure == "restricted" ? "reader" : null,
+                ConflictPolicy = OfficePublicationPolicy.Replace, PdfPassword = failure == "restricted" ? "reader" : null,
                 OutputSigner = failure == "invalid-signature" ? new InvalidSigner() : signer,
                 OutputSignatureOptions = new(), OutputSignatureValidator = new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default),
                 Limits = new() { MaximumOutputBytes = failure == "budget" ? 10 : 1000000 }
@@ -175,7 +175,7 @@ public sealed class PdfSigningWorkflowTests {
         protected override void Dispose(bool disposing) { if (!_closed) { _closed = true; commit(ToArray()); } base.Dispose(disposing); }
     }
     private static byte[] CreatePdf() => PdfDocument.Create(document => {
-        document.Page(page => page.Size(200, 300)); document.Page(page => page.Size(210, 310));
+        document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300))); document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(210), global::OfficeIMO.OfficeLength.Points(310)));
     }).ToBytes();
     private static X509Certificate2 CreateCertificate() {
         using var rsa = RSA.Create(2048);

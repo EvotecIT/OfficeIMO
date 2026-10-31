@@ -12,7 +12,7 @@ public partial class PdfInspectorTests {
     [InlineData(PdfStandardEncryptionAlgorithm.Aes128)]
     [InlineData(PdfStandardEncryptionAlgorithm.Aes256)]
     public void AuthenticatedXrefRecoveryRetainsDiscardedSignatureEvidence(PdfStandardEncryptionAlgorithm algorithm) {
-        byte[] encrypted = PdfDocument.Create(new PdfOptions().SetEncryption(new("open") {
+        byte[] encrypted = PdfDocument.Create(new PdfCreateOptions().SetEncryption(new("open") {
             OwnerPassword = "owner", Algorithm = algorithm, EncryptMetadata = false
         })).Paragraph(paragraph => paragraph.Text("Readable page")).ToBytes();
         var options = new PdfLoadOptions { Password = "owner" };

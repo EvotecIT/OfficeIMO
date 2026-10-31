@@ -38,7 +38,7 @@ public sealed class WordPdfDocumentDefaultRunStyleTests {
         W.Style normal = styles.Elements<W.Style>().Single(style => style.StyleId?.Value == "Normal");
         normal.StyleRunProperties = new W.StyleRunProperties();
         WordParagraph paragraph = route switch {
-            "cell" => document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0],
+            "cell" => document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0],
             "header" => document.HeaderDefaultOrCreate.AddParagraph(),
             "footer" => document.FooterDefaultOrCreate.AddParagraph(),
             _ => document.AddParagraph()
@@ -68,8 +68,8 @@ public sealed class WordPdfDocumentDefaultRunStyleTests {
     };
 
     private static void AssertEquivalentPdf(WordDocument expected, WordDocument actual, string expectedText) {
-        using var reference = PdfPigDocument.Open(expected.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
-        using var candidate = PdfPigDocument.Open(actual.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var reference = PdfPigDocument.Open(expected.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        using var candidate = PdfPigDocument.Open(actual.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, reference.NumberOfPages);
         Assert.Equal(reference.NumberOfPages, candidate.NumberOfPages);
         var referencePage = reference.GetPage(1);

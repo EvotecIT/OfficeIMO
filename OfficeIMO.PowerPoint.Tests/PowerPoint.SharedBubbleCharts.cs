@@ -34,15 +34,13 @@ namespace OfficeIMO.Tests {
             OfficeChartData updated = CreateBubbleData(
                 new[] { 3D, 6D, 9D }, new[] { 12D, 24D, 36D }, new[] { 16D, 36D, 64D });
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(output)) {
-                    PowerPointChart chart = presentation.AddSlide().AddChartPoints(
-                        OfficeChartKind.Bubble, initial, 36, 30, 420, 250,
-                        new PowerPointChartAccessibilityOptions {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(output)) {
+                    PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.Bubble, initial, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(30), Width = global::OfficeIMO.OfficeLength.Points(420), Height = global::OfficeIMO.OfficeLength.Points(250), Accessibility = new PowerPointChartAccessibilityOptions {
                             AlternativeText = "Portfolio position by return, risk, and investment"
-                        });
+                        } });
 
                     Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot authored));
-                    Assert.Equal(OfficeChartKind.Bubble, authored.ChartKind);
+                    Assert.Equal(OfficeChartType.Bubble, authored.ChartKind);
                     Assert.Equal(new[] { 9D, 25D, 49D },
                         Assert.Single(authored.Data.Series).BubbleSizes);
                     Assert.Equal(OfficeColor.Parse("#2A9D8F"),
@@ -53,7 +51,7 @@ namespace OfficeIMO.Tests {
                         StringComparison.Ordinal);
 
                     chart.SetSeriesFillColor(0, "123456")
-                        .SetSeriesLineColor(0, "654321", widthPoints: 2.5D)
+                        .SetSeriesLineColor(0, "654321", width: OfficeLength.Points(2.5D))
                         .SetDataLabels(showValue: true)
                         .SetSeriesDataLabels(0, showValue: true, numberFormat: "0.0");
                     ChartPart authoredChartPart = presentation.Slides[0].SlidePart.ChartParts.Single();
@@ -81,7 +79,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(OfficeColor.Parse("#D62828"),
                         Assert.Single(refreshed.Data.Series).PointColors![0]);
                     Assert.Equal(2.5D,
-                        Assert.Single(refreshed.Data.Series).MarkerOutlineWidth);
+                        Assert.Single(refreshed.Data.Series).MarkerOutlineWidth?.ToPoints());
                     Assert.Equal(OfficeColor.Parse("#654321"),
                         Assert.Single(refreshed.Data.Series).MarkerOutlineColor);
                     Assert.Equal(145D, refreshed.BubbleScalePercent);
@@ -92,14 +90,14 @@ namespace OfficeIMO.Tests {
                     OfficeChartSnapshot pdfSnapshot =
                         PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(
                             nativeSnapshot, 420D, 250D,
-                            new PowerPointToPdfOptions());
+                            new PowerPointPdfExportOptions());
                     Assert.Equal(145D, pdfSnapshot.BubbleScalePercent);
                     Assert.Equal(OfficeChartBubbleSizeMode.Width,
                         pdfSnapshot.BubbleSizeMode);
                     Assert.Equal(OfficeColor.Parse("#654321"),
                         Assert.Single(pdfSnapshot.Data.Series).MarkerOutlineColor);
                     Assert.Equal(2.5D,
-                        Assert.Single(pdfSnapshot.Data.Series).MarkerOutlineWidth);
+                        Assert.Single(pdfSnapshot.Data.Series).MarkerOutlineWidth?.ToPoints());
                     C.BubbleChart preservedBubble = authoredChartPart.ChartSpace!
                         .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!
                         .GetFirstChild<C.BubbleChart>()!;
@@ -124,19 +122,19 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation reopened = PowerPointPresentation.Load(output,
+                using (PowerPointDocument reopened = PowerPointDocument.Load(output,
                            new PowerPointLoadOptions {
                                AccessMode = DocumentAccessMode.ReadOnly
                            })) {
                     PowerPointChart chart = Assert.Single(reopened.Slides[0].Charts);
                     Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-                    Assert.Equal(OfficeChartKind.Bubble, snapshot.ChartKind);
-                    OfficeChartSeries series = Assert.Single(snapshot.Data.Series);
+                    Assert.Equal(OfficeChartType.Bubble, snapshot.ChartKind);
+                    OfficeSeries series = Assert.Single(snapshot.Data.Series);
                     Assert.Equal(new[] { 3D, 6D, 9D }, series.XValues);
                     Assert.Equal(new[] { 12D, 24D, 36D }, series.Values);
                     Assert.Equal(new[] { 16D, 36D, 64D }, series.BubbleSizes);
                     Assert.Equal(OfficeColor.Parse("#F4A261"), series.PointColors![2]);
-                    Assert.Equal(2.5D, series.MarkerOutlineWidth);
+                    Assert.Equal(2.5D, series.MarkerOutlineWidth?.ToPoints());
                     Assert.Equal(OfficeColor.Parse("#654321"), series.MarkerOutlineColor);
                     Assert.Equal(145D, snapshot.BubbleScalePercent);
                     Assert.Equal(OfficeChartBubbleSizeMode.Width,
@@ -174,21 +172,21 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_AuthorsSeriesOutlineFromBubbleOptions() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             OfficeColor outlineColor = OfficeColor.Parse("#AABBCC");
             var data = new OfficeChartData(new[] { "1" }, new[] {
-                OfficeChartSeries.CreateBubble("Portfolio",
+                OfficeSeries.CreateBubble("Portfolio",
                     new[] { 1D },
                     new[] { 2D },
                     new[] { 4D },
                     color: OfficeColor.Parse("#112233"),
                     markerOutlineColor: outlineColor,
-                    markerOutlineWidth: 1.5D)
+                    markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(1.5D))
             });
 
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble, data);
+                OfficeChartType.Bubble, data);
             C.BubbleChartSeries nativeSeries = presentation.Slides[0].SlidePart
                 .ChartParts.Single().ChartSpace!
                 .Descendants<C.BubbleChartSeries>().Single();
@@ -207,13 +205,13 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_PreservesAlphaForSeriesPointAndOutlineColors() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             OfficeColor seriesColor = OfficeColor.FromRgba(17, 34, 51, 128);
             OfficeColor pointColor = OfficeColor.FromRgba(68, 85, 102, 96);
             OfficeColor outlineColor = OfficeColor.FromRgba(119, 136, 153, 64);
             var data = new OfficeChartData(new[] { "1" }, new[] {
-                OfficeChartSeries.CreateBubble(
+                OfficeSeries.CreateBubble(
                     "Portfolio",
                     new[] { 1D },
                     new[] { 2D },
@@ -224,7 +222,7 @@ namespace OfficeIMO.Tests {
             });
 
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble, data);
+                OfficeChartType.Bubble, data);
             C.BubbleChartSeries nativeSeries = presentation.Slides[0].SlidePart
                 .ChartParts.Single().ChartSpace!
                 .Descendants<C.BubbleChartSeries>().Single();
@@ -246,7 +244,7 @@ namespace OfficeIMO.Tests {
                 .Val!.Value);
 
             Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-            OfficeChartSeries snapshotSeries = Assert.Single(snapshot.Data.Series);
+            OfficeSeries snapshotSeries = Assert.Single(snapshot.Data.Series);
             Assert.Equal(seriesColor, snapshotSeries.Color);
             Assert.Equal(pointColor, Assert.Single(snapshotSeries.PointColors!));
             Assert.Equal(outlineColor, snapshotSeries.MarkerOutlineColor);
@@ -254,10 +252,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_PreservesExplicitlyDisabledSeriesOutline() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -273,7 +271,7 @@ namespace OfficeIMO.Tests {
             outline.Append(new DocumentFormat.OpenXml.Drawing.NoFill());
 
             Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-            OfficeChartSeries series = Assert.Single(snapshot.Data.Series);
+            OfficeSeries series = Assert.Single(snapshot.Data.Series);
             Assert.False(series.ShowMarkerOutline);
             OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
             OfficeDrawingShape bubble = Assert.Single(drawing.Shapes, shape =>
@@ -282,7 +280,7 @@ namespace OfficeIMO.Tests {
             Assert.Null(bubble.Shape.StrokeColor);
             Assert.Equal(0D, bubble.Shape.StrokeWidth);
 
-            chart.SetSeriesLineColor(0, "445566", widthPoints: 1.25D);
+            chart.SetSeriesLineColor(0, "445566", width: OfficeLength.Points(1.25D));
             Assert.Null(outline.GetFirstChild<A.NoFill>());
             Assert.Equal("445566", outline.GetFirstChild<A.SolidFill>()!
                 .RgbColorModelHex!.Val!.Value);
@@ -304,19 +302,18 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_PreservesHiddenLegendEntriesAcrossSharedSnapshots() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointSlide slide = presentation.AddSlide();
             var data = new OfficeChartData(new[] { "1", "2" }, new[] {
-                OfficeChartSeries.CreateBubble(
+                OfficeSeries.CreateBubble(
                     "Hidden Portfolio",
                     new[] { 1D, 2D },
                     new[] { 2D, 4D },
                     new[] { 4D, 9D },
                     showInLegend: false)
             });
-            PowerPointChart chart = slide.AddChartPoints(
-                OfficeChartKind.Bubble, data, 30, 20, 420, 250);
+            PowerPointChart chart = slide.AddChart(OfficeChartType.Bubble, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(420), Height = global::OfficeIMO.OfficeLength.Points(250) });
             C.Delete nativeDelete = presentation.Slides[0].SlidePart.ChartParts
                 .Single().ChartSpace!.Descendants<C.LegendEntry>().Single()
                 .GetFirstChild<C.Delete>()!;
@@ -328,7 +325,7 @@ namespace OfficeIMO.Tests {
             Assert.False(Assert.Single(shared.Data.Series).ShowInLegend);
             OfficeChartSnapshot pdf =
                 PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(
-                    native, 420D, 250D, new PowerPointToPdfOptions());
+                    native, 420D, 250D, new PowerPointPdfExportOptions());
             Assert.False(Assert.Single(pdf.Data.Series).ShowInLegend);
 
             string svg = System.Text.Encoding.UTF8.GetString(
@@ -344,10 +341,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_PreservesMissingChartLegendAcrossSharedSnapshots() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -363,10 +360,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_PreservesLegendPlacementAndOverlay() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -400,7 +397,7 @@ namespace OfficeIMO.Tests {
             Assert.True(chart.TryGetOfficeSnapshot(out _));
 
             chart.SetLegendTextStyle(
-                fontSizePoints: 10D, bold: true,
+                fontSize: OfficeLength.Points(10D), bold: true,
                 color: "445566", fontName: "Arial");
             Assert.False(chart.TryGetOfficeSnapshot(out _));
 
@@ -410,11 +407,11 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_PreservesAxisTitlesAndNumberFormats() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointChart chart = slide.AddChart(
-                    OfficeChartKind.Bubble,
+                    OfficeChartType.Bubble,
                     CreateBubbleData(
                         new[] { 1D, 2D },
                         new[] { 2D, 4D },
@@ -472,10 +469,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_RejectsUnprojectedAxisPresentation() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                    OfficeChartKind.Bubble,
+                    OfficeChartType.Bubble,
                     CreateBubbleData(
                         new[] { 1D },
                         new[] { 2D },
@@ -493,14 +490,14 @@ namespace OfficeIMO.Tests {
                 .Single(axis => axis.AxisId!.Val!.Value == axisIds[0]);
 
             chart.SetScatterXAxisTitleTextStyle(
-                fontSizePoints: 11D, bold: true,
+                fontSize: OfficeLength.Points(11D), bold: true,
                 color: "445566", fontName: "Arial");
             Assert.False(chart.TryGetOfficeSnapshot(out _));
             chart.ClearScatterXAxisTitleTextStyle();
             Assert.True(chart.TryGetOfficeSnapshot(out _));
 
             chart.SetScatterXAxisLabelTextStyle(
-                fontSizePoints: 9D, italic: true,
+                fontSize: OfficeLength.Points(9D), italic: true,
                 color: "778899", fontName: "Calibri");
             Assert.False(chart.TryGetOfficeSnapshot(out _));
             chart.ClearScatterXAxisLabelTextStyle();
@@ -523,15 +520,16 @@ namespace OfficeIMO.Tests {
                             new A.RgbColorModelHex {
                                 Val = "AABBCC"
                             }))), true);
-            Assert.False(chart.TryGetOfficeSnapshot(out _));
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot paintedAxis));
+            Assert.Equal(OfficeColor.Parse("#AABBCC"), paintedAxis.Style.CategoryAxisColor);
         }
 
         [Fact]
         public void BubbleChart_MaterializesDefaultColorsAndGridlineFidelity() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -563,7 +561,7 @@ namespace OfficeIMO.Tests {
             A.Outline gridlineOutline = majorGridlines
                 .GetFirstChild<C.ChartShapeProperties>()!
                 .GetFirstChild<A.Outline>()!;
-            Assert.Equal(PowerPointUnits.FromPoints(0.5D),
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.5D).ToEmus(),
                 gridlineOutline.Width!.Value);
             Assert.Equal(OfficeChartStyle.Default.GridLineColor,
                 OfficeOpenXmlThemeColorResolver.ResolveColor(
@@ -579,10 +577,11 @@ namespace OfficeIMO.Tests {
             Assert.False(chart.TryGetOfficeSnapshot(out _));
             horizontalAxis.GetFirstChild<C.MajorGridlines>()!.Remove();
 
-            gridlineOutline.Width = checked((int)PowerPointUnits.FromPoints(1D));
-            Assert.False(chart.TryGetOfficeSnapshot(out _));
+            gridlineOutline.Width = checked((int)global::OfficeIMO.OfficeLength.Points(1D).ToEmus());
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot widerGrid));
+            Assert.Equal(1D, widerGrid.Style.ValueGridLineWidth);
             gridlineOutline.Width =
-                checked((int)PowerPointUnits.FromPoints(0.5D));
+                checked((int)global::OfficeIMO.OfficeLength.Points(0.5D).ToEmus());
             Assert.True(chart.TryGetOfficeSnapshot(out _));
 
             nativeSeries.GetFirstChild<C.ChartShapeProperties>()!
@@ -592,10 +591,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_RejectsNonDefaultAxisPositions() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -624,10 +623,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_RejectsManualPlotLayoutAndAreaStyles() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -653,9 +652,13 @@ namespace OfficeIMO.Tests {
 
             chart.SetTitle("Styled title")
                 .SetTitleTextStyle(
-                    fontSizePoints: 14D, bold: true,
+                    fontSize: OfficeLength.Points(14D), bold: true,
                     color: "445566", fontName: "Arial");
-            Assert.False(chart.TryGetOfficeSnapshot(out _));
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot styledTitle));
+            Assert.Equal(14D, styledTitle.Style.TitleFontSize);
+            Assert.Equal("Arial", styledTitle.Style.TitleFontFamily);
+            Assert.Equal(OfficeColor.Parse("#445566"), styledTitle.Style.TitleColor);
+            Assert.Equal(OfficeFontStyle.Bold, styledTitle.Style.TitleFontStyle);
             chart.ClearTitleTextStyle();
             Assert.True(chart.TryGetOfficeSnapshot(out _));
 
@@ -682,26 +685,30 @@ namespace OfficeIMO.Tests {
 
             chart.SetPlotAreaStyle(
                 fillColor: "445566", lineColor: "778899",
-                lineWidthPoints: 1.5D);
+                lineWidth: OfficeLength.Points(1.5D));
             Assert.False(chart.TryGetOfficeSnapshot(out _));
         }
 
         [Fact]
         public void BubbleChart_RejectsMixedSnapshotsThatWouldDropBubbleSeries() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointChart bubble = slide.AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D, 2D },
                     new[] { 2D, 4D },
                     new[] { 4D, 9D }));
             OfficeChartData categoryData = new(
                 new[] { "A", "B" },
-                new[] { new OfficeChartSeries("Values", new[] { 1D, 2D }) });
-            slide.AddChart(OfficeChartKind.ColumnClustered, categoryData);
-            slide.AddChart(OfficeChartKind.Line, categoryData);
+                new[] { new OfficeSeries("Values", new[] { 1D, 2D }) });
+            slide.AddChart(OfficeChartType.ColumnClustered, categoryData);
+            // This chart supplies source XML for the mixed-snapshot rejection, not automatic layout.
+            slide.AddChart(OfficeChartType.Line, categoryData, new PowerPointChartOptions {
+                Left = OfficeLength.Points(20), Top = OfficeLength.Points(20),
+                Width = OfficeLength.Points(300), Height = OfficeLength.Points(200)
+            });
 
             ChartPart[] chartParts = slide.SlidePart.ChartParts.ToArray();
             C.PlotArea bubblePlot = chartParts[0].ChartSpace!
@@ -729,11 +736,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void BubbleChart_DrivesPngSvgHtmlAndPdfWithoutFallbackDiagnostics() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(480, 300);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(480),OfficeIMO.OfficeLength.Points(300));
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddChartPoints(OfficeChartKind.Bubble,
-                CreateBubbleData(
+            slide.AddChart(OfficeChartType.Bubble, CreateBubbleData(
                     new[] { 1D, 2D, 3D },
                     new[] { 2D, 5D, 4D },
                     new[] { 4D, 25D, 9D },
@@ -741,8 +747,7 @@ namespace OfficeIMO.Tests {
                         OfficeColor.Parse("#D62828"),
                         OfficeColor.Parse("#2A9D8F"),
                         OfficeColor.Parse("#F4A261")
-                    }),
-                30, 20, 420, 250);
+                    }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(420), Height = global::OfficeIMO.OfficeLength.Points(250) });
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
@@ -763,15 +768,33 @@ namespace OfficeIMO.Tests {
                 Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
             });
             string html = htmlResult.Value;
-            PdfDocumentConversionResult pdfResult = presentation.ToPdfDocumentResult();
+            PdfDocumentConversionResult pdfResult = presentation.ConvertToPdfWithEvidence();
             byte[] pdf = pdfResult.ToBytes();
             // HTML can wrap or reserialize the SVG; all three authored point colors must still be painted.
             foreach (string color in new[] { "#D62828", "#2A9D8F", "#F4A261" }) {
                 Assert.Contains("fill=\"" + color + "\"", html, StringComparison.OrdinalIgnoreCase);
             }
             var page = PdfReadDocument.Open(pdf).Pages[0];
-            Assert.Equal(page.ExportImage(OfficeImageExportFormat.Png).Bytes, png.Bytes);
-            Assert.Equal(page.ExportImage(OfficeImageExportFormat.Svg).Bytes, svg.Bytes);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? nativeImage));
+            Assert.True(OfficePngReader.TryDecode(page.ExportImage(OfficeImageExportFormat.Png).Bytes, out OfficeRasterImage? pdfImage));
+            Assert.Equal(nativeImage!.Width, pdfImage!.Width);
+            Assert.Equal(nativeImage.Height, pdfImage.Height);
+            string pdfSvg = System.Text.Encoding.UTF8.GetString(page.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+            XElement[] pdfPaint = XDocument.Parse(pdfSvg).Descendants().Where(element => element.Attribute("fill") != null).ToArray();
+            foreach (string color in new[] { "#D62828", "#2A9D8F", "#F4A261" }) {
+                Assert.Contains(pdfPaint, element => string.Equals(element.Attribute("fill")!.Value, color, StringComparison.OrdinalIgnoreCase));
+                RequirePaintedColor(nativeImage!, OfficeColor.Parse(color));
+                RequirePaintedColor(pdfImage!, OfficeColor.Parse(color));
+            }
+            static void RequirePaintedColor(OfficeRasterImage image, OfficeColor expected) {
+                int count = 0;
+                for (int y = 0; y < image.Height; y++)
+                    for (int x = 0; x < image.Width; x++) {
+                        OfficeColor pixel = image.GetPixel(x, y);
+                        if (Math.Abs(pixel.R - expected.R) <= 2 && Math.Abs(pixel.G - expected.G) <= 2 && Math.Abs(pixel.B - expected.B) <= 2) count++;
+                    }
+                Assert.True(count > 8, "Each authored bubble color must remain visible in raster output.");
+            }
             Assert.DoesNotContain(htmlResult.ImageDiagnostics,
                 diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
             Assert.DoesNotContain(pdfResult.Warnings,
@@ -783,19 +806,17 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_ZeroSizesRemainInvisibleInSharedRendering() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddChartPoints(OfficeChartKind.Bubble,
-                CreateBubbleData(
+            slide.AddChart(OfficeChartType.Bubble, CreateBubbleData(
                     new[] { 1D, 2D },
                     new[] { 2D, 4D },
                     new[] { 0D, 9D },
                     new OfficeColor?[] {
                         OfficeColor.Parse("#D62828"),
                         OfficeColor.Parse("#2A9D8F")
-                    }),
-                30, 20, 420, 250);
+                    }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(420), Height = global::OfficeIMO.OfficeLength.Points(250) });
 
             string svg = System.Text.Encoding.UTF8.GetString(
                 slide.ExportImage(OfficeImageExportFormat.Svg).Bytes);
@@ -812,34 +833,34 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void BubbleChart_RejectsMissingOrInvalidSizesBeforeMutatingSlide() {
             Assert.Throws<ArgumentNullException>(() =>
-                OfficeChartSeries.CreateBubble("Invalid",
+                OfficeSeries.CreateBubble("Invalid",
                     null!, new[] { 2D }, new[] { 5D }));
             Assert.Throws<ArgumentNullException>(() =>
-                OfficeChartSeries.CreateBubble("Invalid",
+                OfficeSeries.CreateBubble("Invalid",
                     new[] { 1D }, null!, new[] { 5D }));
             Assert.Throws<ArgumentNullException>(() =>
-                OfficeChartSeries.CreateBubble("Invalid",
+                OfficeSeries.CreateBubble("Invalid",
                     new[] { 1D }, new[] { 2D }, null!));
-            Assert.Throws<ArgumentException>(() => OfficeChartSeries.CreateBubble("Invalid",
+            Assert.Throws<ArgumentException>(() => OfficeSeries.CreateBubble("Invalid",
                 new[] { 1D, 2D }, new[] { 2D, 3D }, new[] { 5D }));
-            Assert.Throws<ArgumentOutOfRangeException>(() => OfficeChartSeries.CreateBubble("Invalid",
+            Assert.Throws<ArgumentOutOfRangeException>(() => OfficeSeries.CreateBubble("Invalid",
                 new[] { 1D }, new[] { 2D }, new[] { -1D }));
-            Assert.Throws<ArgumentOutOfRangeException>(() => OfficeChartSeries.CreateBubble("Invalid",
+            Assert.Throws<ArgumentOutOfRangeException>(() => OfficeSeries.CreateBubble("Invalid",
                 new[] { double.NaN }, new[] { 2D }, new[] { 1D }));
-            Assert.Throws<ArgumentOutOfRangeException>(() => OfficeChartSeries.CreateBubble("Invalid",
+            Assert.Throws<ArgumentOutOfRangeException>(() => OfficeSeries.CreateBubble("Invalid",
                 new[] { 1D }, new[] { double.PositiveInfinity }, new[] { 1D }));
 
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointSlide slide = presentation.AddSlide();
             var missingSizes = new OfficeChartData(new[] { "1", "2" }, new[] {
-                new OfficeChartSeries("Incomplete", new[] { 3D, 4D }, new[] { 1D, 2D })
+                new OfficeSeries("Incomplete", new[] { 3D, 4D }, new[] { 1D, 2D })
             });
             Assert.Throws<ArgumentException>(() =>
-                slide.AddChart(OfficeChartKind.Bubble, missingSizes));
+                slide.AddChart(OfficeChartType.Bubble, missingSizes));
             Assert.Empty(slide.Charts);
 
-            PowerPointChart imported = slide.AddChart(OfficeChartKind.Bubble,
+            PowerPointChart imported = slide.AddChart(OfficeChartType.Bubble,
                 CreateBubbleData(new[] { 1D }, new[] { 2D }, new[] { 4D }));
             C.BubbleSize bubbleSize = slide.SlidePart.ChartParts.Single().ChartSpace!
                 .Descendants<C.BubbleSize>().Single();
@@ -850,20 +871,20 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_RejectsWorkbookColumnOverflowBeforeMutatingSlide() {
-            OfficeChartSeries[] series = Enumerable.Range(1, 5_462)
-                .Select(index => OfficeChartSeries.CreateBubble(
+            OfficeSeries[] series = Enumerable.Range(1, 5_462)
+                .Select(index => OfficeSeries.CreateBubble(
                     "Series " + index,
                     new[] { 1D },
                     new[] { 2D },
                     new[] { 4D }))
                 .ToArray();
             var data = new OfficeChartData(new[] { "1" }, series);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointSlide slide = presentation.AddSlide();
 
             Assert.Throws<ArgumentException>(() =>
-                slide.AddChart(OfficeChartKind.Bubble, data));
+                slide.AddChart(OfficeChartType.Bubble, data));
             Assert.Empty(slide.Charts);
         }
 
@@ -887,17 +908,17 @@ namespace OfficeIMO.Tests {
             var data = new OfficeChartData(
                 new[] { "1" },
                 new[] {
-                    OfficeChartSeries.CreateBubble(
+                    OfficeSeries.CreateBubble(
                         "First", values, values, values),
-                    OfficeChartSeries.CreateBubble(
+                    OfficeSeries.CreateBubble(
                         "Second", values, values, values)
                 });
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointSlide slide = presentation.AddSlide();
 
             ArgumentException exception = Assert.Throws<ArgumentException>(() =>
-                slide.AddChart(OfficeChartKind.Bubble, data));
+                slide.AddChart(OfficeChartType.Bubble, data));
 
             Assert.Contains("total point limit", exception.Message,
                 StringComparison.Ordinal);
@@ -908,11 +929,11 @@ namespace OfficeIMO.Tests {
         public void BubbleChart_WorkbookWritesOnlyExistingUnevenSeriesPoints() {
             double[] longValues = Enumerable.Range(1, 500)
                 .Select(value => (double)value).ToArray();
-            OfficeChartSeries[] series = new[] {
-                OfficeChartSeries.CreateBubble(
+            OfficeSeries[] series = new[] {
+                OfficeSeries.CreateBubble(
                     "Long", longValues, longValues, longValues)
             }.Concat(Enumerable.Range(1, 100).Select(index =>
-                OfficeChartSeries.CreateBubble(
+                OfficeSeries.CreateBubble(
                     "Short " + index,
                     new[] { 1D },
                     new[] { 2D },
@@ -948,10 +969,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_RejectsMismatchedImportedCaches() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D, 2D, 3D },
                     new[] { 2D, 4D, 6D },
@@ -968,10 +989,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void BubbleChart_RejectsMalformedImportedSizeCaches() {
             foreach (string malformed in new[] { "NaN", "Infinity", "not-a-number" }) {
-                using PowerPointPresentation presentation =
-                    PowerPointPresentation.Create(new MemoryStream());
+                using PowerPointDocument presentation =
+                    PowerPointDocument.Create(new MemoryStream());
                 PowerPointChart chart = presentation.AddSlide().AddChart(
-                    OfficeChartKind.Bubble,
+                    OfficeChartType.Bubble,
                     CreateBubbleData(
                         new[] { 1D },
                         new[] { 2D },
@@ -987,10 +1008,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_RejectsEnabledInvertIfNegativeForNegativeValues() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -1017,10 +1038,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_RejectsEnabledThreeDimensionalRendering() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -1055,10 +1076,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_RejectsUnsupportedValueAxisScaling() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -1178,10 +1199,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_SetBubbleSizingUpdatesEveryNativeBubbleGroup() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -1210,10 +1231,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_RejectsUnsupportedFillStyles() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -1265,10 +1286,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_SetSeriesFillColorReplacesImageAndGroupFills() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -1300,10 +1321,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_RejectsUnsupportedSeriesOutlineFills() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -1351,10 +1372,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_LineColorReplacesUnsupportedOutlineFills() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -1371,7 +1392,7 @@ namespace OfficeIMO.Tests {
             outline.RemoveAllChildren<A.SolidFill>();
             outline.Append(new A.GradientFill());
 
-            chart.SetSeriesLineColor(0, "445566", widthPoints: 1.25D);
+            chart.SetSeriesLineColor(0, "445566", width: OfficeLength.Points(1.25D));
 
             Assert.Null(outline.GetFirstChild<A.GradientFill>());
             Assert.Equal("445566",
@@ -1380,7 +1401,7 @@ namespace OfficeIMO.Tests {
 
             outline.RemoveAllChildren<A.SolidFill>();
             outline.Append(new A.PatternFill());
-            chart.SetSeriesLineColor(0, "778899", widthPoints: 1.5D);
+            chart.SetSeriesLineColor(0, "778899", width: OfficeLength.Points(1.5D));
 
             Assert.Null(outline.GetFirstChild<A.PatternFill>());
             Assert.Equal("778899",
@@ -1391,7 +1412,7 @@ namespace OfficeIMO.Tests {
                 Val = A.PresetLineDashValues.Dash
             });
             chart.SetSeriesLineColor(
-                0, "AABBCC", widthPoints: 2D);
+                0, "AABBCC", width: OfficeLength.Points(2D));
 
             List<OpenXmlElement> outlineChildren =
                 outline.ChildElements.ToList();
@@ -1404,24 +1425,24 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_UpdateDataMaterializesColorOnlyForNewSeries() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             var initial = new OfficeChartData(
                 new[] { "1" },
                 new[] {
-                    OfficeChartSeries.CreateBubble(
+                    OfficeSeries.CreateBubble(
                         "Existing", new[] { 1D }, new[] { 2D },
                         new[] { 4D }, OfficeColor.Parse("#112233"))
                 });
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble, initial);
+                OfficeChartType.Bubble, initial);
             var updated = new OfficeChartData(
                 new[] { "1" },
                 new[] {
-                    OfficeChartSeries.CreateBubble(
+                    OfficeSeries.CreateBubble(
                         "Existing", new[] { 3D }, new[] { 5D },
                         new[] { 9D }),
-                    OfficeChartSeries.CreateBubble(
+                    OfficeSeries.CreateBubble(
                         "Added", new[] { 7D }, new[] { 11D },
                         new[] { 16D })
                 });
@@ -1442,10 +1463,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_RejectsNativeVaryColors() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -1466,10 +1487,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_RejectsTrendlinesAndErrorBarsFromSharedSnapshots() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D, 2D },
                     new[] { 2D, 4D },
@@ -1491,10 +1512,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_UpdateDataPreservesExportOnlyNativeStyles() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D, 2D },
                     new[] { 2D, 4D },
@@ -1511,7 +1532,7 @@ namespace OfficeIMO.Tests {
             chart.ClearSeriesTrendline(0);
             Assert.True(chart.TryGetOfficeSnapshot(
                 out OfficeChartSnapshot snapshot));
-            OfficeChartSeries series = Assert.Single(snapshot.Data.Series);
+            OfficeSeries series = Assert.Single(snapshot.Data.Series);
             Assert.Equal(new[] { 3D, 6D }, series.XValues);
             Assert.Equal(new[] { 5D, 10D }, series.Values);
             Assert.Equal(new[] { 16D, 25D }, series.BubbleSizes);
@@ -1519,16 +1540,16 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_UpdateDataPreservesNoncontiguousSeriesStyles() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             var initial = new OfficeChartData(new[] { "1" }, new[] {
-                OfficeChartSeries.CreateBubble(
+                OfficeSeries.CreateBubble(
                     "First", new[] { 1D }, new[] { 2D }, new[] { 4D }),
-                OfficeChartSeries.CreateBubble(
+                OfficeSeries.CreateBubble(
                     "Second", new[] { 3D }, new[] { 4D }, new[] { 9D })
             });
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble, initial);
+                OfficeChartType.Bubble, initial);
             chart.SetSeriesTrendline(0, OfficeChartTrendlineType.Linear);
             C.BubbleChartSeries[] nativeSeries = presentation.Slides[0]
                 .SlidePart.ChartParts.Single().ChartSpace!
@@ -1538,9 +1559,9 @@ namespace OfficeIMO.Tests {
             nativeSeries[1].Index!.Val = 9U;
             nativeSeries[1].Order!.Val = 9U;
             var updated = new OfficeChartData(new[] { "5" }, new[] {
-                OfficeChartSeries.CreateBubble(
+                OfficeSeries.CreateBubble(
                     "First", new[] { 5D }, new[] { 6D }, new[] { 16D }),
-                OfficeChartSeries.CreateBubble(
+                OfficeSeries.CreateBubble(
                     "Second", new[] { 7D }, new[] { 8D }, new[] { 25D })
             });
 
@@ -1560,10 +1581,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_UpdateDataPreservesAxesByReferencedIdentity() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -1609,10 +1630,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_UpdateDataReplacesNonSolidSeriesFill() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -1643,10 +1664,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_UpdateDataReplacesNonSolidSeriesOutlineFill() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -1696,10 +1717,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_UpdateDataPreservesOutlineColorForWidthOnlyChange() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -1718,7 +1739,7 @@ namespace OfficeIMO.Tests {
                 .GetFirstChild<A.Outline>()!;
             Assert.Equal("112233", outline.GetFirstChild<A.SolidFill>()!
                 .RgbColorModelHex!.Val!.Value);
-            Assert.Equal(PowerPointUnits.FromPoints(2.5D),
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(2.5D).ToEmus(),
                 outline.Width!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(
                 presentation.Slides[0].SlidePart.ChartParts.Single()));
@@ -1726,10 +1747,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_UpdateDataPreservesNonFillPointFormatting() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -1745,7 +1766,7 @@ namespace OfficeIMO.Tests {
                     new A.Outline(
                         new A.SolidFill(
                             new A.RgbColorModelHex { Val = "AABBCC" })) {
-                        Width = (int)PowerPointUnits.FromPoints(1.25D)
+                        Width = (int)global::OfficeIMO.OfficeLength.Points(1.25D).ToEmus()
                     }));
             nativeSeries.AddChild(nativePoint, true);
 
@@ -1767,7 +1788,7 @@ namespace OfficeIMO.Tests {
             A.Outline outline = properties.GetFirstChild<A.Outline>()!;
             Assert.Equal("AABBCC", outline.GetFirstChild<A.SolidFill>()!
                 .RgbColorModelHex!.Val!.Value);
-            Assert.Equal(PowerPointUnits.FromPoints(1.25D),
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(1.25D).ToEmus(),
                 outline.Width!.Value);
             List<ValidationErrorInfo> validation = new OpenXmlValidator()
                 .Validate(presentation.Slides[0].SlidePart.ChartParts.Single())
@@ -1780,12 +1801,12 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_ResolvesThemeColorsInParameterlessSnapshots() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             presentation.SetThemeColor(PowerPointThemeColor.Accent3, "2468AC");
             presentation.SetThemeColor(PowerPointThemeColor.Accent4, "97531B");
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -1811,7 +1832,7 @@ namespace OfficeIMO.Tests {
                         new A.SchemeColor { Val = A.SchemeColorValues.Accent4 }))));
 
             Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-            OfficeChartSeries bubble = Assert.Single(snapshot.Data.Series);
+            OfficeSeries bubble = Assert.Single(snapshot.Data.Series);
             Assert.Equal(OfficeColor.Parse("#2468AC"), bubble.Color);
             Assert.Equal(OfficeColor.Parse("#97531B"), bubble.MarkerOutlineColor);
             Assert.Equal(OfficeColor.Parse("#97531B"),
@@ -1827,10 +1848,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_RejectsBubbleSizeLabelsAndShapeEffects() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(new MemoryStream());
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 CreateBubbleData(
                     new[] { 1D },
                     new[] { 2D },
@@ -1903,11 +1924,11 @@ namespace OfficeIMO.Tests {
             bool showMarkerOutline = true) =>
             new(xValues.Select(value => value.ToString(System.Globalization.CultureInfo.InvariantCulture)),
                 new[] {
-                    OfficeChartSeries.CreateBubble("Portfolio", xValues, yValues, sizes,
+                    OfficeSeries.CreateBubble("Portfolio", xValues, yValues, sizes,
                         seriesColor, pointColors,
                         showInLegend: true,
                         markerOutlineColor: markerOutlineColor,
-                        markerOutlineWidth: markerOutlineWidth,
+                        markerOutlineWidth: markerOutlineWidth is double markerOutlineWidthPoints97493 ? global::OfficeIMO.OfficeLength.Points(markerOutlineWidthPoints97493) : (global::OfficeIMO.OfficeLength?)null,
                         showMarkerOutline: showMarkerOutline)
                 });
     }

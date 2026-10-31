@@ -7,7 +7,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Resize and describe all report images.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Report.docx
+///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// $doc |
 ///     Get-OfficeWordImage |
 ///     Set-OfficeWordImage -Width 320 -Wrap Square -Title 'Report image' -Description 'Image used in the report'
@@ -76,13 +76,13 @@ public sealed class SetOfficeWordImageCommand : PSCmdlet
             return;
         }
 
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(Width))) Image.Width = Width;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(Height))) Image.Height = Height;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Width))) Image.Width = (Width is { } wordLengthValue2 ? (OfficeIMO.OfficeLength?)OfficeIMO.OfficeLength.Pixels(wordLengthValue2) : null);
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Height))) Image.Height = (Height is { } wordLengthValue4 ? (OfficeIMO.OfficeLength?)OfficeIMO.OfficeLength.Pixels(wordLengthValue4) : null);
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Wrap))) Image.WrapText = Wrap;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(CropTop))) Image.CropTop = CropTop;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(CropBottom))) Image.CropBottom = CropBottom;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(CropLeft))) Image.CropLeft = CropLeft;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(CropRight))) Image.CropRight = CropRight;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(CropTop))) Image.CropTopRatio = ((double?)(CropTop)) / 100000D;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(CropBottom))) Image.CropBottomRatio = ((double?)(CropBottom)) / 100000D;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(CropLeft))) Image.CropLeftRatio = ((double?)(CropLeft)) / 100000D;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(CropRight))) Image.CropRightRatio = ((double?)(CropRight)) / 100000D;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Rotation))) Image.Rotation = Rotation;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Opacity))) Image.FixedOpacity = Opacity;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(HorizontalFlip))) Image.HorizontalFlip = HorizontalFlip;

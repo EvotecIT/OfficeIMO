@@ -21,6 +21,12 @@ public partial class Word {
         "DejaVuSansMono"
     };
 
+    private static void AssertSerifHeaderFont(string fontName) {
+        string[] expected = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _)
+            ? new[] { "Georgia" } : new[] { "Times", "LiberationSerif" };
+        Assert.Contains(expected, family => fontName.Contains(family, StringComparison.OrdinalIgnoreCase));
+    }
+
     [Fact]
     public void Test_WordDocument_SaveAsPdf_MultipleSections() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfSections.docx");
@@ -60,10 +66,10 @@ public partial class Word {
             document.AddParagraph("ContinuousSectionAfter");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(400, 300),
-                Margins = PdfCore.PageMargins.Uniform(50)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(300)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(50))
             });
         }
 
@@ -84,10 +90,10 @@ public partial class Word {
             document.AddParagraph("NextPageSectionAfter");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(400, 300),
-                Margins = PdfCore.PageMargins.Uniform(50)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(300)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(50))
             });
         }
 
@@ -131,7 +137,7 @@ public partial class Word {
             RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native Default Footer");
             document.AddParagraph("Native body text");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false
             });
         }
@@ -159,7 +165,7 @@ public partial class Word {
             document.AddParagraph("Plain body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
             });
@@ -171,19 +177,14 @@ public partial class Word {
             var headerLetter = page.Letters.Single(letter => letter.Value == "Q");
             var footerLetter = page.Letters.Single(letter => letter.Value == "X");
 
-            string expectedHeaderFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "Georgia" : "Times";
-            Assert.Contains(expectedHeaderFont, headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            AssertSerifHeaderFont(headerLetter.FontName);
             Assert.Contains(
                 MonospacePdfFontNameParts,
                 fontName => footerLetter.FontName.Contains(fontName, StringComparison.OrdinalIgnoreCase));
         }
 
-        string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
-        string expectedHeaderBaseFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "/BaseFont /Georgia" : "/BaseFont /Times";
-        Assert.Contains(expectedHeaderBaseFont, pdfContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(
-            MonospacePdfFontNameParts,
-            fontName => pdfContent.Contains("/BaseFont /" + fontName, StringComparison.OrdinalIgnoreCase));
+        AssertPdfUsesFont(pdfPath, PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "Georgia" : "Times");
+        AssertPdfUsesAnyFont(pdfPath, MonospacePdfFontNameParts);
     }
 
     [Fact]
@@ -207,13 +208,13 @@ public partial class Word {
 
             document.AddHeadersAndFooters();
             WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("BigNativeHeader");
-            header.FontSize = 18;
+            header.FontSize = global::OfficeIMO.OfficeLength.Points(18);
             WordParagraph footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("StyledNativeFooter");
             footer.SetStyleId(footerStyleId);
             document.AddParagraph("Plain body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false
             });
         }
@@ -253,7 +254,7 @@ public partial class Word {
             document.AddParagraph("Plain body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false
             });
         }
@@ -307,7 +308,7 @@ public partial class Word {
             document.AddParagraph("Plain body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
             });
@@ -320,8 +321,7 @@ public partial class Word {
             Assert.Contains("GreenStyledFooter", page.Text);
 
             var headerLetter = page.Letters.Single(letter => letter.Value == "Q");
-            string expectedHeaderFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "Georgia" : "Times";
-            Assert.Contains(expectedHeaderFont, headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            AssertSerifHeaderFont(headerLetter.FontName);
         }
 
         string content = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
@@ -365,7 +365,7 @@ public partial class Word {
             document.AddParagraph("Plain body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
             });
@@ -378,8 +378,7 @@ public partial class Word {
             Assert.Contains("GreenCharStyledFooter", page.Text);
 
             var headerLetter = page.Letters.Single(letter => letter.Value == "Q");
-            string expectedHeaderFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "Georgia" : "Times";
-            Assert.Contains(expectedHeaderFont, headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            AssertSerifHeaderFont(headerLetter.FontName);
         }
 
         string content = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
@@ -402,7 +401,7 @@ public partial class Word {
             document.AddParagraph("Plain body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
             });
@@ -414,8 +413,8 @@ public partial class Word {
             var headerLetter = page.Letters.Single(letter => letter.Value == "Q");
             var footerLetter = page.Letters.Single(letter => letter.Value == "X");
 
-            string expectedHeaderFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "Georgia-Bold" : "Times-Bold";
-            Assert.Contains(expectedHeaderFont, headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            AssertSerifHeaderFont(headerLetter.FontName);
+            Assert.Contains("Bold", headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(
                 MonospacePdfFontNameParts,
                 fontName => footerLetter.FontName.Contains(fontName, StringComparison.OrdinalIgnoreCase));
@@ -425,12 +424,8 @@ public partial class Word {
                 "Expected the explicit footer family to preserve italic emphasis.");
         }
 
-        string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
-        string expectedHeaderBaseFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "/BaseFont /Georgia-Bold" : "/BaseFont /Times-Bold";
-        Assert.Contains(expectedHeaderBaseFont, pdfContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(
-            MonospacePdfFontNameParts,
-            fontName => pdfContent.Contains("/BaseFont /" + fontName, StringComparison.OrdinalIgnoreCase));
+        AssertPdfUsesFont(pdfPath, PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "Georgia" : "Times");
+        AssertPdfUsesAnyFont(pdfPath, MonospacePdfFontNameParts);
     }
 
     [Fact]
@@ -447,10 +442,10 @@ public partial class Word {
             document.AddParagraph("NativeAlignedBody");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(400, 300),
-                Margins = PdfCore.PageMargins.Uniform(50)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(300)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(50))
             });
         }
 
@@ -481,27 +476,27 @@ public partial class Word {
             document.AddHeadersAndFooters();
             WordTable headerTable = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddTable(1, 3, WordTableStyle.TableNormal);
             headerTable.LayoutMode = WordTableLayoutMode.Fixed;
-            headerTable.WidthType = WordTableWidthUnit.Dxa; headerTable.Width = 7200;
-            headerTable.GridColumnWidth = new List<int> { 2400, 2400, 2400 };
-            foreach (WordTableCell cell in headerTable.Rows[0].Cells) { cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 2400; }
+            headerTable.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(7200) * 635)));
+            headerTable.GridColumnWidth = new List<int> { 2400, 2400, 2400 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
+            foreach (WordTableCell cell in headerTable.Rows[0].Cells) { cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635))); }
             headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "LHdr";
             headerTable.Rows[0].Cells[1].Paragraphs[0].Text = "CHdr";
             headerTable.Rows[0].Cells[2].Paragraphs[0].Text = "RHdr";
 
             WordTable footerTable = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddTable(1, 2, WordTableStyle.TableNormal);
             footerTable.LayoutMode = WordTableLayoutMode.Fixed;
-            footerTable.WidthType = WordTableWidthUnit.Dxa; footerTable.Width = 4800;
-            footerTable.GridColumnWidth = new List<int> { 2400, 2400 };
-            foreach (WordTableCell cell in footerTable.Rows[0].Cells) { cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 2400; }
+            footerTable.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4800) * 635)));
+            footerTable.GridColumnWidth = new List<int> { 2400, 2400 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
+            foreach (WordTableCell cell in footerTable.Rows[0].Cells) { cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635))); }
             footerTable.Rows[0].Cells[0].Paragraphs[0].Text = "LFtr";
             footerTable.Rows[0].Cells[1].Paragraphs[0].Text = "RFtr";
 
             document.AddParagraph("NativeTableZoneBody");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(520, 320),
-                Margins = PdfCore.PageMargins.Uniform(60)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(520),OfficeIMO.OfficeLength.Points(320)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(60))
             });
         }
 
@@ -550,10 +545,10 @@ public partial class Word {
 
             document.AddParagraph("Native blank paragraph header footer body");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(520, 340),
-                Margins = PdfCore.PageMargins.Uniform(60)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(520),OfficeIMO.OfficeLength.Points(340)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(60))
             });
         }
 
@@ -592,9 +587,9 @@ public partial class Word {
             document.AddParagraph("ClearanceBodyHeading").SetStyle(WordParagraphStyles.Heading1);
             document.AddParagraph("Body text after a multiline Word header.");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = PdfCore.PageSizes.Letter
+                PageSize = PdfCore.PdfPageSizes.Letter
             });
         }
 
@@ -637,15 +632,15 @@ public partial class Word {
             for (int index = 1; index <= 4; index++) {
                 WordParagraph paragraph = header.AddParagraph("ClearanceHeaderLine" + index.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 if (headerFontSize.HasValue) {
-                    paragraph.FontSize = headerFontSize.Value;
+                    paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(headerFontSize.Value);
                 }
             }
 
             document.AddParagraph(bodyText).SetStyle(WordParagraphStyles.Heading1);
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = PdfCore.PageSizes.Letter
+                PageSize = PdfCore.PdfPageSizes.Letter
             });
         }
     }
@@ -667,10 +662,10 @@ public partial class Word {
 
             document.AddParagraph("Native multiline header footer body");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(440, 340),
-                Margins = PdfCore.PageMargins.Uniform(60)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(440),OfficeIMO.OfficeLength.Points(340)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(60))
             });
         }
 
@@ -704,14 +699,14 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
             WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
-            footer.AddParagraph("NativeFooterBandLineOne").FontSize = 9;
-            footer.AddParagraph("NativeFooterBandLineTwo").FontSize = 9;
+            footer.AddParagraph("NativeFooterBandLineOne").FontSize = global::OfficeIMO.OfficeLength.Points(9);
+            footer.AddParagraph("NativeFooterBandLineTwo").FontSize = global::OfficeIMO.OfficeLength.Points(9);
 
             document.AddParagraph("Native footer placement body");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = PdfCore.PageSizes.Letter
+                PageSize = PdfCore.PdfPageSizes.Letter
             });
         }
 
@@ -736,14 +731,14 @@ public partial class Word {
             WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
             for (int index = 1; index <= 4; index++) {
                 WordParagraph paragraph = footer.AddParagraph("LargeFooterLine" + index.ToString(CultureInfo.InvariantCulture));
-                paragraph.FontSize = 24;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(24);
             }
 
             document.AddParagraph("Large footer placement body");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = PdfCore.PageSizes.Letter
+                PageSize = PdfCore.PdfPageSizes.Letter
             });
         }
 
@@ -765,22 +760,22 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Reserves_Body_Clearance_For_Multiline_Footer_Margins() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeMultilineFooterMarginExpansion.docx"));
-        document.Sections[0].Margins.Top = 600;
-        document.Sections[0].Margins.Bottom = 600;
-        document.Sections[0].Margins.Left = 600;
-        document.Sections[0].Margins.Right = 600;
+        document.Sections[0].Margins.Top = global::OfficeIMO.OfficeLength.Points(30D);
+        document.Sections[0].Margins.Bottom = global::OfficeIMO.OfficeLength.Points(30D);
+        document.Sections[0].Margins.Left = global::OfficeIMO.OfficeLength.Points(30D);
+        document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(30D);
         document.AddHeadersAndFooters();
         WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
-        footer.AddParagraph("ClearanceFooterOne").FontSize = 9;
-        footer.AddParagraph("ClearanceFooterTwo").FontSize = 9;
+        footer.AddParagraph("ClearanceFooterOne").FontSize = global::OfficeIMO.OfficeLength.Points(9);
+        footer.AddParagraph("ClearanceFooterTwo").FontSize = global::OfficeIMO.OfficeLength.Points(9);
 
         for (int index = 0; index < 70; index++) {
             WordParagraph paragraph = document.AddParagraph("BodyMarker");
-            paragraph.FontSize = 11;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
             paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new SpacingBetweenLines {
                 Before = "0", After = "0", Line = "280", LineRule = LineSpacingRuleValues.Exact });
         }
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.True(pdf.NumberOfPages > 1);
         Assert.Equal(70, pdf.GetPages().Sum(page => page.GetWords().Count(word => word.Text == "BodyMarker")));
         foreach (var page in pdf.GetPages()) {

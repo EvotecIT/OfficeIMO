@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Dependency-free BMP decoder for uncompressed 24-bit and 32-bit Windows bitmap images.
 /// </summary>
-public static class OfficeBmpReader {
+internal static class OfficeBmpReader {
     private const int BitmapFileHeaderSize = 14;
     private const int BitmapInfoHeaderSize = 40;
     private const int BiRgbCompression = 0;

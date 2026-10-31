@@ -10,13 +10,13 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///   <summary>Set an external hyperlink.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>ExcelSheet 'Data' { Set-OfficeExcelHyperlink -Address 'A1' -Url 'https://example.org' -Display 'Example' }</code>
-///   <para>Creates a styled hyperlink in A1.</para>
+///   <para>Creates a styled hyperlink in ExcelA1.</para>
 /// </example>
 /// <example>
 ///   <summary>Set an internal hyperlink.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>ExcelSheet 'Data' { Set-OfficeExcelHyperlink -Row 2 -Column 1 -TargetSheet 'Summary' -TargetAddress 'A1' -Display 'Go to Summary' }</code>
-///   <para>Links A2 to Summary!A1.</para>
+///   <para>Links A2 to Summary!ExcelA1.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Set, "OfficeExcelHyperlink", DefaultParameterSetName = ParameterSetContextExternal)]
 [Alias("ExcelHyperlink")]

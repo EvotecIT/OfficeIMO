@@ -102,7 +102,9 @@ public sealed class NewOfficePdfSignatureCommand : PSCmdlet
         PdfExternalSignaturePreparation preparation = PdfDocument
             .Load(inputPath, readOptions)
             .Security.PrepareExternalSignature(options);
-        PdfDocument.Load(preparation.PreparedPdf, readOptions).Save(outputPath).RequireSuccess();
+        using var preparedStream = new MemoryStream(preparation.PreparedPdf, writable: false);
+        using var prepared = PdfDocument.Load(preparedStream, readOptions);
+        prepared.Save(outputPath);
         WriteObject(PassThruReport.IsPresent ? preparation : new FileInfo(outputPath));
     }
 }

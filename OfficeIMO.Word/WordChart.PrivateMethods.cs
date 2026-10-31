@@ -185,7 +185,7 @@ namespace OfficeIMO.Word {
             BarDirection barDirection1 = new BarDirection() { Val = barDirection };
             BarGrouping barGrouping1 = new BarGrouping() { Val = BarGroupingValues.Clustered };
             DataLabels dataLabels1 = AddDataLabel();
-            GapWidth gapWidth1 = new GapWidth() { Val = (UInt16Value)150U };
+            GapWidth gapWidth1 = new GapWidth() { Val = (UInt16Value)(uint)OfficeTheme.Default.ChartStyle.BarGapPercent };
             Overlap overlap1 = new Overlap() { Val = 0 };
 
             AxisId axisId1 = new AxisId() { Val = catAxisId };
@@ -221,6 +221,7 @@ namespace OfficeIMO.Word {
                 _chart = GenerateChart();
                 _chart = CreatePieChart(_chart);
                 _chartPart?.ChartSpace?.Append(_chart);
+                EnsureFramelessChartArea();
 
                 // since the title may have changed, we need to update it
                 UpdateTitle();
@@ -233,6 +234,7 @@ namespace OfficeIMO.Word {
                 _chart = GenerateChart();
                 _chart = GenerateChartBar(_chart);
                 _chartPart?.ChartSpace?.Append(_chart);
+                EnsureFramelessChartArea();
 
                 // since the title may have changed, we need to update it
                 UpdateTitle();
@@ -264,6 +266,7 @@ namespace OfficeIMO.Word {
                 _chart = GenerateChart();
                 _chart = GenerateAreaChart(_chart);
                 _chartPart?.ChartSpace?.Append(_chart);
+                EnsureFramelessChartArea();
 
                 // since the title may have changed, we need to update it
                 UpdateTitle();
@@ -276,6 +279,7 @@ namespace OfficeIMO.Word {
                 _chart = GenerateChart();
                 _chart = GenerateLineChart(_chart);
                 _chartPart?.ChartSpace?.Append(_chart);
+                EnsureFramelessChartArea();
 
                 // since the title may have changed, we need to update it
                 UpdateTitle();
@@ -303,7 +307,7 @@ namespace OfficeIMO.Word {
         }
 
 
-        private BarChartSeries AddBarChartSeries<T>(UInt32Value index, string series, OfficeIMO.Drawing.OfficeColor color, List<string> categories, List<T> data) {
+        private BarChartSeries AddBarChartSeries<T>(UInt32Value index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> data) {
             BarChartSeries barChartSeries1 = new BarChartSeries();
             DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
             Order order1 = new Order() { Val = index };
@@ -324,7 +328,7 @@ namespace OfficeIMO.Word {
             return barChartSeries1;
         }
 
-        private ChartShapeProperties AddShapeProperties(OfficeIMO.Drawing.OfficeColor color) {
+        private ChartShapeProperties AddShapeProperties(OfficeIMO.OfficeColor color) {
             ChartShapeProperties chartShapeProperties1 = new ChartShapeProperties();
 
             DocumentFormat.OpenXml.Drawing.SolidFill solidFill1 = new DocumentFormat.OpenXml.Drawing.SolidFill();
@@ -370,7 +374,7 @@ namespace OfficeIMO.Word {
             chart.PlotArea!.Append(valueAxis1);
             return chart;
         }
-        private LineChartSeries AddLineChartSeries<T>(UInt32Value index, string series, OfficeIMO.Drawing.OfficeColor color, List<string> categories, List<T> data) {
+        private LineChartSeries AddLineChartSeries<T>(UInt32Value index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> data) {
             LineChartSeries lineChartSeries1 = new LineChartSeries();
             DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
             Order order1 = new Order() { Val = index };
@@ -445,7 +449,7 @@ namespace OfficeIMO.Word {
             return chart;
         }
 
-        private AreaChartSeries AddAreaChartSeries<T>(UInt32Value index, string series, OfficeIMO.Drawing.OfficeColor color, List<string> categories, List<T> data) {
+        private AreaChartSeries AddAreaChartSeries<T>(UInt32Value index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> data) {
             AreaChartSeries lineChartSeries1 = new AreaChartSeries();
             DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
             Order order1 = new Order() { Val = index };
@@ -558,7 +562,7 @@ namespace OfficeIMO.Word {
             return chart;
         }
 
-        private ScatterChartSeries AddScatterChartSeries(UInt32Value index, string series, OfficeIMO.Drawing.OfficeColor color, List<double> xValues, List<double> yValues) {
+        private ScatterChartSeries AddScatterChartSeries(UInt32Value index, string series, OfficeIMO.OfficeColor color, List<double> xValues, List<double> yValues) {
             ScatterChartSeries scSeries = new ScatterChartSeries();
             DocumentFormat.OpenXml.Drawing.Charts.Index idx = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
             Order order = new Order() { Val = index };
@@ -630,7 +634,7 @@ namespace OfficeIMO.Word {
             return chart;
         }
 
-        private RadarChartSeries AddRadarChartSeries<T>(UInt32Value index, string series, OfficeIMO.Drawing.OfficeColor color, List<string> categories, List<T> values) {
+        private RadarChartSeries AddRadarChartSeries<T>(UInt32Value index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> values) {
             RadarChartSeries radarSeries = new RadarChartSeries();
             DocumentFormat.OpenXml.Drawing.Charts.Index idx = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
             Order order = new Order() { Val = index };
@@ -690,7 +694,7 @@ namespace OfficeIMO.Word {
             return chart;
         }
 
-        private BarChartSeries AddBar3DChartSeries<T>(UInt32Value index, string series, OfficeIMO.Drawing.OfficeColor color, List<string> categories, List<T> values) {
+        private BarChartSeries AddBar3DChartSeries<T>(UInt32Value index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> values) {
             BarChartSeries series3d = AddBarChartSeries(index, series, color, categories, values);
             return series3d;
         }
@@ -767,12 +771,12 @@ namespace OfficeIMO.Word {
             return chart;
         }
 
-        private LineChartSeries AddLine3DChartSeries<T>(UInt32Value index, string series, OfficeIMO.Drawing.OfficeColor color, List<string> categories, List<T> values) {
+        private LineChartSeries AddLine3DChartSeries<T>(UInt32Value index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> values) {
             LineChartSeries series3d = AddLineChartSeries(index, series, color, categories, values);
             return series3d;
         }
 
-        private PieChartSeries AddPie3DChartSeries<T>(UInt32Value index, string series, OfficeIMO.Drawing.OfficeColor color, List<string> categories, List<T> values) {
+        private PieChartSeries AddPie3DChartSeries<T>(UInt32Value index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> values) {
             PieChartSeries pieSeries = new PieChartSeries();
             DocumentFormat.OpenXml.Drawing.Charts.Index idx = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
             Order order = new Order() { Val = index };
@@ -848,7 +852,7 @@ namespace OfficeIMO.Word {
             return chart;
         }
 
-        private AreaChartSeries AddArea3DChartSeries<T>(UInt32Value index, string series, OfficeIMO.Drawing.OfficeColor color, List<string> categories, List<T> values) {
+        private AreaChartSeries AddArea3DChartSeries<T>(UInt32Value index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> values) {
             return AddAreaChartSeries(index, series, color, categories, values);
         }
 
@@ -857,6 +861,7 @@ namespace OfficeIMO.Word {
                 _chart = GenerateChart();
                 _chart = GenerateScatterChart(_chart);
                 _chartPart?.ChartSpace?.Append(_chart);
+                EnsureFramelessChartArea();
                 UpdateTitle();
                 UpdateAxisTitles();
             }
@@ -867,6 +872,7 @@ namespace OfficeIMO.Word {
                 _chart = GenerateChart();
                 _chart = GenerateRadarChart(_chart);
                 _chartPart?.ChartSpace?.Append(_chart);
+                EnsureFramelessChartArea();
                 UpdateTitle();
                 UpdateAxisTitles();
             }
@@ -877,6 +883,7 @@ namespace OfficeIMO.Word {
                 _chart = GenerateChart();
                 _chart = GenerateArea3DChart(_chart);
                 _chartPart?.ChartSpace?.Append(_chart);
+                EnsureFramelessChartArea();
                 UpdateTitle();
                 UpdateAxisTitles();
             }
@@ -887,6 +894,7 @@ namespace OfficeIMO.Word {
                 _chart = GenerateChart();
                 _chart = GenerateBar3DChart(_chart);
                 _chartPart?.ChartSpace?.Append(_chart);
+                EnsureFramelessChartArea();
                 UpdateTitle();
                 UpdateAxisTitles();
             }
@@ -897,6 +905,7 @@ namespace OfficeIMO.Word {
                 _chart = GenerateChart();
                 _chart = GeneratePie3DChart(_chart);
                 _chartPart?.ChartSpace?.Append(_chart);
+                EnsureFramelessChartArea();
                 UpdateTitle();
             }
         }
@@ -906,6 +915,7 @@ namespace OfficeIMO.Word {
                 _chart = GenerateChart();
                 _chart = GenerateLine3DChart(_chart);
                 _chartPart?.ChartSpace?.Append(_chart);
+                EnsureFramelessChartArea();
                 UpdateTitle();
             }
         }

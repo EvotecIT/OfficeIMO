@@ -49,8 +49,8 @@ namespace OfficeIMO.Excel {
                 cancellationToken.ThrowIfCancellationRequested();
                 long bufferedCells = checked((long)(_sampledRows.Count + 1) * fieldCount);
                 if (bufferedCells > maximumBufferedCells) {
-                    throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), maximumBufferedCells,
-                        $"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
+                    throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), maximumBufferedCells,
+                        $"Range data-reader buffering exceeds {nameof(ExcelReaderOptions.MaxDataReaderBufferedCells)}.");
                 }
 
                 var values = new object[fieldCount];

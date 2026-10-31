@@ -37,21 +37,21 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private WordParagraph AddNoteReference(WordParagraph paragraph, string text, HtmlToWordOptions options, NoteReferenceType? noteType = null) {
+        private WordParagraph AddNoteReference(WordParagraph paragraph, string text, WordHtmlImportOptions options, WordHtmlNoteReferenceType? noteType = null) {
             var resolvedNoteType = noteType ?? options.NoteReferenceType;
-            return resolvedNoteType == NoteReferenceType.Endnote
-                ? paragraph.AddEndNote(text)
-                : paragraph.AddFootNote(text);
+            return resolvedNoteType == WordHtmlNoteReferenceType.Endnote
+                ? paragraph.AddEndNote(text).Paragraph
+                : paragraph.AddFootNote(text).Paragraph;
         }
 
-        private WordParagraph AddNoteReference(WordParagraph paragraph, IReadOnlyList<string> paragraphs, HtmlToWordOptions options, NoteReferenceType? noteType = null) {
+        private WordParagraph AddNoteReference(WordParagraph paragraph, IReadOnlyList<string> paragraphs, WordHtmlImportOptions options, WordHtmlNoteReferenceType? noteType = null) {
             var noteReference = AddNoteReference(paragraph, paragraphs.Count == 0 ? string.Empty : paragraphs[0], options, noteType);
             if (paragraphs.Count <= 1) {
                 return noteReference;
             }
 
             var resolvedNoteType = noteType ?? options.NoteReferenceType;
-            var noteParagraphs = resolvedNoteType == NoteReferenceType.Endnote
+            var noteParagraphs = resolvedNoteType == WordHtmlNoteReferenceType.Endnote
                 ? noteReference.EndNote?.Paragraphs
                 : noteReference.FootNote?.Paragraphs;
             var current = noteParagraphs?.LastOrDefault();
@@ -66,7 +66,7 @@ namespace OfficeIMO.Word.Html {
             return noteReference;
         }
 
-        private void TryLinkNoteReference(WordParagraph noteReference, string text, HtmlToWordOptions options, NoteReferenceType? noteType = null) {
+        private void TryLinkNoteReference(WordParagraph noteReference, string text, WordHtmlImportOptions options, WordHtmlNoteReferenceType? noteType = null) {
             if (!options.LinkNoteUrls) {
                 return;
             }
@@ -79,7 +79,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             var resolvedNoteType = noteType ?? options.NoteReferenceType;
-            var noteParagraph = resolvedNoteType == NoteReferenceType.Endnote
+            var noteParagraph = resolvedNoteType == WordHtmlNoteReferenceType.Endnote
                 ? noteReference.EndNote?.Paragraphs?.FirstOrDefault()
                 : noteReference.FootNote?.Paragraphs?.FirstOrDefault();
             if (noteParagraph == null) {
@@ -132,7 +132,7 @@ namespace OfficeIMO.Word.Html {
             _pendingTopBookmark = false;
         }
 
-        private static bool IsInvalidHref(string href, HtmlToWordOptions options) {
+        private static bool IsInvalidHref(string href, WordHtmlImportOptions options) {
             if (string.IsNullOrWhiteSpace(href)) {
                 return true;
             }
@@ -140,7 +140,7 @@ namespace OfficeIMO.Word.Html {
             return !HtmlUrlPolicyEvaluator.IsAllowed(trimmed, options.HyperlinkUrlPolicy, allowEmptyFragment: false);
         }
 
-        private static bool IsInvalidResolvedHref(Uri href, HtmlToWordOptions options) {
+        private static bool IsInvalidResolvedHref(Uri href, WordHtmlImportOptions options) {
             if (href == null) {
                 return true;
             }

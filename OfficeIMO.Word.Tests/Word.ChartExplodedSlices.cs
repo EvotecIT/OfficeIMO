@@ -9,14 +9,14 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordChartExplodedSlicesTests {
     [Theory]
-    [InlineData(OfficeChartKind.Pie)]
-    [InlineData(OfficeChartKind.Doughnut)]
-    public void ExplodedPoint_RoundTripsAndSurvivesValueUpdate(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Pie)]
+    [InlineData(OfficeChartType.Doughnut)]
+    public void ExplodedPoint_RoundTripsAndSurvivesValueUpdate(OfficeChartType kind) {
         var authored = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 25, 0 })
+            new OfficeSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 25, 0 })
         });
         using var document = WordDocument.Create();
-        document.AddChart(kind, authored);
+        document.AddChart(kind,authored);
         using var bytes = new MemoryStream();
         document.Save(bytes);
         bytes.Position = 0;
@@ -25,13 +25,13 @@ public sealed class WordChartExplodedSlicesTests {
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(new[] { 25, 0 }, snapshot.Data.Series.Single().PointExplosions);
         chart.SetData(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Status", new[] { 8d, 2d })
+            new OfficeSeries("Status", new[] { 8d, 2d })
         }));
         Assert.Equal((uint)25, chart.ChartPart!.ChartSpace!.Descendants<C.PieChartSeries>()
             .Single().Elements<C.DataPoint>().Single(point => point.Index!.Val!.Value == 0)
             .GetFirstChild<C.Explosion>()!.Val!.Value);
         chart.SetData(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Status", new[] { 8d, 2d }).WithPointExplosions(new[] { 0, 30 })
+            new OfficeSeries("Status", new[] { 8d, 2d }).WithPointExplosions(new[] { 0, 30 })
         }));
         C.PieChartSeries updated = chart.ChartPart.ChartSpace!.Descendants<C.PieChartSeries>().Single();
         Assert.Null(updated.Elements<C.DataPoint>()
@@ -44,9 +44,9 @@ public sealed class WordChartExplodedSlicesTests {
     [Fact]
     public void NativeSeriesExplosion_IsInheritedUnlessPointOverridesIt() {
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartKind.Pie, new OfficeChartData(
+        WordChart chart = document.AddChart(OfficeChartType.Pie,new OfficeChartData(
             new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Status", new[] { 7d, 3d })
+                new OfficeSeries("Status", new[] { 7d, 3d })
                     .WithPointExplosions(new[] { 25, 0 })
             }));
         C.PieChartSeries native = chart.ChartPart!.ChartSpace!.Descendants<C.PieChartSeries>().Single();
@@ -56,15 +56,15 @@ public sealed class WordChartExplodedSlicesTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Pie)]
-    [InlineData(OfficeChartKind.Doughnut)]
-    public void ShrinkingValues_IgnoresPreservedExplosionForRemovedPoint(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Pie)]
+    [InlineData(OfficeChartType.Doughnut)]
+    public void ShrinkingValues_IgnoresPreservedExplosionForRemovedPoint(OfficeChartType kind) {
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 0, 25 })
+        WordChart chart = document.AddChart(kind,new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 0, 25 })
         }));
         chart.SetData(kind, new OfficeChartData(new[] { "A" }, new[] {
-            new OfficeChartSeries("Status", new[] { 8d })
+            new OfficeSeries("Status", new[] { 8d })
         }));
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Null(snapshot.Data.Series.Single().PointExplosions);
@@ -74,8 +74,8 @@ public sealed class WordChartExplodedSlicesTests {
     [Fact]
     public void UnsupportedNativeExplosion_PreservesEditableChartButRejectsProjection() {
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartKind.Pie, new OfficeChartData(
-            new[] { "A", "B" }, new[] { new OfficeChartSeries("Status", new[] { 7d, 3d }) }));
+        WordChart chart = document.AddChart(OfficeChartType.Pie,new OfficeChartData(
+            new[] { "A", "B" }, new[] { new OfficeSeries("Status", new[] { 7d, 3d }) }));
         C.PieChartSeries native = chart.ChartPart!.ChartSpace!.Descendants<C.PieChartSeries>().Single();
         native.AddChild(new C.Explosion { Val = 401U }, true);
         Assert.False(chart.TryGetOfficeSnapshot(out _));

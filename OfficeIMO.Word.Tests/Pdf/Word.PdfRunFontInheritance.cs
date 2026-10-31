@@ -30,7 +30,7 @@ public sealed class WordPdfRunFontInheritanceTests {
         using WordDocument document = WordDocument.Create();
         string family = named && layer != "document" ? ManagedTextShapingTestAssets.FamilyName : "Times New Roman";
         document.Settings.FontFamily = layer == "document" ? family : "Courier New";
-        WordTable? table = story == "table" ? document.AddTable(1, 1) : null;
+        WordTable? table = story == "table" ? document.AddTable(1, 1, WordTableStyle.TableGrid) : null;
         WordParagraph paragraph = story switch {
             "header" => document.HeaderDefaultOrCreate.AddParagraph("LEADING"),
             "footer" => document.FooterDefaultOrCreate.AddParagraph("LEADING"),
@@ -59,7 +59,7 @@ public sealed class WordPdfRunFontInheritanceTests {
             } else if (layer == "character") inherited.SetCharacterStyleId(style.StyleId!);
             else paragraph.SetStyleId(style.StyleId!);
         }
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         if (named) {
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
                 ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray())));
@@ -68,10 +68,10 @@ public sealed class WordPdfRunFontInheritanceTests {
         string original = main.Document.OuterXml + main.StyleDefinitionsPart!.Styles!.OuterXml +
             string.Concat(main.HeaderParts.Select(part => part.Header.OuterXml)) +
             string.Concat(main.FooterParts.Select(part => part.Footer.OuterXml));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = named ? options : null,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
         Assert.All(Assert.Single(words, word => word.Text == "INHERITED").Letters, letter =>
             Assert.Contains(named ? "OfficeIMO" : "Times", letter.FontName, StringComparison.OrdinalIgnoreCase));

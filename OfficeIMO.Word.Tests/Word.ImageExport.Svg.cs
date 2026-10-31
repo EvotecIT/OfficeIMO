@@ -23,14 +23,14 @@ namespace OfficeIMO.Tests {
         [InlineData("footer", true)]
         public void SavedSvgImagesRenderInPngAndPdf(string story, bool extension) {
             using WordDocument source = CreateDocument(story, extension, RedSvg);
-            using MemoryStream package = source.ToStream();
+            using MemoryStream package = new System.IO.MemoryStream(source.ToBytes());
             using WordDocument document = WordDocument.Load(package);
 
             OfficeImageExportResult preview = Assert.Single(document.ExportImages(OfficeImageExportFormat.Png));
             AssertColor(preview.Bytes, red: true);
-            PdfDocumentConversionResult conversion = document.ToPdfDocumentResult();
+            PdfDocumentConversionResult conversion = document.ConvertToPdfWithEvidence();
             Assert.DoesNotContain(conversion.Warnings, warning => warning.LossKind == OfficeConversionLossKind.Omission);
-            PdfReadDocument pdf = PdfReadDocument.Open(conversion.Value.ToBytes());
+            PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(conversion.Value.ToBytes()));
             AssertColor(Assert.Single(pdf.ExportImages(OfficeImageExportFormat.Png)).Bytes, red: true);
         }
 
@@ -40,12 +40,12 @@ namespace OfficeIMO.Tests {
         [InlineData(null)]
         public void UnrenderableOrMissingSvgExtensionUsesBitmapFallback(string? svg) {
             using WordDocument source = CreateDocument("body", extension: true, svg);
-            using MemoryStream package = source.ToStream();
+            using MemoryStream package = new System.IO.MemoryStream(source.ToBytes());
             using WordDocument document = WordDocument.Load(package);
             AssertColor(Assert.Single(document.ExportImages(OfficeImageExportFormat.Png)).Bytes, red: false);
-            PdfDocumentConversionResult conversion = document.ToPdfDocumentResult();
+            PdfDocumentConversionResult conversion = document.ConvertToPdfWithEvidence();
             Assert.DoesNotContain(conversion.Warnings, warning => warning.LossKind == OfficeConversionLossKind.Omission);
-            PdfReadDocument pdf = PdfReadDocument.Open(conversion.Value.ToBytes());
+            PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(conversion.Value.ToBytes()));
             AssertColor(Assert.Single(pdf.ExportImages(OfficeImageExportFormat.Png)).Bytes, red: false);
         }
 
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
         public void UnsupportedSvgWithoutFallbackRetainsOmissionDiagnostic() {
             using WordDocument document = CreateDocument("body", extension: false,
                 "<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><foreignObject width='40' height='40'/></svg>");
-            Assert.Contains(document.ToPdfDocumentResult().Warnings, warning =>
+            Assert.Contains(document.ConvertToPdfWithEvidence().Warnings, warning =>
                 warning.Code == "NativeBodyImageUnsupported" && warning.LossKind == OfficeConversionLossKind.Omission);
         }
 
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph();
             byte[] bytes = extension ? OfficePngWriter.Encode(new OfficeRasterImage(40, 40, OfficeColor.FromRgb(0, 0, 255))) :
                 Encoding.UTF8.GetBytes(svg!);
-            WordImage image = paragraph.AddImage(new MemoryStream(bytes), extension ? "fallback.png" : "image.svg", 40, 40).Image!;
+            WordImage image = paragraph.AddImage(new MemoryStream(bytes), extension ? "fallback.png" : "image.svg", OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40))!;
             if (extension) {
                 OpenXmlPart owner = WordPartOwnership.Resolve(document, paragraph._paragraph);
                 string id = "missingSvg";

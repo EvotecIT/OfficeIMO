@@ -52,16 +52,16 @@ public partial class Excel {
         string defaultFamily = "GeometryDefault", bool substitute = false, uint? baseColumnWidth = null,
         double? defaultColumnWidth = null) {
         string path = Path.Combine(_directoryWithFiles, $"ExcelPdfDefaultGeometry-{defaultSize}-{cellSize}-{defaultFamily}-{substitute}-{baseColumnWidth}-{defaultColumnWidth}.xlsx");
-        using (ExcelDocument workbook = ExcelDocument.Create(path, "Geometry")) {
+        using (ExcelDocument workbook = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Geometry" })) {
             ExcelSheet sheet = workbook.Sheets[0];
             sheet.Cell(1, 1, "ARef");
             sheet.Cell(1, 2, "BRef");
             if (!baseColumnWidth.HasValue && !defaultColumnWidth.HasValue) {
-                sheet.SetColumnWidth(1, 12);
-                sheet.SetColumnWidth(2, 12);
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
+                sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
             }
-            if (defaultColumnWidth.HasValue) sheet.SetDefaultColumnWidth(defaultColumnWidth.Value);
-            sheet.SetRowHeight(1, 32);
+            if (defaultColumnWidth.HasValue) sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(defaultColumnWidth.Value));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32)));
             workbook.Save();
         }
 
@@ -90,13 +90,13 @@ public partial class Excel {
         }
 
         using ExcelDocument loaded = ExcelDocument.Load(path);
-        var options = new ExcelToPdfOptions {
+        var options = new ExcelPdfExportOptions {
             WorksheetLayout = ExcelPdfWorksheetLayoutMode.WorksheetCanvas,
             IncludeSheetHeadings = false,
             HeaderRowCount = 0,
-            PageSize = new PdfCore.PageSize(500, 200),
-            Margins = PdfCore.PageMargins.Uniform(24),
-            PdfOptions = new PdfCore.PdfOptions().RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(500),OfficeIMO.OfficeLength.Points(200)),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24)),
+            PdfOptions = new PdfCore.PdfCreateOptions().RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(
                 "GeometryDefault", OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()))
         };
         if (substitute) {
@@ -106,7 +106,7 @@ public partial class Excel {
                 .RegisterFontFamilySubstitution(defaultFamily, "GeometryColumnSubstitute",
                     PdfCore.PdfFontFamilySubstitutionImpact.LayoutSensitive);
         }
-        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(loaded.ToPdfBytes(options)));
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(loaded.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })));
         var page = pdf.GetPage(1);
         return FindWordStartX(page, "BRef") - FindWordStartX(page, "ARef");
     }

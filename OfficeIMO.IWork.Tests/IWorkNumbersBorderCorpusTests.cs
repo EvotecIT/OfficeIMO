@@ -43,8 +43,8 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(nativeSheet.CellAt(row, column).GetValue<string>() ?? string.Empty,
                 output.CellAt(row, column).GetValue<string>() ?? string.Empty);
             var borders = table.GetBorders(row, column);
-            var savedBorders = Assert.IsType<ExcelCellBorderSnapshot>(output.GetCellStyle(row, column).Border);
-            var nativeBorders = Assert.IsType<ExcelCellBorderSnapshot>(nativeSheet.GetCellStyle(row, column).Border);
+            var savedBorders = Assert.IsType<ExcelCellBorderInfo>(output.GetCellStyle(row, column).Border);
+            var nativeBorders = Assert.IsType<ExcelCellBorderInfo>(nativeSheet.GetCellStyle(row, column).Border);
             foreach (var edge in cell.GetProperty("edges").EnumerateObject()) {
                 var side = edge.Name switch {
                     "left" => borders.Left, "right" => borders.Right, "top" => borders.Top, "bottom" => borders.Bottom,
@@ -72,7 +72,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(expected.GetProperty("sourceSha256").GetString(), BorderCorpusHash(source));
     }
 
-    private static ExcelBorderSideSnapshot? BorderCorpusSide(ExcelCellBorderSnapshot border, string name) => name switch {
+    private static ExcelBorderSideInfo? BorderCorpusSide(ExcelCellBorderInfo border, string name) => name switch {
         "left" => border.Left, "right" => border.Right, "top" => border.Top, "bottom" => border.Bottom,
         _ => throw new InvalidDataException("Unknown reference edge: " + name)
     };

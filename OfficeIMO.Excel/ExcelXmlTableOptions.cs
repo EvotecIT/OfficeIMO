@@ -58,7 +58,7 @@ public sealed class ExcelXmlTableOptions {
     public CancellationToken CancellationToken { get; set; }
 
     internal ExcelXmlTableOptions Snapshot() {
-        if (MaxInputBytes < 1 || MaxOutputBytes < 1 || MaxRows < 1 || MaxRows > A1.MaxRows || MaxColumns < 1 || MaxColumns > A1.MaxColumns || MaxCells < 1 || MaxXmlElements < 1 || MaxXmlDepth < 1)
+        if (MaxInputBytes < 1 || MaxOutputBytes < 1 || MaxRows < 1 || MaxRows > ExcelA1.MaxRows || MaxColumns < 1 || MaxColumns > ExcelA1.MaxColumns || MaxCells < 1 || MaxXmlElements < 1 || MaxXmlDepth < 1)
             throw new ArgumentOutOfRangeException(nameof(ExcelXmlTableOptions));
         XmlConvert.VerifyNCName(RootElementName); XmlConvert.VerifyNCName(RowElementName); XmlConvert.VerifyNCName(CellElementName);
         if (NamespaceUri == null) throw new ArgumentNullException(nameof(NamespaceUri));

@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_NamedStyles_DefineApplyListAndRemoveCatalogEntry() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Source");
             sheet.CellAt(1, 1).SetBold().SetFillColor("D9EAF7").SetNumberFormat("0.00");
 
@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_NamedStyles_EnforcesApplicationBudgetBeforeMutation() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.DefineNamedStyle("Input", 1, 1);
 
             Assert.Throws<InvalidOperationException>(() =>
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_NamedStyles_RedefinitionUpdatesAlreadyAppliedCells() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Initial");
             sheet.CellAt(1, 1).SetFillColor("F4CCCC");
             ExcelNamedStyleInfo initial = sheet.DefineNamedStyle("Input", 1, 1);

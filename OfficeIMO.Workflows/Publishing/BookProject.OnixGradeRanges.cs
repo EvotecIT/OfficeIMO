@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using System.Globalization;
 using System.Xml.Linq;
 
@@ -10,8 +11,8 @@ public sealed partial class BookProject {
             BookOnixGradeSystem.China => "29", _ => throw new ArgumentOutOfRangeException(nameof(range.System))
         };
         if ((range.Minimum == null && range.Maximum == null) ||
-            (range.Minimum is { } minimum && !Enum.IsDefined(minimum)) ||
-            (range.Maximum is { } maximum && !Enum.IsDefined(maximum)) || range.Minimum > range.Maximum)
+            (range.Minimum is { } minimum && !OfficeRuntimeCompatibility.IsDefined(minimum)) ||
+            (range.Maximum is { } maximum && !OfficeRuntimeCompatibility.IsDefined(maximum)) || range.Minimum > range.Maximum)
             throw new ArgumentException("Supply ordered bounds from preschool, kindergarten or grades 1–17.", nameof(range));
         bool exact = range.Minimum != null && range.Minimum == range.Maximum;
         BookOnixGrade first = range.Minimum ?? range.Maximum!.Value;

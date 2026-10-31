@@ -50,7 +50,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(PaintBaseline(large), PaintBaseline(small), 3);
         AssertPdfBackedSvgRetainsBaselineInk(rendered.Pages[0], document.ToSvg(options));
 
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options)));
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(new HtmlToPdfOptions(options))).ToBytes());
         var letters = pdf.GetPage(1).Letters;
         double largeBaseline = letters.First(letter => letter.Value == "A").StartBaseLine.Y;
         double smallBaseline = letters.First(letter => letter.Value == "B").StartBaseLine.Y;

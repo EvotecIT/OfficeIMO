@@ -11,12 +11,12 @@ Imports a slide from another PowerPoint presentation.
 ## SYNTAX
 ### SourcePresentation (Default)
 ```powershell
-Import-OfficePowerPointSlide -SourcePresentation <PowerPointPresentation> -SourceIndex <int> [-Presentation <PowerPointPresentation>] [-InsertAt <Int32>] [<CommonParameters>]
+Import-OfficePowerPointSlide -SourcePresentation <PowerPointDocument> -SourceIndex <int> [-Presentation <PowerPointDocument>] [-InsertAt <Int32>] [<CommonParameters>]
 ```
 
 ### SourcePath
 ```powershell
-Import-OfficePowerPointSlide -SourcePath <string> -SourceIndex <int> [-Presentation <PowerPointPresentation>] [-InsertAt <Int32>] [<CommonParameters>]
+Import-OfficePowerPointSlide -SourcePath <string> -SourceIndex <int> [-Presentation <PowerPointDocument>] [-InsertAt <Int32>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -56,7 +56,7 @@ Accept wildcard characters: False
 Target presentation to update (optional inside DSL).
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: SourcePresentation, SourcePath
 Aliases: None
 Possible values:
@@ -104,7 +104,7 @@ Accept wildcard characters: False
 Source presentation to import from.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: SourcePresentation
 Aliases: None
 Possible values:
@@ -121,7 +121,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

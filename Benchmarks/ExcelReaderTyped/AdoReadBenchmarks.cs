@@ -52,7 +52,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 ValidateReader(reader, peerTextBytes: true);
             }
             using (MemoryStream stream = new MemoryStream(_workbook, writable: false))
-            using (IDataReader reader = ExcelDocument.OpenDataReader(stream)) ValidateReader(reader, peerTextBytes: false);
+            using (IDataReader reader = ExcelDocument.OpenReader(stream)) ValidateReader(reader, peerTextBytes: false);
             using (MemoryStream stream = new MemoryStream(_workbook, writable: false))
             using (IDataReader reader = global::Sylvan.Data.Excel.ExcelDataReader.Create(stream, ExcelWorkbookType.ExcelXml))
                 ValidateReader(reader, peerTextBytes: false);
@@ -71,7 +71,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         [Benchmark]
         public long OfficeIMO() {
             using MemoryStream stream = new MemoryStream(_workbook, writable: false);
-            using IDataReader reader = ExcelDocument.OpenDataReader(stream);
+            using IDataReader reader = ExcelDocument.OpenReader(stream);
             return Scan(reader, peerTextBytes: false);
         }
 

@@ -28,15 +28,15 @@ public partial class Word {
     public void SaveAsPdf_PresentationOptionsPreserveInheritedBodyTypography(bool profile, string setting) {
         using WordDocument document = WordDocument.Create();
         document.Settings.FontFamily = "Times New Roman";
-        document.Settings.FontSize = 18;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         document.AddParagraph("Inherited body font and size");
-        var options = new WordToPdfOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
+        var options = new WordPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
         if (profile) options.UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
-        else options.PdfOptions = new PdfOptions();
-        PdfOptions configured = options.PdfOptions!;
+        else options.PdfOptions = new PdfCreateOptions();
+        PdfCreateOptions configured = options.PdfOptions!;
         switch (setting) {
-            case "header-size": configured.HeaderFontSize = 24; break;
-            case "footer-size": configured.FooterFontSize = 24; break;
+            case "header-size": configured.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(24); break;
+            case "footer-size": configured.FooterFontSize = global::OfficeIMO.OfficeLength.Points(24); break;
             case "header-font": configured.HeaderFont = PdfStandardFont.Courier; break;
             case "footer-font": configured.FooterFont = PdfStandardFont.Courier; break;
             case "header-family": configured.HeaderFontFamily = "Courier New"; break;
@@ -44,10 +44,10 @@ public partial class Word {
             case "metadata": options.Title = "Typography control"; break;
         }
         string source = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using var baseline = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var baseline = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
-        using var actual = PdfPigDocument.Open(document.ToPdfBytes(options));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        using var actual = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var expected = baseline.GetPage(1).Letters;
         var letters = actual.GetPage(1).Letters;
         Assert.All(letters, letter => Assert.Contains("Times", letter.FontName, StringComparison.Ordinal));
@@ -64,12 +64,12 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         document.Settings.FontFamily = "Times New Roman";
         document.AddParagraph("Body font override");
-        var options = new WordToPdfOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
+        var options = new WordPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
         if (profile) options.UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
-        else options.PdfOptions = new PdfOptions();
+        else options.PdfOptions = new PdfCreateOptions();
         options.PdfOptions!.DefaultFont = PdfStandardFont.Courier;
-        options.PdfOptions.HeaderFontSize = 24;
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        options.PdfOptions.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(24);
+        using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.All(pdf.GetPage(1).Letters, letter => Assert.Contains("Courier", letter.FontName, StringComparison.Ordinal));
     }
 
@@ -81,11 +81,11 @@ public partial class Word {
     public void SaveAsPdf_GeneratedPresentationRetainsItsExplicitFont(bool profile, bool footer) {
         using WordDocument document = WordDocument.Create();
         document.Settings.FontFamily = "Times New Roman";
-        document.Settings.FontSize = 18;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         document.AddParagraph("BODY");
-        var options = new WordToPdfOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
+        var options = new WordPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
         if (profile) options.UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
-        else options.PdfOptions = new PdfOptions();
+        else options.PdfOptions = new PdfCreateOptions();
         if (footer) {
             options.PdfOptions!.FooterFont = PdfStandardFont.Courier;
             options.IncludePageNumbers = true;
@@ -95,7 +95,7 @@ public partial class Word {
             options.PdfOptions.ShowHeader = true;
             options.PdfOptions.HeaderFormat = "HEADER";
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         Assert.Equal(footer ? "BODYNUMBER1/1" : "HEADERBODY", string.Concat(letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).Select(letter => letter.Value)));
         Assert.All(letters.Where(letter => letter.PointSize == 18), letter => Assert.Contains("Times", letter.FontName, StringComparison.Ordinal));
@@ -110,16 +110,16 @@ public partial class Word {
     public void SaveAsPdf_DefaultSizeAssignmentPreservesTheInheritedFamily(bool profile, bool repeatProfile) {
         using WordDocument document = WordDocument.Create();
         document.Settings.FontFamily = "Times New Roman";
-        document.Settings.FontSize = 18;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         document.AddParagraph("BODY");
-        var options = new WordToPdfOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
+        var options = new WordPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
         var fontless = new OfficeRenderingProfile("shaping-only");
         if (profile) options.UseRenderingProfile(fontless);
-        else options.PdfOptions = new PdfOptions();
-        double size = repeatProfile ? 13 : options.PdfOptions!.DefaultFontSize;
-        options.PdfOptions!.DefaultFontSize = size;
+        else options.PdfOptions = new PdfCreateOptions();
+        double size = repeatProfile ? 13 : options.PdfOptions!.DefaultFontSize.ToPoints();
+        options.PdfOptions!.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(size);
         if (repeatProfile) options.UseRenderingProfile(fontless, OfficeRenderingProfileApplyMode.Replace);
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.All(pdf.GetPage(1).Letters, letter => {
             Assert.Equal(size, letter.PointSize, 3);
             Assert.Contains("Times", letter.FontName, StringComparison.Ordinal);

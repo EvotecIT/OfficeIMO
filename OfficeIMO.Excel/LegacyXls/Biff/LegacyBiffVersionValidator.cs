@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (first.Type != (ushort)BiffRecordType.Bof) {
                 workbook.MutableDiagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Error,
-                    "XLS-BIFF-BOF-MISSING",
+                    "xls-biff-bof-missing",
                     "The BIFF workbook stream does not start with a BOF record.",
                     recordOffset: first.Offset,
                     recordType: first.Type));
@@ -52,7 +52,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (payload.Length < 4) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Error,
-                    "XLS-BIFF-BOF-SHORT",
+                    "xls-biff-bof-short",
                     "A BIFF BOF record was too short to identify the workbook version and substream type.",
                     sheetName: sheetName,
                     recordOffset: offset,
@@ -76,7 +76,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (expectedSubstreamType.HasValue && substreamType != expectedSubstreamType.Value) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Error,
-                    "XLS-BIFF-BOF-SUBSTREAM-UNEXPECTED",
+                    "xls-biff-bof-substream-unexpected",
                     $"The BIFF stream starts with substream type 0x{substreamType:X4}, but workbook globals were expected.",
                     sheetName: sheetName,
                     recordOffset: offset,

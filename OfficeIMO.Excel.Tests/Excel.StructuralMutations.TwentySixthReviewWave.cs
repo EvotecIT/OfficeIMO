@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TransactionRollback_InvalidatesSharedStringAndStyleCaches() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             using var cancellation = new CancellationTokenSource();
 
             Assert.ThrowsAny<OperationCanceledException>(() => sheet.ApplyTransactionalMutation(token => {
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_QueryBackedTable_CreationFailuresAreTransactional() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Existing");
             sheet.CellValue(2, 1, "keep");
             sheet.AddTable("A1:A2", true, "ExistingTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaSearch_SkipsStructuredReferenceTokens() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellFormula(1, 1, "Table1[SUM(]");
             sheet.CellFormula(2, 1, "SUM(B1)");
             sheet.CellFormula(3, 1, "Table1[[#Headers],[SUM(]]]");
@@ -88,8 +88,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RemoveWorksheet_PrunesUnusedOwnedQueryConnection() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            document.AddWorksheet("Keep");
+            ExcelSheet sheet = document.AddSheet("Data");
+            document.AddSheet("Keep");
             ExcelQueryBackedTableInfo query = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "DisposableQuery",
                 CommandText = "sensitive-command",
@@ -113,7 +113,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeCriteria_TargetTableOwnedAutoFilter() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Name");
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "A");
@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_QueryBackedTable_RejectsNonFiniteNumbersBeforeMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelQueryBackedTableInfo query = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "FiniteQuery",
                 WorksheetName = sheet.Name,
@@ -165,7 +165,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ModernChart_RemovePreservesSharedChartExRelationship() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             ExcelModernChart chart = sheet.AddModernChart(
                 new ExcelChartData(
                     new[] { "A", "B" },

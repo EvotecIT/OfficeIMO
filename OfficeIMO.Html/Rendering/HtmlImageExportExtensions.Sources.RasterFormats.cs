@@ -81,10 +81,7 @@ public static partial class HtmlImageExportExtensions {
         OfficeImageExportFormat format,
         HtmlRenderOptions? options,
         int pageIndex) {
-        return new HtmlPageImageExportBuilder(document, options)
-            .Page(pageIndex)
-            .As(format)
-            .Save(path);
+        return CreateImageExportOperation(document, options, format, pageIndex).Save(path);
     }
 
     private static OfficeImageExportResult SaveRaster(
@@ -93,10 +90,7 @@ public static partial class HtmlImageExportExtensions {
         OfficeImageExportFormat format,
         HtmlRenderOptions? options,
         int pageIndex) {
-        return new HtmlPageImageExportBuilder(document, options)
-            .Page(pageIndex)
-            .As(format)
-            .Save(stream);
+        return CreateImageExportOperation(document, options, format, pageIndex).Save(stream);
     }
 
     private static async Task<OfficeImageExportResult> SaveRasterAsync(
@@ -106,10 +100,7 @@ public static partial class HtmlImageExportExtensions {
         HtmlRenderOptions? options,
         int pageIndex,
         CancellationToken cancellationToken) {
-        return await new HtmlPageImageExportBuilder(document, options)
-            .Page(pageIndex)
-            .As(format)
-            .SaveAsync(path, cancellationToken)
+        return await CreateImageExportOperation(document, options, format, pageIndex).SaveAsync(path, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -120,10 +111,7 @@ public static partial class HtmlImageExportExtensions {
         HtmlRenderOptions? options,
         int pageIndex,
         CancellationToken cancellationToken) {
-        return await new HtmlPageImageExportBuilder(document, options)
-            .Page(pageIndex)
-            .As(format)
-            .SaveAsync(stream, cancellationToken)
+        return await CreateImageExportOperation(document, options, format, pageIndex).SaveAsync(stream, cancellationToken)
             .ConfigureAwait(false);
     }
 }

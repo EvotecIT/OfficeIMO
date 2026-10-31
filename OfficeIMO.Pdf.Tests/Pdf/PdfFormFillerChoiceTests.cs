@@ -291,10 +291,10 @@ public partial class PdfFormFillerTests {
                 "Choice",
                 new[] { new PdfFormFieldOption("A", "B"), new PdfFormFieldOption("B", "C") },
                 new[] { "A" },
-                20D,
-                20D,
-                120D,
-                24D))
+                global::OfficeIMO.OfficeLength.Points(20D),
+                global::OfficeIMO.OfficeLength.Points(20D),
+                global::OfficeIMO.OfficeLength.Points(120D),
+                global::OfficeIMO.OfficeLength.Points(24D)))
             .ToBytes();
 
         byte[] updated = PdfIncrementalUpdater.UpdateFormFields(source, new Dictionary<string, string> {

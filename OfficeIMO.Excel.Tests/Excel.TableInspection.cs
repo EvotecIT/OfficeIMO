@@ -11,10 +11,10 @@ public sealed class ExcelWorksheetTableInspectionTests {
     [Fact]
     public void RemovedWorksheetDoesNotInspectReplacementWithSameName() {
         using var workbook = ExcelDocument.Create();
-        var original = workbook.AddWorksheet("Orders");
-        workbook.AddWorksheet("Plain");
+        var original = workbook.AddSheet("Orders");
+        workbook.AddSheet("Plain");
         workbook.RemoveWorksheet("Orders");
-        var replacement = workbook.AddWorksheet("Orders");
+        var replacement = workbook.AddSheet("Orders");
         replacement.CellValue(1, 1, "Item");
         replacement.CellValue(2, 1, "Beta");
         replacement.AddTable("A1:A2", true, "ReplacementItems", ExcelTableStyle.TableStyleMedium9);
@@ -27,7 +27,7 @@ public sealed class ExcelWorksheetTableInspectionTests {
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-TableInspection-" + System.Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using var workbook = ExcelDocument.Create();
-            var sheet = workbook.AddWorksheet("Orders");
+            var sheet = workbook.AddSheet("Orders");
             sheet.CellValue(1, 1, "Item");
             sheet.CellValue(2, 1, "Alpha");
             sheet.AddTable("A1:A2", true, "OrderItems", ExcelTableStyle.TableStyleMedium9);
@@ -43,8 +43,8 @@ public sealed class ExcelWorksheetTableInspectionTests {
     [Fact]
     public void WorksheetSnapshotIncludesDeferredDataTableDefinition() {
         using var workbook = ExcelDocument.Create();
-        var sheet = workbook.AddWorksheet("Orders");
-        sheet.InsertDataTableAsTable(CreateOrders(), tableName: "OrderItems");
+        var sheet = workbook.AddSheet("Orders");
+        sheet.AddTable(CreateOrders(), new OfficeIMO.Excel.ExcelTableOptions { Name = "OrderItems" }, row: 1, column: 1);
         var table = Assert.Single(sheet.GetTables());
         Assert.Equal("OrderItems", table.Name);
         Assert.Equal("A1:B2", table.Range);
@@ -76,9 +76,9 @@ public sealed class ExcelWorksheetTableInspectionTests {
     [InlineData(true)]
     public void WorksheetSnapshotKeepsNativeMetadataAndExcludesOtherSheets(bool reopen) {
         using var source = ExcelDocument.Create();
-        var orders = source.AddWorksheet("Orders");
-        var stock = source.AddWorksheet("Stock");
-        var plain = source.AddWorksheet("Plain");
+        var orders = source.AddSheet("Orders");
+        var stock = source.AddSheet("Stock");
+        var plain = source.AddSheet("Plain");
         foreach (var sheet in new[] { orders, stock }) {
             sheet.CellValue(1, 1, "Item");
             sheet.CellValue(1, 2, "Count");

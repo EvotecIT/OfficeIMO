@@ -18,7 +18,7 @@ public enum PdfClosedLedgerExpectedGeometry {
 /// <summary>Fresh public structured reads over the exact independent ReportLab ledger fixtures.</summary>
 public sealed class PdfClosedLedgerRuntimeWorkload {
     private const string OracleSha256 = "138662292a8b97dd5920d991424d6b0d61f0149d0811f7bf458fb3eff199dbf7";
-    private const string RulingEvidence = "table.closed-ruling-grid";
+    private const string RulingEvidence = global::OfficeIMO.OfficeDiagnosticCodes.TableClosedRulingGrid;
     private const double GeometryTolerancePoints = 0.000001D;
     private static readonly double[] DetectedBoundaries = { 50D, 216.338D, 380.338D, 480.338D, 562D };
     private readonly byte[] _source;
@@ -29,7 +29,7 @@ public sealed class PdfClosedLedgerRuntimeWorkload {
     private readonly double[] _rowBoundaries;
     private readonly double _baselineOffset;
     private readonly PdfLoadOptions _loadOptions = new() { Limits = PdfReadLimits.Default };
-    private readonly PdfReadOptions _readOptions = new() {
+    private readonly PdfLoadOptions _readOptions = new() {
         Profile = PdfReadProfile.Structured, Pipeline = PdfUnderstandingPipelineOptions.Structured()
     };
     private PdfDocumentReadResult? _result;

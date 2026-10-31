@@ -21,7 +21,7 @@ document.AddParagraph("Hello, World!").Bold = true;
 var paragraph = document.AddParagraph("This document was created with OfficeIMO.");
 paragraph.FontFamily = "Calibri";
 paragraph.FontSize = 14;
-paragraph.Color = OfficeIMO.Drawing.OfficeColor.DarkBlue;
+paragraph.Color = OfficeIMO.OfficeColor.DarkBlue;
 
 // Add a table
 var table = document.AddTable(3, 3, WordTableStyle.TableGrid);
@@ -38,22 +38,18 @@ table.Rows[2].Cells[2].Paragraphs[0].Text = "London";
 document.Save();
 ```
 
-## Create a Word Document with the Fluent API
-
-OfficeIMO.Word also provides a fluent builder API via `WordFluentDocument`:
+## Add document properties and styled text
 
 ```csharp
 using OfficeIMO.Word;
-using OfficeIMO.Word.Fluent;
 
-using var document = WordFluentDocument.Create("Fluent.docx")
-    .Info(i => i.Title("My Report").Author("OfficeIMO"))
-    .Section(s => s
-        .Paragraph(p => p.Text("Introduction").Bold().FontSize(16))
-        .Paragraph(p => p.Text("This report was generated programmatically."))
-    )
-    .Build();
-
+using var document = WordDocument.Create("report.docx");
+document.BuiltinDocumentProperties.Title = "My Report";
+document.BuiltinDocumentProperties.Creator = "OfficeIMO";
+var introduction = document.AddParagraph("Introduction");
+introduction.Style = WordParagraphStyles.Heading1;
+introduction.Bold = true;
+document.AddParagraph("This report was generated programmatically.");
 document.Save();
 ```
 
@@ -69,22 +65,22 @@ using var workbook = ExcelDocument.Create("Report.xlsx", "Sales");
 var sheet = workbook.Sheets[0];
 
 // Set header row
-sheet.Cells["A1"].Value = "Product";
-sheet.Cells["B1"].Value = "Q1 Revenue";
-sheet.Cells["C1"].Value = "Q2 Revenue";
+sheet.CellAt("A1").SetValue("Product");
+sheet.CellAt("B1").SetValue("Q1 Revenue");
+sheet.CellAt("C1").SetValue("Q2 Revenue");
 
 // Set data rows
-sheet.Cells["A2"].Value = "Widget A";
-sheet.Cells["B2"].Value = 15000;
-sheet.Cells["C2"].Value = 18000;
+sheet.CellAt("A2").SetValue("Widget A");
+sheet.CellAt("B2").SetValue(15000);
+sheet.CellAt("C2").SetValue(18000);
 
-sheet.Cells["A3"].Value = "Widget B";
-sheet.Cells["B3"].Value = 22000;
-sheet.Cells["C3"].Value = 25000;
+sheet.CellAt("A3").SetValue("Widget B");
+sheet.CellAt("B3").SetValue(22000);
+sheet.CellAt("C3").SetValue(25000);
 
 // Add a SUM formula
-sheet.Cells["B4"].Value = "=SUM(B2:B3)";
-sheet.Cells["C4"].Value = "=SUM(C2:C3)";
+sheet.CellAt("B4").SetFormula("SUM(B2:B3)");
+sheet.CellAt("C4").SetFormula("SUM(C2:C3)");
 
 workbook.Save();
 ```
@@ -94,7 +90,7 @@ workbook.Save();
 ```csharp
 using OfficeIMO.Markdown;
 
-var doc = MarkdownDoc.Create()
+var doc = MarkdownDocument.Create()
     .H1("Project Status Report")
     .P("Generated automatically by OfficeIMO.Markdown.")
     .H2("Summary")

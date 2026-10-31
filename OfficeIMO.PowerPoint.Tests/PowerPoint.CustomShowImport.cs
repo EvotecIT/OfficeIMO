@@ -9,11 +9,11 @@ namespace OfficeIMO.Tests {
     public sealed class PowerPointCustomShowImportTests {
         [Fact]
         public void ImportRemapsReferencedCustomShowAndExportRemovesIt() {
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             PowerPointSlide requested = source.AddSlide();
             PowerPointAutoShape actionShape = requested.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             PowerPointSlide firstShowSlide = source.AddSlide();
             firstShowSlide.AddTitle("First show slide");
             PowerPointSlide secondShowSlide = source.AddSlide();
@@ -47,8 +47,8 @@ namespace OfficeIMO.Tests {
                 Action = "ppaction://customshow?id=17&return=true"
             });
 
-            using PowerPointPresentation target =
-                PowerPointPresentation.Create();
+            using PowerPointDocument target =
+                PowerPointDocument.Create();
             PowerPointSlide existingTarget = target.AddSlide();
             PresentationPart targetPart = target.OpenXmlDocument
                 .PresentationPart!;
@@ -91,8 +91,8 @@ namespace OfficeIMO.Tests {
             using var exportedBytes = new MemoryStream();
             source.ExportSlide(0, exportedBytes);
             exportedBytes.Position = 0;
-            using PowerPointPresentation exported =
-                PowerPointPresentation.Load(exportedBytes);
+            using PowerPointDocument exported =
+                PowerPointDocument.Load(exportedBytes);
             Assert.Single(exported.Slides);
             Assert.Null(exported.OpenXmlDocument.PresentationPart!
                 .Presentation!.CustomShowList);
@@ -104,11 +104,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportPreservesCustomShowSlideListProducerMetadata() {
             const string ProducerNamespace = "urn:officeimo:test";
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             PowerPointSlide requested = source.AddSlide();
             PowerPointAutoShape actionShape = requested.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             PowerPointSlide showSlide = source.AddSlide();
             PresentationPart sourcePart = source.OpenXmlDocument
                 .PresentationPart!;
@@ -135,8 +135,8 @@ namespace OfficeIMO.Tests {
                 Action = "ppaction://customshow?id=41&return=true"
             });
 
-            using PowerPointPresentation target =
-                PowerPointPresentation.Create();
+            using PowerPointDocument target =
+                PowerPointDocument.Create();
 
             target.ImportSlide(source, 0);
 
@@ -160,8 +160,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportRemapsCustomShowActionsInClonedLayoutsAndExportCleansThem() {
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             PowerPointSlide requested = source.AddSlide();
             SlideLayoutPart sourceLayout = requested.SlidePart
                 .SlideLayoutPart!;
@@ -196,8 +196,8 @@ namespace OfficeIMO.Tests {
             sourceLayout.SlideLayout.Save();
             sourceMaster.SlideMaster.Save();
 
-            using PowerPointPresentation target =
-                PowerPointPresentation.Create();
+            using PowerPointDocument target =
+                PowerPointDocument.Create();
             PowerPointSlide existing = target.AddSlide();
             PresentationPart targetPart = target.OpenXmlDocument
                 .PresentationPart!;
@@ -231,8 +231,8 @@ namespace OfficeIMO.Tests {
             using var exportedBytes = new MemoryStream();
             source.ExportSlide(0, exportedBytes);
             exportedBytes.Position = 0;
-            using PowerPointPresentation exported =
-                PowerPointPresentation.Load(exportedBytes);
+            using PowerPointDocument exported =
+                PowerPointDocument.Load(exportedBytes);
             PowerPointSlide exportedSlide = Assert.Single(exported.Slides);
             Assert.Null(exported.OpenXmlDocument.PresentationPart!
                 .Presentation!.CustomShowList);
@@ -246,12 +246,12 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportRemovesMalformedCustomShowRelationshipsWithoutExtraSlides() {
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             PowerPointSlide requested = source.AddSlide();
             PowerPointSlide unwantedTarget = source.AddSlide();
             PowerPointAutoShape externalShape = requested.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             HyperlinkRelationship externalRelationship = requested
                 .SlidePart.AddHyperlinkRelationship(
                     new Uri("https://example.test/discarded"),
@@ -265,15 +265,15 @@ namespace OfficeIMO.Tests {
             requested.SlidePart.AddPart(unwantedTarget.SlidePart,
                 InternalRelationshipId);
             PowerPointAutoShape internalShape = requested.AddRectangle(
-                100000, 700000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(700000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             GetNonVisualProperties(internalShape).Append(
                 new A.HyperlinkOnClick {
                     Id = InternalRelationshipId,
                     Action = "ppaction://customshow?id=999"
                 });
 
-            using PowerPointPresentation target =
-                PowerPointPresentation.Create();
+            using PowerPointDocument target =
+                PowerPointDocument.Create();
 
             PowerPointSlide imported = target.ImportSlide(source, 0);
 
@@ -288,11 +288,11 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportDiscardsActionsTargetingEmptyCustomShows() {
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             PowerPointSlide requested = source.AddSlide();
             PowerPointAutoShape actionShape = requested.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             source.OpenXmlDocument.PresentationPart!.Presentation!
                 .CustomShowList = new CustomShowList(
                     new CustomShow(new SlideList()) {
@@ -305,8 +305,8 @@ namespace OfficeIMO.Tests {
                     Action = "ppaction://customshow?id=17&return=true"
                 });
 
-            using PowerPointPresentation target =
-                PowerPointPresentation.Create();
+            using PowerPointDocument target =
+                PowerPointDocument.Create();
 
             PowerPointSlide imported = target.ImportSlide(source, 0);
 
@@ -319,8 +319,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportPreservesStructuralRelationshipsThatShareMalformedActionIds() {
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             PowerPointSlide requested = source.AddSlide();
             SlideLayoutPart sourceLayout = requested.SlidePart
                 .SlideLayoutPart!;
@@ -351,8 +351,8 @@ namespace OfficeIMO.Tests {
                 });
             sourceNotes.NotesSlide.Save();
 
-            using PowerPointPresentation target =
-                PowerPointPresentation.Create();
+            using PowerPointDocument target =
+                PowerPointDocument.Create();
 
             PowerPointSlide imported = target.ImportSlide(source, 0);
 

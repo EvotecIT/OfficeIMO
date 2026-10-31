@@ -27,11 +27,11 @@ public sealed class ImportOfficePowerPointSlideCommand : PSCmdlet
 
     /// <summary>Target presentation to update (optional inside DSL).</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Source presentation to import from.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetSourcePresentation)]
-    public PowerPointPresentation SourcePresentation { get; set; } = null!;
+    public PowerPointDocument SourcePresentation { get; set; } = null!;
 
     /// <summary>Path to the source presentation.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetSourcePath)]
@@ -51,7 +51,7 @@ public sealed class ImportOfficePowerPointSlideCommand : PSCmdlet
     {
         try
         {
-            var targetPresentation = Presentation ?? PowerPointDslContext.Current?.Presentation
+            var targetPresentation = Presentation ?? PowerPointDslContext.Current?.Document
                 ?? throw new InvalidOperationException("Target presentation was not provided. Use -Presentation or run inside New-OfficePowerPoint.");
 
             if (ParameterSetName == ParameterSetSourcePresentation)
@@ -66,7 +66,7 @@ public sealed class ImportOfficePowerPointSlideCommand : PSCmdlet
                 throw new FileNotFoundException($"File '{resolvedPath}' was not found.", resolvedPath);
             }
 
-            using var sourcePresentation = PowerPointPresentation.Load(resolvedPath);
+            using var sourcePresentation = PowerPointDocument.Load(resolvedPath);
             WriteObject(targetPresentation.ImportSlide(sourcePresentation, SourceIndex, InsertAt));
         }
         catch (Exception ex)

@@ -70,7 +70,7 @@ public sealed class IWorkKeynoteTableWritingTests {
             conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         conversion.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); conversion.Value.Save(output); output.Position = 0;
-        using var reopened = PowerPointPresentation.Load(output);
+        using var reopened = PowerPointDocument.Load(output);
         Assert.Empty(reopened.ValidateDocument());
         var shapes = reopened.Slides[0].Shapes.ToArray();
         Assert.IsType<PowerPointTextBox>(shapes[0]); var saved = Assert.IsType<PowerPointTable>(shapes[1]);

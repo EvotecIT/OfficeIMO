@@ -3,8 +3,10 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         private static readonly (string Region, string Product, string Channel, double Sales)[] ThreeLevelTopOneRows = {
             ("East", "A", "Retail", 10d), ("East", "A", "Online", 30d),
             ("East", "B", "Retail", 40d), ("East", "B", "Online", 20d),
@@ -52,8 +54,8 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData(1, "A4:D15", "F4:I15")]
         [InlineData(2, "A4:D19", "F4:I19")]
-        public void Test_PivotThreeLevelValue_TemplateFreeTopCountMatchesExcel(
-            int topCount, string oracleRange, string authoredRange) {
+        public void Test_PivotThreeLevelValue_TemplateFreeTopCountMatchesExcel(int topCount, string oracleRange, string authoredRange)
+        {
             var rows = ThreeLevelSourceRows(topCount);
             string file = ThreeLevelPivotFile(topCount);
             string path = ThreeLevelPivotOraclePath(file);
@@ -62,30 +64,41 @@ namespace OfficeIMO.Tests {
             var expectedView = oracle.GetSheet("Grouped").ReadRange(oracleRange);
             var expectedLookups = oracle.GetSheet("Lookups").ReadRange($"B1:B{rows.Length + 1}");
             string output = Path.Combine(_directoryWithFiles, "Authored." + file);
-            using (var document = ExcelDocument.Create()) {
-                var source = document.AddWorksheet("Source");
+            using (var document = ExcelDocument.Create())
+            {
+                var source = document.AddSheet("Source");
                 PopulateThreeLevelPivotSource(source, rows);
-                source.Pivot($"A1:D{rows.Length + 1}").Rows("Region", "Product", "Channel")
-                    .Sum("Sales", "Metric").Layout(ExcelPivotLayout.Tabular)
-                    .Filter(ExcelPivotFilter.TopCount("Channel", "Metric", topCount))
-                    .At("F4", "ValuePivot");
+                {
+                    var pivotOptions1 = new ExcelPivotTableOptions();
+                    pivotOptions1.RowFields.Add("Region");
+                    pivotOptions1.RowFields.Add("Product");
+                    pivotOptions1.RowFields.Add("Channel");
+                    pivotOptions1.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions1.Layout = ExcelPivotLayout.Tabular;
+                    pivotOptions1.PivotFilters.Add(ExcelPivotFilter.TopCount("Channel", "Metric", topCount));
+                    pivotOptions1.Name = "ValuePivot";
+                    source.AddPivotTable($"A1:D{rows.Length + 1}", "F4", pivotOptions1);
+                }
+
                 var result = source.MaterializePivotTable("ValuePivot");
                 Assert.Equal(authoredRange, result.OutputRange);
                 Assert.True(result.Mutation.PackageIsValid);
                 document.Save(output);
             }
-            using (var reopened = ExcelDocument.Load(output)) {
+
+            using (var reopened = ExcelDocument.Load(output))
+            {
                 Assert.Empty(reopened.ValidateOpenXml());
                 var source = reopened.GetSheet("Source");
                 AssertPivotLookupOracleValue(expectedLookups[0, 0], source.GetPivotData("ValuePivot", "Metric").Value);
-                for (int index = 0; index < rows.Length; index++) {
+                for (int index = 0; index < rows.Length; index++)
+                {
                     var row = rows[index];
-                    var actual = source.GetPivotData("ValuePivot", "Metric", new Dictionary<string, object?> {
-                        ["Region"] = row.Region, ["Product"] = row.Product, ["Channel"] = row.Channel
-                    });
+                    var actual = source.GetPivotData("ValuePivot", "Metric", new Dictionary<string, object?> { ["Region"] = row.Region, ["Product"] = row.Product, ["Channel"] = row.Channel });
                     AssertPivotLookupOracleValue(expectedLookups[index + 1, 0], actual.Value);
                 }
             }
+
             using var authored = ExcelDocumentReader.Open(output);
             AssertThreeLevelPivotView(expectedView, authored.GetSheet("Source").ReadRange(authoredRange));
         }
@@ -94,8 +107,8 @@ namespace OfficeIMO.Tests {
         [InlineData("bottom1", "A4:D15", "F4:I15", 2, 1d, 35d)]
         [InlineData("greater15", "A4:D18", "F4:I18", 9, 15d, 215d)]
         [InlineData("between15and30", "A4:D17", "F4:I17", 13, 15d, 125d)]
-        public void Test_PivotThreeLevelValue_AdditionalRulesMatchExcel(
-            string kind, string oracleRange, string authoredRange, int filterType, double threshold, double total) {
+        public void Test_PivotThreeLevelValue_AdditionalRulesMatchExcel(string kind, string oracleRange, string authoredRange, int filterType, double threshold, double total)
+        {
             string file = $"pivot-value-three-level-{kind}-conformance.xlsx";
             string path = ThreeLevelPivotOraclePath(file);
             VerifyThreeLevelPivotOracle(path, oracleRange, filterType, threshold);
@@ -103,9 +116,9 @@ namespace OfficeIMO.Tests {
             var expectedView = oracle.GetSheet("Grouped").ReadRange(oracleRange);
             var expectedLookups = oracle.GetSheet("Lookups").ReadRange("B1:B13");
             AssertPivotLookupOracleValue(total, expectedLookups[0, 0]);
-
             string importedOutput = Path.Combine(_directoryWithFiles, "Imported." + file);
-            using (var document = ExcelDocument.Load(path)) {
+            using (var document = ExcelDocument.Load(path))
+            {
                 var grouped = document.GetSheet("Grouped");
                 AssertPivotLookupOracleValue(total, grouped.GetPivotData("ValuePivot", "Metric").Value);
                 var result = grouped.MaterializePivotTable("ValuePivot");
@@ -116,7 +129,9 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(13, lookups.RecalculateSupportedFormulas());
                 document.Save(importedOutput);
             }
-            using (var imported = ExcelDocumentReader.Open(importedOutput)) {
+
+            using (var imported = ExcelDocumentReader.Open(importedOutput))
+            {
                 AssertThreeLevelPivotView(expectedView, imported.GetSheet("Grouped").ReadRange(oracleRange));
                 var actualLookups = imported.GetSheet("Lookups").ReadRange("B1:B13");
                 for (int row = 0; row < 13; row++)
@@ -124,35 +139,47 @@ namespace OfficeIMO.Tests {
             }
 
             string authoredOutput = Path.Combine(_directoryWithFiles, "Authored." + file);
-            using (var document = ExcelDocument.Create()) {
-                var source = document.AddWorksheet("Source");
+            using (var document = ExcelDocument.Create())
+            {
+                var source = document.AddSheet("Source");
                 PopulateThreeLevelPivotSource(source, ThreeLevelTopTwoRows);
-                ExcelPivotFilter filter = kind switch {
+                ExcelPivotFilter filter = kind switch
+                {
                     "bottom1" => ExcelPivotFilter.BottomCount("Channel", "Metric", 1),
                     "greater15" => ExcelPivotFilter.ValueGreaterThan("Channel", "Metric", 15d),
                     "between15and30" => ExcelPivotFilter.ValueBetween("Channel", "Metric", 15d, 30d),
-                    _ => throw new ArgumentOutOfRangeException(nameof(kind))
-                };
-                source.Pivot("A1:D13").Rows("Region", "Product", "Channel")
-                    .Sum("Sales", "Metric").Layout(ExcelPivotLayout.Tabular)
-                    .Filter(filter).At("F4", "ValuePivot");
+                    _ => throw new ArgumentOutOfRangeException(nameof(kind))};
+                {
+                    var pivotOptions2 = new ExcelPivotTableOptions();
+                    pivotOptions2.RowFields.Add("Region");
+                    pivotOptions2.RowFields.Add("Product");
+                    pivotOptions2.RowFields.Add("Channel");
+                    pivotOptions2.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions2.Layout = ExcelPivotLayout.Tabular;
+                    pivotOptions2.PivotFilters.Add(filter);
+                    pivotOptions2.Name = "ValuePivot";
+                    source.AddPivotTable("A1:D13", "F4", pivotOptions2);
+                }
+
                 var result = source.MaterializePivotTable("ValuePivot");
                 Assert.Equal(authoredRange, result.OutputRange);
                 Assert.True(result.Mutation.PackageIsValid);
                 document.Save(authoredOutput);
             }
-            using (var reopened = ExcelDocument.Load(authoredOutput)) {
+
+            using (var reopened = ExcelDocument.Load(authoredOutput))
+            {
                 Assert.Empty(reopened.ValidateOpenXml());
                 var source = reopened.GetSheet("Source");
                 AssertPivotLookupOracleValue(expectedLookups[0, 0], source.GetPivotData("ValuePivot", "Metric").Value);
-                for (int index = 0; index < ThreeLevelTopTwoRows.Length; index++) {
+                for (int index = 0; index < ThreeLevelTopTwoRows.Length; index++)
+                {
                     var row = ThreeLevelTopTwoRows[index];
-                    var actual = source.GetPivotData("ValuePivot", "Metric", new Dictionary<string, object?> {
-                        ["Region"] = row.Region, ["Product"] = row.Product, ["Channel"] = row.Channel
-                    });
+                    var actual = source.GetPivotData("ValuePivot", "Metric", new Dictionary<string, object?> { ["Region"] = row.Region, ["Product"] = row.Product, ["Channel"] = row.Channel });
                     AssertPivotLookupOracleValue(expectedLookups[index + 1, 0], actual.Value);
                 }
             }
+
             using var authored = ExcelDocumentReader.Open(authoredOutput);
             AssertThreeLevelPivotView(expectedView, authored.GetSheet("Source").ReadRange(authoredRange));
         }
@@ -160,16 +187,24 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData(true, 3)]
         [InlineData(false, 2)]
-        public void Test_PivotThreeLevelValue_UnqualifiedCountFailsClosed(bool top, int count) {
+        public void Test_PivotThreeLevelValue_UnqualifiedCountFailsClosed(bool top, int count)
+        {
             using var document = ExcelDocument.Create();
-            var source = document.AddWorksheet("Source");
+            var source = document.AddSheet("Source");
             PopulateThreeLevelPivotSource(source, ThreeLevelTopTwoRows);
-            var filter = top ? ExcelPivotFilter.TopCount("Channel", "Metric", count)
-                : ExcelPivotFilter.BottomCount("Channel", "Metric", count);
-            source.Pivot("A1:D13").Rows("Region", "Product", "Channel")
-                .Sum("Sales", "Metric").Layout(ExcelPivotLayout.Tabular)
-                .Filter(filter)
-                .At("F4", "ValuePivot");
+            var filter = top ? ExcelPivotFilter.TopCount("Channel", "Metric", count) : ExcelPivotFilter.BottomCount("Channel", "Metric", count);
+            {
+                var pivotOptions3 = new ExcelPivotTableOptions();
+                pivotOptions3.RowFields.Add("Region");
+                pivotOptions3.RowFields.Add("Product");
+                pivotOptions3.RowFields.Add("Channel");
+                pivotOptions3.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                pivotOptions3.Layout = ExcelPivotLayout.Tabular;
+                pivotOptions3.PivotFilters.Add(filter);
+                pivotOptions3.Name = "ValuePivot";
+                source.AddPivotTable("A1:D13", "F4", pivotOptions3);
+            }
+
             var error = Assert.Throws<NotSupportedException>(() => source.MaterializePivotTable("ValuePivot"));
             Assert.Contains("qualified axis rule", error.Message, StringComparison.Ordinal);
             Assert.Empty(document.ValidateOpenXml());

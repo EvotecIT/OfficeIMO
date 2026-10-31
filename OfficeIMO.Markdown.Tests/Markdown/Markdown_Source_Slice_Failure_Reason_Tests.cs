@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 public class Markdown_Source_Slice_Failure_Reason_Tests {
     [Fact]
     public void SourceMapping_Reports_Exact_Original_And_Normalized_Slices() {
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("# Title\n\nText\n", new MarkdownReaderOptions {
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("# Title\n\nText\n", new MarkdownLoadOptions {
             PreserveTrivia = true
         });
         var heading = result.SyntaxTree.Children[0];
@@ -24,7 +24,7 @@ public class Markdown_Source_Slice_Failure_Reason_Tests {
 
     [Fact]
     public void SourceMapping_Reports_LineEnding_Equivalent_Original_Slices_With_Original_Offsets() {
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("# Title\r\n\r\nText\r\n", new MarkdownReaderOptions {
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("# Title\r\n\r\nText\r\n", new MarkdownLoadOptions {
             PreserveTrivia = true
         });
         var paragraph = result.SyntaxTree.Children[1];
@@ -57,7 +57,7 @@ public class Markdown_Source_Slice_Failure_Reason_Tests {
 
     [Fact]
     public void SourceMapping_Keeps_Normalized_Slice_When_Original_Text_Is_Not_Equivalent() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             PreserveTrivia = true,
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeZeroWidthSpacingArtifacts = true
@@ -77,7 +77,7 @@ public class Markdown_Source_Slice_Failure_Reason_Tests {
 
     [Fact]
     public void NativeSourceMapping_Reports_Generated_Node_Reason_While_Keeping_Normalized_Slice() {
-        var native = MarkdownNativeDocument.Parse("text\n", new MarkdownReaderOptions {
+        var native = MarkdownNativeDocument.Parse("text\n", new MarkdownLoadOptions {
             PreserveTrivia = true
         });
         var syntaxNode = new MarkdownSyntaxNode(
@@ -113,7 +113,7 @@ public class Markdown_Source_Slice_Failure_Reason_Tests {
 
     [Fact]
     public void OriginalSourceSlice_Returns_TextNotEquivalent_Reason_When_Input_Normalization_Changed_Text() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             PreserveTrivia = true,
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeZeroWidthSpacingArtifacts = true
@@ -130,7 +130,7 @@ public class Markdown_Source_Slice_Failure_Reason_Tests {
 
     [Fact]
     public void OriginalSourceSlice_Returns_AssociatedObjectNotFound_Reason_For_Untracked_Object() {
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("# Title\n", new MarkdownReaderOptions {
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("# Title\n", new MarkdownLoadOptions {
             PreserveTrivia = true
         });
 
@@ -155,7 +155,7 @@ public class Markdown_Source_Slice_Failure_Reason_Tests {
 
     [Fact]
     public void NativeDocument_OriginalSourceSlice_Returns_Generated_Node_Reason_For_Generated_Inline() {
-        var native = MarkdownNativeDocument.Parse("text\n", new MarkdownReaderOptions {
+        var native = MarkdownNativeDocument.Parse("text\n", new MarkdownLoadOptions {
             PreserveTrivia = true
         });
         var syntaxNode = new MarkdownSyntaxNode(
@@ -177,7 +177,7 @@ public class Markdown_Source_Slice_Failure_Reason_Tests {
 
     [Fact]
     public void NativeDocument_OriginalSourceSlice_Returns_Generated_Node_Reason_For_Generated_Inline_Metadata() {
-        var native = MarkdownNativeDocument.Parse("[x](https://example.com)\n", new MarkdownReaderOptions {
+        var native = MarkdownNativeDocument.Parse("[x](https://example.com)\n", new MarkdownLoadOptions {
             PreserveTrivia = true
         });
         var syntaxNode = new MarkdownSyntaxNode(
@@ -195,7 +195,7 @@ public class Markdown_Source_Slice_Failure_Reason_Tests {
 
     [Fact]
     public void Roundtrip_SourceEdit_Fallback_Diagnostic_Includes_Original_Mapping_Reason() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             PreserveTrivia = true,
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeZeroWidthSpacingArtifacts = true
@@ -210,7 +210,7 @@ public class Markdown_Source_Slice_Failure_Reason_Tests {
         var roundtrip = native.WriteWithSourceEdit(edit);
 
         var diagnostic = Assert.Single(roundtrip.Diagnostics);
-        Assert.Equal("roundtrip.original-source-slice-unavailable", diagnostic.Id);
+        Assert.Equal("roundtrip-original-source-slice-unavailable", diagnostic.Id);
         Assert.Equal(MarkdownOriginalSourceSliceFailureReason.OriginalTextNotEquivalent, diagnostic.OriginalSourceFailureReason);
         Assert.Contains("original reader input is not equivalent to normalized markdown", diagnostic.Message, StringComparison.Ordinal);
     }
@@ -226,7 +226,7 @@ public class Markdown_Source_Slice_Failure_Reason_Tests {
         var roundtrip = native.WriteWithSourceEdit(edit);
 
         var diagnostic = Assert.Single(roundtrip.Diagnostics);
-        Assert.Equal("roundtrip.preserve-trivia-required", diagnostic.Id);
+        Assert.Equal("roundtrip-preserve-trivia-required", diagnostic.Id);
         Assert.Equal(MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved, diagnostic.OriginalSourceFailureReason);
         Assert.Contains("PreserveTrivia enabled", diagnostic.Message, StringComparison.Ordinal);
         Assert.Equal("# New\n", roundtrip.Markdown);

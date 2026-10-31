@@ -64,18 +64,23 @@ public sealed class AddOfficeWordWatermarkCommand : PSCmdlet
         var section = context.RequireSection();
         var header = context.CurrentHeader;
 
+        global::OfficeIMO.OfficeLength? horizontalOffset = HorizontalOffset.HasValue
+            ? global::OfficeIMO.OfficeLength.Points(HorizontalOffset.Value) : null;
+        global::OfficeIMO.OfficeLength? verticalOffset = VerticalOffset.HasValue
+            ? global::OfficeIMO.OfficeLength.Points(VerticalOffset.Value) : null;
+
         WordWatermark watermark;
         if (ParameterSetName == ParameterSetImage)
         {
             watermark = header != null
-                ? header.AddWatermark(WordWatermarkStyle.Image, ImagePath, HorizontalOffset, VerticalOffset, Scale)
-                : section.AddWatermark(WordWatermarkStyle.Image, ImagePath, HorizontalOffset, VerticalOffset, Scale);
+                ? header.AddWatermark(WordWatermarkStyle.Image, ImagePath, horizontalOffset, verticalOffset, Scale)
+                : section.AddWatermark(WordWatermarkStyle.Image, ImagePath, horizontalOffset, verticalOffset, Scale);
         }
         else
         {
             watermark = header != null
-                ? header.AddWatermark(WordWatermarkStyle.Text, Text, HorizontalOffset, VerticalOffset, Scale)
-                : section.AddWatermark(WordWatermarkStyle.Text, Text, HorizontalOffset, VerticalOffset, Scale);
+                ? header.AddWatermark(WordWatermarkStyle.Text, Text, horizontalOffset, verticalOffset, Scale)
+                : section.AddWatermark(WordWatermarkStyle.Text, Text, horizontalOffset, verticalOffset, Scale);
         }
 
         if (PassThru.IsPresent)

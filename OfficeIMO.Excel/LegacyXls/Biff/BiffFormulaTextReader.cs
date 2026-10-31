@@ -1037,7 +1037,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             string columnPrefix = columnRelative ? string.Empty : "$";
             string rowPrefix = rowRelative ? string.Empty : "$";
             return columnPrefix
-                + A1.ColumnIndexToLetters(zeroBasedColumn + 1)
+                + ExcelA1.ColumnIndexToLetters(zeroBasedColumn + 1)
                 + rowPrefix
                 + (zeroBasedRow + 1).ToString(CultureInfo.InvariantCulture);
         }

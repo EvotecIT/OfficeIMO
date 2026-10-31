@@ -52,10 +52,10 @@ internal static partial class HtmlPdfRenderedConverter {
             if (fragmentLink) {
                 canvas.LinkToNamedDestination(
                     MapNamedDestination(visual.LinkUri!.Substring(1)),
-                    visual.X * PointsPerCssPixel,
-                    visual.Y * PointsPerCssPixel,
-                    visual.Width * PointsPerCssPixel,
-                    visual.Height * PointsPerCssPixel,
+                    global::OfficeIMO.OfficeLength.Points(visual.X * PointsPerCssPixel),
+                    global::OfficeIMO.OfficeLength.Points(visual.Y * PointsPerCssPixel),
+                    global::OfficeIMO.OfficeLength.Points(visual.Width * PointsPerCssPixel),
+                    global::OfficeIMO.OfficeLength.Points(visual.Height * PointsPerCssPixel),
                     visual.Source);
             }
         }

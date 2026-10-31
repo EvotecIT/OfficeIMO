@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using System.Globalization;
 using System.Xml.Linq;
 
@@ -17,9 +18,9 @@ public sealed partial class BookProject {
         int sequence = 0;
         foreach (var resource in resources) {
             token.ThrowIfCancellationRequested();
-            ArgumentNullException.ThrowIfNull(resource);
-            if (!Enum.IsDefined(resource.Type) || !Enum.IsDefined(resource.Mode)) throw new ArgumentOutOfRangeException(nameof(resources));
-            ArgumentNullException.ThrowIfNull(resource.Versions);
+            if (resource == null) throw new ArgumentNullException(nameof(resource));
+            if (!OfficeRuntimeCompatibility.IsDefined(resource.Type) || !OfficeRuntimeCompatibility.IsDefined(resource.Mode)) throw new ArgumentOutOfRangeException(nameof(resources));
+            if (resource.Versions == null) throw new ArgumentNullException("resource.Versions");
             if (resource.Versions.Count is < 1 or > 16) throw new ArgumentException("Supply one to 16 resource versions.", nameof(resources));
             if (resource.LengthMinutes < 0 || (resource.LengthMinutes != null && resource.Mode is not (BookOnixResourceMode.Audio or BookOnixResourceMode.Video)))
                 throw new ArgumentException("Length in minutes describes audio/video resources and cannot be negative.", nameof(resources));
@@ -43,9 +44,9 @@ public sealed partial class BookProject {
 
     private static XElement BuildOnixResourceVersion(BookOnixResourceVersion version, BookOnixResourceMode mode, ref int textBudget, CancellationToken token) {
         token.ThrowIfCancellationRequested();
-        ArgumentNullException.ThrowIfNull(version);
-        if (!Enum.IsDefined(version.Form)) throw new ArgumentOutOfRangeException(nameof(version.Form));
-        ArgumentNullException.ThrowIfNull(version.Links);
+        if (version == null) throw new ArgumentNullException(nameof(version));
+        if (!OfficeRuntimeCompatibility.IsDefined(version.Form)) throw new ArgumentOutOfRangeException(nameof(version.Form));
+        if (version.Links == null) throw new ArgumentNullException("version.Links");
         if (version.Links.Count is < 1 or > 16) throw new ArgumentException("Supply one to 16 resource links.", nameof(version));
         if (version.ImageWidth <= 0 || version.ImageHeight <= 0 || version.ByteLength < 0)
             throw new ArgumentException("Image dimensions must be positive and byte length nonnegative.", nameof(version));
@@ -74,7 +75,7 @@ public sealed partial class BookProject {
         bool multilingual = version.Links.Where(link => link != null).Select(link => link.LanguageCode).Distinct(StringComparer.Ordinal).Count() > 1;
         foreach (var link in version.Links) {
             token.ThrowIfCancellationRequested();
-            ArgumentNullException.ThrowIfNull(link);
+            if (link == null) throw new ArgumentNullException(nameof(link));
             RequireOnixHttpUrl(link.Url, nameof(link.Url));
             RequireOnixTranslationLanguage(link.LanguageCode, multilingual ? 2 : 1, nameof(link.LanguageCode));
             if (!identities.Add((link.Url, link.LanguageCode))) throw new ArgumentException("Resource URL/language pairs must be distinct.", nameof(version.Links));
@@ -85,7 +86,7 @@ public sealed partial class BookProject {
         result.Add(BuildOnixLicenses(version.Licenses, ref textBudget, token));
         foreach (var (role, date) in new[] { ("14", version.UsableFrom), ("15", version.UsableUntil), ("17", version.UpdatedOn) })
             if (date != null) result.Add(new XElement(ns + "ContentDate", new XElement(ns + "ContentDateRole", role),
-                new XElement(ns + "Date", new XAttribute("dateformat", "00"), date.Value.ToString("yyyyMMdd", CultureInfo.InvariantCulture))));
+                new XElement(ns + "Date", new XAttribute("dateformat", "00"), FormatOnixDate(date.Value))));
         return result;
     }
 
@@ -95,13 +96,13 @@ public sealed partial class BookProject {
     }
 
     private static IReadOnlyList<XElement> BuildOnixContentAudiences(IReadOnlyList<BookOnixContentAudience> audiences) {
-        ArgumentNullException.ThrowIfNull(audiences);
+        if (audiences == null) throw new ArgumentNullException(nameof(audiences));
         if (audiences.Count is < 1 or > 13 || audiences.Distinct().Count() != audiences.Count ||
             (audiences.Count != 1 && audiences.Contains(BookOnixContentAudience.Unrestricted)))
             throw new ArgumentException("Supply distinct collateral recipients; Unrestricted cannot accompany other codes.", nameof(audiences));
         XNamespace ns = OnixNamespace;
         return audiences.Select(audience => {
-            if (!Enum.IsDefined(audience)) throw new ArgumentOutOfRangeException(nameof(audiences));
+            if (!OfficeRuntimeCompatibility.IsDefined(audience)) throw new ArgumentOutOfRangeException(nameof(audiences));
             return new XElement(ns + "ContentAudience", ((int)audience).ToString("00", CultureInfo.InvariantCulture));
         }).ToArray();
     }

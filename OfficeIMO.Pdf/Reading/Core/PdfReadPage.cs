@@ -215,6 +215,20 @@ public sealed partial class PdfReadPage {
         return spans;
     }
 
+    /// <summary>
+    /// Counts visible text spans that this read leaves out because they are marked as artifacts (running headers,
+    /// footers and page numbers in tagged PDFs). Returns zero without reparsing when the content has no artifacts.
+    /// </summary>
+    internal int CountOmittedArtifactTextSpans(System.Threading.CancellationToken cancellationToken) {
+        if (_includeArtifactText) return 0;
+        var pageContentBudget = new PageContentBudget(this, cancellationToken);
+        string content = GetContentStreamSequence(pageContentBudget).Content;
+        if (content.IndexOf("/Artifact", StringComparison.Ordinal) < 0) return 0;
+        int withArtifacts = GetTextSpans(includeArtifactText: true, cancellationToken).Count(static span => span.IsVisible && !string.IsNullOrWhiteSpace(span.Text));
+        int withoutArtifacts = GetTextSpans(includeArtifactText: false, cancellationToken).Count(static span => span.IsVisible && !string.IsNullOrWhiteSpace(span.Text));
+        return Math.Max(0, withArtifacts - withoutArtifacts);
+    }
+
     internal IReadOnlyList<PdfTextSpan> GetTextSpans(
         bool includeArtifactText,
         System.Threading.CancellationToken cancellationToken,
@@ -398,7 +412,7 @@ public sealed partial class PdfReadPage {
                 out string? richContents,
                 out string? richContentsPlainText,
                 out double? effectiveFontSize,
-                out PdfColor? effectiveTextColor,
+                out global::OfficeIMO.OfficeColor? effectiveTextColor,
                 out PdfAlign? effectiveTextAlign,
                 cancellationToken);
             ReadAnnotationVisualStyleMetadata(
@@ -944,7 +958,8 @@ public sealed partial class PdfReadPage {
         TextContentParser.MarkedContentState? inheritedActualTextState = null,
         bool preserveGlyphText = false,
         bool requireMappedText = false,
-        Action<TextContentParser.DrawingActualTextScope>? onCompletedDrawingActualText = null) {
+        Action<TextContentParser.DrawingActualTextScope>? onCompletedDrawingActualText = null,
+        int initialStrokeLineCap = 0) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -1096,7 +1111,7 @@ public sealed partial class PdfReadPage {
             cancellationCheck: cancellationCheck,
             initialTextState: initialTextState,
             onTextSpan: onTextSpan,
-            initialStrokeWidth: initialStrokeWidth, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
+            initialStrokeWidth: initialStrokeWidth, initialStrokeLineCap: initialStrokeLineCap, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
             initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity,
             inheritedActualTextState: inheritedActualTextState,
             onActualTextForm: (offset, state) => actualTextForms[offset] = state,
@@ -1139,7 +1154,7 @@ public sealed partial class PdfReadPage {
                      inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
                      cancellationCheck: cancellationCheck,
                      initialTextState: initialTextState,
-                     initialStrokeWidth: initialStrokeWidth, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
+                     initialStrokeWidth: initialStrokeWidth, initialStrokeLineCap: initialStrokeLineCap, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
                      initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity)) {
             if (!TryGetFormStream(resources, invocation.Name, out int? formObjectNumber, out var formStream)) {
                 continue;
@@ -1222,7 +1237,7 @@ public sealed partial class PdfReadPage {
                     includeHiddenOptionalContent: includeHiddenOptionalContent,
                     initialTextState: formInitialTextState,
                     onTextSpan: onTextSpan,
-                    initialStrokeWidth: invocation.StrokeWidth, initialStrokeLineJoin: invocation.StrokeLineJoin, initialMiterLimit: invocation.MiterLimit,
+                    initialStrokeWidth: invocation.StrokeWidth, initialStrokeLineCap: invocation.StrokeLineCap, initialStrokeLineJoin: invocation.StrokeLineJoin, initialMiterLimit: invocation.MiterLimit,
                     initialFillColorResolved: invocation.FillColorResolved, initialStrokeColorResolved: invocation.StrokeColorResolved, initialStrokeDashIdentity: invocation.StrokeDashIdentity,
                     inheritedActualTextState: formActualTextState,
                     preserveGlyphText: preserveGlyphText,
@@ -1949,7 +1964,7 @@ public sealed partial class PdfReadPage {
         out string? richContents,
         out string? richContentsPlainText,
         out double? effectiveFontSize,
-        out PdfColor? effectiveTextColor,
+        out global::OfficeIMO.OfficeColor? effectiveTextColor,
         out PdfAlign? effectiveTextAlign,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -1972,7 +1987,7 @@ public sealed partial class PdfReadPage {
         effectiveFontSize = PdfDefaultAppearanceParser.TryReadFontSize(defaultAppearance, out double defaultAppearanceFontSize, cancellationToken)
             ? defaultAppearanceFontSize
             : parsedDefaultStyle.FontSize;
-        effectiveTextColor = PdfDefaultAppearanceParser.TryReadTextColor(defaultAppearance, out PdfColor defaultAppearanceTextColor, cancellationToken)
+        effectiveTextColor = PdfDefaultAppearanceParser.TryReadTextColor(defaultAppearance, out global::OfficeIMO.OfficeColor defaultAppearanceTextColor, cancellationToken)
             ? defaultAppearanceTextColor
             : parsedDefaultStyle.TextColor;
         effectiveTextAlign = TryReadFreeTextAlignment(annotation, parsedDefaultStyle.TextAlign);

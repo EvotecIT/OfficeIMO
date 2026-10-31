@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using OfficeIMO.Epub;
 using System.Security.Cryptography;
 
@@ -8,8 +9,8 @@ public sealed class BookOnixExportResult {
     internal BookOnixExportResult(byte[] bytes, EpubWriteResult publication,
         IReadOnlyList<OfficeConversionFidelityDiagnostic> diagnostics, bool acknowledged) {
         Bytes = bytes; Publication = publication;
-        OnixSha256 = Convert.ToHexString(SHA256.HashData(bytes));
-        PublicationSha256 = Convert.ToHexString(SHA256.HashData(publication.Bytes));
+        OnixSha256 = OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(bytes));
+        PublicationSha256 = OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(publication.Bytes));
         ImportDiagnostics = Array.AsReadOnly(diagnostics.ToArray()); ImportLossAcknowledged = acknowledged;
     }
     /// <summary>UTF-8 ONIX 3.1 reference-tag XML, at most 1 MiB.</summary>

@@ -246,7 +246,7 @@ public partial class WordList : WordElement {
         return clonedList;
     }
 
-    private static Level CreateBulletLevel(char symbol, string fontName, string colorHex, int? fontSize) {
+    private static Level CreateBulletLevel(char symbol, string fontName, string colorHex, global::OfficeIMO.OfficeLength? fontSize) {
         var level = new Level();
         level.Append(new StartNumberingValue() { Val = 1 });
         level.Append(new NumberingFormat() { Val = NumberFormatValues.Bullet });
@@ -265,7 +265,7 @@ public partial class WordList : WordElement {
             symbolProps.Append(new DocumentFormat.OpenXml.Wordprocessing.Color { Val = colorHex.Replace("#", "").ToUpperInvariant() });
         }
         if (fontSize.HasValue) {
-            var size = (fontSize.Value * 2).ToString();
+            var size = checked((int)fontSize.Value.ToHalfPoints()).ToString(System.Globalization.CultureInfo.InvariantCulture);
             symbolProps.Append(new FontSize { Val = size });
             symbolProps.Append(new FontSizeComplexScript { Val = size });
         }

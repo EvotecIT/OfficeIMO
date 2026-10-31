@@ -10,10 +10,10 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_ComposedRasterExportHonorsEncodedByteLimitAndCancellation() {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
-            ExcelSheet sheet = document.AddWorksheet("Bounded");
+            ExcelSheet sheet = document.AddSheet("Bounded");
             sheet.CellValue(1, 1, "Composed Excel raster export");
             sheet.SetHeaderFooter(headerCenter: "Header", footerCenter: "Footer");
-            var options = new ExcelWorksheetImageExportOptions {
+            var options = new ExcelImageExportOptions {
                 MaximumTotalEncodedBytes = 8L,
                 UsePrintArea = false
             };
@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportBatchLimitException batchException = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
                 sheet.ExportImages(
                     OfficeImageExportFormat.Png,
-                    new ExcelWorksheetImageExportOptions {
+                    new ExcelImageExportOptions {
                         MaximumTotalEncodedBytes = 8L,
                         SplitByManualPageBreaks = true,
                         UsePrintArea = false
@@ -32,19 +32,19 @@ namespace OfficeIMO.Tests {
             Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
             Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), batchException.LimitName);
             Assert.Throws<OperationCanceledException>(() =>
-                sheet.ToImage().AsPng().Export(new System.Threading.CancellationToken(canceled: true)));
+                sheet.ToImage(cancellationToken: new System.Threading.CancellationToken(canceled: true)));
         }
 
         [Fact]
         public void ExcelWorksheet_PageSlicedSvgCompositionHonorsAggregateEncodedByteLimit() {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
-            ExcelSheet sheet = document.AddWorksheet("BoundedSvg");
+            ExcelSheet sheet = document.AddSheet("BoundedSvg");
             FillPageBreakGrid(sheet);
             sheet.CellValue(3, 1, new string('\u754c', 10_000));
             sheet.SetHeaderFooter(headerCenter: "Bounded header", footerCenter: "Bounded footer");
             sheet.AddManualRowPageBreak(2, save: false);
-            var options = new ExcelWorksheetImageExportOptions {
+            var options = new ExcelImageExportOptions {
                 Range = "A1:AZ4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false,
@@ -63,11 +63,11 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_DirectSvgCompositionHonorsEncodedByteLimit() {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
-            ExcelSheet sheet = document.AddWorksheet("BoundedDirectSvg");
+            ExcelSheet sheet = document.AddSheet("BoundedDirectSvg");
             for (int row = 1; row <= 100; row++) {
                 sheet.CellValue(row, 1, "Bounded direct SVG row " + row.ToString(CultureInfo.InvariantCulture));
             }
-            var options = new ExcelWorksheetImageExportOptions {
+            var options = new ExcelImageExportOptions {
                 Range = "A1:A100",
                 ShowGridlines = false,
                 MaximumTotalEncodedBytes = 1_024L
@@ -85,10 +85,14 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_FinalJpegLimitDoesNotRejectTheLargerIntermediatePng() {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
-            ExcelSheet sheet = document.AddWorksheet("FinalLimit");
+            ExcelSheet sheet = document.AddSheet("FinalLimit");
             OfficeRasterImage source = CreateNoiseImage(320, 180);
-            sheet.AddImage(1, 1, OfficePngWriter.Encode(source), "image/png",
-                widthPixels: 320, heightPixels: 180, name: "Noise");
+            sheet.AddImage(1, 1, OfficePngWriter.Encode(source), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(320),
+                Height = OfficeIMO.OfficeLength.Pixels(180),
+                Name = "Noise"
+            });
 
             OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult jpeg = sheet.ExportImage(OfficeImageExportFormat.Jpeg);
@@ -96,7 +100,7 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportResult limited = sheet.ExportImage(
                 OfficeImageExportFormat.Jpeg,
-                new ExcelWorksheetImageExportOptions { MaximumTotalEncodedBytes = jpeg.Bytes.LongLength });
+                new ExcelImageExportOptions { MaximumTotalEncodedBytes = jpeg.Bytes.LongLength });
 
             Assert.Equal(jpeg.Bytes, limited.Bytes);
             Assert.True(limited.Bytes.LongLength <= jpeg.Bytes.LongLength);
@@ -106,19 +110,23 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSetupIntermediateRespectsEncodedByteLimit() {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
-            ExcelSheet sheet = document.AddWorksheet("FinalPngLimit");
+            ExcelSheet sheet = document.AddSheet("FinalPngLimit");
             OfficeRasterImage source = CreateNoiseImage(1200, 900);
-            sheet.AddImage(1, 1, OfficePngWriter.Encode(source), "image/png",
-                widthPixels: 1200, heightPixels: 900, name: "Noise");
+            sheet.AddImage(1, 1, OfficePngWriter.Encode(source), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(1200),
+                Height = OfficeIMO.OfficeLength.Pixels(900),
+                Name = "Noise"
+            });
             sheet.SetPageSetup(scale: 10, paperSize: ExcelPaperSize.Letter);
 
-            var contentOptions = new ExcelWorksheetImageExportOptions {
+            var contentOptions = new ExcelImageExportOptions {
                 Range = "A1:T50",
                 ShowGridlines = false
             };
             OfficeImageExportResult content = sheet.ExportImage(OfficeImageExportFormat.Png, contentOptions);
 
-            var pageOptions = new ExcelWorksheetImageExportOptions {
+            var pageOptions = new ExcelImageExportOptions {
                 Range = "A1:T50",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -139,12 +147,12 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportRendersPlainHeaderFooterText() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerCenter: "Confidential", footerRight: "Draft");
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:AZ4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -153,7 +161,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, results.Count);
             Assert.All(results, result => Assert.DoesNotContain(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported));
             string svg = Encoding.UTF8.GetString(results[1].Bytes);
-            Assert.Contains("font-family=\"Calibri, Arial, sans-serif\"", svg);
+            Assert.Contains("font-family=\"Aptos, Arial, sans-serif\"", svg);
             Assert.Contains(">Confidential<", svg);
             Assert.Contains(">Draft<", svg);
             Assert.Contains(">A3<", svg);
@@ -162,14 +170,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExcelWorksheet_PageSlicedSvgFitIncludesFinalHeaderFooterBands() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerCenter: "Confidential", footerRight: "Draft");
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(
                 OfficeImageExportFormat.Svg,
-                new ExcelWorksheetImageExportOptions {
+                new ExcelImageExportOptions {
                     Range = "A1:AZ4",
                     SplitByManualPageBreaks = true,
                     ShowGridlines = false,
@@ -190,7 +198,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExcelWorksheet_SvgHeaderFooterDoesNotSerializeClippedTextOrOversizedFontNames() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             string visiblePrefix = new string('V', 600);
             string oversizedFont = new string('F', 10000);
@@ -201,7 +209,7 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportResult result = Assert.Single(sheet.ExportImages(
                 OfficeImageExportFormat.Svg,
-                new ExcelWorksheetImageExportOptions {
+                new ExcelImageExportOptions {
                     Range = "A1:B2",
                     ShowGridlines = false
                 }));
@@ -217,12 +225,12 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportRendersSupportedHeaderFooterFields() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerCenter: "Sheet &A", footerRight: "Page &[Page] of &N && draft");
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -247,12 +255,12 @@ namespace OfficeIMO.Tests {
             }
 
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerLeft: "File &F", headerRight: "Path &[Path]", footerRight: "&[File]");
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:AZ4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false,
@@ -274,12 +282,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             DateTime headerFooterDateTime = new DateTime(2026, 6, 23, 14, 35, 0);
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerLeft: "Date &D", headerCenter: "Time &[Time]", footerRight: "Printed &[Date] &T");
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false,
@@ -299,12 +307,12 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportRendersBasicFormattedHeaderFooterText() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerCenter: "&B&I&UStyled &A", footerRight: "Printed &BConfidential");
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -313,7 +321,7 @@ namespace OfficeIMO.Tests {
             string svg = Encoding.UTF8.GetString(results[1].Bytes);
             Assert.DoesNotContain(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
             Assert.Contains(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterFormattingApproximation);
-            Assert.Contains("font-family=\"Calibri, Arial, sans-serif\"", svg);
+            Assert.Contains("font-family=\"Aptos, Arial, sans-serif\"", svg);
             Assert.Contains("font-weight=\"700\"", svg);
             Assert.Contains("font-style=\"italic\"", svg);
             Assert.Contains("text-decoration=\"underline\"", svg);
@@ -326,12 +334,12 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportRendersColorAndSizeHeaderFooterFormatting() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerCenter: "&KFF0000&14Red &A");
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -349,12 +357,12 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportRendersStrikethroughHeaderFooterFormatting() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerCenter: "&SStrike Header");
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -371,12 +379,12 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportRendersFontFamilyHeaderFooterFormatting() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerCenter: "&\"Aptos,Bold Italic\"Font Header");
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -395,18 +403,18 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportReportsUnresolvedHeaderFooterFontFamilyFallback() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerCenter: "&\"OfficeIMO Missing Header Font,Bold\"Font Header");
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
             });
 
-            OfficeImageExportDiagnostic diagnostic = Assert.Single(results[1].Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.FontSubstituted);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(results[1].Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.FontSubstituted && item.Source == "Report!headerFooter");
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
             Assert.Equal("Report!headerFooter", diagnostic.Source);
             Assert.Contains("OfficeIMO Missing Header Font", diagnostic.Message);
@@ -421,13 +429,13 @@ namespace OfficeIMO.Tests {
 
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(
                 headerCenter:
                     "&\"OfficeIMO Scoped Header Font,Regular\"Font Header");
             sheet.AddManualRowPageBreak(2, save: false);
-            var options = new ExcelWorksheetImageExportOptions {
+            var options = new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -456,12 +464,12 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportKeepsMalformedHeaderFooterFontFamilyDiagnosed() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerCenter: "&\"AptosFont Header");
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -477,12 +485,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             DateTime headerFooterDateTime = new DateTime(2026, 6, 23, 14, 35, 0);
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerLeft: "Date &D", headerCenter: "Time &[Time]", footerRight: "Printed &[Date] &T");
             sheet.AddManualRowPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false,
@@ -506,7 +514,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportRendersFirstEvenAndOddHeaderFooterVariants() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet, rows: 6);
             sheet.SetHeaderFooter(headerCenter: "Odd &P", footerRight: "Odd Footer");
             sheet.SetFirstPageHeaderFooter(headerCenter: "First &P", footerRight: "First Footer");
@@ -514,7 +522,7 @@ namespace OfficeIMO.Tests {
             sheet.AddManualRowPageBreak(2, save: false);
             sheet.AddManualRowPageBreak(4, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:P6",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -541,17 +549,17 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedPngExportAddsHeaderFooterBands() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerLeft: "Prepared", footerCenter: "Internal");
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult composed = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions {
+            OfficeImageExportResult composed = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
             })[1];
-            OfficeImageExportResult bodyOnly = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions {
+            OfficeImageExportResult bodyOnly = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "A3:D4",
                 ShowGridlines = false
             });
@@ -567,7 +575,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_SafetyReducedHeaderFooterBandsDoNotOverlapContent() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             for (int row = 3; row <= 4; row++) {
                 for (int column = 1; column <= 4; column++) {
@@ -579,7 +587,7 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportResult result = sheet.ExportImages(
                 OfficeImageExportFormat.Png,
-                new ExcelWorksheetImageExportOptions {
+                new ExcelImageExportOptions {
                     Range = "A1:D4",
                     SplitByManualPageBreaks = true,
                     ShowGridlines = false,
@@ -613,13 +621,13 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedImageExportKeepsHeaderFooterInsidePageSetupCanvas() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetPaperSize(ExcelPaperSize.Letter);
             sheet.SetHeaderFooter(headerCenter: "Prepared", footerCenter: "Internal");
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions {
+            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -632,14 +640,14 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedImageExportKeepsHeaderFooterInsidePageSetupCanvasWithPrintTitles() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetPaperSize(ExcelPaperSize.Letter);
             sheet.SetHeaderFooter(headerCenter: "Prepared", footerCenter: "Internal");
             document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions {
+            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -653,14 +661,14 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedImageExportRendersSupportedHeaderFooterPngImages() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             byte[] logo = CreateHeaderFooterLogoPng();
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", widthPoints: 36D, heightPoints: 16D);
-            sheet.SetFooterImage(ExcelHeaderFooterPosition.Right, logo, "image/png", widthPoints: 24D, heightPoints: 12D);
+            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
+            sheet.SetFooterImage(ExcelHeaderFooterPosition.Right, logo, "image/png", width: OfficeLength.Points(24D), height: OfficeLength.Points(12D));
             sheet.AddManualRowPageBreak(2, save: false);
 
-            var options = new ExcelWorksheetImageExportOptions {
+            var options = new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -687,12 +695,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExcelWorksheet_PageSlicedImageExportHonorsHeaderFooterSourceImageBudget() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateHeaderFooterLogoPng(), "image/png", widthPoints: 36D, heightPoints: 16D);
+            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateHeaderFooterLogoPng(), "image/png", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false,
@@ -707,14 +715,19 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExcelWorksheet_PageSlicedImageExportSharesSourceImageBudgetWithHeaderFooter() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             byte[] logo = CreateHeaderFooterLogoPng();
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", widthPoints: 36D, heightPoints: 16D);
-            sheet.AddImage(1, 1, logo, "image/png", widthPixels: 24, heightPixels: 12, name: "Worksheet logo");
+            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
+            sheet.AddImage(1, 1, logo, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(24),
+                Height = OfficeIMO.OfficeLength.Pixels(12),
+                Name = "Worksheet logo"
+            });
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false,
@@ -729,12 +742,12 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedImageExportRendersHeaderFooterBmpImagesThroughSharedDecoder() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateHeaderFooterLogoBmp(), "image/bmp", widthPoints: 36D, heightPoints: 16D);
+            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateHeaderFooterLogoBmp(), "image/bmp", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
             sheet.AddManualRowPageBreak(2, save: false);
 
-            var options = new ExcelWorksheetImageExportOptions {
+            var options = new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -759,12 +772,12 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedPngExportUsesVisibleHeaderFooterImageFallback() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 }, "image/gif", widthPoints: 36D, heightPoints: 16D);
+            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 }, "image/gif", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
             sheet.AddManualRowPageBreak(2, save: false);
 
-            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions {
+            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -781,18 +794,18 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedPngExportUsesCallerCodecForHeaderImage() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderImage(
                 ExcelHeaderFooterPosition.Center,
                 new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 },
                 "image/gif",
-                widthPoints: 36D,
-                heightPoints: 16D);
+                width: OfficeLength.Points(36D),
+                height: OfficeLength.Points(16D));
             sheet.AddManualRowPageBreak(2, save: false);
             var codec = new HeaderImageCodec();
 
-            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions {
+            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false,
@@ -811,7 +824,7 @@ namespace OfficeIMO.Tests {
         private static void FillPageBreakGrid(ExcelSheet sheet, int rows = 4) {
             for (int row = 1; row <= rows; row++) {
                 for (int column = 1; column <= 4; column++) {
-                    sheet.CellValue(row, column, A1.CellReference(row, column));
+                    sheet.CellValue(row, column, ExcelA1.CellReference(row, column));
                 }
             }
         }

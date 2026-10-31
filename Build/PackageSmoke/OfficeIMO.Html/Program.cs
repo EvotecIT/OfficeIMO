@@ -41,7 +41,7 @@ _ = new HtmlCapabilityGalleryManifest(
     roundTripScore: null,
     resourceManifest: null);
 
-WordToHtmlOptions word = WordToHtmlOptions.CreateDocumentRoundTripProfile();
+WordHtmlExportOptions word = WordHtmlExportOptions.CreateDocumentRoundTripProfile();
 word.DocumentOutput = output.Clone();
 word.Profile = OfficeHtmlConversionProfile.WordDocumentRoundTrip;
 ExcelHtmlSaveOptions excel = ExcelHtmlSaveOptions.CreateVisualReviewProfile();
@@ -96,7 +96,8 @@ var changed = parsed.Edit(edit => {
     title.SetAttribute("ID", "updated");
 });
 var conversion = HtmlConversionDocument.FromDocument(changed);
-if (parsed.QuerySelector("#title")!.TextContent != "Original" || changed.QuerySelector("#updated") == null || !conversion.ToMarkdown().Contains("Packed edit"))
+using var convertedMarkdown = conversion.ToMarkdown();
+if (parsed.QuerySelector("#title")!.TextContent != "Original" || changed.QuerySelector("#updated") == null || !convertedMarkdown.ToMarkdown().Contains("Packed edit"))
     throw new InvalidOperationException("Packed owned document/edit/Markdown contract failed.");
 if (typeof(HtmlDocument).Assembly.GetReferencedAssemblies().Any(name => name.Name!.StartsWith("AngleSharp", StringComparison.Ordinal) || name.Name == "OfficeIMO.Core"))
     throw new InvalidOperationException("The owned HTML leaf references a parser or drawing implementation.");
@@ -105,7 +106,7 @@ if (!changed.OuterHtml.Contains("Packed edit") || !conversion.ToSvg().Contains("
 byte[] foundationPng = conversion.ToPng();
 if (foundationPng.Length < 8 || foundationPng[0] != 137 || foundationPng[1] != 80)
     throw new InvalidOperationException("Packed owned document image rendering failed.");
-var foundationPdf = PdfReadDocument.Open(conversion.ToPdfBytes());
+using var foundationPdf = conversion.ToPdf();
 if (!foundationPdf.ExtractText().Contains("Packed edit"))
     throw new InvalidOperationException("Packed owned document PDF text was lost.");
 

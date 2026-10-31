@@ -4,13 +4,13 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private static void ConsumeNestedBlocksForListItem(
         string[] lines,
         ref int index,
         int itemLevelAbs,
         int continuationIndent,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state,
         ListItem item,
         bool allowNestedOrdered,
@@ -196,7 +196,7 @@ public static partial class MarkdownReader {
         string[] lines,
         int startIndex,
         int continuationIndent,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state,
         IMarkdownBlockParser parser,
         out IMarkdownListBlock list,
@@ -217,7 +217,7 @@ public static partial class MarkdownReader {
         }
 
         int idx = startIndex;
-        var tempDoc = MarkdownDoc.Create();
+        var tempDoc = MarkdownDocument.Create();
         int previousMarkerIndentOffset = effectiveState.ListMarkerIndentOffset;
         effectiveState.ListMarkerIndentOffset = CountLeadingIndentColumns(lines[startIndex] ?? string.Empty);
         try {
@@ -243,14 +243,14 @@ public static partial class MarkdownReader {
         string[] lines,
         int startIndex,
         int continuationIndent,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state,
         IMarkdownBlockParser parser,
         out IMarkdownListBlock list,
         out int endIndex,
         out MarkdownSyntaxNode? syntaxNode) {
         int idx = startIndex;
-        var nestedDocument = MarkdownDoc.Create();
+        var nestedDocument = MarkdownDocument.Create();
         int previousMarkerIndentOffset = state.ListMarkerIndentOffset;
         bool previousRelativeListMarkerIndent = state.UseRelativeListMarkerIndent;
         bool requiresSourceRemap = false;
@@ -319,7 +319,7 @@ public static partial class MarkdownReader {
         string[] lines,
         int startIndex,
         int endIndex,
-        MarkdownReaderOptions options) {
+        MarkdownLoadOptions options) {
         for (int lineIndex = startIndex; lineIndex < endIndex; lineIndex++) {
             var line = lines[lineIndex] ?? string.Empty;
             if (string.IsNullOrWhiteSpace(line) || line.IndexOf('\t') >= 0) {
@@ -340,7 +340,7 @@ public static partial class MarkdownReader {
         int attributeLineIndex,
         int itemLevelAbs,
         int continuationIndent,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state,
         bool allowNestedOrdered,
         bool allowNestedUnordered,
@@ -404,7 +404,7 @@ public static partial class MarkdownReader {
         ref int index,
         int itemLevelAbs,
         int continuationIndent,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state,
         out List<ParagraphBlock> paragraphs,
         out List<MarkdownSyntaxNode> syntaxNodes) {
@@ -482,7 +482,7 @@ public static partial class MarkdownReader {
         int itemLevelAbs,
         bool allowNestedOrdered,
         bool allowNestedUnordered,
-        MarkdownReaderOptions options) {
+        MarkdownLoadOptions options) {
 
         if (string.IsNullOrEmpty(line)) return false;
 
@@ -521,7 +521,7 @@ public static partial class MarkdownReader {
         return IsOrderedListLine(line, null, out number, out content);
     }
 
-    private static bool IsOrderedListLine(string line, MarkdownReaderOptions? options, out int number, out string content) {
+    private static bool IsOrderedListLine(string line, MarkdownLoadOptions? options, out int number, out string content) {
         number = 0;
         content = string.Empty;
         if (!TryGetOrderedListMarkerInfo(line, options, out _, out number, out int contentStartIndex, out _, out _)) return false;
@@ -535,7 +535,7 @@ public static partial class MarkdownReader {
 
     private static bool IsOrderedListLine(
         string line,
-        MarkdownReaderOptions? options,
+        MarkdownLoadOptions? options,
         out int level,
         out int number,
         out string content,
@@ -625,7 +625,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool IsCalloutHeader(string line, MarkdownReaderOptions options, out string kind, out string title) {
+    private static bool IsCalloutHeader(string line, MarkdownLoadOptions options, out string kind, out string title) {
         if (!IsCalloutHeader(line, out kind, out title)) return false;
         return options.CalloutTitleMode != MarkdownCalloutTitleMode.MarkdigCompatible || string.IsNullOrWhiteSpace(title);
     }

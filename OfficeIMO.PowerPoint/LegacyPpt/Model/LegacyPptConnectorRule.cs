@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents one OfficeArt rule connecting two shapes through a connector shape.</summary>
-    public sealed class LegacyPptConnectorRule {
+    internal sealed class LegacyPptConnectorRule {
         internal LegacyPptConnectorRule(uint ruleId, uint startShapeId, uint endShapeId,
             uint connectorShapeId, uint startConnectionSiteIndex, uint endConnectionSiteIndex) {
             RuleId = ruleId;

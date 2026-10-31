@@ -32,7 +32,7 @@ public sealed class XpsImageDefaultsTests {
                 Assert.InRange(Math.Abs(pixel.B - int.Parse(values[5])), 0, 3);
                 Assert.Equal(int.Parse(values[6]), (int)pixel.A);
             }
-            Assert.Single(PdfReadDocument.Open(document.ToPdf()).Pages);
+            Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf())).Pages);
         }
     }
 }

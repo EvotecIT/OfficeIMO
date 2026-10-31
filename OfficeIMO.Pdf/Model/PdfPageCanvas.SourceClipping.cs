@@ -9,7 +9,7 @@ public sealed partial class PdfPageCanvas {
 
     /// <summary>Retains a source paint clip; additional target clips and text-frame losses remain subject to diagnostics.</summary>
     internal PdfPageCanvas SourceClip(double x, double y, OfficeClipPath clipPath, Action<PdfPageCanvas> build) {
-        Clip(x, y, clipPath, build);
+        Clip(global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), clipPath, build);
         ((PdfCanvasClipItem)_items[_items.Count - 1]).PreservesSourceClip = true;
         return this;
     }

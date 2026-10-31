@@ -60,7 +60,7 @@ public sealed class PdfDrawingFillRuleTests {
             .Header(header => header.Shape(CreateCompoundPath(fillRule, transformed: false)))
             .Content(content => content.Paragraph(paragraph => paragraph.Text("Body")))));
 
-        string content = Encoding.ASCII.GetString(document.ToBytes());
+        string content = Encoding.ASCII.GetString(document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains(fillRule == OfficeFillRule.EvenOdd ? " f*\n" : " f\n", content, StringComparison.Ordinal);
     }
 
@@ -77,9 +77,9 @@ public sealed class PdfDrawingFillRuleTests {
         Assert.Equal(hole ? OfficeColor.White : OfficeColor.Green, raster.GetPixel(15, 10));
     }
 
-    private static PdfOptions CreateOptions() => new PdfOptions {
-        PageWidth = 80D, PageHeight = 80D,
-        MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D,
+    private static PdfCreateOptions CreateOptions() => new PdfCreateOptions {
+        PageWidth = global::OfficeIMO.OfficeLength.Points(80D), PageHeight = global::OfficeIMO.OfficeLength.Points(80D),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D),
         CompressContentStreams = false
     };
 

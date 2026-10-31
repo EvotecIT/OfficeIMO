@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.BuiltinDocumentProperties.Title = "Roundtrip deck";
                     presentation.BuiltinDocumentProperties.Creator = "OfficeIMO Tests";
                     presentation.BuiltinDocumentProperties.Keywords = "officeimo,powerpoint";
@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     Assert.Equal("Roundtrip deck", presentation.BuiltinDocumentProperties.Title);
                     Assert.Equal("OfficeIMO Tests", presentation.BuiltinDocumentProperties.Creator);
                     Assert.Equal("officeimo,powerpoint", presentation.BuiltinDocumentProperties.Keywords);

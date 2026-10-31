@@ -8,11 +8,11 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordSharedChartAppearanceTests {
     [Theory]
-    [InlineData(OfficeChartKind.Line)]
-    [InlineData(OfficeChartKind.Scatter)]
-    public void SharedAppearance_AddsPropertiesBeforePreservedTrendlineAndErrorBars(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Line)]
+    [InlineData(OfficeChartType.Scatter)]
+    public void SharedAppearance_AddsPropertiesBeforePreservedTrendlineAndErrorBars(OfficeChartType kind) {
         using WordDocument document = WordDocument.Create();
-        var chart = document.AddChart(kind, Data(kind));
+        var chart = document.AddChart(kind,Data(kind));
         var series = Series(chart);
         series.RemoveAllChildren<C.ChartShapeProperties>();
         series.RemoveAllChildren<C.Marker>();
@@ -27,28 +27,28 @@ public sealed class WordSharedChartAppearanceTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Pie)]
-    [InlineData(OfficeChartKind.Doughnut)]
-    public void SharedAppearance_RadialOverrideHidesEveryLegendCategory(OfficeChartKind renderKind) {
+    [InlineData(OfficeChartType.Pie)]
+    [InlineData(OfficeChartType.Doughnut)]
+    public void SharedAppearance_RadialOverrideHidesEveryLegendCategory(OfficeChartType renderKind) {
         using WordDocument document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A", "B", "C" },
-            new[] { new OfficeChartSeries("Status", new[] { 1d, 2d, 3d }, null, null, null, true,
+        var chart = document.AddChart(OfficeChartType.Line,new OfficeChartData(new[] { "A", "B", "C" },
+            new[] { new OfficeSeries("Status", new[] { 1d, 2d, 3d }, null, null, null, true,
                 showInLegend: false, renderKind: renderKind) }));
         Assert.Equal(new uint[] { 0, 1, 2 }, chart.ChartPart!.ChartSpace!.Descendants<C.LegendEntry>().Select(e => e.Index!.Val!.Value));
-        chart.SetData(OfficeChartKind.Line, new OfficeChartData(new[] { "A", "B", "C" },
-            new[] { new OfficeChartSeries("Updated", new[] { 3d, 2d, 1d }, null, null, null, true,
+        chart.SetData(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B", "C" },
+            new[] { new OfficeSeries("Updated", new[] { 3d, 2d, 1d }, null, null, null, true,
                 showInLegend: false, renderKind: renderKind) }));
         Assert.Equal(new uint[] { 0, 1, 2 }, chart.ChartPart.ChartSpace.Descendants<C.LegendEntry>().Select(e => e.Index!.Val!.Value));
         Assert.Empty(document.ValidateDocument());
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Line)]
-    [InlineData(OfficeChartKind.Radar)]
-    [InlineData(OfficeChartKind.Scatter)]
-    public void SharedAppearance_ReconnectsLineWithoutExplicitColorOrWidth(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Line)]
+    [InlineData(OfficeChartType.Radar)]
+    [InlineData(OfficeChartType.Scatter)]
+    public void SharedAppearance_ReconnectsLineWithoutExplicitColorOrWidth(OfficeChartType kind) {
         using WordDocument document = WordDocument.Create();
-        var chart = document.AddChart(kind, Data(kind, connect: false));
+        var chart = document.AddChart(kind,Data(kind, connect: false));
         Assert.NotNull(Series(chart).GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>()!.GetFirstChild<A.NoFill>());
         chart.SetData(kind, Data(kind, connect: true));
         Assert.Null(Series(chart).GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>()!.GetFirstChild<A.NoFill>());
@@ -56,12 +56,12 @@ public sealed class WordSharedChartAppearanceTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Line)]
-    [InlineData(OfficeChartKind.Radar)]
-    [InlineData(OfficeChartKind.Scatter)]
-    public void SharedAppearance_ReplacesImportedMarkerFillAndKeepsOutlineSchemaOrder(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Line)]
+    [InlineData(OfficeChartType.Radar)]
+    [InlineData(OfficeChartType.Scatter)]
+    public void SharedAppearance_ReplacesImportedMarkerFillAndKeepsOutlineSchemaOrder(OfficeChartType kind) {
         using WordDocument document = WordDocument.Create();
-        var chart = document.AddChart(kind, Data(kind));
+        var chart = document.AddChart(kind,Data(kind));
         var marker = Series(chart).GetFirstChild<C.Marker>()!;
         marker.AddChild(new C.ChartShapeProperties(new A.Transform2D(), new A.NoFill(), new A.Outline(new A.NoFill(),
             new A.PresetDash { Val = A.PresetLineDashValues.Dash })), true);
@@ -80,11 +80,11 @@ public sealed class WordSharedChartAppearanceTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Line)]
-    [InlineData(OfficeChartKind.Scatter)]
-    public void SharedAppearance_DataUpdatePreservesExplicitMarkerFillWhenColorIsUnspecified(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Line)]
+    [InlineData(OfficeChartType.Scatter)]
+    public void SharedAppearance_DataUpdatePreservesExplicitMarkerFillWhenColorIsUnspecified(OfficeChartType kind) {
         using WordDocument document = WordDocument.Create();
-        var chart = document.AddChart(kind, Data(kind));
+        var chart = document.AddChart(kind,Data(kind));
         var series = Series(chart);
         var shape = series.GetFirstChild<C.ChartShapeProperties>()!;
         shape.GetFirstChild<A.Outline>()!.RemoveAllChildren<A.SolidFill>();
@@ -101,11 +101,11 @@ public sealed class WordSharedChartAppearanceTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Pie)]
-    [InlineData(OfficeChartKind.Doughnut)]
-    public void SharedAppearance_HiddenRadialSeriesHidesEveryCategoryAndUpdatesVisibility(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Pie)]
+    [InlineData(OfficeChartType.Doughnut)]
+    public void SharedAppearance_HiddenRadialSeriesHidesEveryCategoryAndUpdatesVisibility(OfficeChartType kind) {
         using WordDocument document = WordDocument.Create();
-        var chart = document.AddChart(kind, Data(kind, legend: false));
+        var chart = document.AddChart(kind,Data(kind, legend: false));
         var legend = chart.ChartPart!.ChartSpace!.Descendants<C.Legend>().Single();
         Assert.Equal(new uint[] { 0, 1, 2 }, legend.Elements<C.LegendEntry>().Select(e => e.Index!.Val!.Value));
         chart.SetData(kind, Data(kind, legend: true));
@@ -118,9 +118,11 @@ public sealed class WordSharedChartAppearanceTests {
     [Fact]
     public void SharedAppearance_NativeMarkerSizeClampsAtBothBounds() {
         using WordDocument document = WordDocument.Create();
-        foreach (int size in new[] { 1, 100 }) {
-            var chart = document.AddChart(OfficeChartKind.Line, Data(OfficeChartKind.Line, markerSize: size));
-            Assert.Equal((byte)(size == 1 ? 2 : 72), Series(chart).GetFirstChild<C.Marker>()!.Size!.Val!.Value);
+        foreach ((OfficeLength size, byte expected) in new[] {
+            (OfficeLength.Points(1), (byte)2), (OfficeLength.Points(100), (byte)72),
+            (OfficeLength.Points(8.5), (byte)9), (OfficeLength.Points(9.5), (byte)10) }) {
+            var chart = document.AddChart(OfficeChartType.Line,Data(OfficeChartType.Line, markerSize: size));
+            Assert.Equal(expected, Series(chart).GetFirstChild<C.Marker>()!.Size!.Val!.Value);
         }
         Assert.Empty(document.ValidateDocument());
     }
@@ -128,7 +130,7 @@ public sealed class WordSharedChartAppearanceTests {
     private static DocumentFormat.OpenXml.OpenXmlCompositeElement Series(WordChart chart) =>
         chart.ChartPart!.ChartSpace!.Descendants<DocumentFormat.OpenXml.OpenXmlCompositeElement>().Single(e => e.LocalName == "ser");
 
-    private static OfficeChartData Data(OfficeChartKind kind, bool connect = true, bool legend = true, OfficeColor? color = null, int? markerSize = null) =>
-        new OfficeChartData(new[] { "1", "2", "3" }, new[] { new OfficeChartSeries("Status", new[] { 1d, 2d, 3d },
-            kind == OfficeChartKind.Scatter ? new[] { 1d, 2d, 3d } : null, color, null, true, legend, connect, markerSize) });
+    private static OfficeChartData Data(OfficeChartType kind, bool connect = true, bool legend = true, OfficeColor? color = null, OfficeLength? markerSize = null) =>
+        new OfficeChartData(new[] { "1", "2", "3" }, new[] { new OfficeSeries("Status", new[] { 1d, 2d, 3d },
+            kind == OfficeChartType.Scatter ? new[] { 1d, 2d, 3d } : null, color, null, true, legend, connect, markerSize) });
 }

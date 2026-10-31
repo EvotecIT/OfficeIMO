@@ -3,26 +3,24 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Word.Pdf)](https://www.nuget.org/packages/OfficeIMO.Word.Pdf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Word.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Word.Pdf)
 
-Word-to-PDF conversion and page images share the adapter in `OfficeIMO.Word`. This package adds import of parser-supported PDF logical content into editable Word documents and references the Word and PDF packages. Forward conversion APIs keep the `OfficeIMO.Word.Pdf` namespace; PDF layout, reading, diagnostics and writing stay in `OfficeIMO.Pdf`.
+Word-to-PDF conversion and paginated page images live in this adapter. It references the Word and PDF engines. [PDF-to-Word reconstruction](../OfficeIMO.Pdf.Word/README.md) lives in `OfficeIMO.Pdf.Word`.
 
 ## Legacy DOC to PDF
 
-`LegacyDocPdfConverter` composes bounded binary DOC import with the Word PDF adapter. It blocks known import loss by default and retains the import report separately from PDF rendering diagnostics:
+Load binary DOC with the normal Word lifecycle, then convert the source document. Set `FailOnLoss` on the load options to reject known import loss before PDF rendering:
 
 ```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 
-using var source = File.OpenRead("archive.doc");
-var conversion = LegacyDocPdfConverter.ToPdfDocumentResult(source);
-conversion.SaveResult("archive.pdf").RequireSuccess();
-foreach (var report in conversion.SourceConversionReports)
-    foreach (var finding in report.FidelityDiagnostics)
-        Console.WriteLine($"{finding.Code}: {finding.Message}");
+using var document = WordDocument.Load("archive.doc", new WordLoadOptions { FailOnLoss = true });
+OfficeConversionReport report = document.SaveAsPdf("archive.pdf");
+foreach (OfficeDiagnostic finding in report.Diagnostics)
+    Console.WriteLine($"{finding.Code}: {finding.Message}");
 ```
 
-Pass `lossPolicy: OfficeIMO.OfficeConversionLossPolicy.Allow` only when accepting the reported import reductions. Import errors still block output. The adapter always collects unsupported-content findings, even if the supplied import options disable reporting. Its fidelity is limited by both the legacy importer and the Word PDF renderer; it does not guarantee exact Microsoft Word pagination or rendering of every binary DOC feature. Supported binary DOC SECTIONPAGES fields retain their editable instruction and cached result during import; PDF header/footer fields use calculated section counts during pagination.
-
-Rejected imports throw `OfficeConversionException`; its `Report` retains the available import findings. Catch that exception to inspect a blocked conversion without rendering a PDF.
+`OfficeConverter.Convert` combines source-load and PDF findings in one report. Its `FailOnLoss` conversion option rejects either stage before publication. Catch `OfficeConversionException` to inspect a rejected conversion's report.
 
 ## Install
 
@@ -33,6 +31,7 @@ dotnet add package OfficeIMO.Word.Pdf
 ## Quick start
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 
@@ -45,18 +44,36 @@ document.SaveAsPdf("report.pdf");
 
 ## Examples
 
+### Tracked changes
+
+PDF export shows tracked insertions underlined and deletions struck through
+in a revision colour by default. Reviewer names, dates and balloons are not
+included. Documents without revisions are unaffected.
+
+For accepted text only, choose the Final view:
+
+```csharp
+document.SaveAsPdf("final.pdf", new WordPdfExportOptions {
+    TrackedChanges = WordPdfTrackedChangeView.Final
+});
+```
+
+The conversion report includes `tracked-revisions-projected` only when Final
+omits revisions from a document that has tracked changes.
+
 ### Export with page and metadata options
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 
 using var document = WordDocument.Load("proposal.docx");
 
-var options = new WordToPdfOptions {
+var options = new WordPdfExportOptions {
     Orientation = OfficePageOrientation.Portrait,
-    Margins = PageMargins.UniformCentimeters(1.5),
+    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Centimeters(1.5)),
     Title = "Customer proposal",
     Author = "Evotec",
     IncludePageNumbers = true,
@@ -71,11 +88,12 @@ document.SaveAsPdf("proposal.pdf", options);
 PDF export uses the field results stored in the Word document by default. To refresh dynamic `DATE` and `TIME` fields for the PDF, set `DateTimeFieldUpdateOptions`:
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 
 using var document = WordDocument.Load("report.docx");
-document.SaveAsPdf("report.pdf", new WordToPdfOptions {
+document.SaveAsPdf("report.pdf", new WordPdfExportOptions {
     DateTimeFieldUpdateOptions = new WordFieldUpdateOptions()
 });
 ```
@@ -124,7 +142,7 @@ Each text run resolves its font through its own formatting, character style, par
 
 Document-wide bold, italic, underline, strikethrough, capitalization, baseline and text-color defaults apply when higher-priority formatting does not declare a value. Direct formatting and style resets, including automatic text color, stop that inheritance. Small capitals retain full-size original capitals and smaller capitals for lowercase text, including styled body text, table cells and running headers or footers. Their effective sizes participate in wrapping and hyperlink placement.
 
-Supplying an empty `PdfOptions` object, metadata, or header/footer presentation settings preserves the document's inherited body font and size. Registering a reusable named font family makes it available to matching text without selecting a different body font. Generated headers and page numbers retain their explicitly selected fonts, including when the body embeds a font with the same standard-font alias. Explicit PDF body-font and default-size assignments retain their precedence. Rendering profiles keep the same distinction between document typography and presentation overrides.
+Supplying an empty `PdfCreateOptions` object, metadata, or header/footer presentation settings preserves the document's inherited body font and size. Registering a reusable named font family makes it available to matching text without selecting a different body font. Generated headers and page numbers retain their explicitly selected fonts, including when the body embeds a font with the same standard-font alias. Explicit PDF body-font and default-size assignments retain their precedence. Rendering profiles keep the same distinction between document typography and presentation overrides.
 
 Run character width (`w:w`) and tracking (`w:spacing`) flow through document,
 table, paragraph and character styles, with direct formatting and explicit resets
@@ -142,17 +160,18 @@ Balanced conversion embeds subsets of installed document fonts by default. Word,
 
 The Word font table can declare alternate names through `w:altName`. When the requested family is unavailable, conversion first tries the complete alternate value as a literal family name, as Word does, including commas or backslashes in that name. If that family is unavailable, parsed alternate candidates retain their declared order before the general substitution policy. Explicit caller mappings and an available primary family retain precedence. The report keeps the original requested family and identifies the selected replacement.
 
-For repeatable Windows/Linux typography, supply the same font files through [`PdfOptions` named families and substitutions](../OfficeIMO.Pdf/README.md#supply-document-font-families). Register every family needed by the document, including the required bold and italic faces, and pass those options through `WordToPdfOptions.PdfOptions`. A missing font can change title widths, line wrapping, header clearance and page count even when an image anchor or right-aligned tab remains at the same position.
+For repeatable Windows/Linux typography, supply the same font files through [`PdfOptions` named families and substitutions](../Docs/officeimo.pdf-guide.md#supply-document-font-families). Register every family needed by the document, including the required bold and italic faces, and pass those options through `WordToPdfOptions.PdfOptions`. A missing font can change title widths, line wrapping, header clearance and page count even when an image anchor or right-aligned tab remains at the same position.
 
 The conversion report's `font-embedding-cost` entries record each emitted font program's original, subset and compressed stream sizes. These are font-program payload bytes; PDF dictionaries and character maps add further overhead. No font files are bundled with this package.
 
 For host-independent conversion, provide a fixed rendering profile or select the portable policy:
 
 ```csharp
-var options = new WordToPdfOptions {
+using OfficeIMO;
+var options = new WordPdfExportOptions {
     ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
 };
-document.SaveAsPdf("portable.pdf", options).RequireSuccess();
+document.SaveAsPdf("portable.pdf", options);
 ```
 
 Both system-font and document-font embedding must be allowed to discover installed document families. `FontFamily` selects a conversion-wide default. Local-file and remote-resource access remain separate policy settings.
@@ -162,22 +181,21 @@ Both system-font and document-font embedding must be allowed to discover install
 Render the conversion result when PNG, JPEG or SVG pages must share the PDF's line breaks, tables, fonts and pagination:
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word.Pdf;
 
-var conversion = document.ToPdfDocumentResult();
-conversion.Save("document.pdf").RequireSuccess();
-conversion.ToImages(new PdfImageExportOptions { TargetDpi = 144 })
-    .AsPng()
-    .Save("pages");
+using var conversion = document.ToPdf(options: null, out OfficeConversionReport report);
+conversion.Save("document.pdf", new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+conversion.SaveAsImages("pages", new PdfImageExportOptions { TargetDpi = 144 });
 ```
 
-Use `.AsJpeg()` or `.AsSvg()` for those formats, or `conversion.ExportImages(format, options)` for in-memory results. The shared PDF renderer projects the laid-out pages into Drawing scenes and retains conversion and renderer diagnostics. It does not lay out the Word document again or shorten paragraphs with an ellipsis. Managed PDF rendering still has the [PDF renderer's supported-feature limits](../OfficeIMO.Pdf/README.md).
+Set `PdfImageExportOptions.Format` to select JPEG or SVG, or call `conversion.ExportImages(options, out imageReport)` for in-memory `OfficeImageExportResult` pages and rendering findings; each page exposes its encoded payload through `Bytes`. The shared PDF renderer projects the laid-out pages into Drawing scenes and reports rendering diagnostics; the earlier conversion report describes Word-to-PDF findings. It does not lay out the Word document again or shorten paragraphs with an ellipsis. Managed PDF rendering still has the [PDF renderer's supported-feature limits](../OfficeIMO.Pdf/README.md).
 
 High-resolution nearest-neighbour pictures can exceed the SVG rectangle-vectorization budget. Use PNG or JPEG for those pages until bounded SVG image fallback is supported.
 
-`document.ToPng()`, `ToJpeg()`, `ToSvg()` and `ExportImages(...)` use this same layout and page renderer. Set `WordImageExportOptions.LayoutOptions` when sharing customized conversion settings. The forward Word page adapter and options live in `OfficeIMO.Word`; this package also provides PDF-to-Word import.
+`document.ToImage(options)` and `ExportImages(...)` use this same layout and page renderer. Set `options.Format` to select PNG, JPEG, TIFF, WebP or SVG. `SaveAsImage(pathOrStream, options)` and `SaveAsImages(folder, options)` return `OfficeConversionReport`; `ToImage(options, out report)` and `ToImageAsync(options)` also expose the fidelity report. `FailOnLoss` rejects loss before writing an image, and `FileConflictPolicy` controls an existing destination file. Set `WordImageExportOptions.LayoutOptions` when sharing customized conversion settings. The forward Word page adapter and options live in `OfficeIMO.Word`; PDF-to-Word import lives in `OfficeIMO.Pdf.Word`.
 
 SmartArt uses the same drawing projection for PDF and Word images. Supported persisted preset shapes retain node positions; process, cycle and hierarchy diagrams have node-text fallbacks. Header and footer diagrams resolve their parts and cached drawings from the containing story and repeat with its running content. These projections report their approximation because native diagram styles, effects and complete connector geometry are not reconstructed.
 
@@ -254,12 +272,14 @@ Object-only paragraphs retain direct and inherited spacing before and after thei
 An otherwise empty authored section retains its section-mark paragraph line, including inherited spacing, font size and mark visibility. A section terminator following ordinary text adds no separate line. Conversion preserves the source XML in both cases.
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 
 using var document = WordDocument.Load("invoice.docx");
 
-byte[] pdfBytes = document.ToPdfBytes();
+using var pdf = document.ToPdf();
+byte[] pdfBytes = pdf.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
 using var stream = File.Create("invoice.pdf");
 document.SaveAsPdf(stream);
@@ -268,14 +288,15 @@ document.SaveAsPdf(stream);
 ### Optimize images during PDF export
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 
 using var document = WordDocument.Load("input.docx");
-byte[] pdf = document.ToPdfBytes(new WordToPdfOptions {
-    PdfOptions = new PdfOptions {
+using var converted = document.ToPdf(new WordPdfExportOptions {
+    PdfOptions = new PdfCreateOptions {
         ImageOptimization = new PdfImageOptimizationOptions {
             Enabled = true,
             Mode = OfficeImageOptimizationMode.DownsampleAndRecompress,
@@ -284,7 +305,7 @@ byte[] pdf = document.ToPdfBytes(new WordToPdfOptions {
         }
     }
 });
-File.WriteAllBytes("output.pdf", pdf);
+converted.Save("output.pdf", new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 ```
 
 PDF image optimization is opt-in and leaves Word source media unchanged. `Downsample` uses the final source-image placement, including crop/fit expansion; `Recompress` retains pixels and re-encodes JPEGs; `DownsampleAndRecompress` applies both. The shared managed codecs handle static PNG/JPEG/BMP/GIF/TIFF/WebP input. Multi-frame/page payloads and unsupported formats remain outside static optimization. Candidates that would grow or remove metadata are preserved by default; `AllowMetadataLoss` permits reported loss or intentional stripping. Explicit metadata policies also apply when no pixel reduction is needed. The PDF layout report records optimization decisions and warns when metadata is removed. This export policy is separate from the lossless optimizer for existing PDFs.
@@ -292,76 +313,24 @@ PDF image optimization is opt-in and leaves Word source media unchanged. `Downsa
 ### Capture conversion warnings without throwing away the report
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 
 using var document = WordDocument.Load("complex-document.docx");
-var options = new WordToPdfOptions {
+var options = new WordPdfExportOptions {
     DefaultTableBorders = true
 };
 
-var result = document.SaveAsPdfResult("complex-document.pdf", options);
-if (!result.Succeeded) {
-    foreach (string diagnostic in result.Diagnostics) {
-        Console.WriteLine(diagnostic);
-    }
+OfficeConversionReport report = document.SaveAsPdf("complex-document.pdf", options);
+foreach (OfficeDiagnostic finding in report.Diagnostics) {
+    Console.WriteLine($"{finding.Code}: {finding.Message}");
 }
-
-foreach (var warning in result.Warnings) {
-    Console.WriteLine($"{warning.Source}: {warning.Message}");
-}
-```
-
-### Import semantic PDF content into Word
-
-```csharp
-using OfficeIMO.Pdf;
-using OfficeIMO.Word;
-using OfficeIMO.Word.Pdf;
-
-PdfDocument pdf = PdfDocument.Load("packet.pdf");
-PdfWordConversionResult import = pdf.ToWordDocumentResult(
-    new PdfToWordOptions());
-
-using WordDocument word = import.Value;
-word.Save("packet.docx");
-
-foreach (var warning in import.Report.Warnings) {
-    Console.WriteLine($"{warning.Code}: {warning.Message}");
-}
-```
-
-The semantic import path preserves document metadata, page breaks, headings, paragraphs, lists, detected run color/size/emphasis, logical tables, safe URI hyperlinks, supported internal destination links, embedded images, form-widget placeholders, and conversion diagnostics when those structures are available in the PDF logical model. `UseSharedPageReadingOrder` defaults to `true`, so semantic items follow the core engine's crop-, rotation-, spanning-band-, and column-aware order. Editable output also retains each source page's physical size, uses a 36-point page margin, suppresses extra paragraph spacing in dense source content, preserves detected table-column proportions, and positions supported axis-aligned images relative to the page. These defaults improve business-document reconstruction, but they do not turn semantic import into fixed-layout page recreation or Microsoft Word rendering parity.
-
-Set `PreserveSourcePageSize`, `PreserveCompactSourceSpacing`, or `PreserveImagePlacementPosition` to `false` when normal Word flow is more useful than the corresponding source geometry. `EditablePageMarginPoints` controls the source-sized section margin. Source page sizes require `PreservePageBreaks = true` when more than one PDF page is imported.
-
-For selected pages, Fast versus Structured reconstruction, or custom semantic budgets, pass the canonical read settings through the import options:
-
-```csharp
-PdfWordConversionReport report = pdf.SaveAsWord(
-    "packet-selection.docx",
-    new PdfToWordOptions {
-        ReadOptions = new PdfReadOptions {
-            PageSelection = PdfPageSelection.Parse("1-3,5"),
-            LayoutOptions = new PdfTextLayoutOptions { ForceSingleColumn = true },
-            Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 5 }
-        }
-    }).RequireSuccess().Report!;
-```
-
-`ReadOptions` is used only when the source is an opened `PdfDocument`. When a `PdfDocumentReadResult` is already available, the adapter converts that supplied logical model directly.
-
-For table-only recovery, use the same façade with the explicit profile:
-
-```csharp
-pdf.SaveAsWord(
-    "statement-tables.docx",
-    PdfToWordOptions.CreateTablesOnly());
 ```
 
 ## What it exports
 
-- Paragraphs, headings, rich runs, links, bookmarks, page breaks, lists, and common spacing/indentation settings, including hanging and legal negative left/right indents. Built-in Word heading levels 1–9 use the same level mapping as the table of contents in body and column flow. Set `WordToPdfOptions.PdfOptions.TaggedStructureMode` to `PdfTaggedStructureMode.CatalogMarkers` to retain explicit numeric levels during PDF reading and editable Word import, including skipped levels. Tagged PDF uses standard-compatible role mappings for levels 7–9. Untagged output retains the bookmark hierarchy, whose nesting depth cannot identify skipped numeric levels.
+- Paragraphs, headings, rich runs, links, bookmarks, page breaks, lists, and common spacing/indentation settings, including hanging and legal negative left/right indents. Built-in Word heading levels 1–9 use the same level mapping as the table of contents in body and column flow. Set `WordPdfExportOptions.PdfCreateOptions.TaggedStructureMode` to `PdfTaggedStructureMode.CatalogMarkers` to retain explicit numeric levels during PDF reading and editable Word import, including skipped levels. Tagged PDF uses standard-compatible role mappings for levels 7–9. Untagged output retains the bookmark hierarchy, whose nesting depth cannot identify skipped numeric levels.
 - Word-authored text bullets use portable marker characters. Picture bullets currently use a text bullet in PDF output and report `NativePictureBulletTextFallback` with the source picture-bullet identifier; the embedded marker image is not rendered.
 - Word sections, page size, orientation, margins, columns, headers, footers, page numbers, and document background color.
 - Tables with common Word table styling, repeated headers, cell fills, borders, alignment, merged cells, and rich text in cells.
@@ -370,9 +339,9 @@ pdf.SaveAsWord(
 - DrawingML groups of supported preset shapes retain nested child coordinates and scaling. Non-wrapping groups behind text preserve page- or margin-relative positions and paragraph-relative vertical anchors. Paragraph anchors follow pagination, columns, and floating-table clearance; list paragraphs retain both their marker and the group.
 
 - `InFrontOfText` images with explicit page-relative offsets inside the page bounds, including supported source crops, rotation and mirroring. Images follow the first page of their anchor paragraph or heading, including section columns, and paint over text and other flow content without reserving their height in the document flow. Overlapping foreground images follow `WordImage.ZOrder`; images with equal values retain document order.
-- Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
+- Per-operation conversion findings through `OfficeConversionReport.Diagnostics`.
 
-Section gutters reserve space at the left, right, or top of the body frame according to the document settings. Mirrored margins swap the left and right body margins on even visible page numbers, including section numbering restarts. Margin-relative shape groups follow that frame; page-relative groups retain their absolute coordinates. A top gutter uses the same horizontal margins on both page sides, matching Word. An explicit `WordToPdfOptions.Margins` replaces the authored margins, gutter, and mirroring.
+Section gutters reserve space at the left, right, or top of the body frame according to the document settings. Mirrored margins swap the left and right body margins on even visible page numbers, including section numbering restarts. Margin-relative shape groups follow that frame; page-relative groups retain their absolute coordinates. A top gutter uses the same horizontal margins on both page sides, matching Word. An explicit `WordPdfExportOptions.Margins` replaces the authored margins, gutter, and mirroring.
 
 Internal links retain navigation when their bookmark destination is projected into the PDF. Links to missing or unprojected destinations keep their visible text, formatting and tabs, and report `NativeBookmarkTargetMissing` or `NativeBookmarkTargetUnprojected` as an omission. This includes cached table-of-contents links whose targets are inside table cells, text boxes or running stories outside the supported destination profile. `RequireNoLoss()` rejects these results when every navigation target must be preserved.
 
@@ -412,16 +381,6 @@ Placement follows the document-wide setting: section-end notes follow their sect
 
 For PDF export, a trailing manual page break honors `CompatibilitySettings.SplitPageBreakAndParagraphMark` in older Word layout. An enabled setting carries the paragraph mark's line height and after spacing onto the next page. Word 2013 compatibility mode ignores the stored setting. Native DOC import selects the legacy enabled behavior; its DOCX projection keeps the same layout. Text following the break continues in its existing paragraph without an extra mark line.
 
-## What it imports
-
-- Parser-supported PDF metadata, page breaks, headings, paragraphs, lists, logical tables, safe URI hyperlinks, supported internal destination links, complete image-file payloads with transparency-mask fidelity metadata, supported `ImageMask` stencil streams, color-key masked simple and `Indexed` streams, Decode-aware soft-mask-capable simple `DeviceGray`/`DeviceRGB`/basic-converted `DeviceCMYK` streams, basic `ICCBased` N=1/3/4 streams, and Decode-aware soft-mask-capable `Indexed` palette PDF image streams into editable `.docx` content when their filters are supported.
-- Image fallback placeholders and form-widget placeholders with diagnostics instead of silently dropping unsupported objects.
-- Page-range filtered imports through `PdfDocument.Read(new PdfReadOptions { PageSelection = ... })`.
-- Active hyperlink reconstruction for absolute `http`, `https`, and `mailto` URI annotations through `PdfToWordOptions.ImportUriLinks` and `PdfToWordOptions.AllowedHyperlinkUriSchemes`.
-- Internal PDF destination reconstruction through `PdfToWordOptions.ImportInternalLinks`, mapping supported page and named destinations to Word bookmarks and anchor hyperlinks.
-- Native image embedding through `PdfToWordOptions.ImportImages`; complete image files, supported `ImageMask` stencil streams, color-key masked simple and `Indexed` streams, Decode-aware soft-mask-capable simple 8-bit `DeviceGray`/`DeviceRGB`/basic-converted `DeviceCMYK` streams, basic `ICCBased` N=1/3/4 streams, and Decode-aware soft-mask-capable `Indexed` palette streams are embedded when their filters are supported. Fully transparent and unplaced resources are suppressed. Images whose clips, placement soft masks, unresolved source transparency masks, or unsupported blend modes could expose hidden source pixels are not embedded as raw pictures; the report records a typed omission, and `PdfToWordOptions.IncludeImagePlaceholders` can retain an editable marker instead. Supported opacity is mapped to native Word picture transparency.
-- Per-operation import warnings through `PdfWordConversionResult.Report`. `HasLoss` and `RequireNoLoss()` use typed approximation, omission, and failure evidence even when a diagnostic is informational. The table-only profile reports visible text outside detected tables as `PdfTextContentNotImported` instead of treating an intentionally narrow extraction as lossless.
-
 ## Options and diagnostics
 
 Word export preserves source-significant leading and repeated spaces in paragraphs
@@ -430,30 +389,13 @@ before the next word rather than creating additional blank lines. Trailing space
 do not shift centered or right-aligned text.
 
 The converter selects `PdfTextWhitespaceMode.Preserve` unless the supplied
-`PdfOptions` explicitly sets a whitespace policy. Set `TextWhitespaceMode` to
+`PdfCreateOptions` explicitly sets a whitespace policy. Set `TextWhitespaceMode` to
 `Collapse` to normalize flow spacing, or to `Preformatted` for literal spacing.
 The existing `PreserveTextWhitespace = true` setting selects `Preformatted` and
 an explicit `false` selects `Collapse`. Options are cloned before export, so the
 converter does not change the caller's settings.
 
-For a PDF whose page appearance matters more than editability, use visual pages:
-
-```csharp
-using OfficeIMO.Pdf;
-using OfficeIMO.Word.Pdf;
-
-var pdf = PdfDocument.Load("source.pdf");
-var options = PdfToWordOptions.CreateVisualPages();
-options.Dpi = 144;
-options.ReadOptions = new PdfReadOptions {
-    PageSelection = PdfPageSelection.Parse("1-3,5")
-};
-pdf.SaveAsWord("visual-pages.docx", options);
-```
-
-Each selected page becomes an image on a Word section with the source page's physical dimensions. Text, links, and form fields are not editable in this mode. Rendering uses the managed PDF engine and reports its limitations. The default limits are 100 pages, 64 million pixels per page, and 256 MB of encoded page images; Word pages larger than 22 inches in either dimension are rejected. Use the default `EditableContent` mode to reconstruct supported text, tables, and images as Word objects.
-
-Use `WordToPdfOptions` when callers need to override page geometry, metadata, page-number behavior, font family, table-border fallback, profile presets, or text fallback policy. `TextFallbacks` uses the shared `PdfTextFallbackFeatures` enum. The balanced resource default enables installed fonts but denies arbitrary local and remote reads; use `PdfResourcePolicy.CreatePortableDeterministic()` for reproducible or untrusted conversion and `CreateTrustedHost()` only when local or remote resource access is intentional. Profiles do not inject page numbers; set `IncludePageNumbers = true` explicitly when generated numbering is desired. Request `ToPdfDocumentResult()` or `SaveAsPdfResult()` when diagnostics matter; unsupported Word features and preserved header/footer overflow become actionable operation results instead of mutable option state. Available embeddable Word families use shared named PDF resources and are not limited to three compatibility slots. Unavailable or non-embeddable families fall back to a mapped PDF font with an explicit warning.
+Use `WordPdfExportOptions` when callers need to override page geometry, metadata, page-number behavior, font family, table-border fallback, profile presets, or text fallback policy. `TextFallbacks` uses the shared `PdfTextFallbackFeatures` enum. The balanced resource default enables installed fonts but denies arbitrary local and remote reads; use `PdfResourcePolicy.CreatePortableDeterministic()` for reproducible or untrusted conversion and `CreateTrustedHost()` only when local or remote resource access is intentional. Profiles do not inject page numbers; set `IncludePageNumbers = true` explicitly when generated numbering is desired. Use `ToPdf(options, out report)` or the report returned by `SaveAsPdf()` when diagnostics matter; unsupported Word features and preserved header/footer overflow become actionable operation results instead of mutable option state. Available embeddable Word families use shared named PDF resources and are not limited to three compatibility slots. Unavailable or non-embeddable families fall back to a mapped PDF font with an explicit warning.
 
 ## Current limits
 
@@ -490,7 +432,8 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Convert | 1 | 2 | 0 | 0 | 0 | 0 |
+| Convert | 1 | 0 | 0 | 0 | 0 | 0 |
+| Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Word.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

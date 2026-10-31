@@ -24,8 +24,8 @@ internal static class CommonMarkInventory {
 
     private static CommonMarkInventoryEntry Evaluate(CommonMarkSpecExample example, bool isPinned) {
         try {
-            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(example.Markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
-            string actual = result.Document.ToHtmlFragment(CommonMarkHtmlComparison.CreatePlainHtmlOptions());
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(example.Markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
+            string actual = result.Document.ToHtml(CommonMarkHtmlComparison.CreatePlainHtmlOptions());
             bool matches = CommonMarkHtmlComparison.Normalize(example.Html) == CommonMarkHtmlComparison.Normalize(actual);
 
             return new CommonMarkInventoryEntry(

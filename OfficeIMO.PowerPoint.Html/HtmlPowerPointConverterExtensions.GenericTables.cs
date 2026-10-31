@@ -43,7 +43,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         PowerPointHtmlTableGrid grid,
         IReadOnlyList<double> rowHeights,
         double tableWidth,
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         HtmlToPowerPointOptions options,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
@@ -79,17 +79,16 @@ public static partial class HtmlPowerPointConverterExtensions {
 
             int rows = endRow - nextRow + (includeHeader ? 1 : 0);
             double height = Math.Max(90D, usedHeight);
-            PptCore.PowerPointTable table = slide.AddTablePoints(rows, grid.Columns,
-                64D, contentTop, tableWidth, height);
+            PptCore.PowerPointTable table = slide.AddTable(rows,grid.Columns,                global::OfficeIMO.OfficeLength.Points(64D),global::OfficeIMO.OfficeLength.Points(contentTop),global::OfficeIMO.OfficeLength.Points(tableWidth),global::OfficeIMO.OfficeLength.Points(height));
             int localRow = 0;
             if (includeHeader) {
                 CopyGenericTableRow(table, grid, source, 0, localRow++, options, result);
-                table.SetRowHeightPoints(0, rowHeights[0]);
+                table.SetRowHeight(0,global::OfficeIMO.OfficeLength.Points(rowHeights[0]));
             }
             for (int sourceRow = nextRow; sourceRow < endRow; sourceRow++, localRow++) {
                 CopyGenericTableRow(table, grid, source, sourceRow, localRow, options, result);
                 double padding = localRow == rows - 1 ? height - usedHeight : 0D;
-                table.SetRowHeightPoints(localRow, rowHeights[sourceRow] + padding);
+                table.SetRowHeight(localRow,global::OfficeIMO.OfficeLength.Points(rowHeights[sourceRow] + padding));
             }
             ApplyShapeTransforms(block.SourceElement, table, budget, result);
             result.Tables++;

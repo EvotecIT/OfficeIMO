@@ -27,12 +27,12 @@ public partial class Word {
             ConfigurePartialColumnParagraph(document.AddParagraph(string.Join("\n",
                 Enumerable.Range(1, 12).Select(index => $"Before{index:D3}"))));
             WordSection columns = document.AddSection(WordSectionBreakType.Continuous);
-            columns.ColumnCount=2; columns.ColumnsSpace=400;
-            WordTable table = document.AddTable(1, 1);
-            table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.Drawing.OfficeColor.Black);
-            table.LayoutMode=WordTableLayoutMode.Fixed; table.Width=4000; table.WidthType=WordTableWidthUnit.Dxa;
-            WordTableCell cell=table.Rows[0].Cells[0]; cell.Width=4000; cell.WidthType=WordTableWidthUnit.Dxa;
-            cell.MarginTopWidth=0; cell.MarginBottomWidth=0; cell.MarginLeftWidth=0; cell.MarginRightWidth=0;
+            columns.ColumnCount=2; columns.ColumnsSpace=global::OfficeIMO.OfficeLength.Points(20);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
+            table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, global::OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeColor.Black);
+            table.LayoutMode=WordTableLayoutMode.Fixed; table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4000) * 635)));
+            WordTableCell cell=table.Rows[0].Cells[0]; cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4000) * 635)));
+            cell.MarginTop=global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom=global::OfficeIMO.OfficeLength.Zero; cell.MarginLeft=global::OfficeIMO.OfficeLength.Zero; cell.MarginRight=global::OfficeIMO.OfficeLength.Zero;
             WordParagraph paragraph=cell.Paragraphs[0];
             paragraph.Text=string.Join("\n", Enumerable.Range(1, lines).Select(index => $"Cell{index:D3}"));
             ConfigurePartialColumnParagraph(paragraph); paragraph.KeepLinesTogetherOverride=keepTogether;
@@ -73,9 +73,9 @@ public partial class Word {
     }
 
     private static void ConfigurePartialColumnParagraph(WordParagraph paragraph) {
-        paragraph.FontFamily="Arial"; paragraph.FontSize=12;
-        paragraph.LineSpacing=400; paragraph.LineSpacingRule=WordLineSpacingRule.Exact;
-        paragraph.LineSpacingBeforePoints=0; paragraph.LineSpacingAfterPoints=0;
+        paragraph.FontFamily="Arial"; paragraph.FontSize=global::OfficeIMO.OfficeLength.Points(12);
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(400) * 635)));
+        paragraph.LineSpacingBefore=global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter=global::OfficeIMO.OfficeLength.Zero;
         paragraph.KeepLinesTogetherOverride=false; paragraph.KeepWithNextOverride=false; paragraph.AvoidWidowAndOrphanOverride=false;
     }
 }

@@ -194,13 +194,17 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRendering_SizedSingleSelectWithoutSelectionRendersBlank() {
+    public void HtmlRendering_SizedSingleSelectWithoutSelectionShowsOptionsWithoutSelectingOne() {
         const string html = "<select size='2'><option>First choice</option><option>Second choice</option></select>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
 
-        Assert.DoesNotContain("First choice", rendered.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain("Second choice", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("First choice", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("Second choice", rendered.Text, StringComparison.Ordinal);
+        HtmlRenderFormField field = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderFormField>());
+        Assert.False(field.IsComboBox);
+        Assert.Empty(field.SelectedOptionIndices);
+        Assert.Empty(field.Value);
     }
 
     [Fact]
@@ -268,7 +272,7 @@ public sealed partial class HtmlRenderingTests {
             && diagnostic.Source == "input#child"
             && diagnostic.Detail!.StartsWith("ancestor-clip-path=", StringComparison.Ordinal));
 
-        PdfCore.PdfDocumentConversionResult pdfResult = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(new HtmlToPdfOptions());
+        PdfCore.PdfDocumentConversionResult pdfResult = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(new HtmlToPdfOptions());
         Assert.Empty(pdfResult.Value.Inspect().FormFields);
         Assert.Contains(pdfResult.Report.Warnings, warning =>
             warning.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback
@@ -350,7 +354,7 @@ public sealed partial class HtmlRenderingTests {
             <button>Archive record</button>
             """;
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions());
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions())).ToBytes();
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("Grace Hopper", text, StringComparison.Ordinal);

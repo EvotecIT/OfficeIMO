@@ -12,9 +12,9 @@ First paragraph
 |---|
 | B |
 """;
-            var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+            var options = MarkdownLoadOptions.CreateCommonMarkProfile();
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
             var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
 
             Assert.Equal("First paragraph \\| A \\| \\|---\\| \\| B \\|", paragraph.Inlines.RenderMarkdown());
@@ -27,7 +27,7 @@ First paragraph
 | --- | --- |
 | a \| b | c |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
             Assert.Equal(2, table.Headers.Count);
             Assert.Single(table.Rows);
@@ -42,13 +42,13 @@ First paragraph
 | --- | --- |
 | `a|b` | c |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
             Assert.Equal(2, table.Headers.Count);
             Assert.Single(table.Rows);
             Assert.Equal(2, table.Rows[0].Count);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("<code>a|b</code>", html);
         }
 
@@ -59,7 +59,7 @@ First paragraph
 | --- | --- |
 | `a | b |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
             Assert.Equal(2, table.Headers.Count);
             Assert.Single(table.Rows);
@@ -67,7 +67,7 @@ First paragraph
             Assert.Equal("`a", table.Rows[0][0]);
             Assert.Equal("b", table.Rows[0][1]);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.DoesNotContain("<code>`a</code>", html, StringComparison.Ordinal);
         }
 
@@ -78,15 +78,15 @@ First paragraph
 | --- |
 | {#cell}<br># Cell |
 """;
-            var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+            var options = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
             options.ParseTableCellBlocks = true;
             options.GenericAttributes = true;
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
             var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
             var cell = Assert.Single(Assert.Single(table.BodyRows).Cells);
             var heading = Assert.IsType<HeadingBlock>(Assert.Single(cell.ChildBlocks));
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
 
             Assert.Equal("cell", heading.Attributes.ElementId);
             Assert.Contains("<h1 id=\"cell\">Cell</h1>", html, StringComparison.Ordinal);
@@ -96,15 +96,15 @@ First paragraph
         [Fact]
         public void Standalone_Image_Trailing_GenericAttributes_Parse_Quoted_Braces() {
             const string md = "![alt](img.png){title=\"a}b\"}{width=320}";
-            var options = MarkdownReaderOptions.CreatePortableProfile();
+            var options = MarkdownLoadOptions.CreatePortableProfile();
             options.GenericAttributes = true;
             options.StandaloneImageBlocks = true;
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
             var image = Assert.IsType<ImageBlock>(Assert.Single(doc.Blocks));
 
             Assert.Equal("a}b", image.Attributes.Attributes["title"]);
-            Assert.Equal(320, image.Width);
+            Assert.Equal(320, image.Width?.ToPixels());
             Assert.Contains("{title=\"a}b\"}", doc.ToMarkdown(), StringComparison.Ordinal);
         }
 
@@ -116,15 +116,15 @@ First paragraph
 | --- |
 | B |
 """;
-            var options = MarkdownReaderOptions.CreatePortableProfile();
+            var options = MarkdownLoadOptions.CreatePortableProfile();
             options.GenericAttributes = true;
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
-            var written = doc.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" });
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
+            var written = doc.ToMarkdown(new MarkdownSaveOptions { OutputLineEnding = "\n" });
 
             Assert.Contains("{title=\"a\\|b\"}", written, StringComparison.Ordinal);
 
-            var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, options);
+            var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, options);
             var table = Assert.IsType<TableBlock>(Assert.Single(reparsed.Blocks));
             Assert.Single(table.Headers);
             Assert.Equal("a|b", table.Attributes.Attributes["title"]);
@@ -137,12 +137,12 @@ First paragraph
 | --- |
 | # Visit https://exa_mple.com |
 """;
-            var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+            var options = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
             options.ParseTableCellBlocks = true;
             options.AutolinkRejectUnderscoreInUrlHost = true;
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
             Assert.Contains(">Visit https://exa_mple.com</h1>", html, StringComparison.Ordinal);
             Assert.DoesNotContain("href=\"https://exa_mple.com\"", html, StringComparison.Ordinal);
@@ -155,11 +155,11 @@ First paragraph
 | --- |
 | a. Alpha<br>b. Beta |
 """;
-            var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+            var options = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
             options.ParseTableCellBlocks = true;
             options.ListExtras = true;
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
             var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
             var cell = Assert.Single(Assert.Single(table.BodyRows).Cells);
             var list = Assert.IsType<OrderedListBlock>(Assert.Single(cell.ChildBlocks));
@@ -177,12 +177,12 @@ First paragraph
 | --- |
 | > [!NOTE] Title<br>> body |
 """;
-            var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+            var options = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
             options.ParseTableCellBlocks = true;
             options.Callouts = true;
             options.CalloutTitleMode = MarkdownCalloutTitleMode.MarkdigCompatible;
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
             var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
             var cell = Assert.Single(Assert.Single(table.BodyRows).Cells);
 
@@ -196,10 +196,10 @@ First paragraph
 intro
 a. alpha
 """;
-            var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+            var options = MarkdownLoadOptions.CreateCommonMarkProfile();
             options.ListExtras = true;
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
 
             var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
             var list = Assert.IsType<OrderedListBlock>(doc.Blocks[1]);
@@ -212,10 +212,10 @@ a. alpha
         [Fact]
         public void ListExtras_Ordered_Item_Preserves_Indented_Code_Lead() {
             const string md = "a.     code\n";
-            var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+            var options = MarkdownLoadOptions.CreateCommonMarkProfile();
             options.ListExtras = true;
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
             var list = Assert.IsType<OrderedListBlock>(Assert.Single(doc.Blocks));
             var item = Assert.Single(list.Items);
             var code = Assert.IsType<CodeBlock>(Assert.Single(item.NestedBlocks));
@@ -232,11 +232,11 @@ a. alpha
 body row
 a. alpha
 """;
-            var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+            var options = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
             options.ListExtras = true;
             options.RequireTableBodyRowPipes = false;
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
 
             Assert.Equal(2, doc.Blocks.Count);
             var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
@@ -257,11 +257,11 @@ body row
 inside
 :::
 """;
-            var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+            var options = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
             options.CustomContainers = true;
             options.RequireTableBodyRowPipes = false;
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
 
             Assert.Equal(2, doc.Blocks.Count);
             var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
@@ -280,7 +280,7 @@ inside
 plain text
 """;
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
 
             Assert.IsType<TableBlock>(doc.Blocks[0]);
             var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
@@ -294,7 +294,7 @@ plain text
 | --- | --- |
 | ``a | b |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
             Assert.Equal(2, table.Headers.Count);
             Assert.Single(table.Rows);
@@ -302,7 +302,7 @@ plain text
             Assert.Equal("``a", table.Rows[0][0]);
             Assert.Equal("b", table.Rows[0][1]);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.DoesNotContain("<code>", html, StringComparison.Ordinal);
         }
 
@@ -313,13 +313,13 @@ plain text
 | --- | --- |
 | a | b |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
             Assert.Equal(2, table.HeaderInlines.Count);
             Assert.Single(table.RowInlines);
             Assert.Equal("**H**", table.HeaderInlines[0].RenderMarkdown());
             Assert.Equal("`C`", table.HeaderInlines[1].RenderMarkdown());
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("<th><strong>H</strong></th>", html);
             Assert.Contains("<th><code>C</code></th>", html);
         }
@@ -331,7 +331,7 @@ plain text
 | --- | --- |
 | [a](https://example.com) | b |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
 
             Assert.Collection(table.HeaderCells,
@@ -351,7 +351,7 @@ plain text
 | --- | --- |
 | Alpha | Intro<br><br>> Quoted |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
 
             Assert.Collection(table.RowCells[0][1].ChildBlocks,
@@ -361,7 +361,7 @@ plain text
             var markdown = doc.ToMarkdown().Replace("\r\n", "\n");
             Assert.Contains("Intro<br><br>> Quoted", markdown, StringComparison.Ordinal);
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("<td><p>Intro</p><blockquote><p>Quoted</p></blockquote></td>", html, StringComparison.Ordinal);
         }
 
@@ -372,7 +372,7 @@ plain text
 | --- |
 | First<br>Second |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
 
             var cell = table.RowCells[0][0];
@@ -381,7 +381,7 @@ plain text
             Assert.Contains("First", paragraph.Inlines.RenderMarkdown(), StringComparison.Ordinal);
             Assert.Contains("Second", paragraph.Inlines.RenderMarkdown(), StringComparison.Ordinal);
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("First<br", html, StringComparison.Ordinal);
             Assert.Contains("Second", html, StringComparison.Ordinal);
         }
@@ -393,7 +393,7 @@ plain text
 | --- | --- |
 | Alpha | Intro<br><br>- first<br>- second |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
 
             Assert.Collection(table.RowCells[0][1].ChildBlocks,
@@ -403,7 +403,7 @@ plain text
                     Assert.Equal(new[] { "first", "second" }, list.Items.Select(item => item.Content.RenderMarkdown()).ToArray());
                 });
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("<td><p>Intro</p><ul><li>first</li><li>second</li></ul></td>", html, StringComparison.Ordinal);
         }
 
@@ -414,7 +414,7 @@ plain text
 | --- |
 | - first |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
 
             var list = Assert.IsType<UnorderedListBlock>(Assert.Single(table.RowCells[0][0].ChildBlocks));
@@ -431,14 +431,14 @@ plain text
 | --- |
 | ## Important |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
 
             var heading = Assert.IsType<HeadingBlock>(Assert.Single(table.RowCells[0][0].ChildBlocks));
             Assert.Equal(2, heading.Level);
             Assert.Equal("Important", heading.Text);
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("<td><h2", html, StringComparison.Ordinal);
             Assert.Contains("Important", html, StringComparison.Ordinal);
         }
@@ -450,7 +450,7 @@ plain text
 | --- |
 | <details><summary>More</summary>Alpha</details> |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
 
             var details = Assert.IsType<DetailsBlock>(Assert.Single(table.RowCells[0][0].ChildBlocks));
@@ -458,7 +458,7 @@ plain text
             Assert.Equal("More", details.Summary!.Inlines.RenderMarkdown());
             Assert.Equal("Alpha", Assert.IsType<ParagraphBlock>(Assert.Single(details.ChildBlocks)).Inlines.RenderMarkdown());
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("<details", html, StringComparison.Ordinal);
             Assert.Contains("<summary>More</summary>", html, StringComparison.Ordinal);
             Assert.Contains("<p>Alpha</p>", html, StringComparison.Ordinal);
@@ -471,7 +471,7 @@ plain text
 | --- |
 | > [!NOTE] Important<br>> Body |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
 
             var callout = Assert.IsType<CalloutBlock>(Assert.Single(table.RowCells[0][0].ChildBlocks));
@@ -479,7 +479,7 @@ plain text
             Assert.Equal("Important", callout.TitleInlines.RenderMarkdown());
             Assert.Equal("Body", Assert.IsType<ParagraphBlock>(Assert.Single(callout.ChildBlocks)).Inlines.RenderMarkdown());
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("class=\"callout note\"", html, StringComparison.Ordinal);
             Assert.Contains("<strong>Important</strong>", html, StringComparison.Ordinal);
         }
@@ -491,13 +491,13 @@ plain text
 | --- |
 | <details><summary>More</summary><script>alert(1)</script></details> |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
 
             var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(table.RowCells[0][0].ChildBlocks));
             Assert.Contains("details", paragraph.Inlines.RenderHtml(), StringComparison.Ordinal);
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.DoesNotContain("<script>", html, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("<details", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("details", html, StringComparison.Ordinal);
@@ -510,13 +510,13 @@ plain text
 | --- |
 | <textarea>draft</textarea> |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
 
             var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(table.RowCells[0][0].ChildBlocks));
             Assert.Contains("textarea", paragraph.Inlines.RenderHtml(), StringComparison.Ordinal);
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.DoesNotContain("<textarea", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("&lt;textarea&gt;draft&lt;/textarea&gt;", html, StringComparison.Ordinal);
         }
@@ -528,7 +528,7 @@ plain text
 | --- | --- |
 | Alpha | Intro<br><br>    code line 1<br>    code line 2 |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
 
             Assert.Collection(table.RowCells[0][1].ChildBlocks,
@@ -539,7 +539,7 @@ plain text
                     Assert.Contains("code line 2", code.Content, StringComparison.Ordinal);
                 });
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("<td><p>Intro</p><pre><code>code line 1", html, StringComparison.Ordinal);
             Assert.Contains("code line 2", html, StringComparison.Ordinal);
         }
@@ -553,11 +553,11 @@ plain text
 
 [r]: https://example.com
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
             Assert.Single(table.RowInlines);
             Assert.Equal("[x](https://example.com)", table.RowInlines[0][0].RenderMarkdown());
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("<a href=\"https://example.com\">x</a>", html, StringComparison.Ordinal);
         }
 
@@ -568,7 +568,7 @@ plain text
 | --- |
 | value |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
 
             table.Headers[0] = "**Changed**";
@@ -587,7 +587,7 @@ plain text
 | --- |
 | value |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
 
             table.Headers[0] = "**Changed**";
@@ -605,8 +605,8 @@ plain text
 | --- |
 | [x](file:///c:/test) |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, new MarkdownReaderOptions { DisallowFileUrls = true, HtmlBlocks = false, InlineHtml = false });
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, new MarkdownLoadOptions { DisallowFileUrls = true, HtmlBlocks = false, InlineHtml = false });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.DoesNotContain("file:", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(">x<", html, StringComparison.Ordinal);
         }
@@ -617,7 +617,7 @@ plain text
 a | b
 c | d
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
             Assert.DoesNotContain(doc.Blocks, b => b is TableBlock);
         }
@@ -625,7 +625,7 @@ c | d
         [Fact]
         public void Table_Does_Not_Parse_Single_Explicit_Outer_Pipe_Row_As_Headerless_Table() {
             string md = "| a | b |";
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
             var plainText = new StringBuilder();
             ((IPlainTextMarkdownInline)paragraph.Inlines).AppendPlainText(plainText);
@@ -638,7 +638,7 @@ c | d
 | a | b |
 | c | d |
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
             Assert.Empty(table.Headers);
             Assert.Equal(2, table.Rows.Count);
@@ -648,7 +648,7 @@ c | d
 
         [Fact]
         public void Builder_Paragraph_AutoSpacing_Remains_Convenient() {
-            var doc = MarkdownDoc.Create().P(p => p.Text("Hello").Bold("World"));
+            var doc = MarkdownDocument.Create().P(p => p.Text("Hello").Bold("World"));
             var md = doc.ToMarkdown().Replace("\r", "");
             Assert.Contains("Hello **World**", md);
         }
@@ -661,7 +661,7 @@ c | d
   second paragraph
 - next item
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
             Assert.Single(list.Items[0].AdditionalParagraphs);
@@ -673,7 +673,7 @@ c | d
                 block => Assert.Equal("first paragraph", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
                 block => Assert.Equal("second paragraph", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("<li><p>first paragraph</p><p>second paragraph</p></li>", html);
         }
 
@@ -684,11 +684,11 @@ c | d
 continuation
 """;
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Single(list.Items);
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("<ul><li>item\ncontinuation</li></ul>", html, StringComparison.Ordinal);
         }
 
@@ -699,11 +699,11 @@ continuation
 continuation
 """;
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<OrderedListBlock>(doc.Blocks[0]);
             Assert.Single(list.Items);
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("<ol><li>item\ncontinuation</li></ol>", html, StringComparison.Ordinal);
         }
 
@@ -715,8 +715,8 @@ continuation
      two
 """;
 
-            var html = OfficeIMO.Markdown.MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile())
-                .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = OfficeIMO.Markdown.MarkdownDocument.Parse(md, MarkdownLoadOptions.CreateCommonMarkProfile())
+                .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
             Assert.Equal("<ul><li>one</li></ul><pre><code> two\n</code></pre>", html);
         }
@@ -729,8 +729,8 @@ continuation
       two
 """;
 
-            var html = OfficeIMO.Markdown.MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile())
-                .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = OfficeIMO.Markdown.MarkdownDocument.Parse(md, MarkdownLoadOptions.CreateCommonMarkProfile())
+                .ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
             Assert.Equal("<ul><li><p>one</p><p>two</p></li></ul>", html);
         }
@@ -744,11 +744,11 @@ continuation
 after
 """;
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Single(list.Items);
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("<ul><li><p>item</p><p>code\nafter</p></li></ul>", html, StringComparison.Ordinal);
         }
 
@@ -761,9 +761,9 @@ after
   second paragraph
 """;
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("<ul><li><p>a</p></li><li><p>b</p><p>second paragraph</p></li></ul>", html, StringComparison.Ordinal);
         }
 
@@ -776,9 +776,9 @@ after
     second paragraph
 """;
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("<ol start=\"10\"><li><p>a</p></li><li><p>b</p><p>second paragraph</p></li></ol>", html, StringComparison.Ordinal);
         }
 
@@ -790,13 +790,13 @@ after
   2. two
 - next
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
             Assert.Single(list.Items[0].NestedBlocks);
             Assert.IsType<OrderedListBlock>(list.Items[0].NestedBlocks[0]);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("<li>outer<ol>", html);
         }
 
@@ -808,13 +808,13 @@ after
   - two
 - next
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
             Assert.Single(list.Items[0].NestedBlocks);
             Assert.IsType<UnorderedListBlock>(list.Items[0].NestedBlocks[0]);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("<li>outer<ul><li>one</li><li>two</li></ul></li>", html, StringComparison.Ordinal);
         }
 
@@ -826,13 +826,13 @@ after
    2. two
 2. next
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<OrderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
             Assert.Single(list.Items[0].NestedBlocks);
             Assert.IsType<OrderedListBlock>(list.Items[0].NestedBlocks[0]);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("<li>outer<ol><li>one</li><li>two</li></ol></li>", html, StringComparison.Ordinal);
         }
 
@@ -845,14 +845,14 @@ after
   ```
 - next
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
             Assert.Single(list.Items[0].NestedBlocks);
             var code = Assert.IsType<CodeBlock>(list.Items[0].NestedBlocks[0]);
             Assert.Equal("csharp", code.Language);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("<li>outer<pre><code class=\"language-csharp\">", html);
             Assert.Contains("Console.WriteLine(1);", html);
         }
@@ -866,14 +866,14 @@ after
       line2
 - next
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
             Assert.Single(list.Items[0].NestedBlocks);
             var code = Assert.IsType<CodeBlock>(list.Items[0].NestedBlocks[0]);
             Assert.Contains("line1", code.Content);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("<pre><code>", html);
             Assert.Contains("line1", html);
         }
@@ -886,13 +886,13 @@ after
   > quote 2
 - next
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
             Assert.Single(list.Items[0].NestedBlocks);
             Assert.IsType<QuoteBlock>(list.Items[0].NestedBlocks[0]);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("<blockquote>", html);
             Assert.Contains("quote 1", html);
         }
@@ -906,14 +906,14 @@ after
   > quote 2
 - next
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
             Assert.Single(list.Items[0].NestedBlocks);
             Assert.IsType<QuoteBlock>(list.Items[0].NestedBlocks[0]);
             Assert.True(list.Items[0].ForceLoose);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("<li><p>outer</p><blockquote>", html, StringComparison.Ordinal);
             Assert.Contains("quote 1", html);
         }
@@ -926,13 +926,13 @@ after
   continuation
   - nested
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Single(list.Items);
             Assert.Contains(list.Items[0].NestedBlocks, b => b is QuoteBlock);
             Assert.Contains(list.Items[0].NestedBlocks, b => b is UnorderedListBlock);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("<blockquote><p>quote\ncontinuation</p></blockquote><ul><li>nested</li></ul>", html, StringComparison.Ordinal);
             Assert.DoesNotContain("<p>- nested</p>", html, StringComparison.Ordinal);
         }
@@ -944,12 +944,12 @@ after
   > quote
   continuation
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Single(list.Items);
             var quote = Assert.IsType<QuoteBlock>(list.Items[0].NestedBlocks[0]);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("<li>item<blockquote><p>quote\ncontinuation</p></blockquote></li>", html, StringComparison.Ordinal);
             Assert.Single(quote.ChildBlocks);
         }
@@ -962,12 +962,12 @@ after
   > quote
   continuation
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Single(list.Items);
             var quote = Assert.IsType<QuoteBlock>(list.Items[0].NestedBlocks[0]);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("<blockquote><p>quote\ncontinuation</p></blockquote>", html, StringComparison.Ordinal);
             Assert.Single(quote.ChildBlocks);
         }
@@ -981,14 +981,14 @@ after
   | 1 | 2 |
 - next
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
             Assert.Single(list.Items[0].NestedBlocks);
             var table = Assert.IsType<TableBlock>(list.Items[0].NestedBlocks[0]);
             Assert.Equal(2, table.Headers.Count);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("<table>", html);
             Assert.Contains(">A<", html);
         }
@@ -1003,7 +1003,7 @@ after
   | 1 | 2 |
 - next
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
             Assert.Single(list.Items[0].NestedBlocks);
@@ -1011,7 +1011,7 @@ after
             Assert.Equal(2, table.Headers.Count);
             Assert.True(list.Items[0].ForceLoose);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("<li><p>outer</p><table>", html, StringComparison.Ordinal);
             Assert.Contains(">A<", html);
         }
@@ -1025,7 +1025,7 @@ after
       line2
 - next
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
             Assert.Single(list.Items[0].NestedBlocks);
@@ -1033,7 +1033,7 @@ after
             Assert.Contains("line1", code.Content);
             Assert.True(list.Items[0].ForceLoose);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("<li><p>outer</p><pre><code>", html, StringComparison.Ordinal);
             Assert.Contains("line1", html);
         }
@@ -1046,7 +1046,7 @@ after
 
   trailing
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Single(list.Items);
             Assert.Equal(2, list.Items[0].NestedBlocks.Count);
@@ -1059,7 +1059,7 @@ after
                 block => Assert.Equal("trailing", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
             Assert.True(list.Items[0].ForceLoose);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("<li><p>item</p><blockquote><p>quote</p></blockquote><p>trailing</p></li>", html, StringComparison.Ordinal);
         }
 
@@ -1072,7 +1072,7 @@ after
 
   trailing
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Single(list.Items);
             Assert.Equal(2, list.Items[0].NestedBlocks.Count);
@@ -1085,7 +1085,7 @@ after
                 block => Assert.Equal("trailing", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
             Assert.True(list.Items[0].ForceLoose);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("<li><p>item</p><blockquote><p>quote</p></blockquote><p>trailing</p></li>", html, StringComparison.Ordinal);
         }
 
@@ -1100,13 +1100,13 @@ after
   </details>
 - next
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
             Assert.Contains(list.Items[0].NestedBlocks, b => b is DetailsBlock);
             Assert.Contains(list.Items[0].ChildBlocks, b => b is DetailsBlock);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("<details", html);
             Assert.Contains("<summary>More</summary>", html);
             Assert.Contains("inner", html);
@@ -1119,23 +1119,23 @@ after
   second line
 - next
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("first line second line", html);
         }
 
         [Fact]
         public void Unordered_List_Allows_Tab_Indented_Continuation_Lines() {
             string md = "- first line\n\tsecond line\n- next";
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
             Assert.Empty(list.Items[0].AdditionalParagraphs);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("first line second line", html, StringComparison.Ordinal);
         }
 
@@ -1146,23 +1146,23 @@ after
    second line
 2. next
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<OrderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("first line second line", html);
         }
 
         [Fact]
         public void Ordered_List_Allows_Tab_Indented_Continuation_Lines() {
             string md = "1. first line\n\tsecond line\n2. next";
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<OrderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
             Assert.Empty(list.Items[0].AdditionalParagraphs);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("first line second line", html, StringComparison.Ordinal);
         }
 
@@ -1170,9 +1170,9 @@ after
         [InlineData("- item\n  heading\n  -------", "<ul><li><h2", ">item heading</h2></li></ul>")]
         [InlineData("1. item\n   heading\n   -------", "<ol><li><h2", ">item heading</h2></li></ol>")]
         public void List_Item_Can_Render_Setext_Heading(string md, string expectedPrefix, string expectedSuffix) {
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains(expectedPrefix, html, StringComparison.Ordinal);
             Assert.Contains(expectedSuffix, html, StringComparison.Ordinal);
         }
@@ -1185,9 +1185,9 @@ after
                   -------
                 """;
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("<li><h2 id=\"item-heading\"><strong>item</strong> <code>heading</code></h2></li>", html, StringComparison.Ordinal);
         }
 
@@ -1200,9 +1200,9 @@ after
 
   > quote
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("<li><h2", html, StringComparison.Ordinal);
             Assert.Contains("<blockquote><p>quote</p></blockquote>", html, StringComparison.Ordinal);
             Assert.DoesNotContain("<p></p>", html, StringComparison.Ordinal);
@@ -1217,9 +1217,9 @@ after
   after
 """;
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("<li><h2", html, StringComparison.Ordinal);
             Assert.Contains(">item heading</h2>after</li>", html, StringComparison.Ordinal);
         }
@@ -1234,9 +1234,9 @@ after
   text
 """;
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("<ul><li><p>item</p><h2", html, StringComparison.Ordinal);
             Assert.Contains(">Heading</h2><p>text</p></li></ul>", html, StringComparison.Ordinal);
         }
@@ -1248,12 +1248,12 @@ after
   10. item
       continuation
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Single(list.Items);
             Assert.Empty(list.Items[0].NestedBlocks);
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("<ul><li>outer 10. item continuation</li></ul>", html, StringComparison.Ordinal);
         }
 
@@ -1265,7 +1265,7 @@ after
   10. beta
       gamma
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Single(list.Items);
             var quote = Assert.IsType<QuoteBlock>(list.Items[0].NestedBlocks[0]);
@@ -1274,7 +1274,7 @@ after
             Assert.Single(ordered.Items);
             Assert.Equal("beta gamma", ordered.Items[0].Content.RenderMarkdown());
 
-            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             Assert.Contains("<blockquote><p>alpha</p></blockquote><ol start=\"10\"><li>beta gamma</li></ol>", html, StringComparison.Ordinal);
             Assert.DoesNotContain("<pre><code>", html, StringComparison.Ordinal);
             Assert.Single(quote.ChildBlocks);
@@ -1288,12 +1288,12 @@ after
   c | d
 - next
 """;
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
             Assert.Empty(list.Items[0].NestedBlocks);
 
-            var html = doc.ToHtmlFragment();
+            var html = doc.ToHtml();
             Assert.Contains("a | b c | d", html);
         }
     }

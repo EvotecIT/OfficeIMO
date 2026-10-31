@@ -5,28 +5,28 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    public static byte[] Write(PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) {
+    public static byte[] Write(PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfCreateOptions opts, string? title, string? author, string? subject, string? keywords) {
         return Write(doc, blocks, opts, title, author, subject, keywords, System.Threading.CancellationToken.None);
     }
 
     internal static byte[] Write(
         PdfDocument doc,
         IEnumerable<IPdfBlock> blocks,
-        PdfOptions opts,
+        PdfCreateOptions opts,
         string? title,
         string? author,
         string? subject,
         string? keywords,
         System.Threading.CancellationToken cancellationToken) {
         byte[] bytes = WriteCore(doc, blocks, opts, title, author, subject, keywords, outputStream: null, cancellationToken, out _, out _, out _, out _)!;
-        PdfComplianceValidator.ValidateGeneratedArtifact(opts, bytes, cancellationToken);
+        PdfComplianceValidator.ValidateGeneratedArtifact(opts, bytes, cancellationToken: cancellationToken);
         return bytes;
     }
 
     internal static (byte[] Bytes, PdfGeneratedDocumentComplianceEvidence ComplianceEvidence) WriteComplianceArtifact(
         PdfDocument doc,
         IEnumerable<IPdfBlock> blocks,
-        PdfOptions opts,
+        PdfCreateOptions opts,
         string? title,
         string? author,
         string? subject,
@@ -49,7 +49,7 @@ internal static partial class PdfWriter {
         return (bytes, complianceEvidence);
     }
 
-    public static long Write(Stream destination, PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) {
+    public static long Write(Stream destination, PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfCreateOptions opts, string? title, string? author, string? subject, string? keywords) {
         return Write(destination, doc, blocks, opts, title, author, subject, keywords, System.Threading.CancellationToken.None, out _, out _);
     }
 
@@ -57,7 +57,7 @@ internal static partial class PdfWriter {
         Stream destination,
         PdfDocument doc,
         IEnumerable<IPdfBlock> blocks,
-        PdfOptions opts,
+        PdfCreateOptions opts,
         string? title,
         string? author,
         string? subject,
@@ -81,7 +81,7 @@ internal static partial class PdfWriter {
                 out _,
                 out pageCount,
                 out serializationReport)!;
-            PdfComplianceValidator.ValidateGeneratedArtifact(opts, exactArtifact, cancellationToken);
+            PdfComplianceValidator.ValidateGeneratedArtifact(opts, exactArtifact, cancellationToken: cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             destination.Write(exactArtifact, 0, exactArtifact.Length);
             return exactArtifact.LongLength;
@@ -93,7 +93,7 @@ internal static partial class PdfWriter {
     private static byte[]? WriteCore(
         PdfDocument doc,
         IEnumerable<IPdfBlock> blocks,
-        PdfOptions opts,
+        PdfCreateOptions opts,
         string? title,
         string? author,
         string? subject,
@@ -107,6 +107,7 @@ internal static partial class PdfWriter {
         cancellationToken.ThrowIfCancellationRequested();
         opts.Validate();
         PdfComplianceValidator.ValidateGenerationOptions(opts);
+        ApplyDefaultFontEmbedding(blocks, opts);
         opts.ResetEmbeddedFontProgramUsage();
 
         // Layout blocks into pages and create per-page content streams.
@@ -124,6 +125,7 @@ internal static partial class PdfWriter {
             layout.Pages.SelectMany(page => page.FormFields));
         ValidateEmittedAssociatedFiles(layout, opts, cancellationToken);
         complianceEvidence = CollectGeneratedComplianceEvidence(layout, opts);
+        opts.ReportNonEmbeddedStandardFonts(complianceEvidence.FontUsages);
         PdfComplianceValidator.ValidateGeneratedDocument(opts, title, complianceEvidence);
         PdfFileVersion serializationFileVersion = complianceEvidence.EffectiveFileVersion ?? opts.FileVersion;
         ValidateAssociatedFileMetadata(opts, serializationFileVersion);
@@ -164,17 +166,39 @@ internal static partial class PdfWriter {
         var formFieldIds = new List<int>();
 
         // Collect fonts used across pages
-        var fontObjectIds = new Dictionary<(PdfStandardFont Font, PdfEmbeddedFont? EmbeddedFont, bool IncludeToUnicode, int ShapingContextId), int>();
+        // Embedded faces are keyed by their font bytes, not by mapping instance, so sections that register the same
+        // installed family share one subset instead of writing one per section.
+        var fontObjectIds = new Dictionary<(PdfStandardFont Font, byte[]? EmbeddedFontData, string? EmbeddedFontName, bool SyntheticOblique, bool IncludeToUnicode, int ShapingContextId), int>();
         var shapingContexts = new List<(PdfTextShapingMode Mode, IOfficeTextShapingProvider? Provider, string? Language, OfficeIMO.Drawing.OfficeTextFeatureSettings Features)>();
-        var namedFontObjectIds = new Dictionary<PdfOptions, Dictionary<PdfNamedFontFace, int>>();
-        var formHelveticaFontIds = new Dictionary<PdfOptions, int>();
-        var printColorTransforms = new Dictionary<PdfOptions, PdfPrintColorTransform?>();
-        var pendingFontObjects = new List<(int ObjectId, PdfStandardFont Font, PdfOptions Options)>();
-        var pendingFontOptions = new Dictionary<int, List<PdfOptions>>();
-        var pendingNamedFontObjects = new List<(int ObjectId, PdfNamedFontFace Font, PdfOptions Options)>();
+        var namedFontObjectIds = new Dictionary<PdfCreateOptions, Dictionary<PdfNamedFontFace, int>>();
+        var formHelveticaFontIds = new Dictionary<PdfCreateOptions, int>();
+        var printColorTransforms = new Dictionary<PdfCreateOptions, PdfPrintColorTransform?>();
+        var pendingFontObjects = new List<(int ObjectId, PdfStandardFont Font, PdfCreateOptions Options)>();
+        var pendingFontOptions = new Dictionary<int, List<PdfCreateOptions>>();
+        var pendingNamedFontObjects = new List<(int ObjectId, PdfNamedFontFace Font, PdfCreateOptions Options)>();
+        var pendingNamedFontOptions = new Dictionary<int, List<PdfCreateOptions>>();
+        // A standard slot and a named family can resolve to the same installed face; both then share one subset.
+        var trueTypeFontObjectsByData = new Dictionary<(byte[] Data, int ShapingContextId), int>();
+        var sharedFontUsageSources = new Dictionary<int, List<Func<PdfTrueTypeFontProgram?>>>();
+        static bool IsTrueTypeData(byte[]? data) => data != null && !(data.Length >= 4 && data[0] == 0x4F && data[1] == 0x54 && data[2] == 0x54 && data[3] == 0x4F);
+        void AddSharedUsageSource(int objectId, Func<PdfTrueTypeFontProgram?> source) {
+            if (!sharedFontUsageSources.TryGetValue(objectId, out List<Func<PdfTrueTypeFontProgram?>>? sources))
+                sharedFontUsageSources[objectId] = sources = new List<Func<PdfTrueTypeFontProgram?>>();
+            sources.Add(source);
+        }
+        void MergeSharedFontUsage(int objectId, PdfTrueTypeFontProgram target) {
+            if (!sharedFontUsageSources.TryGetValue(objectId, out List<Func<PdfTrueTypeFontProgram?>>? sources)) return;
+            foreach (Func<PdfTrueTypeFontProgram?> source in sources) {
+                PdfTrueTypeFontProgram? program = source();
+                if (program == null || ReferenceEquals(program, target)) continue;
+                foreach ((int glyphId, string unicodeText) in program.GetUsedGlyphToUnicodeMappings()) target.RecordGlyphUsage(glyphId, unicodeText);
+                target.MergeTextPinsFrom(program);
+            }
+        }
+        var sharedNamedFontObjectIds = new Dictionary<(string FaceKey, byte[]? Data, string? FontName, int ShapingContextId), int>();
         bool requiresPdf16FileVersion = false;
 
-        int GetShapingContextId(PdfOptions fontOptions) {
+        int GetShapingContextId(PdfCreateOptions fontOptions) {
             for (int index = 0; index < shapingContexts.Count; index++) {
                 var context = shapingContexts[index];
                 if (context.Mode == fontOptions.TextShapingModeSnapshot &&
@@ -193,7 +217,7 @@ internal static partial class PdfWriter {
             return shapingContexts.Count;
         }
 
-        PdfPrintColorTransform? GetPrintColorTransform(PdfOptions colorOptions) {
+        PdfPrintColorTransform? GetPrintColorTransform(PdfCreateOptions colorOptions) {
             if (!printColorTransforms.TryGetValue(colorOptions, out PdfPrintColorTransform? transform)) {
                 transform = PdfPrintColorTransform.Create(colorOptions);
                 printColorTransforms[colorOptions] = transform;
@@ -202,34 +226,67 @@ internal static partial class PdfWriter {
             return transform;
         }
 
-        int EnsureFont(PdfStandardFont font, PdfOptions fontOptions) {
+        int EnsureFont(PdfStandardFont font, PdfCreateOptions fontOptions) {
             fontOptions.TryGetEmbeddedStandardFont(font, out PdfEmbeddedFont? embeddedFont);
             var key = (
                 font,
-                embeddedFont,
+                embeddedFont?.DataSnapshot,
+                embeddedFont?.FontName,
+                embeddedFont?.SyntheticOblique == true,
                 IncludeToUnicode: embeddedFont == null && fontOptions.IncludeStandardFontToUnicodeMaps,
                 ShapingContextId: embeddedFont == null ? 0 : GetShapingContextId(fontOptions));
             if (!fontObjectIds.TryGetValue(key, out int id)) {
+                bool shareable = embeddedFont != null && !embeddedFont.SyntheticOblique && IsTrueTypeData(embeddedFont.DataSnapshot);
+                if (shareable && trueTypeFontObjectsByData.TryGetValue((embeddedFont!.DataSnapshot, key.ShapingContextId), out id) &&
+                    !pendingFontOptions.ContainsKey(id)) {
+                    // A named face already owns this font object; record this slot's usage for its subset.
+                    fontObjectIds[key] = id;
+                    PdfStandardFont sharedFont = font;
+                    PdfCreateOptions sharedOptions = fontOptions;
+                    AddSharedUsageSource(id, () => sharedOptions.TryGetEmbeddedStandardFontProgramForGeneration(sharedFont, out _, out PdfTrueTypeFontProgram? program) ? program : null);
+                    return id;
+                }
                 id = ReserveObject(objects);
                 fontObjectIds[key] = id;
                 pendingFontObjects.Add((id, font, fontOptions));
-                pendingFontOptions[id] = new List<PdfOptions> { fontOptions };
-            } else if (!pendingFontOptions[id].Contains(fontOptions)) {
-                pendingFontOptions[id].Add(fontOptions);
+                pendingFontOptions[id] = new List<PdfCreateOptions> { fontOptions };
+                if (shareable) trueTypeFontObjectsByData[(embeddedFont!.DataSnapshot, key.ShapingContextId)] = id;
+            } else if (pendingFontOptions.TryGetValue(id, out List<PdfCreateOptions>? fontOptionsForId)) {
+                if (!fontOptionsForId.Contains(fontOptions)) fontOptionsForId.Add(fontOptions);
+            } else {
+                PdfStandardFont sharedFont = font;
+                PdfCreateOptions sharedOptions = fontOptions;
+                AddSharedUsageSource(id, () => sharedOptions.TryGetEmbeddedStandardFontProgramForGeneration(sharedFont, out _, out PdfTrueTypeFontProgram? program) ? program : null);
             }
             return id;
         }
 
-        int EnsureNamedFont(PdfNamedFontFace font, PdfOptions fontOptions) {
+        int EnsureNamedFont(PdfNamedFontFace font, PdfCreateOptions fontOptions) {
             if (!namedFontObjectIds.TryGetValue(fontOptions, out Dictionary<PdfNamedFontFace, int>? optionFontObjectIds)) {
                 optionFontObjectIds = new Dictionary<PdfNamedFontFace, int>();
                 namedFontObjectIds[fontOptions] = optionFontObjectIds;
             }
 
             if (!optionFontObjectIds.TryGetValue(font, out int id)) {
-                id = ReserveObject(objects);
+                // Sections that resolve the same face to the same font bytes share one subset.
+                fontOptions.TryGetNamedFontData(font, out byte[]? namedData, out string? namedFontName);
+                int shapingContextId = GetShapingContextId(fontOptions);
+                var sharedKey = (font.FaceKey, namedData, namedFontName, shapingContextId);
+                if (namedData != null && sharedNamedFontObjectIds.TryGetValue(sharedKey, out id)) {
+                    pendingNamedFontOptions[id].Add(fontOptions);
+                } else if (IsTrueTypeData(namedData) && trueTypeFontObjectsByData.TryGetValue((namedData!, shapingContextId), out id)) {
+                    // A standard slot or another named family already owns these font bytes.
+                    PdfNamedFontFace sharedFace = font;
+                    PdfCreateOptions sharedOptions = fontOptions;
+                    AddSharedUsageSource(id, () => sharedOptions.TryGetNamedFontProgramForGeneration(sharedFace, out PdfTrueTypeFontProgram? program) ? program : null);
+                } else {
+                    id = ReserveObject(objects);
+                    pendingNamedFontObjects.Add((id, font, fontOptions));
+                    pendingNamedFontOptions[id] = new List<PdfCreateOptions> { fontOptions };
+                    if (namedData != null) sharedNamedFontObjectIds[sharedKey] = id;
+                    if (IsTrueTypeData(namedData)) trueTypeFontObjectsByData[(namedData!, shapingContextId)] = id;
+                }
                 optionFontObjectIds[font] = id;
-                pendingNamedFontObjects.Add((id, font, fontOptions));
             }
 
             return id;
@@ -241,7 +298,7 @@ internal static partial class PdfWriter {
             foreach (var pendingFont in pendingFontObjects) {
                 if (pendingFont.Options.TryGetEmbeddedStandardFontProgramForGeneration(pendingFont.Font, out PdfEmbeddedFont? _, out PdfTrueTypeFontProgram? fontProgram) &&
                     fontProgram != null) {
-                    foreach (PdfOptions otherOptions in pendingFontOptions[pendingFont.ObjectId]) {
+                    foreach (PdfCreateOptions otherOptions in pendingFontOptions[pendingFont.ObjectId]) {
                         if (ReferenceEquals(otherOptions, pendingFont.Options) ||
                             !otherOptions.TryGetEmbeddedStandardFontProgramForGeneration(pendingFont.Font, out _, out PdfTrueTypeFontProgram? otherProgram) ||
                             otherProgram == null ||
@@ -249,12 +306,13 @@ internal static partial class PdfWriter {
                             continue;
                         }
 
-                        foreach ((int glyphId, string unicodeText) in otherProgram.GetGlyphToUnicodeMappings()) {
+                        foreach ((int glyphId, string unicodeText) in otherProgram.GetUsedGlyphToUnicodeMappings()) {
                             fontProgram.RecordGlyphUsage(glyphId, unicodeText);
                         }
                         fontProgram.MergeTextPinsFrom(otherProgram);
                     }
 
+                    MergeSharedFontUsage(pendingFont.ObjectId, fontProgram);
                     int fontFileId = AddTrueTypeFontFileObject(objects, fontProgram, opts.CompressEmbeddedFonts,
                         pendingFont.Options, "embedded-font:" + pendingFont.Font, cancellationToken);
                     int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildTrueTypeFontDescriptorObject(fontProgram, fontFileId));
@@ -268,7 +326,7 @@ internal static partial class PdfWriter {
                     MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, fontProgram.SubsetFontName, descriptorId, trueType: true);
                 } else if (pendingFont.Options.TryGetEmbeddedStandardOpenTypeCffFontProgramForGeneration(pendingFont.Font, out PdfEmbeddedFont? _, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
                     cffFontProgram != null) {
-                    foreach (PdfOptions otherOptions in pendingFontOptions[pendingFont.ObjectId]) {
+                    foreach (PdfCreateOptions otherOptions in pendingFontOptions[pendingFont.ObjectId]) {
                         if (ReferenceEquals(otherOptions, pendingFont.Options) ||
                             !otherOptions.TryGetEmbeddedStandardOpenTypeCffFontProgramForGeneration(pendingFont.Font, out _, out PdfOpenTypeCffFontProgram? otherProgram) ||
                             otherProgram == null ||
@@ -276,7 +334,7 @@ internal static partial class PdfWriter {
                             continue;
                         }
 
-                        foreach ((int glyphId, string unicodeText) in otherProgram.GetGlyphToUnicodeMappings()) {
+                        foreach ((int glyphId, string unicodeText) in otherProgram.GetUsedGlyphToUnicodeMappings()) {
                             cffFontProgram.RecordGlyphUsage(glyphId, unicodeText);
                         }
                         cffFontProgram.MergeTextPinsFrom(otherProgram);
@@ -308,6 +366,15 @@ internal static partial class PdfWriter {
             foreach (var pendingFont in pendingNamedFontObjects) {
                 if (pendingFont.Options.TryGetNamedFontProgramForGeneration(pendingFont.Font, out PdfTrueTypeFontProgram? fontProgram) &&
                     fontProgram != null) {
+                    foreach (PdfCreateOptions otherOptions in pendingNamedFontOptions[pendingFont.ObjectId]) {
+                        if (ReferenceEquals(otherOptions, pendingFont.Options) ||
+                            !otherOptions.TryGetNamedFontProgramForGeneration(pendingFont.Font, out PdfTrueTypeFontProgram? otherProgram) ||
+                            otherProgram == null || ReferenceEquals(otherProgram, fontProgram)) continue;
+                        foreach ((int glyphId, string unicodeText) in otherProgram.GetUsedGlyphToUnicodeMappings())
+                            fontProgram.RecordGlyphUsage(glyphId, unicodeText);
+                        fontProgram.MergeTextPinsFrom(otherProgram);
+                    }
+                    MergeSharedFontUsage(pendingFont.ObjectId, fontProgram);
                     int fontFileId = AddTrueTypeFontFileObject(objects, fontProgram, opts.CompressEmbeddedFonts,
                         pendingFont.Options, "named-font:" + pendingFont.Font.FaceKey, cancellationToken);
                     int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildTrueTypeFontDescriptorObject(fontProgram, fontFileId));
@@ -321,6 +388,14 @@ internal static partial class PdfWriter {
                 } else if (pendingFont.Options.TryGetNamedOpenTypeCffFontProgramForGeneration(pendingFont.Font, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
                            cffFontProgram != null) {
                     requiresPdf16FileVersion = true;
+                    foreach (PdfCreateOptions otherOptions in pendingNamedFontOptions[pendingFont.ObjectId]) {
+                        if (ReferenceEquals(otherOptions, pendingFont.Options) ||
+                            !otherOptions.TryGetNamedOpenTypeCffFontProgramForGeneration(pendingFont.Font, out PdfOpenTypeCffFontProgram? otherProgram) ||
+                            otherProgram == null || ReferenceEquals(otherProgram, cffFontProgram)) continue;
+                        foreach ((int glyphId, string unicodeText) in otherProgram.GetUsedGlyphToUnicodeMappings())
+                            cffFontProgram.RecordGlyphUsage(glyphId, unicodeText);
+                        cffFontProgram.MergeTextPinsFrom(otherProgram);
+                    }
                     PdfOpenTypeCffCompactFontFile compactFontFile = cffFontProgram.BuildCompactOpenTypeFontFilePlan(allowCidKeyedCff: true);
                     pendingFont.Options.AddFontDiagnostics(
                         PdfStandardFont.Helvetica,
@@ -339,7 +414,7 @@ internal static partial class PdfWriter {
             }
         }
 
-        int EnsureFormHelveticaFont(PdfOptions formOptions) {
+        int EnsureFormHelveticaFont(PdfCreateOptions formOptions) {
             if (!formHelveticaFontIds.TryGetValue(formOptions, out int formHelveticaFontId)) {
                 formHelveticaFontId = ShouldUseEmbeddedFormHelveticaFont(formOptions)
                     ? EnsureFont(PdfStandardFont.Helvetica, formOptions)
@@ -350,7 +425,7 @@ internal static partial class PdfWriter {
             return formHelveticaFontId;
         }
 
-        bool ShouldUseEmbeddedFormHelveticaFont(PdfOptions formOptions) =>
+        bool ShouldUseEmbeddedFormHelveticaFont(PdfCreateOptions formOptions) =>
             (formOptions.TryGetEmbeddedStandardFontProgram(PdfStandardFont.Helvetica, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) ||
             (formOptions.TryGetEmbeddedStandardOpenTypeCffFontProgram(PdfStandardFont.Helvetica, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
@@ -522,7 +597,7 @@ internal static partial class PdfWriter {
             if (pageBorder != null && pageBorder.Opacity > 0D && pageBorder.Opacity < 1D) {
                 pageBorderGraphicsStateName = EnsureHeaderFooterGraphicsState(page, 1D, pageBorder.Opacity);
             }
-            string pageBackgroundShapeContent = BuildPageBackgroundShapes(page, pageOpts.PageBackgroundShapeSnapshots);
+            string pageBackgroundShapeContent = BuildPageBackgroundShapes(page, pageOpts.PageBackgroundShapeSnapshots, pageIndex == 0);
             void EnsurePageNamedFontResource(PdfNamedFontFace font) {
                 pageNamedFontResources[font] = font.ResourceName;
                 EnsureNamedFont(font, pageOpts);
@@ -536,7 +611,7 @@ internal static partial class PdfWriter {
                 } else {
                     headerFontAlias = EnsurePageFontResource(pageOpts.HeaderFont, "F5");
                 }
-                EnsurePageTextFontResources(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, pageOpts.HeaderFontSize, isHeader: true, EnsurePageFontResource, EnsurePageNamedFontResource);
+                EnsurePageTextFontResources(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, pageOpts.HeaderFontSize.ToPoints(), isHeader: true, EnsurePageFontResource, EnsurePageNamedFontResource);
             }
             string? footerFontAlias = null;
             if (pageOpts.HasFooterTextContentForPage(headerFooterVariantPageNumber)) {
@@ -546,7 +621,7 @@ internal static partial class PdfWriter {
                 } else {
                     footerFontAlias = EnsurePageFontResource(pageOpts.FooterFont, "F6");
                 }
-                EnsurePageTextFontResources(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, pageOpts.FooterFontSize, isHeader: false, EnsurePageFontResource, EnsurePageNamedFontResource);
+                EnsurePageTextFontResources(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, pageOpts.FooterFontSize.ToPoints(), isHeader: false, EnsurePageFontResource, EnsurePageNamedFontResource);
             }
 
             string headerFooterShapeContent = BuildHeaderFooterShapes(
@@ -724,10 +799,12 @@ internal static partial class PdfWriter {
 
             if (markInfo) AssignStructParentIndex(page, ref nextStructParentIndex);
 
-            string pageBackgroundContent = BuildPageBackground(page, pageOpts, pageBackgroundShapeContent, textWatermark, watermarkFontAlias, pageFontResources, textWatermarkGraphicsStateName, pageBorder, pageBorderGraphicsStateName, markInfo);
             PdfPrintColorTransform? pageColorTransform = pageOpts.ConvertVectorColorsToPdfXPrintCondition
                 ? GetPrintColorTransform(pageOpts)
                 : null;
+            string? textWatermarkXObject = CreateTextWatermarkGroup(objects, pageOpts, textWatermark,
+                watermarkFontAlias, pageFontResources, fontResources, xobjects, pageColorTransform, cancellationToken);
+            string pageBackgroundContent = BuildPageBackground(page, pageOpts, pageBackgroundShapeContent, textWatermark, watermarkFontAlias, pageFontResources, textWatermarkGraphicsStateName, pageBorder, pageBorderGraphicsStateName, markInfo, textWatermarkXObject);
             bool flattenVisualAnnotations = opts.FlattenVisualAnnotations;
 
             byte[] contentBytes;
@@ -776,7 +853,7 @@ internal static partial class PdfWriter {
                         StringBuilder target = img.IsForeground ? foregroundImages : sbImgs;
                         AppendPageImageDraw(target, img);
                         if (img.DebugBox) {
-                            DrawRowRect(target, new PdfColor(1D, 0D, 1D), 0.6D, img.X, img.Y, img.W, img.H, markInfo);
+                            DrawRowRect(target, global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0D, 1D), 0.6D, img.X, img.Y, img.W, img.H, markInfo);
                         }
                     }
 
@@ -1116,8 +1193,8 @@ internal static partial class PdfWriter {
             int pageId = AddObject(objects,
                 PdfPageDictionaryBuilder.BuildGeneratedPageDictionary(
                     pagesId,
-                    pageOpts.PageWidth,
-                    pageOpts.PageHeight,
+                    pageOpts.PageWidth.ToPoints(),
+                    pageOpts.PageHeight.ToPoints(),
                     contentId,
                     usedFontResources,
                     usedXObjectResources,
@@ -1217,14 +1294,14 @@ internal static partial class PdfWriter {
                 var layoutLabels = new List<PdfPageLabelRange>();
                 for (int index = 0; index < pageNumberInfos.Count; index++) {
                     int number = pageNumberInfos[index].PageNumber;
-                    PdfOptions pageOptions = layout.Pages[index].Options;
+                    PdfCreateOptions pageOptions = layout.Pages[index].Options;
                     PdfPageNumberStyle style = pageOptions.LayoutPageNumberStyle ?? PdfPageNumberStyle.Arabic;
                     bool unsupported = pageOptions.LayoutPageNumberStyleUnsupported;
                     if (index == 0 || number != pageNumberInfos[index - 1].PageNumber + 1
                         || style != (layout.Pages[index - 1].Options.LayoutPageNumberStyle ?? PdfPageNumberStyle.Arabic)
                         || unsupported != layout.Pages[index - 1].Options.LayoutPageNumberStyleUnsupported) {
                         layoutLabels.Add(new PdfPageLabelRange(index + 1, style, number,
-                            unsupported ? PdfOptions.UnsupportedLayoutPageNumberPrefix : null));
+                            unsupported ? PdfCreateOptions.UnsupportedLayoutPageNumberPrefix : null));
                     }
                 }
                 pageLabelsId = AddObject(objects, PdfPageLabelDictionaryBuilder.BuildGeneratedPageLabelsDictionary(layoutLabels));
@@ -1384,7 +1461,7 @@ internal static partial class PdfWriter {
     private static PdfSerializationReport CreateSerializationReport(
         LayoutResult layout,
         PdfFileAssemblyBufferEvidence bufferEvidence,
-        PdfOptions options,
+        PdfCreateOptions options,
         int pageCount,
         long bytesWritten,
         bool finalArtifactBuffered) =>
@@ -1571,14 +1648,14 @@ internal static partial class PdfWriter {
         return false;
     }
 
-    private static string BuildPageBackground(LayoutResult.Page page, PdfOptions options, string pageBackgroundShapeContent, PdfTextWatermark? watermark, string? watermarkFontAlias, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, string? textWatermarkGraphicsStateName, PdfPageBorder? pageBorder, string? pageBorderGraphicsStateName, bool markDecorativeArtifacts) {
+    private static string BuildPageBackground(LayoutResult.Page page, PdfCreateOptions options, string pageBackgroundShapeContent, PdfTextWatermark? watermark, string? watermarkFontAlias, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, string? textWatermarkGraphicsStateName, PdfPageBorder? pageBorder, string? pageBorderGraphicsStateName, bool markDecorativeArtifacts, string? textWatermarkXObject) {
         var sb = new StringBuilder();
         if (options.BackgroundColor.HasValue) {
             var backgroundColor = new StringBuilder();
             new ContentStreamBuilder(backgroundColor)
                 .SaveState()
                 .FillColor(options.BackgroundColor.Value)
-                .Rectangle(0, 0, options.PageWidth, options.PageHeight)
+                .Rectangle(0, 0, options.PageWidth.ToPoints(), options.PageHeight.ToPoints())
                 .FillPath()
                 .RestoreState();
             sb.Append(WrapArtifactContent(backgroundColor.ToString(), markDecorativeArtifacts));
@@ -1594,7 +1671,13 @@ internal static partial class PdfWriter {
 
         if (watermark != null && watermark.Opacity > 0D && !string.IsNullOrEmpty(watermarkFontAlias)) {
             var watermarkContent = new StringBuilder();
-            AppendTextWatermark(watermarkContent, options, watermark, watermarkFontAlias!, fontResources, textWatermarkGraphicsStateName);
+            if (textWatermarkXObject != null) {
+                var content = new ContentStreamBuilder(watermarkContent).SaveState();
+                if (!string.IsNullOrEmpty(textWatermarkGraphicsStateName)) content.GraphicsState(textWatermarkGraphicsStateName!);
+                content.XObject(textWatermarkXObject).RestoreState();
+            } else {
+                AppendTextWatermark(watermarkContent, options, watermark, watermarkFontAlias!, fontResources, textWatermarkGraphicsStateName);
+            }
             sb.Append(WrapArtifactContent(watermarkContent.ToString(), markDecorativeArtifacts));
         }
 
@@ -1706,26 +1789,27 @@ internal static partial class PdfWriter {
         return result;
     }
 
-    private static string BuildPageBackgroundShapes(LayoutResult.Page page, System.Collections.Generic.IReadOnlyList<PdfPageBackgroundShape> shapes) {
+    private static string BuildPageBackgroundShapes(LayoutResult.Page page, System.Collections.Generic.IReadOnlyList<PdfPageBackgroundShape> shapes, bool isFirstPage) {
         if (shapes.Count == 0) {
             return string.Empty;
         }
 
         var sb = new StringBuilder();
         foreach (PdfPageBackgroundShape backgroundShape in shapes) {
+            if (backgroundShape.FirstPageOnly && !isFirstPage) continue;
             OfficeIMO.Drawing.OfficeShape shape = backgroundShape.Shape;
-            DrawHeaderFooterShapeGeometryAt(sb, page, shape, backgroundShape.X, backgroundShape.Y);
+            DrawHeaderFooterShapeGeometryAt(sb, page, shape, backgroundShape.X.ToPoints(), backgroundShape.Y.ToPoints());
         }
 
         return sb.ToString();
     }
 
-    private static void AppendPageBorder(StringBuilder sb, PdfOptions options, PdfPageBorder border, string? graphicsStateName) {
-        double inset = border.Inset;
+    private static void AppendPageBorder(StringBuilder sb, PdfCreateOptions options, PdfPageBorder border, string? graphicsStateName) {
+        double inset = border.Inset.ToPoints();
         double pathX = inset;
         double pathY = inset;
-        double pathWidth = options.PageWidth - (inset * 2D);
-        double pathHeight = options.PageHeight - (inset * 2D);
+        double pathWidth = options.PageWidth.ToPoints() - (inset * 2D);
+        double pathHeight = options.PageHeight.ToPoints() - (inset * 2D);
         if (pathWidth <= 0D || pathHeight <= 0D || double.IsNaN(pathWidth) || double.IsInfinity(pathWidth) || double.IsNaN(pathHeight) || double.IsInfinity(pathHeight)) {
             throw new ArgumentException("PDF page border inset must leave a positive border rectangle.");
         }
@@ -1738,24 +1822,24 @@ internal static partial class PdfWriter {
 
         content
             .StrokeColor(border.Color)
-            .LineWidth(border.Width);
-        ApplyStrokeStyle(content, border.DashStyle, border.Width, strokeLineCap: null, strokeLineJoin: null);
+            .LineWidth(border.Width.ToPoints());
+        ApplyStrokeStyle(content, border.DashStyle, border.Width.ToPoints(), strokeLineCap: null, strokeLineJoin: null);
         content
             .Rectangle(pathX, pathY, pathWidth, pathHeight)
             .StrokePath()
             .RestoreState();
     }
 
-    private static void AddPageBackgroundImage(LayoutResult.Page page, PdfOptions options, PdfPageBackgroundImage image) {
-        double imageWidth = image.ImageInfo.Width > 0 ? image.ImageInfo.Width : options.PageWidth;
-        double imageHeight = image.ImageInfo.Height > 0 ? image.ImageInfo.Height : options.PageHeight;
+    private static void AddPageBackgroundImage(LayoutResult.Page page, PdfCreateOptions options, PdfPageBackgroundImage image) {
+        double imageWidth = image.ImageInfo.Width > 0 ? image.ImageInfo.Width : options.PageWidth.ToPoints();
+        double imageHeight = image.ImageInfo.Height > 0 ? image.ImageInfo.Height : options.PageHeight.ToPoints();
         OfficeImageRenderPlan renderPlan = OfficeImageRenderPlan.CreateBottomLeft(
             imageWidth,
             imageHeight,
             0D,
             0D,
-            options.PageWidth,
-            options.PageHeight,
+            options.PageWidth.ToPoints(),
+            options.PageHeight.ToPoints(),
             image.Fit);
         string? stateName = image.Opacity < 1D
             ? EnsureHeaderFooterGraphicsState(page, image.Opacity, image.Opacity)
@@ -1775,9 +1859,9 @@ internal static partial class PdfWriter {
         });
     }
 
-    private static void AddImageWatermark(LayoutResult.Page page, PdfOptions options, PdfImageWatermark watermark) {
-        double x = (options.PageWidth - watermark.Width) / 2D;
-        double y = (options.PageHeight - watermark.Height) / 2D;
+    private static void AddImageWatermark(LayoutResult.Page page, PdfCreateOptions options, PdfImageWatermark watermark) {
+        double x = (options.PageWidth.ToPoints() - watermark.Width.ToPoints()) / 2D;
+        double y = (options.PageHeight.ToPoints() - watermark.Height.ToPoints()) / 2D;
         string? stateName = watermark.Opacity < 1D
             ? EnsureHeaderFooterGraphicsState(page, watermark.Opacity, watermark.Opacity)
             : null;
@@ -1788,108 +1872,13 @@ internal static partial class PdfWriter {
             PreparedStream = watermark.PreparedStream,
             X = x,
             Y = y,
-            W = watermark.Width,
-            H = watermark.Height,
+            W = watermark.Width.ToPoints(),
+            H = watermark.Height.ToPoints(),
             IsBackgroundDecoration = true,
             Opacity = watermark.Opacity,
             RotationAngle = watermark.RotationAngle,
             GraphicsStateName = stateName
         });
-    }
-
-    private static void EnsureTextWatermarkFontResources(PdfTextWatermark watermark, PdfOptions options, Func<PdfStandardFont, string, string> ensureFontResource) {
-        PdfStandardFont baseFont = ChooseNormal(watermark.Font);
-        PdfStandardFont normalFont = ChooseNormal(options.DefaultFont);
-        System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildTextWatermarkRuns(watermark, options);
-        foreach (PdfTextRun run in runs) {
-            PdfStandardFont runFont = ResolvePageTextRunFont(run, baseFont);
-            ensureFontResource(runFont, GetStandardFontResourceName(runFont, normalFont));
-        }
-    }
-
-    private static void AppendTextWatermark(StringBuilder sb, PdfOptions options, PdfTextWatermark watermark, string fontAlias, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, string? graphicsStateName) {
-        PdfStandardFont baseFont = ChooseNormal(watermark.Font);
-        System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildTextWatermarkRuns(watermark, options);
-        double textWidth = MeasureTextWatermarkRuns(runs, baseFont, watermark.FontSize, options);
-        double angle = watermark.RotationAngle * System.Math.PI / 180D;
-        double cos = System.Math.Cos(angle);
-        double sin = System.Math.Sin(angle);
-        double centerX = options.PageWidth / 2D;
-        double centerY = options.PageHeight / 2D;
-        double originX = centerX - cos * textWidth / 2D + sin * watermark.FontSize / 2D;
-        double originY = centerY - sin * textWidth / 2D - cos * watermark.FontSize / 2D;
-
-        var content = new ContentStreamBuilder(sb)
-            .SaveState();
-        if (!string.IsNullOrEmpty(graphicsStateName)) {
-            content.GraphicsState(graphicsStateName!);
-        }
-
-        content
-            .BeginText()
-            .Font(fontAlias, watermark.FontSize, options.NeedsSyntheticOblique(baseFont))
-            .FillColor(watermark.Color)
-            .TextMatrix(cos, sin, -sin, cos, originX, originY);
-        // Keep logical replacement inside the text object so redaction of the
-        // watermark removes the visible glyphs and their extraction text together.
-        sb.Append("/Span << /ActualText ").Append(PdfSyntaxEscaper.TextString(watermark.Text)).Append(" >> BDC\n");
-        foreach (PdfTextRun run in runs) {
-            string text = run.Text ?? string.Empty;
-            if (text.Length == 0) {
-                continue;
-            }
-
-            PdfStandardFont runFont = ResolvePageTextRunFont(run, baseFont);
-            string runFontResource = ResolvePageTextFontResource(fontResources, runFont);
-            double runFontSize = run.FontSize ?? watermark.FontSize;
-            content
-                .Font(runFontResource, runFontSize, options.NeedsSyntheticOblique(runFont))
-                .ShowText(EncodeTextShowCommand(text, runFont, options), runFontSize, suppressActualText: true);
-        }
-
-        sb.Append("EMC\n");
-        content.EndText();
-        content.RestoreState();
-    }
-
-    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> BuildTextWatermarkRuns(PdfTextWatermark watermark, PdfOptions options) {
-        PdfStandardFont baseFont = ChooseNormal(watermark.Font);
-        var run = new PdfTextRun(
-            watermark.Text,
-            bold: watermark.Bold,
-            underline: false,
-            color: watermark.Color,
-            italic: watermark.Italic,
-            strike: false,
-            fontSize: watermark.FontSize,
-            font: baseFont);
-        return NormalizeFallbackRuns(new[] { run }, baseFont, options);
-    }
-
-    private static double MeasureTextWatermarkRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfOptions options) {
-        double width = 0D;
-        foreach (PdfTextRun run in runs) {
-            width += MeasureRichText(run.Text ?? string.Empty, ResolvePageTextRunFont(run, baseFont), run.FontSize ?? fontSize, run.Baseline, options);
-        }
-
-        return width;
-    }
-
-    private static PdfStandardFont GetTextWatermarkFont(PdfTextWatermark watermark) {
-        PdfStandardFont normal = ChooseNormal(watermark.Font);
-        if (watermark.Bold && watermark.Italic) {
-            return ChooseBoldItalic(normal);
-        }
-
-        if (watermark.Bold) {
-            return ChooseBold(normal);
-        }
-
-        if (watermark.Italic) {
-            return ChooseItalic(normal);
-        }
-
-        return normal;
     }
 
     private static List<PageNumberInfo> BuildPageNumberInfos(IReadOnlyList<LayoutResult.Page> pages) {
@@ -2119,4 +2108,15 @@ internal static partial class PdfWriter {
         && (node.OutlineState == PdfOutlineState.Open
             || node.OutlineState == PdfOutlineState.Default && node.Level <= outlineExpansionLevel);
 
+}
+
+internal static partial class PdfWriter {
+    // Native documents and section presentations resolve their default fonts before layout measures text.
+    private static void ApplyDefaultFontEmbedding(IEnumerable<IPdfBlock> blocks, PdfCreateOptions opts) {
+        opts.ApplyDefaultFontEmbedding();
+        foreach (IPdfBlock block in blocks) {
+            if (block is PageBlock page) page.Options.ApplyDefaultFontEmbedding();
+            else if (block is RunningContentSectionBlock section) section.ContinuationOptions?.ApplyDefaultFontEmbedding();
+        }
+    }
 }

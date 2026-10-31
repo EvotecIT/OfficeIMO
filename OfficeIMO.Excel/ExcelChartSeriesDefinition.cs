@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Creates a series definition that maps values from the source items.
         /// </summary>
-        public ExcelChartSeriesDefinition(string name, Func<T, double> valueSelector, ExcelChartType? chartType = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
+        public ExcelChartSeriesDefinition(string name, Func<T, double> valueSelector, OfficeChartType? chartType = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             Name = name ?? string.Empty;
             ValueSelector = valueSelector ?? throw new ArgumentNullException(nameof(valueSelector));
             ChartType = chartType;
@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the optional chart type override for this series.
         /// </summary>
-        public ExcelChartType? ChartType { get; }
+        public OfficeChartType? ChartType { get; }
 
         /// <summary>
         /// Gets the axis group for this series.

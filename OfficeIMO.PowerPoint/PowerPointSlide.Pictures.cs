@@ -9,8 +9,12 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds an image from the given file path.
         /// </summary>
-        public PowerPointPicture AddPicture(string imagePath, long left = 0L, long top = 0L, long width = 914400L,
-            long height = 914400L) {
+        public PowerPointPicture AddImage(string imagePath, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null,
+            OfficeLength? height = null) {
+            long nativeLeft = (left ?? OfficeLength.Emus(0L)).ToEmus();
+            long nativeTop = (top ?? OfficeLength.Emus(0L)).ToEmus();
+            long nativeWidth = (width ?? OfficeLength.Emus(914400L)).ToEmus();
+            long nativeHeight = (height ?? OfficeLength.Emus(914400L)).ToEmus();
             if (imagePath == null) {
                 throw new ArgumentNullException(nameof(imagePath));
             }
@@ -18,10 +22,10 @@ namespace OfficeIMO.PowerPoint {
             if (!File.Exists(imagePath)) {
                 throw new FileNotFoundException("Image file not found.", imagePath);
             }
-            if (width <= 0) {
+            if (nativeWidth <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(width));
             }
-            if (height <= 0) {
+            if (nativeHeight <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(height));
             }
 
@@ -55,7 +59,7 @@ namespace OfficeIMO.PowerPoint {
                     new A.Stretch(new A.FillRectangle())
                 ),
                 new ShapeProperties(
-                    new A.Transform2D(new A.Offset { X = left, Y = top }, new A.Extents { Cx = width, Cy = height }),
+                    new A.Transform2D(new A.Offset { X = nativeLeft, Y = nativeTop }, new A.Extents { Cx = nativeWidth, Cy = nativeHeight }),
                     new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }
                 )
             );
@@ -64,6 +68,8 @@ namespace OfficeIMO.PowerPoint {
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(picture);
             PowerPointPicture pic = TrackShape(new PowerPointPicture(picture, _slidePart));
+            // Keep the image's own aspect ratio inside the requested box instead of stretching it.
+            pic.ContainInFrame();
             return pic;
         }
 
@@ -72,22 +78,26 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="image">Stream containing the image data.</param>
         /// <param name="imageType">Image format of the stream.</param>
-        /// <param name="left">Left position in EMUs.</param>
-        /// <param name="top">Top position in EMUs.</param>
-        /// <param name="width">Width in EMUs.</param>
-        /// <param name="height">Height in EMUs.</param>
-        public PowerPointPicture AddPicture(Stream image, OfficeIMO.Drawing.OfficeImageFormat imageType, long left = 0L, long top = 0L,
-            long width = 914400L, long height = 914400L) {
+        /// <param name="left">Left position as a physical length.</param>
+        /// <param name="top">Top position as a physical length.</param>
+        /// <param name="width">Width as a physical length.</param>
+        /// <param name="height">Height as a physical length.</param>
+        public PowerPointPicture AddImage(Stream image,OfficeIMO.Drawing.OfficeImageFormat imageType, OfficeLength? left = null, OfficeLength? top = null,
+            OfficeLength? width = null, OfficeLength? height = null) {
+            long nativeLeft = (left ?? OfficeLength.Emus(0L)).ToEmus();
+            long nativeTop = (top ?? OfficeLength.Emus(0L)).ToEmus();
+            long nativeWidth = (width ?? OfficeLength.Emus(914400L)).ToEmus();
+            long nativeHeight = (height ?? OfficeLength.Emus(914400L)).ToEmus();
             if (image == null) {
                 throw new ArgumentNullException(nameof(image));
             }
             if (!image.CanRead) {
                 throw new ArgumentException("Image stream must be readable.", nameof(image));
             }
-            if (width <= 0) {
+            if (nativeWidth <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(width));
             }
-            if (height <= 0) {
+            if (nativeHeight <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(height));
             }
 
@@ -122,7 +132,7 @@ namespace OfficeIMO.PowerPoint {
                     new A.Stretch(new A.FillRectangle())
                 ),
                 new ShapeProperties(
-                    new A.Transform2D(new A.Offset { X = left, Y = top }, new A.Extents { Cx = width, Cy = height }),
+                    new A.Transform2D(new A.Offset { X = nativeLeft, Y = nativeTop }, new A.Extents { Cx = nativeWidth, Cy = nativeHeight }),
                     new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }
                 )
             );
@@ -131,93 +141,23 @@ namespace OfficeIMO.PowerPoint {
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(picture);
             PowerPointPicture pic = TrackShape(new PowerPointPicture(picture, _slidePart));
+            // Keep the image's own aspect ratio inside the requested box instead of stretching it.
+            pic.ContainInFrame();
             return pic;
         }
 
         /// <summary>
         ///     Adds an image using a layout box.
         /// </summary>
-        public PowerPointPicture AddPicture(string imagePath, PowerPointLayoutBox layout) {
-            return AddPicture(imagePath, layout.Left, layout.Top, layout.Width, layout.Height);
+        public PowerPointPicture AddImage(string imagePath, PowerPointLayoutBox layout) {
+            return AddImage(imagePath, layout.Left, layout.Top, layout.Width, layout.Height);
         }
 
         /// <summary>
         ///     Adds an image from a stream using a layout box.
         /// </summary>
-        public PowerPointPicture AddPicture(Stream image, OfficeIMO.Drawing.OfficeImageFormat imageType, PowerPointLayoutBox layout) {
-            return AddPicture(image, imageType, layout.Left, layout.Top, layout.Width, layout.Height);
-        }
-
-        /// <summary>
-        ///     Adds an image from the given file path using centimeter measurements.
-        /// </summary>
-        public PowerPointPicture AddPictureCm(string imagePath, double leftCm, double topCm, double widthCm,
-            double heightCm) {
-            return AddPicture(imagePath,
-                PowerPointUnits.FromCentimeters(leftCm),
-                PowerPointUnits.FromCentimeters(topCm),
-                PowerPointUnits.FromCentimeters(widthCm),
-                PowerPointUnits.FromCentimeters(heightCm));
-        }
-
-        /// <summary>
-        ///     Adds an image from a stream using centimeter measurements.
-        /// </summary>
-        public PowerPointPicture AddPictureCm(Stream image, OfficeIMO.Drawing.OfficeImageFormat imageType, double leftCm, double topCm,
-            double widthCm, double heightCm) {
-            return AddPicture(image, imageType,
-                PowerPointUnits.FromCentimeters(leftCm),
-                PowerPointUnits.FromCentimeters(topCm),
-                PowerPointUnits.FromCentimeters(widthCm),
-                PowerPointUnits.FromCentimeters(heightCm));
-        }
-
-        /// <summary>
-        ///     Adds an image from the given file path using inch measurements.
-        /// </summary>
-        public PowerPointPicture AddPictureInches(string imagePath, double leftInches, double topInches,
-            double widthInches, double heightInches) {
-            return AddPicture(imagePath,
-                PowerPointUnits.FromInches(leftInches),
-                PowerPointUnits.FromInches(topInches),
-                PowerPointUnits.FromInches(widthInches),
-                PowerPointUnits.FromInches(heightInches));
-        }
-
-        /// <summary>
-        ///     Adds an image from a stream using inch measurements.
-        /// </summary>
-        public PowerPointPicture AddPictureInches(Stream image, OfficeIMO.Drawing.OfficeImageFormat imageType, double leftInches,
-            double topInches, double widthInches, double heightInches) {
-            return AddPicture(image, imageType,
-                PowerPointUnits.FromInches(leftInches),
-                PowerPointUnits.FromInches(topInches),
-                PowerPointUnits.FromInches(widthInches),
-                PowerPointUnits.FromInches(heightInches));
-        }
-
-        /// <summary>
-        ///     Adds an image from the given file path using point measurements.
-        /// </summary>
-        public PowerPointPicture AddPicturePoints(string imagePath, double leftPoints, double topPoints,
-            double widthPoints, double heightPoints) {
-            return AddPicture(imagePath,
-                PowerPointUnits.FromPoints(leftPoints),
-                PowerPointUnits.FromPoints(topPoints),
-                PowerPointUnits.FromPoints(widthPoints),
-                PowerPointUnits.FromPoints(heightPoints));
-        }
-
-        /// <summary>
-        ///     Adds an image from a stream using point measurements.
-        /// </summary>
-        public PowerPointPicture AddPicturePoints(Stream image, OfficeIMO.Drawing.OfficeImageFormat imageType, double leftPoints,
-            double topPoints, double widthPoints, double heightPoints) {
-            return AddPicture(image, imageType,
-                PowerPointUnits.FromPoints(leftPoints),
-                PowerPointUnits.FromPoints(topPoints),
-                PowerPointUnits.FromPoints(widthPoints),
-                PowerPointUnits.FromPoints(heightPoints));
+        public PowerPointPicture AddImage(Stream image, OfficeIMO.Drawing.OfficeImageFormat imageType, PowerPointLayoutBox layout) {
+            return AddImage(image, imageType, layout.Left, layout.Top, layout.Width, layout.Height);
         }
 
         private static OfficeIMO.Drawing.OfficeImageFormat GetImagePartType(string imagePath) {

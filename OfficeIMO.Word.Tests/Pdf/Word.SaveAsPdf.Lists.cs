@@ -45,7 +45,7 @@ public partial class Word {
         list.Numbering.Levels[0].LevelText = "Ź";
         list.AddItem("ASCII list item");
 
-        byte[] bytes = document.ToPdfBytes();
+        byte[] bytes = document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
 
@@ -61,13 +61,13 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordList list = document.AddList(WordListStyle.Numbered);
             WordParagraph item = list.AddItem("List item with chart");
-            WordChart chart = item.AddChart("List Chart", false, 240, 160);
+            WordChart chart = item.AddChart("List Chart",false,OfficeIMO.OfficeLength.Pixels(240),OfficeIMO.OfficeLength.Pixels(160));
             chart.AddPie("Passed", 2);
             chart.AddPie("Failed", 1);
             document.AddParagraph("After list chart");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false
             });
         }
@@ -91,11 +91,11 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordList list = document.AddList(WordListStyle.Numbered);
             WordParagraph item = list.AddItem("List item with picture control");
-            item.AddPictureControl(imagePath, 48, 48, "List Logo", "ListLogo");
+            item.AddPictureControl(imagePath, OfficeLength.Pixels(48), OfficeLength.Pixels(48), "List Logo", "ListLogo");
             document.AddParagraph("After list picture control");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false
             });
         }

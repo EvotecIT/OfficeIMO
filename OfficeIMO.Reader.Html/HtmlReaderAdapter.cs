@@ -90,7 +90,7 @@ internal static partial class HtmlReaderAdapter {
             effectiveHtmlOptions,
             effectiveHtmlOptions.HtmlToMarkdownOptions?.BaseUri,
             cancellationToken);
-        string markdown = conversionDocument.ToMarkdown(effectiveHtmlOptions.HtmlToMarkdownOptions, cancellationToken);
+        string markdown = conversionDocument.ToMarkdown(effectiveHtmlOptions.HtmlToMarkdownOptions, cancellationToken).ToMarkdown(effectiveHtmlOptions.HtmlToMarkdownOptions?.MarkdownWriteOptions);
 
         return ChunkMarkdown(markdown, source, effective, effectiveHtmlOptions, cancellationToken);
     }

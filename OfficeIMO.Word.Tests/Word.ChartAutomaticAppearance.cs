@@ -41,10 +41,10 @@ public sealed class WordChartAutomaticAppearanceTests {
     [Fact]
     public void EveryAutomaticChartConvertsToPdf() {
         using WordDocument document = WordDocument.Load(Path.Combine(FixtureFolder, "automatic-colors.docx"));
-        OfficeIMO.Pdf.PdfDocumentConversionResult result = document.ToPdfDocumentResult();
+        OfficeIMO.Pdf.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence();
 
         Assert.DoesNotContain(document.Charts, chart => !chart.TryGetOfficeSnapshot(out _));
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-body-chart-unsupported");
     }
 
     // The fills a chart draws in series order: filled series and visible markers per series,
@@ -55,15 +55,15 @@ public sealed class WordChartAutomaticAppearanceTests {
             string hex = color.ToRgbHex();
             if (!fills.Contains(hex)) fills.Add(hex);
         }
-        if (snapshot.ChartKind is OfficeChartKind.Pie or OfficeChartKind.Doughnut) {
-            OfficeChartSeries ring = snapshot.Data.Series[0];
+        if (snapshot.ChartKind is OfficeChartType.Pie or OfficeChartType.Doughnut) {
+            OfficeSeries ring = snapshot.Data.Series[0];
             for (int index = 0; index < snapshot.Data.Categories.Count; index++)
                 Add(ring.PointColors?.ElementAtOrDefault(index) ?? snapshot.Style.GetSeriesColor(index));
             return fills;
         }
-        bool lines = snapshot.ChartKind is OfficeChartKind.Line or OfficeChartKind.Scatter;
+        bool lines = snapshot.ChartKind is OfficeChartType.Line or OfficeChartType.Scatter;
         for (int index = 0; index < snapshot.Data.Series.Count; index++) {
-            OfficeChartSeries series = snapshot.Data.Series[index];
+            OfficeSeries series = snapshot.Data.Series[index];
             if (lines && (!series.ShowMarkers || series.MarkerShape == OfficeChartMarkerShape.None)) continue;
             Add(series.Color ?? snapshot.Style.GetSeriesColor(index));
         }

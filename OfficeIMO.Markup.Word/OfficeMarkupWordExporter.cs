@@ -1,6 +1,6 @@
 using OfficeIMO.Word;
 using OfficeIMO.Drawing;
-using OfficeColor = OfficeIMO.Drawing.OfficeColor;
+using OfficeColor = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Markup.Word;
 
@@ -119,7 +119,7 @@ internal sealed class OfficeMarkupWordExporter {
     private static void ApplyTextStyle(WordParagraph paragraph, OfficeMarkupResolvedStyle? style) {
         if (style == null) return;
         if (!string.IsNullOrWhiteSpace(style.FontName)) paragraph.FontFamily = style.FontName;
-        if (style.FontSize != null) paragraph.FontSizePoints = style.FontSize.Value;
+        if (style.FontSize != null) paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(style.FontSize.Value);
         if (style.Bold != null) paragraph.Bold = style.Bold.Value;
         if (style.Italic != null) paragraph.Italic = style.Italic.Value;
         if (style.UnderlineStyle != null) paragraph.Underline = ToWordUnderline(style.UnderlineStyle.Value);
@@ -175,17 +175,16 @@ internal sealed class OfficeMarkupWordExporter {
             double? width = image.Width, height = image.Height;
             if (!width.HasValue && !height.HasValue) {
                 var section = context.CurrentSection ?? context.Document.Sections.FirstOrDefault();
-                double pageWidth = (double?)section?.PageSettings.Width ?? WordPageSizes.Letter.WidthTwips;
-                double leftMargin = (double?)section?.Margins.Left ?? 1440;
-                double rightMargin = (double?)section?.Margins.Right ?? 1440;
+                double pageWidth = (double?)section?.PageSettings.Width?.ToTwips() ?? checked((uint)(WordPageSizes.Letter.Width.ToTwips()));
+                double leftMargin = (double?)section?.Margins.Left?.ToTwips() ?? 1440;
+                double rightMargin = (double?)section?.Margins.Right?.ToTwips() ?? 1440;
                 double scale = Math.Min(1, Math.Max(1, (pageWidth - leftMargin - rightMargin) / 15) / info.Width);
                 width = info.Width * scale;
                 height = info.Height * scale;
             }
-            context.AddParagraph().AddImage(stream, "diagram" + OfficeImageInfo.GetDefaultExtension(info.Format),
-                width, height, description: image.Alt ?? image.Title ?? string.Empty);
+            context.AddParagraph().AddImage(stream, "diagram" + OfficeImageInfo.GetDefaultExtension(info.Format), (width is { } imageLength1 ? OfficeIMO.OfficeLength.Pixels(imageLength1) : (OfficeIMO.OfficeLength? )null), (height is { } imageLength2 ? OfficeIMO.OfficeLength.Pixels(imageLength2) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { Description = image.Alt ?? image.Title ?? string.Empty });
         } else if (TryResolveImagePath(context.Options, image.Source, out var path) && File.Exists(path)) {
-            context.AddParagraph().AddImage(path, image.Width, image.Height, description: image.Alt ?? image.Title ?? string.Empty);
+            context.AddParagraph().AddImage(path, (image.Width is { } imageLength3 ? OfficeIMO.OfficeLength.Pixels(imageLength3) : (OfficeIMO.OfficeLength? )null), (image.Height is { } imageLength4 ? OfficeIMO.OfficeLength.Pixels(imageLength4) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { Description = image.Alt ?? image.Title ?? string.Empty });
         } else {
             if (context.Options.IncludeUnsupportedBlocksAsText) {
                 context.AddParagraph("Image: " + (image.Source.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
@@ -280,10 +279,7 @@ internal sealed class OfficeMarkupWordExporter {
 
         var data = ParseChartData(chart);
         var wordChart = context.Document.AddChart(
-            chart.Title ?? string.Empty,
-            roundedCorners: false,
-            width: GetInt(chart.Attributes, "width") ?? GetInt(chart.Attributes, "w") ?? context.Options.DefaultChartWidthPixels,
-            height: GetInt(chart.Attributes, "height") ?? GetInt(chart.Attributes, "h") ?? context.Options.DefaultChartHeightPixels);
+            chart.Title ?? string.Empty,            roundedCorners: false,            width: OfficeIMO.OfficeLength.Pixels(GetInt(chart.Attributes, "width") ?? GetInt(chart.Attributes, "w") ?? context.Options.DefaultChartWidthPixels),            height: OfficeIMO.OfficeLength.Pixels(GetInt(chart.Attributes, "height") ?? GetInt(chart.Attributes, "h") ?? context.Options.DefaultChartHeightPixels));
 
         switch (Normalize(chart.ChartType)) {
             case "line":

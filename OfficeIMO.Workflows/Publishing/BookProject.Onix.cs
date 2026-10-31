@@ -21,8 +21,8 @@ public sealed partial class BookProject {
     /// </summary>
     public BookOnixExportResult ExportOnix(BookOnixExportOptions options, XmlSchemaSet schemas,
         EpubWriteOptions? epubOptions = null, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(schemas);
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        if (schemas == null) throw new ArgumentNullException(nameof(schemas));
         cancellationToken.ThrowIfCancellationRequested();
         BookOnixMessage.RequireSchema(schemas);
         string notification = options.Notification switch {
@@ -91,7 +91,7 @@ public sealed partial class BookProject {
         if (commercial.Status != null) publishing.Add(commercial.Status);
         if (options.PublicationDate is { } date) publishing.Add(new XElement(onix + "PublishingDate",
             new XElement(onix + "PublishingDateRole", "01"),
-            new XElement(onix + "Date", new XAttribute("dateformat", "00"), date.ToString("yyyyMMdd", CultureInfo.InvariantCulture))));
+            new XElement(onix + "Date", new XAttribute("dateformat", "00"), FormatOnixDate(date))));
         publishing.Add(commercial.Rights);
         var message = new XDocument(new XElement(onix + "ONIXMessage", new XAttribute("release", "3.1"),
             new XElement(onix + "Header", new XElement(onix + "Sender", new XElement(onix + "SenderName", options.SenderName)),
@@ -112,7 +112,7 @@ public sealed partial class BookProject {
     }
 
     private static void RequireOnixText(string value, string name) {
-        ArgumentException.ThrowIfNullOrWhiteSpace(value, name);
+        if ((value == null || string.IsNullOrWhiteSpace(value))) throw new ArgumentException("A non-empty value is required.", name);
         if (value.Length > 4096) throw new ArgumentException("ONIX text fields cannot exceed 4096 characters in this profile.", name);
         XmlConvert.VerifyXmlChars(value);
     }

@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_InCellImage_RejectsInvalidAlternativeTextBeforeMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             int workbookPartCount = document.WorkbookPartRoot.Parts.Count();
 
             Assert.Throws<ArgumentException>(() =>
@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_QueryInspection_BoundsImportedConnectionMetadata() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            document.AddWorksheet("Data");
+            document.AddSheet("Data");
             ExtendedPart part = document.WorkbookPartRoot.AddExtendedPart(
                 "http://schemas.openxmlformats.org/officeDocument/2006/relationships/connections",
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.connections+xml",
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_QueryBackedTable_ReusesPreservedConnectionPartLifecycle() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            document.AddWorksheet("Data");
+            document.AddSheet("Data");
             ExcelPackagePartInfo preserved = document.AddWorkbookConnectionMetadata(
                 "<connections xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"1\">"
                 + "<connection id=\"77\" name=\"Existing\" type=\"1\"/>"

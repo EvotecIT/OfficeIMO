@@ -162,7 +162,7 @@ public sealed class XpsStrokeOutlineTests {
         Assert.True(image.GetPixel(35,80).R < 30);
         Assert.True(image.GetPixel(35,86).R > 240);
         Assert.True(image.GetPixel(165,86).R < 30);
-        var reimport = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(doc.ToPdf()).Pages[0].ToDrawing(), scale: 4D/3D, background: OfficeColor.White);
+        var reimport = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())).Pages[0].ToDrawing(), scale: 4D/3D, background: OfficeColor.White);
         Assert.True(reimport.GetPixel(35,80).R < 30);
         Assert.True(reimport.GetPixel(35,86).R > 240);
     }

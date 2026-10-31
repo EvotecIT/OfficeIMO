@@ -6,22 +6,22 @@ schema: 2.0.0
 ---
 # Save-OfficeEpub
 ## SYNOPSIS
-Writes a validated EPUB package with explicit conflict and loss policies.
+Saves a native EPUB publication, rejecting loss unless explicitly allowed.
 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Save-OfficeEpub [-Path] <string> -Publication <EpubPublication> [-Force] [-AllowLoss] [-RemoveInvalidatedSignatures] [-MaxOutputBytes <long>] [-ReportVariable <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-OfficeEpub [[-Path] <string>] -Document <EpubPublication> [-AllowLoss] [-RemoveInvalidatedSignatures] [-MaxOutputBytes <long>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Writes a validated EPUB package with explicit conflict and loss policies.
+Save replaces its destination after validation. PassThru returns the native write report.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-$book | Save-OfficeEpub -Path ./operations.epub
+$report = $book | Save-OfficeEpub -PassThru
 ```
 
 
@@ -43,19 +43,19 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Force
-Replace an existing destination.
+### -Document
+Live editable publication.
 
 ```yaml
-Type: SwitchParameter
+Type: EpubPublication
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -76,7 +76,7 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Return the created or changed object.
+Return the native write report.
 
 ```yaml
 Type: SwitchParameter
@@ -92,7 +92,7 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Destination EPUB path.
+Destination path; omission uses the native publication's associated path.
 
 ```yaml
 Type: String
@@ -100,50 +100,18 @@ Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Publication
-Live editable publication.
-
-```yaml
-Type: EpubPublication
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
 ### -RemoveInvalidatedSignatures
-Explicitly remove signatures invalidated by package edits. Requires AllowLoss if reported as loss.
+Explicitly remove signatures invalidated by edits. Reported loss still requires AllowLoss.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ReportVariable
-Variable receiving the writer preservation report.
-
-```yaml
-Type: String
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -164,7 +132,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Epub.EpubPublication`
+- `OfficeIMO.Epub.EpubWriteReport`
 
 ## RELATED LINKS
 

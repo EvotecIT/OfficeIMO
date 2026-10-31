@@ -8,16 +8,16 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
     [Fact]
     public void GenericAttributes_DoNotBypassSanitizedHtmlAttributePolicy() {
         const string markdown = "Safe {onclick=\"alert(1)\" style=\"display:none\" href=\"javascript:alert(2)\" srcdoc=\"<script>x</script>\" data-safe=\"yes\" title=\"kept\"}\n\n![safe](/safe.png){srcset=\"https://attacker.test/leak.png 2x\" imagesrcset=\"https://attacker.test/preload.png 1x\"}";
-        var readerOptions = new MarkdownReaderOptions { GenericAttributes = true };
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var readerOptions = new MarkdownLoadOptions { GenericAttributes = true };
+        var htmlOptions = new MarkdownHtmlExportOptions {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
-            RawHtmlHandling = RawHtmlHandling.Sanitize
+            RawHtmlHandling = MarkdownRawHtmlHandling.Sanitize
         };
 
-        string html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, readerOptions)
-            .ToHtmlFragment(htmlOptions);
+        string html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, readerOptions)
+            .ToHtml(htmlOptions);
 
         Assert.DoesNotContain("onclick", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("style=", html, StringComparison.OrdinalIgnoreCase);
@@ -32,16 +32,16 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
     [Fact]
     public void GenericAttributes_PreserveTrustedAllowRendering() {
         const string markdown = "Trusted {style=\"color:red\" href=\"https://example.test\" onclick=\"trusted()\"}";
-        var readerOptions = new MarkdownReaderOptions { GenericAttributes = true };
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var readerOptions = new MarkdownLoadOptions { GenericAttributes = true };
+        var htmlOptions = new MarkdownHtmlExportOptions {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
-            RawHtmlHandling = RawHtmlHandling.Allow
+            RawHtmlHandling = MarkdownRawHtmlHandling.Allow
         };
 
-        string html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, readerOptions)
-            .ToHtmlFragment(htmlOptions);
+        string html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, readerOptions)
+            .ToHtml(htmlOptions);
 
         Assert.Contains("style=\"color:red\"", html, StringComparison.Ordinal);
         Assert.Contains("href=\"https://example.test\"", html, StringComparison.Ordinal);
@@ -51,8 +51,8 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
     [Fact]
     public void HtmlOptions_Can_Strip_RawHtml_Blocks() {
         var md = "<div>hi</div>\n\nParagraph";
-        var opts = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null, RawHtmlHandling = RawHtmlHandling.Strip };
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToHtmlFragment(opts);
+        var opts = new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, RawHtmlHandling = MarkdownRawHtmlHandling.Strip };
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToHtml(opts);
 
         Assert.DoesNotContain("<div>hi</div>", html, StringComparison.Ordinal);
         Assert.Contains("Paragraph", html, StringComparison.Ordinal);
@@ -61,8 +61,8 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
     [Fact]
     public void HtmlOptions_Can_Escape_RawHtml_Blocks() {
         var md = "<script>alert(1)</script>";
-        var opts = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null, RawHtmlHandling = RawHtmlHandling.Escape };
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToHtmlFragment(opts);
+        var opts = new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, RawHtmlHandling = MarkdownRawHtmlHandling.Escape };
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToHtml(opts);
 
         Assert.DoesNotContain("<script>", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("&lt;script&gt;alert(1)&lt;/script&gt;", html, StringComparison.OrdinalIgnoreCase);
@@ -71,15 +71,15 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
     [Fact]
     public void HtmlOptions_Can_Escape_RawHtml_With_NonAscii_Text_Literal_For_Markdig_Style_Output() {
         const string md = "Before <span>åinline</span> after\n\n<div>åblock</div>\n\n<!-- åcomment -->";
-        var opts = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var opts = new MarkdownHtmlExportOptions {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
-            RawHtmlHandling = RawHtmlHandling.Escape,
+            RawHtmlHandling = MarkdownRawHtmlHandling.Escape,
             EscapeNonAsciiText = false
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToHtmlFragment(opts);
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToHtml(opts);
 
         Assert.Contains("Before &lt;span&gt;åinline&lt;/span&gt; after", html, StringComparison.Ordinal);
         Assert.Contains("&lt;div&gt;åblock&lt;/div&gt;", html, StringComparison.Ordinal);
@@ -89,8 +89,8 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
     [Fact]
     public void HtmlOptions_Can_Sanitize_RawHtml_Blocks_With_Allowlist() {
         var md = "<details open onclick=\"alert(1)\"><summary>Title</summary><script>alert(1)</script><u>ok</u><br></details>";
-        var opts = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null, RawHtmlHandling = RawHtmlHandling.Sanitize };
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToHtmlFragment(opts);
+        var opts = new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, RawHtmlHandling = MarkdownRawHtmlHandling.Sanitize };
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToHtml(opts);
 
         Assert.Contains("<details open>", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<summary>Title</summary>", html, StringComparison.OrdinalIgnoreCase);
@@ -104,15 +104,15 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
     [Fact]
     public void HtmlOptions_Can_Sanitize_RawHtml_With_NonAscii_Text_Literal_For_Markdig_Style_Output() {
         const string md = "<details><summary>åTitle</summary><script>åbad</script><u>åok</u></details>";
-        var opts = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var opts = new MarkdownHtmlExportOptions {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
-            RawHtmlHandling = RawHtmlHandling.Sanitize,
+            RawHtmlHandling = MarkdownRawHtmlHandling.Sanitize,
             EscapeNonAsciiText = false
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToHtmlFragment(opts);
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToHtml(opts);
 
         Assert.Contains("<summary>åTitle</summary>", html, StringComparison.Ordinal);
         Assert.Contains("<u>åok</u>", html, StringComparison.Ordinal);
@@ -123,15 +123,15 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
     [Fact]
     public void HtmlOptions_Can_Sanitize_Inline_RawHtml_With_NonAscii_Text_Literal() {
         const string md = "Before <span>åbad</span> and <u>åok</u>";
-        var opts = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var opts = new MarkdownHtmlExportOptions {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
-            RawHtmlHandling = RawHtmlHandling.Sanitize,
+            RawHtmlHandling = MarkdownRawHtmlHandling.Sanitize,
             EscapeNonAsciiText = false
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToHtmlFragment(opts);
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToHtml(opts);
 
         Assert.Contains("Before &lt;span&gt;åbad&lt;/span&gt; and <u>åok</u>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("&#229;", html, StringComparison.Ordinal);
@@ -151,20 +151,20 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
         string unsafeFragment,
         string escapedFragment) {
         string markdown = rawMarkdown + "\n\nParagraph";
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
 
-        var stripped = doc.ToHtmlFragment(CreatePlainHtmlOptions(RawHtmlHandling.Strip));
+        var stripped = doc.ToHtml(CreatePlainHtmlOptions(MarkdownRawHtmlHandling.Strip));
         Assert.DoesNotContain(unsafeFragment, stripped, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(escapedFragment, stripped, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<p>Paragraph</p>", stripped, StringComparison.Ordinal);
 
-        var escaped = doc.ToHtmlFragment(CreatePlainHtmlOptions(RawHtmlHandling.Escape));
+        var escaped = doc.ToHtml(CreatePlainHtmlOptions(MarkdownRawHtmlHandling.Escape));
         Assert.DoesNotContain(unsafeFragment, escaped, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<pre class=\"md-raw-html\"><code>", escaped, StringComparison.Ordinal);
         Assert.Contains(escapedFragment, escaped, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<p>Paragraph</p>", escaped, StringComparison.Ordinal);
 
-        var sanitized = doc.ToHtmlFragment(CreatePlainHtmlOptions(RawHtmlHandling.Sanitize));
+        var sanitized = doc.ToHtml(CreatePlainHtmlOptions(MarkdownRawHtmlHandling.Sanitize));
         Assert.DoesNotContain(unsafeFragment, sanitized, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(escapedFragment, sanitized, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<p>Paragraph</p>", sanitized, StringComparison.Ordinal);
@@ -173,15 +173,15 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
     [Fact]
     public void GitHubHtmlTagFilter_Filters_Dangerous_RawHtml_Blocks_And_Inlines_When_RawHtml_Is_Allowed() {
         const string md = "Inline <xmp>bad</xmp> but <strong>ok</strong>.\n\n<script>alert(1)</script>\n\n<custom>ok</custom>";
-        var opts = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var opts = new MarkdownHtmlExportOptions {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
-            RawHtmlHandling = RawHtmlHandling.Allow,
+            RawHtmlHandling = MarkdownRawHtmlHandling.Allow,
             GitHubHtmlTagFilter = true
         };
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToHtmlFragment(opts);
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToHtml(opts);
 
         Assert.Contains("&lt;xmp>bad&lt;/xmp>", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<strong>ok</strong>", html, StringComparison.OrdinalIgnoreCase);
@@ -201,15 +201,15 @@ Inline <xmp>bad</xmp>.
 <script>alert(1)</script>
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
-        var options = HtmlOptions.CreateGitHubFlavoredMarkdownProfile();
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
+        var options = MarkdownHtmlExportOptions.CreateGitHubFlavoredMarkdownProfile();
 
-        var html = document.ToHtmlFragment(options);
+        var html = document.ToHtml(options);
 
         Assert.True(options.GitHubTaskListHtml);
         Assert.True(options.GitHubFootnoteHtml);
         Assert.True(options.GitHubHtmlTagFilter);
-        Assert.Equal(RawHtmlHandling.Allow, options.RawHtmlHandling);
+        Assert.Equal(MarkdownRawHtmlHandling.Allow, options.RawHtmlHandling);
         Assert.Contains("<input type=\"checkbox\" checked=\"\" disabled=\"\" /> done", html, StringComparison.Ordinal);
         Assert.Contains("&lt;xmp>bad&lt;/xmp>", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("&lt;script>alert(1)&lt;/script>", html, StringComparison.OrdinalIgnoreCase);
@@ -218,13 +218,13 @@ Inline <xmp>bad</xmp>.
 
     [Fact]
     public void GitHubFlavoredMarkdown_Html_Profile_Does_Not_Change_Strict_Renderer_Security_Defaults() {
-        var strict = MarkdownRendererPresets.CreateStrict(MarkdownReaderOptions.MarkdownDialectProfile.GitHubFlavoredMarkdown);
+        var strict = MarkdownRendererPresets.CreateStrict(MarkdownLoadOptions.MarkdownDialectProfile.GitHubFlavoredMarkdown);
 
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(
             "<script>alert(1)</script>\n\n- [x] done",
             strict);
 
-        Assert.Equal(RawHtmlHandling.Strip, strict.HtmlOptions.RawHtmlHandling);
+        Assert.Equal(MarkdownRawHtmlHandling.Strip, strict.HtmlOptions.RawHtmlHandling);
         Assert.False(strict.HtmlOptions.GitHubHtmlTagFilter);
         Assert.DoesNotContain("script", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("done", html, StringComparison.Ordinal);
@@ -234,16 +234,16 @@ Inline <xmp>bad</xmp>.
     public void MarkdownRenderer_Defaults_To_Stripping_RawHtml() {
         var md = "<div>hi</div>";
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, new MarkdownRendererOptions {
-            ReaderOptions = new MarkdownReaderOptions { HtmlBlocks = true, InlineHtml = true }
+            ReaderOptions = new MarkdownLoadOptions { HtmlBlocks = true, InlineHtml = true }
         });
 
         Assert.DoesNotContain("<div>hi</div>", html, StringComparison.Ordinal);
     }
 
-    private static HtmlOptions CreatePlainHtmlOptions(RawHtmlHandling handling) =>
+    private static MarkdownHtmlExportOptions CreatePlainHtmlOptions(MarkdownRawHtmlHandling handling) =>
         new() {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             RawHtmlHandling = handling
         };

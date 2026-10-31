@@ -33,7 +33,7 @@ public partial class WordChart {
                 if (!TryGetSnapshot(out var legacy) || !OfficeOpenXmlChartSeriesReader.TryReadKind(groups[0], out var legacyKind)) return false;
                 snapshot = new OfficeChartSnapshot(legacy.Name, legacy.Title, legacyKind,
                     new OfficeChartData(legacy.Data.Categories, legacy.Data.Series.Select(series => series.ToOfficeSeries()).ToArray()),
-                    legacy.WidthPoints, legacy.HeightPoints, style: null, layout: null, radialLayout: legacy.RadialLayout);
+                    global::OfficeIMO.OfficeLength.Points(legacy.WidthPoints), global::OfficeIMO.OfficeLength.Points(legacy.HeightPoints), style: null, layout: null, radialLayout: legacy.RadialLayout);
                 return true;
             }
             var scheme = _document.MainDocumentPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme;
@@ -44,7 +44,7 @@ public partial class WordChart {
             if (!textReader.TryReadSharedTextStyle(chart, out var textStyle) ||
                 !textReader.TryReadAxisTitleTypeface(chart, OfficeOpenXmlChartTextReader.ReadChartDefaultTypeface(chart), out var axisTitleFont)) return false;
             OfficeChartData officeData = data.ToData();
-            snapshot = new OfficeChartSnapshot(ReadDrawingName(), ReadTitle(chart), kind, officeData, GetWidthPoints(), GetHeightPoints(),
+            snapshot = new OfficeChartSnapshot(ReadDrawingName(), ReadTitle(chart), kind, officeData, global::OfficeIMO.OfficeLength.Points(GetWidthPoints()), global::OfficeIMO.OfficeLength.Points(GetHeightPoints()),
                 OfficeOpenXmlChartSeriesReader.ReadStyle(_chartPart, chart, kind, scheme, textStyle, data.Categories.Count),
                 OfficeOpenXmlChartSeriesReader.ReadLayout(chart, kind, officeData, axisTitleFont, scheme),
                 bubbleScale, bubbleMode, OfficeOpenXmlChartRadialLayout.Read(chart));

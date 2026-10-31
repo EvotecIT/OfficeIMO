@@ -19,7 +19,7 @@
       "currentContract": "Own shared encoding, density metadata, paths, fonts, policies, save behavior, production batch controls, raster safety, image projection, chart primitives, diagnostics, and visual-quality helpers.",
       "boundary": "Document packages retain source semantics; bounded codec variants and managed text-shaping approximations remain diagnosed explicitly.",
       "evidence": [
-        "OfficeIMO.Drawing.Tests/Drawing.ImageExportBuilder.cs",
+        "OfficeIMO.Drawing.Tests/Drawing.ImageExportOperations.cs",
         "OfficeIMO.Drawing.Tests/Drawing.Raster.Limits.cs",
         "OfficeIMO.Drawing.Tests/Drawing.TextShaping.Raster.cs"
       ]

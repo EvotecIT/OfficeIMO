@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownDefinitionList", DefaultParameterSetName = ParameterSetContext)]
 [Alias("MarkdownDefinitionList")]
-[OutputType(typeof(MarkdownDoc))]
+[OutputType(typeof(MarkdownDocument))]
 public sealed class AddOfficeMarkdownDefinitionListCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -23,7 +23,7 @@ public sealed class AddOfficeMarkdownDefinitionListCommand : PSCmdlet
 
     /// <summary>Markdown document to update outside the DSL context.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public MarkdownDoc Document { get; set; } = null!;
+    public MarkdownDocument Document { get; set; } = null!;
 
     /// <summary>Hashtable of term/definition pairs to render.</summary>
     [Parameter(Mandatory = true, Position = 0)]
@@ -80,7 +80,7 @@ public sealed class AddOfficeMarkdownDefinitionListCommand : PSCmdlet
         return pairs;
     }
 
-    private MarkdownDoc ResolveDocument()
+    private MarkdownDocument ResolveDocument()
     {
         if (ParameterSetName == ParameterSetDocument)
         {

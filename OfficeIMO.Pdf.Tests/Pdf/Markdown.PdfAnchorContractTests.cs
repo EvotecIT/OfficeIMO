@@ -9,12 +9,14 @@ public sealed class MarkdownPdfAnchorContractTests {
     [InlineData("details")]
     [InlineData("footnote")]
     public void DirectlyRenderedSummaryAndFootnoteParagraphAnchorsAreRegistered(string kind) {
-        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(MarkdownReader.Parse("**before <a id=\"direct\"></a> after**").Blocks));
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(MarkdownDocument.Parse("**before <a id=\"direct\"></a> after**").Blocks));
         IMarkdownBlock target = kind == "details"
             ? new DetailsBlock(new SummaryBlock(paragraph.Inlines))
             : new FootnoteDefinitionBlock("note", new IMarkdownBlock[] { paragraph });
-        var document = MarkdownDoc.Create().Add(new ParagraphBlock(new InlineSequence().Link("Jump", "#direct"))).Add(target);
-        var result = document.ToPdfDocumentResult();
+        var document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Link("Jump", "#direct")));
+        document.Add(target);
+        var result = document.ConvertToPdfWithEvidence();
         Assert.NotEmpty(result.Value.ToBytes());
         Assert.DoesNotContain(result.Report.Warnings, diagnostic => diagnostic.Code == "UnresolvedInternalLink");
     }
@@ -25,7 +27,9 @@ public sealed class MarkdownPdfAnchorContractTests {
     public void IncompleteAnchorCarriersRetainPlainTextWithoutBreakingExport(string html) {
         var inlines = new InlineSequence { AutoSpacing = false };
         inlines.AddRaw(new HtmlRawInline(html));
-        var result = MarkdownDoc.Create().Add(new ParagraphBlock(inlines)).ToPdfDocumentResult();
+        using var addedDocument = MarkdownDocument.Create();
+        addedDocument.Add(new ParagraphBlock(inlines));
+        var result = addedDocument.ConvertToPdfWithEvidence();
         Assert.NotEmpty(result.Value.ToBytes());
     }
 
@@ -35,21 +39,23 @@ public sealed class MarkdownPdfAnchorContractTests {
     [InlineData("callout")]
     public void GenericBlockIdsSupportForwardLinks(string kind) {
         IMarkdownBlock block = kind switch {
-            "table" => MarkdownReader.Parse("| Header |\n| --- |\n| Cell |\n").Blocks[0],
+            "table" => MarkdownDocument.Parse("| Header |\n| --- |\n| Cell |\n").Blocks[0],
             "callout" => new CalloutBlock("note", "Anchor marker", "Body"),
             _ => new ParagraphBlock(new InlineSequence().Text("Anchor marker"))
         };
         ((MarkdownObject)block).SetAttributes(MarkdownAttributeSet.Create(elementId: "destination"));
-        var document = MarkdownDoc.Create().Add(new ParagraphBlock(new InlineSequence().Link("Jump", "#destination"))).Add(block);
-        var result = document.ToPdfDocumentResult();
+        var document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Link("Jump", "#destination")));
+        document.Add(block);
+        var result = document.ConvertToPdfWithEvidence();
         Assert.NotEmpty(result.Value.ToBytes());
         Assert.DoesNotContain(result.Report.Warnings, diagnostic => diagnostic.Code == "UnresolvedInternalLink");
     }
 
     [Fact]
     public void StyledMissingLinksInParagraphListAndTableBecomeVisibleTextWithOneDiagnostic() {
-        var document = MarkdownReader.Parse("[**visible**](#missing)\n\n- [list](#missing)\n\n| H |\n| --- |\n| [cell](#missing) |\n");
-        var result = document.ToPdfDocumentResult();
+        var document = MarkdownDocument.Parse("[**visible**](#missing)\n\n- [list](#missing)\n\n| H |\n| --- |\n| [cell](#missing) |\n");
+        var result = document.ConvertToPdfWithEvidence();
         string text = OfficeIMO.Pdf.PdfReadDocument.Open(result.Value.ToBytes()).ExtractText();
         Assert.Contains("visible", text, StringComparison.Ordinal);
         Assert.Contains("list", text, StringComparison.Ordinal);
@@ -59,12 +65,12 @@ public sealed class MarkdownPdfAnchorContractTests {
 
     [Fact]
     public void InlineAnchorsInsideStyledPanelContentResolveWithoutLeakingAcrossExports() {
-        var document = MarkdownReader.Parse("> [!NOTE] Panel\n> **before <a id=\"inside\"></a> after**\n\n[Jump](#inside)");
-        var options = new MarkdownToPdfOptions();
-        var first = document.ToPdfDocumentResult(options);
+        var document = MarkdownDocument.Parse("> [!NOTE] Panel\n> **before <a id=\"inside\"></a> after**\n\n[Jump](#inside)");
+        var options = new MarkdownPdfExportOptions();
+        var first = document.ConvertToPdfWithEvidence(options);
         Assert.NotEmpty(first.Value.ToBytes());
         Assert.DoesNotContain(first.Report.Warnings, diagnostic => diagnostic.Code == "UnresolvedInternalLink");
-        var second = MarkdownReader.Parse("[Unresolved](#inside)").ToPdfDocumentResult(options);
+        var second = MarkdownDocument.Parse("[Unresolved](#inside)").ConvertToPdfWithEvidence(options);
         Assert.NotEmpty(second.Value.ToBytes());
         Assert.Contains(second.Report.Warnings, diagnostic => diagnostic.Code == "UnresolvedInternalLink");
     }

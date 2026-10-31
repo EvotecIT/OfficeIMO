@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System;
 using System.Management.Automation;
 using OfficeIMO.Excel;
@@ -67,9 +68,9 @@ public sealed class SetOfficeExcelChartPointCommand : PSWriteOffice.Cmdlets.Offi
             }
 
             if (ParameterSetName == ParameterSetSeriesName) {
-                Chart.SetDataPointColor(SeriesName, PointIndex, FillColor, LineColor, LineWidthPoints, IgnoreCase);
+                Chart.SetDataPointColor(SeriesName, PointIndex, FillColor != null ? OfficeColor.Parse(FillColor) : (OfficeColor?)null, LineColor != null ? OfficeColor.Parse(LineColor) : (OfficeColor?)null, LineWidthPoints.HasValue ? OfficeLength.Points(LineWidthPoints.Value) : (OfficeLength?)null, IgnoreCase);
             } else {
-                Chart.SetDataPointColor(SeriesIndex, PointIndex, FillColor, LineColor, LineWidthPoints);
+                Chart.SetDataPointColor(SeriesIndex, PointIndex, FillColor != null ? OfficeColor.Parse(FillColor) : (OfficeColor?)null, LineColor != null ? OfficeColor.Parse(LineColor) : (OfficeColor?)null, LineWidthPoints.HasValue ? OfficeLength.Points(LineWidthPoints.Value) : (OfficeLength?)null);
             }
 
             WritePassThru(Chart);

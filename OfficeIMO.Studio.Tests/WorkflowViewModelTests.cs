@@ -11,9 +11,9 @@ public sealed class WorkflowViewModelTests {
         using var scope = new TestDirectory();
         string input = Path.Combine(scope.Path, "print.pdf");
         PdfDocument.Create(document => {
-            document.Page(page => page.Size(400, 600).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("First")))));
-            document.Page(page => page.Size(600, 400).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Second")))));
-            document.Page(page => page.Size(420, 620).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Third")))));
+            document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(600)).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("First")))));
+            document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Second")))));
+            document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(620)).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Third")))));
         }).Save(input);
 
         using var session = TestAppBuilder.StartSession();
@@ -39,7 +39,7 @@ public sealed class WorkflowViewModelTests {
         string input = Path.Combine(scope.Path, "large-print.pdf");
         PdfDocument.Create(document => {
             for (int pageNumber = 0; pageNumber <= PrintPreviewViewModel.MaximumPreviewPages; pageNumber++) {
-                document.Page(page => page.Size(400, 600));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(600)));
             }
         }).Save(input);
 
@@ -104,10 +104,10 @@ public sealed class WorkflowViewModelTests {
         string imageFolder = Path.Combine(scope.Path, "images");
         string assembled = Path.Combine(scope.Path, "assembled.pdf");
         PdfDocument.Create(document => {
-            document.Page(page => page.Size(400, 600));
-            document.Page(page => page.Size(420, 600));
+            document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(600)));
+            document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(600)));
         }).Save(first);
-        PdfDocument.Create(document => document.Page(page => page.Size(500, 700))).Save(second);
+        PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(700)))).Save(second);
 
         using var pageExport = new PageImageExportViewModel(
             _ => Task.FromResult<string?>(first),
@@ -135,14 +135,14 @@ public sealed class WorkflowViewModelTests {
         await assembly.RunCommand.ExecuteAsync(null);
 
         Assert.True(assembly.HasOutput);
-        Assert.Equal(3, PdfReadDocument.Open(File.ReadAllBytes(assembly.PublishedPath!)).Pages.Count);
+        Assert.Equal(3, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(assembly.PublishedPath!))).Pages.Count);
     }
 
     [Fact]
     public async Task GuidedRepairProgressesThroughFilesOptionsAndReviewWithHonestLabels() {
         using var scope = new TestDirectory();
         string input = Path.Combine(scope.Path, "source.pdf");
-        PdfDocument.Create(compose => compose.Page(page => page.Size(600, 800))).Save(input);
+        PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)))).Save(input);
         using var viewModel = new DocumentHealthViewModel(
             _ => Task.FromResult<string?>(input),
             _ => Task.FromResult<string?>(scope.Path));
@@ -170,8 +170,8 @@ public sealed class WorkflowViewModelTests {
         using var scope = new TestDirectory();
         string first = Path.Combine(scope.Path, "first.pdf");
         string second = Path.Combine(scope.Path, "second.pdf");
-        PdfDocument.Create(compose => compose.Page(page => page.Size(600, 800))).Save(first);
-        PdfDocument.Create(compose => compose.Page(page => page.Size(600, 800))).Save(second);
+        PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)))).Save(first);
+        PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)))).Save(second);
         var picks = new Queue<string>([first, second]);
         using var viewModel = new DocumentHealthViewModel(
             _ => Task.FromResult<string?>(picks.Dequeue()),
@@ -208,7 +208,7 @@ public sealed class WorkflowViewModelTests {
             Assert.Equal("Completed", job.Status);
             Assert.NotNull(job.OutputPath);
             Assert.True(File.Exists(job.OutputPath));
-            Assert.Contains(job.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+            Assert.Contains(job.Diagnostics, diagnostic => diagnostic.Code == "conversion-output-reopened");
             Assert.Contains("1 completed", viewModel.Status, StringComparison.OrdinalIgnoreCase);
             return true;
         }, CancellationToken.None);
@@ -332,7 +332,7 @@ public sealed class WorkflowViewModelTests {
     public async Task RepairPlanRemainsReportOnly() {
         using var scope = new TestDirectory();
         string input = Path.Combine(scope.Path, "source.pdf");
-        PdfDocument.Create(compose => compose.Page(page => page.Size(600, 800))).Save(input);
+        PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)))).Save(input);
         using var viewModel = new DocumentHealthViewModel(
             _ => Task.FromResult<string?>(input),
             _ => Task.FromResult<string?>(scope.Path));
@@ -350,7 +350,7 @@ public sealed class WorkflowViewModelTests {
     public async Task FailedRunClearsPreviousHealthEvidenceAndUsesFailureState() {
         using var scope = new TestDirectory();
         string input = Path.Combine(scope.Path, "source.pdf");
-        PdfDocument.Create(compose => compose.Page(page => page.Size(600, 800))).Save(input);
+        PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)))).Save(input);
         using var viewModel = new DocumentHealthViewModel(
             _ => Task.FromResult<string?>(input),
             _ => Task.FromResult<string?>(scope.Path));
@@ -402,7 +402,7 @@ public sealed class WorkflowViewModelTests {
     public async Task DocumentHealthDisposeCancelsWithoutRacingFinally() {
         using var scope = new TestDirectory();
         string input = Path.Combine(scope.Path, "source.pdf");
-        PdfDocument.Create(compose => compose.Page(page => page.Size(600, 800))).Save(input);
+        PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)))).Save(input);
         var runner = new BlockingWorkflowRunner();
         var viewModel = new DocumentHealthViewModel(
             _ => Task.FromResult<string?>(input),

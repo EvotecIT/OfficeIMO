@@ -23,7 +23,7 @@ New-OfficeWord -Path $Path {
     }
 }
 
-Get-OfficeWord -Path $Path -ReadOnly | ForEach-Object {
+Open-OfficeWord -Path $Path -ReadOnly | ForEach-Object {
     try {
         $_.Background.Color
         (Get-OfficeWordField -Document $_ -FieldType MergeField).Count

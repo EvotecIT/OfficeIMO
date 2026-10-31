@@ -33,6 +33,6 @@ internal static class CourseCertificate {
             """;
         File.WriteAllText(Path.Combine(folder, "example.html"), html);
         HtmlConversionDocument.Parse(html).SaveAsPdf(Path.Combine(folder, "preview.pdf"),
-            new HtmlToPdfOptions { PageSize = OfficePageSizes.A4, Margins = HtmlRenderMargins.All(24D) }).RequireSuccess();
+            new HtmlToPdfOptions { PageSize = OfficePageSizes.A4, Margins = HtmlRenderMargins.All(24D) });
     }
 }

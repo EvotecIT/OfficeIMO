@@ -55,7 +55,7 @@ internal static class MarkdownParseEvidenceRunner {
                 MarkdownBenchmarkValidation.AssertCommonMarkEquivalent(
                     corpusName,
                     MarkdownBenchmarkCorpus.Get(corpusName),
-                    MarkdownReaderOptions.CreateCommonMarkProfile(),
+                    MarkdownLoadOptions.CreateCommonMarkProfile(),
                     MarkdownBenchmarkValidation.CreateOfficeCommonMarkHtmlOptions());
             }
 
@@ -127,7 +127,7 @@ internal static class MarkdownParseEvidenceRunner {
             value => string.Equals(value, corpusName, StringComparison.OrdinalIgnoreCase))
             ?? throw new ArgumentException("Unknown Markdown benchmark corpus: " + corpusName, nameof(corpusName));
         string markdown = MarkdownBenchmarkCorpus.Get(selectedCorpus);
-        var officeOptions = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var officeOptions = MarkdownLoadOptions.CreateCommonMarkProfile();
         var officeHtmlOptions = MarkdownBenchmarkValidation.CreateOfficeCommonMarkHtmlOptions();
         MarkdownBenchmarkValidation.AssertCommonMarkEquivalent(selectedCorpus, markdown, officeOptions, officeHtmlOptions);
 
@@ -190,9 +190,9 @@ internal static class MarkdownParseEvidenceRunner {
             semanticFingerprint);
     }
 
-    private static object Parse(string engine, string markdown, MarkdownReaderOptions officeOptions) => engine switch {
+    private static object Parse(string engine, string markdown, MarkdownLoadOptions officeOptions) => engine switch {
         OfficeEngine => MarkdownReader.ParseSemantic(markdown, officeOptions),
-        OfficeSourceBackedEngine => MarkdownReader.Parse(markdown, officeOptions),
+        OfficeSourceBackedEngine => MarkdownDocument.Parse(markdown, officeOptions),
         OfficeSyntaxTreeEngine => MarkdownReader.ParseWithSyntaxTree(markdown, officeOptions),
         MarkdigEngine => Markdig.Markdown.Parse(markdown, MarkdigCommonMarkPipeline),
         _ => throw new ArgumentException("Unknown Markdown parse benchmark engine: " + engine, nameof(engine))

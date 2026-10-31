@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
 /// <summary>
-/// Raw inline HTML passthrough. Rendering obeys the active <see cref="RawHtmlHandling"/> policy.
+/// Raw inline HTML passthrough. Rendering obeys the active <see cref="MarkdownRawHtmlHandling"/> policy.
 /// </summary>
 public sealed class HtmlRawInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
     /// <summary>Raw HTML fragment.</summary>
@@ -16,13 +16,15 @@ public sealed class HtmlRawInline : MarkdownInline, IRenderableMarkdownInline, I
 
     internal string RenderHtml() {
         var options = HtmlRenderContext.Options;
-        var handling = options?.RawHtmlHandling ?? RawHtmlHandling.Allow;
-        return handling switch {
-            RawHtmlHandling.Allow => options?.GitHubHtmlTagFilter == true ? GitHubHtmlTagFilter.Apply(Html) : Html,
-            RawHtmlHandling.Escape => HtmlTextEncoder.Encode(Html, options),
-            RawHtmlHandling.Sanitize => RawHtmlSanitizer.Sanitize(Html, options),
+        var handling = options?.RawHtmlHandling ?? MarkdownRawHtmlHandling.Allow;
+        string rendered = handling switch {
+            MarkdownRawHtmlHandling.Allow => options?.GitHubHtmlTagFilter == true ? GitHubHtmlTagFilter.Apply(Html) : Html,
+            MarkdownRawHtmlHandling.Escape => HtmlTextEncoder.Encode(Html, options),
+            MarkdownRawHtmlHandling.Sanitize => RawHtmlSanitizer.Sanitize(Html, options),
             _ => string.Empty
         };
+        options?.RecordRawHtmlChange(Html, rendered, "RawHtmlInline");
+        return rendered;
     }
 
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();

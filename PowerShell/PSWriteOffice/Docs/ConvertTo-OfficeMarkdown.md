@@ -15,7 +15,7 @@ ConvertTo-OfficeMarkdown [-InputObject <Object>] [-CollectionSeparator <string>]
 ```
 
 ## DESCRIPTION
-Returns Markdown text by default; use -PassThru to emit a MarkdownDoc.
+Returns Markdown text by default; use -PassThru to emit a MarkdownDocument.
 
 ## EXAMPLES
 
@@ -32,7 +32,7 @@ PS> $doc = $data | ConvertTo-OfficeMarkdown -PassThru
 $doc.P('Totals above'); $doc.ToMarkdown()
 ```
 
-Builds a table and appends more content using the MarkdownDoc API.
+Builds a table and appends more content using the MarkdownDocument API.
 
 ### EXAMPLE 3
 ```powershell
@@ -181,7 +181,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## OUTPUTS
 
 - `System.String`
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## RELATED LINKS
 

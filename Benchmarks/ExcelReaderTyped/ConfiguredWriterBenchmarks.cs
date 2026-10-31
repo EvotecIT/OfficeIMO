@@ -2,24 +2,6 @@ using BenchmarkDotNet.Attributes;
 using ExcelReader.Core.Writer.Xlsx;
 
 namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
-    /// <summary>Writes the same records with shared strings selected in both libraries.</summary>
-    [MemoryDiagnoser]
-    [BenchmarkCategory("WriteSharedStrings")]
-    public class SharedStringWriterBenchmarks {
-        private readonly ConfiguredXlsxWriterWorkload _workload = new();
-        [ParamsSource(nameof(RowCounts))]
-        public int RowCount { get; set; } = 50_000;
-        public IEnumerable<int> RowCounts() => new TypedReadBenchmarks().RowCounts();
-        [GlobalSetup]
-        public Task SetupAsync() => _workload.SetupAsync(RowCount, sharedStrings: true);
-        [Benchmark]
-        public long OfficeIMOSharedStrings() => _workload.OfficeIMO(sharedStrings: true, includeReferences: true);
-        [Benchmark]
-        public long OfficeIMOSharedStringsWithoutReferences() => _workload.OfficeIMO(sharedStrings: true, includeReferences: false);
-        [Benchmark(Baseline = true)]
-        public Task<long> ExcelReaderWriterSharedStrings() => _workload.ExcelReader(sharedStrings: true);
-    }
-
     /// <summary>Separates the public coordinate-omission option from the ordinary writer.</summary>
     [MemoryDiagnoser]
     [BenchmarkCategory("WriteWithoutReferences")]
@@ -69,13 +51,14 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             return stream.Length;
         }
 
-        private void WriteOfficeIMO(Stream stream, bool sharedStrings, bool includeReferences) =>
-            ExcelDocument.WriteRows(stream, _records, ["Name", "Id", "Date", "Value"], static (row, record) => {
-                row.Write(record.Name);
-                row.Write(record.Id);
-                row.Write(record.Date);
-                row.Write(record.Value);
-            }, new ExcelTabularWriteOptions { UseSharedStrings = sharedStrings, IncludeCellReferences = includeReferences });
+        private void WriteOfficeIMO(Stream stream, bool sharedStrings, bool includeReferences) {
+            if (sharedStrings) throw new ArgumentException("The bounded writer uses inline text.", nameof(sharedStrings));
+            using var writer = ExcelDocument.CreateWriter(stream,
+                new ExcelWriterOptions { IncludeCellReferences = includeReferences }, leaveOpen: true);
+            writer.WriteTable("Data", _records, ["Name", "Id", "Date", "Value"], static (row, record) => {
+                row.Write(record.Name).Write(record.Id).Write(record.Date).Write(record.Value);
+            });
+        }
 
         private async Task WriteExcelReaderAsync(Stream stream, bool sharedStrings, bool prefetch) {
             await using XlsxWorkbookWriter workbook = XlsxWorkbookWriter.Create(stream, leaveOpen: true,

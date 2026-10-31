@@ -4,10 +4,10 @@ $projects = @(
     [pscustomobject]@{ Project = 'Beacon'; Owner = 'Security'; Progress = 0.55 }
 )
 
-$workbook = New-OfficeExcel -Path $path -NoSave
+$workbook = New-OfficeExcel -Path $path
 $sheet = $workbook | Add-OfficeExcelSheet -Name 'Projects' -PassThru
 $sheet | Set-OfficeExcelCell -Address A1 -Value 'Delivery portfolio' -BackgroundColor '#D9EAF7'
-Add-OfficeExcelTable -Worksheet $sheet -InputObject $projects -StartRow 3 -TableName 'Projects' -AutoFit
+Add-OfficeExcelTable -Worksheet $sheet -InputObject $projects -StartRow 3 -Name 'Projects' -AutoFit
 Set-OfficeExcelCell -Document $workbook -Sheet 'Projects' -Address C4 -NumberFormat '0%'
 $workbook | Save-OfficeExcel
 $workbook | Close-OfficeExcel

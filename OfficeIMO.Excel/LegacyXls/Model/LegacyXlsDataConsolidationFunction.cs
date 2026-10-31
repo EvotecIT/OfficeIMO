@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies the aggregation function carried by a BIFF DCon data-consolidation settings record.
     /// </summary>
-    public enum LegacyXlsDataConsolidationFunction {
+    internal enum LegacyXlsDataConsolidationFunction {
         /// <summary>Average source values.</summary>
         Average = 0,
 

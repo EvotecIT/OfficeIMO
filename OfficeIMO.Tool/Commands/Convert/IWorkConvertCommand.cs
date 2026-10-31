@@ -11,7 +11,7 @@ internal static class IWorkConvertCommand {
     internal static async Task<int> RunAsync(string[] args, Stream output, TextWriter error, CancellationToken token) {
         try {
             string? input = null, destination = null;
-            var limits = new OfficeWorkflowLimits();
+            var limits = new OfficeOperationLimits();
             var policy = new IWorkConversionOptions { RequireCompleteVisualCoverage = true };
             bool force = false;
             for (int index = 0; index < args.Length; index++) {
@@ -52,7 +52,7 @@ internal static class IWorkConvertCommand {
             OfficeWorkflowResult result = await runner.RunAsync(new OfficeWorkflowRequest {
                 Operation = OfficeWorkflowOperation.Convert, InputPath = Path.GetFullPath(input!),
                 OutputPath = destination is null ? null : Path.GetFullPath(destination), ConversionRouteId = route,
-                ConflictPolicy = force ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail, Limits = limits
+                ConflictPolicy = force ? OfficePublicationPolicy.Replace : OfficePublicationPolicy.Fail, Limits = limits
             }, cancellationToken: token).ConfigureAwait(false);
             await JsonSerializer.SerializeAsync(output, result, IWorkConvertJsonContext.Default.OfficeWorkflowResult, token).ConfigureAwait(false);
             if (!result.Succeeded) await error.WriteLineAsync(result.Summary).ConfigureAwait(false);

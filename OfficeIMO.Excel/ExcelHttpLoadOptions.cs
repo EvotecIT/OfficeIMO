@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Controls HTTP workbook loading behavior for <see cref="ExcelDocument"/> and its public reader APIs.
     /// </summary>
-    public sealed class ExcelHttpLoadOptions {
+    public sealed partial class ExcelLoadOptions {
         /// <summary>
         /// Gets or sets the allowed URI schemes. Defaults to HTTPS only.
         /// </summary>
@@ -35,13 +35,13 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets headers to send with the HTTP GET request.
         /// </summary>
-        public IDictionary<string, string> Headers { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        public IDictionary<string, string> Headers { get; private set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Gets allowed remote workbook host names. When empty, any host is allowed.
         /// Entries are host names only; schemes, paths, and ports are not accepted.
         /// </summary>
-        public ISet<string> AllowedHosts { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        public ISet<string> AllowedHosts { get; private set; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Gets or sets whether the downloaded workbook must look like a ZIP/OpenXML package.
@@ -56,7 +56,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the accepted media types used when <see cref="ValidateContentTypeWhenPresent"/> is enabled.
         /// </summary>
-        public ISet<string> AllowedContentTypes { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+        public ISet<string> AllowedContentTypes { get; private set; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             "application/vnd.ms-excel.sheet.macroenabled.12",
             "application/vnd.openxmlformats-officedocument.spreadsheetml.template",
@@ -70,6 +70,8 @@ namespace OfficeIMO.Excel {
         /// Gets or sets an optional progress sink invoked as response bytes are copied.
         /// </summary>
         public IProgress<ExcelHttpLoadProgress>? Progress { get; set; }
+
+        internal ExcelLoadOptions? HttpOptions => this;
 
         internal HttpMessageHandler? HttpMessageHandler { get; set; }
     }

@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Word {
                 heading.Style = WordParagraphStyles.Heading1;
                 heading.AddBookmark("Intro");
 
-                document.AddParagraph("See chapter: ").AddCrossReference("Intro", WordCrossReferenceType.Heading).AddText(" for more information.");
+                document.AddParagraph("See chapter: ").AddCrossReference("Intro", WordCrossReferenceType.Heading).Paragraph.AddText(" for more information.");
 
                 document.UpdateFields();
                 document.Save();

@@ -100,6 +100,16 @@ namespace OfficeIMO.Word {
             return color!.StartsWith("#", StringComparison.Ordinal) ? color : "#" + color;
         }
 
+        /// <summary>Checks color components before a VML factory adds document nodes.</summary>
+        internal static void ValidateVmlColors(OfficeColor? fillColor, OfficeColor? strokeColor = null) {
+            if (fillColor?.IsThemeRole == true) _ = fillColor.Value.ToRgbHex();
+            if (strokeColor?.IsThemeRole == true) _ = strokeColor.Value.ToRgbHex();
+        }
+
+        /// <summary>Formats an exact shared length as invariant VML point text, without display rounding.</summary>
+        internal static string FormatVmlLength(OfficeLength value) =>
+            (value.ToEmus() / 12700m).ToString(CultureInfo.InvariantCulture) + "pt";
+
         internal static Wps.WordprocessingShape BuildWpsShape(long cx, long cy, WordShapeType shapeType) {
             var wsp = new Wps.WordprocessingShape();
             wsp.Append(new Wps.NonVisualDrawingShapeProperties(new A.ShapeLocks() { NoChangeArrowheads = true }));
@@ -167,7 +177,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes a new rectangle shape and appends it to the paragraph.
         /// </summary>
-        internal WordShape(WordDocument document, WordParagraph paragraph, double widthPt, double heightPt, string fillColor = "#FFFFFF") {
+        internal WordShape(WordDocument document, WordParagraph paragraph, OfficeLength width, OfficeLength height, string fillColor = "#FFFFFF") {
             _document = document;
             _wordParagraph = paragraph;
 
@@ -176,7 +186,7 @@ namespace OfficeIMO.Word {
 
             _rectangle = new V.Rectangle() {
                 Id = "Rectangle" + Guid.NewGuid().ToString("N"),
-                Style = $"width:{widthPt}pt;height:{heightPt}pt;mso-wrap-style:square",
+                Style = $"width:{FormatVmlLength(width)};height:{FormatVmlLength(height)};mso-wrap-style:square",
                 FillColor = vmlFill,
                 Stroked = false
             };
@@ -212,12 +222,12 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds an ellipse shape to the given paragraph.
         /// </summary>
-        public static WordShape AddEllipse(WordParagraph paragraph, double widthPt, double heightPt, string fillColor = "#FFFFFF") {
-            var vmlFill = fillColor;
+        public static WordShape AddEllipse(WordParagraph paragraph, OfficeLength width, OfficeLength height, OfficeColor? fillColor = null) {
+            var vmlFill = (fillColor ?? OfficeColor.White).ToRgbHex();
             if (!string.IsNullOrEmpty(vmlFill) && !vmlFill.StartsWith("#", StringComparison.Ordinal)) vmlFill = "#" + vmlFill;
             var ellipse = new V.Oval() {
                 Id = "Ellipse" + Guid.NewGuid().ToString("N"),
-                Style = $"width:{widthPt}pt;height:{heightPt}pt;mso-wrap-style:square",
+                Style = $"width:{FormatVmlLength(width)};height:{FormatVmlLength(height)};mso-wrap-style:square",
                 FillColor = vmlFill,
                 Stroked = false
             };
@@ -228,27 +238,20 @@ namespace OfficeIMO.Word {
             Run run = paragraph.VerifyRun();
             run.Append(pict);
 
-            return new WordShape(paragraph._document!, paragraph._paragraph!, run);
-        }
-
-        /// <summary>
-        /// Adds an ellipse shape using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
-        /// </summary>
-        public static WordShape AddEllipse(WordParagraph paragraph, double widthPt, double heightPt, OfficeIMO.Drawing.OfficeColor fillColor) {
-            return AddEllipse(paragraph, widthPt, heightPt, fillColor.ToRgbHex());
+            return new WordShape(paragraph._document!, paragraph._paragraph!, run, selectedVmlShape: ellipse);
         }
 
         /// <summary>
         /// Adds a rounded rectangle shape to the given paragraph.
         /// </summary>
-        public static WordShape AddRoundedRectangle(WordParagraph paragraph, double widthPt, double heightPt,
-            string fillColor = "#FFFFFF", double arcSize = 0.25) {
+        public static WordShape AddRoundedRectangle(WordParagraph paragraph, OfficeLength width, OfficeLength height,
+            OfficeColor? fillColor = null, double arcSize = 0.25) {
             var arc = (int)Math.Round(arcSize * 65536d);
-            var vmlFill = fillColor;
+            var vmlFill = (fillColor ?? OfficeColor.White).ToRgbHex();
             if (!string.IsNullOrEmpty(vmlFill) && !vmlFill.StartsWith("#", StringComparison.Ordinal)) vmlFill = "#" + vmlFill;
             var roundRect = new V.RoundRectangle() {
                 Id = "RoundedRect" + Guid.NewGuid().ToString("N"),
-                Style = $"width:{widthPt}pt;height:{heightPt}pt;mso-wrap-style:square",
+                Style = $"width:{FormatVmlLength(width)};height:{FormatVmlLength(height)};mso-wrap-style:square",
                 FillColor = vmlFill,
                 Stroked = false,
                 ArcSize = $"{arc}f"
@@ -260,21 +263,21 @@ namespace OfficeIMO.Word {
             Run run = paragraph.VerifyRun();
             run.Append(pict);
 
-            return new WordShape(paragraph._document!, paragraph._paragraph!, run);
+            return new WordShape(paragraph._document!, paragraph._paragraph!, run, selectedVmlShape: roundRect);
         }
 
         /// <summary>
         /// Adds a line shape to the given paragraph.
         /// </summary>
-        public static WordShape AddLine(WordParagraph paragraph, double startXPt, double startYPt, double endXPt, double endYPt, string color = "#000000", double strokeWeightPt = 1) {
-            var vmlStroke = EnsureHashPrefix(color);
+        public static WordShape AddLine(WordParagraph paragraph, OfficeLength startX, OfficeLength startY, OfficeLength endX, OfficeLength endY, OfficeColor? color = null, OfficeLength? strokeWeight = null) {
+            var vmlStroke = EnsureHashPrefix((color ?? OfficeColor.Black).ToRgbHex());
             var line = new V.Line() {
                 Id = "Line" + Guid.NewGuid().ToString("N"),
                 Style = "mso-wrap-style:square",
-                From = $"{startXPt}pt,{startYPt}pt",
-                To = $"{endXPt}pt,{endYPt}pt",
+                From = $"{FormatVmlLength(startX)},{FormatVmlLength(startY)}",
+                To = $"{FormatVmlLength(endX)},{FormatVmlLength(endY)}",
                 StrokeColor = vmlStroke,
-                StrokeWeight = $"{strokeWeightPt}pt"
+                StrokeWeight = FormatVmlLength(strokeWeight ?? OfficeLength.Points(1))
             };
 
             Picture pict = new Picture();
@@ -283,14 +286,7 @@ namespace OfficeIMO.Word {
             Run run = paragraph.VerifyRun();
             run.Append(pict);
 
-            return new WordShape(paragraph._document!, paragraph._paragraph!, run);
-        }
-
-        /// <summary>
-        /// Adds a line shape using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
-        /// </summary>
-        public static WordShape AddLine(WordParagraph paragraph, double startXPt, double startYPt, double endXPt, double endYPt, OfficeIMO.Drawing.OfficeColor color, double strokeWeightPt = 1) {
-            return AddLine(paragraph, startXPt, startYPt, endXPt, endYPt, color.ToRgbHex(), strokeWeightPt);
+            return new WordShape(paragraph._document!, paragraph._paragraph!, run, selectedVmlShape: line);
         }
 
         /// <summary>
@@ -313,13 +309,13 @@ namespace OfficeIMO.Word {
             Run run = paragraph.VerifyRun();
             run.Append(pict);
 
-            return new WordShape(paragraph._document!, paragraph._paragraph!, run);
+            return new WordShape(paragraph._document!, paragraph._paragraph!, run, selectedVmlShape: poly);
         }
 
         /// <summary>
-        /// Adds a polygon shape using <see cref="OfficeIMO.Drawing.OfficeColor"/> values.
+        /// Adds a polygon shape using <see cref="OfficeIMO.OfficeColor"/> values.
         /// </summary>
-        public static WordShape AddPolygon(WordParagraph paragraph, string points, OfficeIMO.Drawing.OfficeColor fillColor, OfficeIMO.Drawing.OfficeColor strokeColor) {
+        public static WordShape AddPolygon(WordParagraph paragraph, string points, OfficeIMO.OfficeColor fillColor, OfficeIMO.OfficeColor strokeColor) {
             return AddPolygon(paragraph, points, fillColor.ToRgbHex(), strokeColor.ToRgbHex());
         }
 
@@ -328,12 +324,13 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="paragraph">Paragraph to append the shape to.</param>
         /// <param name="shapeType">Type of shape to create.</param>
-        /// <param name="widthPt">Width in points.</param>
-        /// <param name="heightPt">Height in points.</param>
-        public static WordShape AddDrawingShape(WordParagraph paragraph, WordShapeType shapeType, double widthPt, double heightPt) {
-            ValidateDimensions(widthPt, heightPt);
-            long cx = ToEmuChecked(widthPt, nameof(widthPt));
-            long cy = ToEmuChecked(heightPt, nameof(heightPt));
+        /// <param name="width">Shape width.</param>
+        /// <param name="height">Shape height.</param>
+        public static WordShape AddDrawingShape(WordParagraph paragraph, WordShapeType shapeType, OfficeLength width, OfficeLength height) {
+            if (width <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(width), "Width must be positive.");
+            if (height <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(height), "Height must be positive.");
+            long cx = width.ToEmus();
+            long cy = height.ToEmus();
 
             var inline = new DW.Inline() {
                 DistanceFromTop = 0U,
@@ -402,17 +399,19 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="paragraph">Paragraph to host the WordDrawing anchor.</param>
         /// <param name="shapeType">Type of shape.</param>
-        /// <param name="widthPt">Width in points.</param>
-        /// <param name="heightPt">Height in points.</param>
-        /// <param name="leftPt">Left offset in points from the page.</param>
-        /// <param name="topPt">Top offset in points from the page.</param>
-        public static WordShape AddDrawingShapeAnchored(WordParagraph paragraph, WordShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt) {
-            ValidateDimensions(widthPt, heightPt);
-            ValidatePosition(leftPt, topPt);
-            long cx = ToEmuChecked(widthPt, nameof(widthPt));
-            long cy = ToEmuChecked(heightPt, nameof(heightPt));
-            long offX = ToEmuChecked(leftPt, nameof(leftPt));
-            long offY = ToEmuChecked(topPt, nameof(topPt));
+        /// <param name="width">Shape width.</param>
+        /// <param name="height">Shape height.</param>
+        /// <param name="left">Left offset from the page.</param>
+        /// <param name="top">Top offset from the page.</param>
+        public static WordShape AddDrawingShapeAnchored(WordParagraph paragraph, WordShapeType shapeType, OfficeLength width, OfficeLength height, OfficeLength left, OfficeLength top) {
+            if (width <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(width), "Width must be positive.");
+            if (height <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(height), "Height must be positive.");
+            if (left < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(left), "Left offset cannot be negative.");
+            if (top < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(top), "Top offset cannot be negative.");
+            long cx = width.ToEmus();
+            long cy = height.ToEmus();
+            long offX = left.ToEmus();
+            long offY = top.ToEmus();
 
             var wsp = BuildWpsShape(cx, cy, shapeType);
             var graphic = new A.Graphic(new A.GraphicData(wsp) { Uri = "http://schemas.microsoft.com/office/word/2010/wordprocessingShape" });
@@ -481,14 +480,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the fill color using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
+        /// Gets or sets the fill color using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor FillColor {
+        public OfficeIMO.OfficeColor FillColor {
             get {
                 var hex = FillColorHex;
-                if (string.IsNullOrEmpty(hex)) return OfficeIMO.Drawing.OfficeColor.Transparent;
+                if (string.IsNullOrEmpty(hex)) return OfficeIMO.OfficeColor.Transparent;
                 if (!hex.StartsWith("#", StringComparison.Ordinal)) hex = "#" + hex;
-                return OfficeIMO.Drawing.OfficeColor.Parse(hex);
+                return OfficeIMO.OfficeColor.Parse(hex);
             }
             set => FillColorHex = value.ToRgbHex();
         }
@@ -638,14 +637,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Outline color using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
+        /// Outline color using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor StrokeColor {
+        public OfficeIMO.OfficeColor StrokeColor {
             get {
                 var hex = StrokeColorHex;
-                if (hex is not { Length: > 0 } s) return OfficeIMO.Drawing.OfficeColor.Transparent;
+                if (hex is not { Length: > 0 } s) return OfficeIMO.OfficeColor.Transparent;
                 if (!s.StartsWith("#", StringComparison.Ordinal)) s = "#" + s;
-                return OfficeIMO.Drawing.OfficeColor.Parse(s);
+                return OfficeIMO.OfficeColor.Parse(s);
             }
             set => StrokeColorHex = value.ToRgbHex();
         }
@@ -653,7 +652,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Outline thickness in points.
         /// </summary>
-        public double? StrokeWeight {
+        internal double? StrokeWeightPoints {
             get {
                 string? v = null;
                 if (_rectangle != null) v = _rectangle.StrokeWeight?.Value;
@@ -675,26 +674,6 @@ namespace OfficeIMO.Word {
                 }
 
                 return null;
-            }
-            set {
-                string? v = value != null ? $"{value.Value.ToString(CultureInfo.InvariantCulture)}pt" : null;
-                if (_rectangle != null) _rectangle.StrokeWeight = v;
-                if (_roundRectangle != null) _roundRectangle.StrokeWeight = v;
-                if (_ellipse != null) _ellipse.StrokeWeight = v;
-                if (_polygon != null) _polygon.StrokeWeight = v;
-                if (_line != null) _line.StrokeWeight = v;
-                if (_shape != null) _shape.StrokeWeight = v;
-                if (_wpsShape != null && value != null) {
-                    var spPr = _wpsShape.GetFirstChild<Wps.ShapeProperties>();
-                    if (spPr != null) {
-                        var outline = spPr.GetFirstChild<A.Outline>();
-                        if (outline == null) {
-                            outline = new A.Outline();
-                            spPr.Append(outline);
-                        }
-                        outline.Width = (Int32Value)(int)Math.Round(value.Value * EmusPerPoint);
-                    }
-                }
             }
         }
 
@@ -813,7 +792,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Width of the shape in points.
         /// </summary>
-        public double Width {
+        internal double WidthPoints {
             get {
                 var v = GetStyleValue("width");
                 if (v is { Length: > 0 } s) return double.Parse(s.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
@@ -825,7 +804,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Height of the shape in points.
         /// </summary>
-        public double Height {
+        internal double HeightPoints {
             get {
                 var v = GetStyleValue("height");
                 if (v is { Length: > 0 } s) return double.Parse(s.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
@@ -837,7 +816,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Left position of the shape in points. Returns null when not explicitly set.
         /// </summary>
-        public double? Left {
+        internal double? LeftPoints {
             get {
                 var v = GetStyleValue("margin-left");
                 if (v is not { Length: > 0 } s) return null;
@@ -856,7 +835,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Top position of the shape in points. Returns null when not explicitly set.
         /// </summary>
-        public double? Top {
+        internal double? TopPoints {
             get {
                 var v = GetStyleValue("margin-top");
                 if (v is not { Length: > 0 } s) return null;

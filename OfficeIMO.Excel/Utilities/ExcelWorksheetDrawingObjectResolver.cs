@@ -1057,6 +1057,6 @@ namespace OfficeIMO.Excel.Utilities {
 
         internal bool IsRenderable => ShapeKind.HasValue && string.IsNullOrEmpty(UnsupportedReason);
 
-        internal string? CellReference => Row > 0 && Column > 0 ? A1.CellReference(Row, Column) : null;
+        internal string? CellReference => Row > 0 && Column > 0 ? ExcelA1.CellReference(Row, Column) : null;
     }
 }

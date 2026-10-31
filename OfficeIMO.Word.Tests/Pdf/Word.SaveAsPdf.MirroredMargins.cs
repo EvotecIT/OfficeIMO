@@ -22,20 +22,20 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         var section = document.Sections[0];
         section.PageSettings.PageSize = WordPageSize.Letter;
-        section.Margins.Left = 800; section.Margins.Right = 1400;
-        section.Margins.Gutter = 400;
+        section.Margins.Left = global::OfficeIMO.OfficeLength.Points(40D); section.Margins.Right = global::OfficeIMO.OfficeLength.Points(70D);
+        section.Margins.Gutter = global::OfficeIMO.OfficeLength.Points(20D);
         section.RtlGutter = onRight;
         section.AddPageNumbering(startNumber);
         document.Settings.MirrorMargins = true;
         document.Settings.GutterAtTop = atTop;
         for (int index = 1; index <= 3; index++) {
             var paragraph = document.AddParagraph("MirrorMarker" + index);
-            paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
+            paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph.PageBreakBeforeOverride = index > 1;
         }
         using var source = new MemoryStream(document.ToBytes(format));
         using WordDocument loaded = WordDocument.Load(source);
-        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
         for (int index = 1; index <= 3; index++) {
             bool even = (startNumber + index - 1) % 2 == 0;

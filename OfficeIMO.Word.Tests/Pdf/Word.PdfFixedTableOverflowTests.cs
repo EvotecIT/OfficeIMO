@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
@@ -28,25 +29,23 @@ public partial class Word {
         WordTable table = document.AddTable(1, 2, WordTableStyle.TableNormal);
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table.Alignment = alignment;
-        table.WidthType = widthCase == 1 ? WordTableWidthUnit.Pct :
-            widthCase is 2 or 3 ? WordTableWidthUnit.Auto : WordTableWidthUnit.Dxa;
-        table.Width = widthCase == 1 ? 6250 : widthCase is 2 or 3 ? 0 : widthCase == 4 ? 3620 : 4500;
-        table.GridColumnWidth = new List<int> { 2250, 2250 };
-        table.StyleDetails!.TableIndentationWidth = (short)(indentPoints * 20);
+        table.Width = TableWidthFixture(widthCase == 1 ? WordTableWidthKind.Percent :
+            widthCase is 2 or 3 ? WordTableWidthKind.Auto : WordTableWidthKind.Length, widthCase == 1 ? 6250 : widthCase is 2 or 3 ? 0 : widthCase == 4 ? 3620 : 4500);
+        table.GridColumnWidth = new List<int> { 2250, 2250 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
+        table.StyleDetails!.TableIndentation = global::OfficeIMO.OfficeLength.Points(indentPoints);
         for (int column = 0; column < 2; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
-            cell.WidthType = widthCase == 1 ? WordTableWidthUnit.Pct :
-                widthCase == 3 ? WordTableWidthUnit.Auto : WordTableWidthUnit.Dxa;
-            cell.Width = widthCase == 1 ? 2500 : widthCase == 3 ? 0 : 2250;
-            cell.MarginLeftWidth = 0;
-            cell.MarginRightWidth = 0;
+            cell.Width = TableWidthFixture(widthCase == 1 ? WordTableWidthKind.Percent :
+                widthCase == 3 ? WordTableWidthKind.Auto : WordTableWidthKind.Length, widthCase == 1 ? 2500 : widthCase == 3 ? 0 : 2250);
+            cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero;
+            cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             cell.Paragraphs[0].Text = column == 0 ? "L" : "R";
         }
         string originalXml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new PageSize(325, 400), Margins = PageMargins.Uniform(72)
-        }));
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(325),OfficeIMO.OfficeLength.Points(400)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         var left = Assert.Single(letters, letter => letter.Value == "L");
         var right = Assert.Single(letters, letter => letter.Value == "R");
@@ -69,10 +68,9 @@ public partial class Word {
         WordTable table = document.AddTable(1, 2, WordTableStyle.TableNormal);
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table.Alignment = alignment;
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = (int)(width * 20D);
-        table.GridColumnWidth = new List<int> { 2250, 2250 };
-        table.StyleDetails!.CellSpacing = 120;
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)((int)(width * 20D)) * 635)));
+        table.GridColumnWidth = new List<int> { 2250, 2250 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
+        table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(6);
         table._tableProperties.TableBorders = new W.TableBorders(
             new W.TopBorder { Val = W.BorderValues.Single, Size = 8U },
             new W.LeftBorder { Val = W.BorderValues.Single, Size = 8U },
@@ -81,15 +79,14 @@ public partial class Word {
             new W.InsideVerticalBorder { Val = W.BorderValues.Single, Size = 8U });
         for (int column = 0; column < 2; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
-            cell.WidthType = WordTableWidthUnit.Dxa;
-            cell.Width = 2250;
-            cell.MarginLeftWidth = cell.MarginRightWidth = 0;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2250) * 635)));
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             cell.Paragraphs[0].Text = column == 0 ? "L" : "R";
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new PageSize(325, 400), Margins = PageMargins.Uniform(72)
-        }));
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(325),OfficeIMO.OfficeLength.Points(400)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = pdf.GetPage(1);
         var left = Assert.Single(page.Letters, letter => letter.Value == "L");
         var right = Assert.Single(page.Letters, letter => letter.Value == "R");
@@ -113,10 +110,9 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 2, WordTableStyle.TableNormal);
         table.LayoutMode = WordTableLayoutMode.Fixed;
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = 600;
-        table.GridColumnWidth = new List<int> { 2250, 2250 };
-        table.StyleDetails!.CellSpacing = 120;
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(600) * 635)));
+        table.GridColumnWidth = new List<int> { 2250, 2250 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
+        table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(6);
         W.BorderValues borderValue = borderSize > 0 ? W.BorderValues.Single : W.BorderValues.Nil;
         uint size = (uint)borderSize;
         table._tableProperties.TableBorders = new W.TableBorders(
@@ -128,15 +124,14 @@ public partial class Word {
             new W.InsideVerticalBorder { Val = borderValue, Size = size });
         for (int column = 0; column < 2; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
-            cell.WidthType = WordTableWidthUnit.Dxa;
-            cell.Width = 2250;
-            cell.MarginLeftWidth = cell.MarginRightWidth = (short)marginTwips;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2250) * 635)));
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(((short)marginTwips) / 20D);
             cell.Paragraphs[0].Text = column == 0 ? "L" : "R";
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new PageSize(325, 400), Margins = PageMargins.Uniform(72)
-        }));
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(325),OfficeIMO.OfficeLength.Points(400)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = pdf.GetPage(1);
         var left = Assert.Single(page.Letters, letter => letter.Value == "L");
         var right = Assert.Single(page.Letters, letter => letter.Value == "R");
@@ -165,10 +160,9 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 2, WordTableStyle.TableNormal);
         table.LayoutMode = WordTableLayoutMode.Fixed;
-        table.WidthType = WordTableWidthUnit.Pct;
-        table.Width = percent;
-        table.GridColumnWidth = new List<int> { 2250, 2250 };
-        table.StyleDetails!.CellSpacing = spacingTwips == 0 ? null : (short)spacingTwips;
+        table.Width = WordTableWidth.Percent((percent) / 50d);
+        table.GridColumnWidth = new List<int> { 2250, 2250 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
+        table.StyleDetails!.CellSpacing = spacingTwips == 0 ? null : global::OfficeIMO.OfficeLength.Points((spacingTwips) / 20D);
         uint size = (uint)(cellOverride ? 8 : borderSize);
         W.BorderValues value = size == 0 ? W.BorderValues.Nil : W.BorderValues.Single;
         table._tableProperties.TableBorders = new W.TableBorders(
@@ -179,9 +173,8 @@ public partial class Word {
             new W.InsideVerticalBorder { Val = value, Size = size });
         for (int column = 0; column < 2; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
-            cell.WidthType = WordTableWidthUnit.Dxa;
-            cell.Width = 2250;
-            cell.MarginLeftWidth = cell.MarginRightWidth = 0;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2250) * 635)));
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             cell.Paragraphs[0].Text = column == 0 ? "L" : "R";
             if (cellOverride) {
                 W.BorderValues overrideValue = borderSize == 0 ? W.BorderValues.Nil : W.BorderValues.Single;
@@ -190,10 +183,10 @@ public partial class Word {
                     : new W.TableCellBorders(new W.RightBorder { Val = overrideValue, Size = (uint)borderSize });
             }
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new PageSize(325, 400), Margins = PageMargins.Uniform(72)
-        }));
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(325),OfficeIMO.OfficeLength.Points(400)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         var left = Assert.Single(letters, letter => letter.Value == "L");
         var right = Assert.Single(letters, letter => letter.Value == "R");

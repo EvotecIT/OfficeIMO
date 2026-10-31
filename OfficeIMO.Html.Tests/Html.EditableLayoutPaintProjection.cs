@@ -47,7 +47,7 @@ public sealed class HtmlEditableLayoutPaintProjectionTests {
         using var stream = new MemoryStream();
         switch (target) {
             case "word": {
-                var result = source.ToWordDocumentResult();
+                var result = source.ConvertToWordWithEvidence();
                 using WordDocument document = result.Value;
                 document.Save(stream);
                 using WordDocument reopened = WordDocument.Load(new MemoryStream(stream.ToArray()),
@@ -70,10 +70,10 @@ public sealed class HtmlEditableLayoutPaintProjectionTests {
                 break;
             }
             case "powerpoint": {
-                var result = source.ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
-                using PowerPointPresentation document = result.Value;
+                var result = source.ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+                using PowerPointDocument document = result.Value;
                 document.Save(stream);
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(new MemoryStream(stream.ToArray()),
+                using PowerPointDocument reopened = PowerPointDocument.Load(new MemoryStream(stream.ToArray()),
                     new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
                 PowerPointTextBox box = Assert.Single(reopened.Slides.SelectMany(slide => slide.TextBoxes),
                     candidate => candidate.Text.Contains("Lead", StringComparison.Ordinal));

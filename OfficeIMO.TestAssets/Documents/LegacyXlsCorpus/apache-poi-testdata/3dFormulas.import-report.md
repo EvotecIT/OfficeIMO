@@ -63,7 +63,7 @@ Warnings: 3
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-LBL-EMPTY-NAME | 3 |
+| xls-biff-lbl-empty-name | 3 |
 
 ## Formula Tokens By Name
 

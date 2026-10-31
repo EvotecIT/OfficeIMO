@@ -36,8 +36,8 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         Assert.True(odtRun.SmallCaps);
 
         using WordDocument roundTrip = persisted.ToWordDocument();
-        WordRunSnapshot converted = Assert.Single(Assert.Single(roundTrip.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>()).Runs);
+        WordRunInfo converted = Assert.Single(Assert.Single(roundTrip.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>()).Runs);
         Assert.Equal(WordUnderlineStyle.WavyDouble, converted.UnderlineStyle);
         Assert.True(converted.DoubleStrike);
         Assert.Equal(nameof(WordVerticalTextPosition.Superscript), converted.VerticalTextAlignment);
@@ -66,7 +66,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         styles.DocDefaults!.RunPropertiesDefault!.RunPropertiesBaseStyle!.SmallCaps = new W.SmallCaps();
 
         source.AddParagraph("Character").SetCharacterStyleId("InheritedCapsCharacter");
-        source.AddParagraph().AddHyperLink("Hyperlink", new Uri("https://example.test"))
+        source.AddParagraph().AddHyperLink("Hyperlink", new Uri("https://example.test")).Paragraph
             .SetCharacterStyleId("InheritedCapsCharacter");
         source.AddParagraph("Paragraph").SetStyleId("InheritedCapsParagraph");
         source.AddParagraph("Default");
@@ -81,8 +81,8 @@ public sealed class OpenDocumentTextFormattingConversionTests {
 
     [Fact]
     public void PowerPointAndOdpPreserveNativeDecorationScriptAndCapsSemantics() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
-        PowerPointTextRun run = source.AddSlide().AddTextBoxPoints("Styled", 10, 10, 200, 40)
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
+        PowerPointTextRun run = source.AddSlide().AddTextBox("Styled",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40))
             .Paragraphs[0].Runs[0];
         run.UnderlineStyle = PowerPointUnderlineStyle.WavyDouble;
         run.StrikeStyle = PowerPointStrikeStyle.Double;
@@ -98,7 +98,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         Assert.Equal(OdfTextPosition.Subscript, odpRun.TextPosition);
         Assert.True(odpRun.SmallCaps);
 
-        using PowerPointPresentation roundTrip = persisted.ToPowerPointPresentation();
+        using PowerPointDocument roundTrip = persisted.ToPowerPointDocument();
         PowerPointTextRun converted = roundTrip.Slides[0].TextBoxes.Single().Paragraphs[0].Runs[0];
         Assert.Equal(PowerPointUnderlineStyle.WavyDouble, converted.UnderlineStyle);
         Assert.Equal(PowerPointStrikeStyle.Double, converted.StrikeStyle);
@@ -109,7 +109,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
     [Fact]
     public void ExcelAndOdsPreserveCellDecorationAndScriptAndApplyDisplayCase() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelCell cell = source.AddWorksheet("Data").CellAt(1, 1)
+        ExcelCell cell = source.AddSheet("Data").CellAt(1, 1)
             .SetValue("Styled")
             .SetUnderline(ExcelUnderlineStyle.Double)
             .SetStrikethrough()
@@ -125,7 +125,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         odsCell.SetString("MiXeD");
         odsCell.TextTransform = OdfTextTransform.Lowercase;
         using ExcelDocument roundTrip = OdsDocument.Load(new MemoryStream(persisted.ToBytes())).ToExcelDocument();
-        ExcelCellSnapshot converted = Assert.Single(roundTrip.CreateInspectionSnapshot().Worksheets.Single().Cells);
+        ExcelCellInfo converted = Assert.Single(roundTrip.Inspect().Worksheets.Single().Cells);
         Assert.Equal("mixed", converted.Value);
         Assert.Equal(ExcelUnderlineStyle.Double, converted.Style!.UnderlineStyle);
         Assert.True(converted.Style.Strikethrough);
@@ -137,7 +137,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument created = ExcelDocument.Create(path)) {
-                created.AddWorksheet("Data").CellAt(1, 1).SetValue("Plain").SetBold();
+                created.AddSheet("Data").CellAt(1, 1).SetValue("Plain").SetBold();
                 created.Save();
             }
 
@@ -168,7 +168,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
             }
 
             using ExcelDocument source = ExcelDocument.Load(path);
-            ExcelCellStyleSnapshot authored = source.Sheets[0].GetCellStyle(1, 1);
+            ExcelCellStyleInfo authored = source.Sheets[0].GetCellStyle(1, 1);
             OdsCell converted = source.ToOpenDocument().Sheets.Single().Cell(0, 0);
 
             Assert.False(authored.Underline);
@@ -189,8 +189,8 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         paragraph.AddSpan("llo world").Italic = true;
 
         using WordDocument word = odt.ToWordDocument();
-        WordParagraphSnapshot converted = Assert.Single(word.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+        WordParagraphInfo converted = Assert.Single(word.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
 
         Assert.Equal("Hello World", converted.Text);
         Assert.Equal(new[] { "He", "llo World" }, converted.Runs.Select(run => run.Text).ToArray());
@@ -208,8 +208,8 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         paragraph.AddSpan("Σ").Italic = true;
 
         using WordDocument word = odt.ToWordDocument();
-        WordParagraphSnapshot converted = Assert.Single(word.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+        WordParagraphInfo converted = Assert.Single(word.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
 
         Assert.Equal("ος", converted.Text);
         Assert.Equal(new[] { "ο", "ς" }, converted.Runs.Select(run => run.Text).ToArray());
@@ -250,7 +250,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         paragraph.AddRun("he").Bold = true;
         paragraph.AddRun("llo world").Italic = true;
 
-        using PowerPointPresentation powerPoint = odp.ToPowerPointPresentation();
+        using PowerPointDocument powerPoint = odp.ToPowerPointDocument();
         PowerPointParagraph converted = powerPoint.Slides.Single().TextBoxes.Single().Paragraphs.Single();
 
         Assert.Equal("Hello World", converted.Text);
@@ -270,7 +270,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         paragraph.AddRun("Ο").Bold = true;
         paragraph.AddRun("Σ").Italic = true;
 
-        using PowerPointPresentation powerPoint = odp.ToPowerPointPresentation();
+        using PowerPointDocument powerPoint = odp.ToPowerPointDocument();
         PowerPointParagraph converted = powerPoint.Slides.Single().TextBoxes.Single().Paragraphs.Single();
 
         Assert.Equal("ος", converted.Text);
@@ -295,7 +295,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
             OdpParagraph lowercase = textBox.AddParagraph("I");
             lowercase.TextTransform = OdfTextTransform.Lowercase;
 
-            using PowerPointPresentation powerPoint = odp.ToPowerPointPresentation();
+            using PowerPointDocument powerPoint = odp.ToPowerPointDocument();
 
             Assert.Equal(new[] { "İstanbul", "ı" },
                 powerPoint.Slides.Single().TextBoxes.Single().Paragraphs.Select(paragraph => paragraph.Text));
@@ -318,14 +318,14 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         odsCell.SetString("iPhone eBOOK");
         odsCell.TextTransform = OdfTextTransform.Capitalize;
         using ExcelDocument excel = ods.ToExcelDocument();
-        Assert.Equal("IPhone EBOOK", Assert.Single(excel.CreateInspectionSnapshot().Worksheets.Single().Cells).Value);
+        Assert.Equal("IPhone EBOOK", Assert.Single(excel.Inspect().Worksheets.Single().Cells).Value);
 
         OdpPresentation odp = OdpPresentation.Create();
         OdpRun odpRun = odp.AddSlide("Text")
             .AddTextBox(OdfRect.FromCentimeters(1, 1, 10, 3), null, "Text")
             .AddParagraph().AddRun("iPhone eBOOK");
         odpRun.TextTransform = OdfTextTransform.Capitalize;
-        using PowerPointPresentation powerPoint = odp.ToPowerPointPresentation();
+        using PowerPointDocument powerPoint = odp.ToPowerPointDocument();
         Assert.Equal("IPhone EBOOK", powerPoint.Slides.Single().TextBoxes.Single().Paragraphs.Single().Text);
     }
 }

@@ -12,7 +12,7 @@ internal readonly struct PdfAnnotationPathPoint {
 }
 
 internal static partial class PdfAnnotationDictionaryBuilder {
-    internal static string BuildInkAppearanceContent(double width, double height, IReadOnlyList<IReadOnlyList<PdfAnnotationPathPoint>> paths, PdfColor? strokeColor = null, double borderWidth = 1D, IReadOnlyList<double>? borderDashPattern = null) {
+    internal static string BuildInkAppearanceContent(double width, double height, IReadOnlyList<IReadOnlyList<PdfAnnotationPathPoint>> paths, global::OfficeIMO.OfficeColor? strokeColor = null, double borderWidth = 1D, IReadOnlyList<double>? borderDashPattern = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNull(paths, nameof(paths));
@@ -21,7 +21,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             return "q\nQ\n";
         }
 
-        PdfColor resolvedStrokeColor = strokeColor ?? PdfColor.Black;
+        global::OfficeIMO.OfficeColor resolvedStrokeColor = strokeColor ?? global::OfficeIMO.OfficeColor.Black;
         var builder = new StringBuilder();
         builder.Append("q\n")
             .Append(BuildBorderStrokeOperators(resolvedStrokeColor, borderWidth, borderDashPattern))
@@ -35,7 +35,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         return builder.ToString();
     }
 
-    internal static string BuildPathAnnotationAppearanceContent(double width, double height, string subtype, IReadOnlyList<PdfAnnotationPathPoint> vertices, PdfColor? strokeColor = null, PdfColor? fillColor = null, double borderWidth = 1D, IReadOnlyList<double>? borderDashPattern = null, string? startEnding = null, string? endEnding = null) {
+    internal static string BuildPathAnnotationAppearanceContent(double width, double height, string subtype, IReadOnlyList<PdfAnnotationPathPoint> vertices, global::OfficeIMO.OfficeColor? strokeColor = null, global::OfficeIMO.OfficeColor? fillColor = null, double borderWidth = 1D, IReadOnlyList<double>? borderDashPattern = null, string? startEnding = null, string? endEnding = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNull(vertices, nameof(vertices));
@@ -48,8 +48,8 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             return "q\nQ\n";
         }
 
-        PdfColor resolvedStrokeColor = strokeColor ?? PdfColor.Black;
-        PdfColor resolvedFillColor = fillColor ?? resolvedStrokeColor;
+        global::OfficeIMO.OfficeColor resolvedStrokeColor = strokeColor ?? global::OfficeIMO.OfficeColor.Black;
+        global::OfficeIMO.OfficeColor resolvedFillColor = fillColor ?? resolvedStrokeColor;
         var builder = new StringBuilder();
         builder.Append("q\n");
         if (fillColor.HasValue && isPolygon) {
@@ -106,7 +106,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         }
     }
 
-    private static void AppendPolylineEndings(StringBuilder builder, IReadOnlyList<PdfAnnotationPathPoint> vertices, double borderWidth, PdfColor strokeColor, PdfColor fillColor, string? startEnding, string? endEnding) {
+    private static void AppendPolylineEndings(StringBuilder builder, IReadOnlyList<PdfAnnotationPathPoint> vertices, double borderWidth, global::OfficeIMO.OfficeColor strokeColor, global::OfficeIMO.OfficeColor fillColor, string? startEnding, string? endEnding) {
         if (vertices.Count < 2) {
             return;
         }

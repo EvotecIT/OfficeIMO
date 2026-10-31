@@ -17,30 +17,26 @@ namespace OfficeIMO.Examples.PowerPoint {
             const double titleHeightCm = 1.3;
             const double bodyGapCm = 0.8;
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-            PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
-            PowerPointLayoutBox titleBox = PowerPointLayoutBox.FromCentimeters(
-                content.LeftCm, content.TopCm, content.WidthCm, titleHeightCm);
-            PowerPointLayoutBox bodyBox = PowerPointLayoutBox.FromCentimeters(
-                content.LeftCm,
-                content.TopCm + titleHeightCm + bodyGapCm,
-                content.WidthCm,
-                content.HeightCm - titleHeightCm - bodyGapCm);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
+            PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(marginCm));
+            PowerPointLayoutBox titleBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(titleHeightCm));
+            PowerPointLayoutBox bodyBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + titleHeightCm + bodyGapCm),                OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(content.Height.ToCentimeters() - titleHeightCm - bodyGapCm));
 
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddTitle("Validation Example", titleBox);
+            slide.AddTitle("Validation Example",titleBox);
             PowerPointTextBox intro = slide.AddTextBox(
-                "Creates a deck, saves it, and validates the Open XML package.",
-                bodyBox);
+                "Creates a deck, saves it, and validates the Open XML package.",                bodyBox);
             intro.ApplyTextStyle(PowerPointTextStyle.Body.WithColor("1F4E79"));
             intro.TextAutoFit = PowerPointTextAutoFit.Normal;
-            intro.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
+            intro.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2));
 
             presentation.Save();
             var errors = presentation.ValidateDocument();
 
             PowerPointSlide results = presentation.AddSlide();
-            results.AddTitle("Validation Result", titleBox);
+            results.AddTitle("Validation Result",titleBox);
             string status = errors.Count == 0 ? "Pass" : "Fail";
             string details = errors.Count == 0 ? "No validation errors found." : $"{errors.Count} validation issue(s).";
 
@@ -50,17 +46,11 @@ namespace OfficeIMO.Examples.PowerPoint {
                 new ValidationRow { Check = "Theme", Status = "Info", Details = presentation.ThemeName ?? "Default" }
             };
 
-            PowerPointTable table = results.AddTableCm(
-                summaryRows,
-                o => {
+            PowerPointTable table = results.AddTable(
+                summaryRows,                o => {
                     o.HeaderCase = HeaderCase.Title;
                     o.PinFirst("Check");
-                },
-                includeHeaders: true,
-                leftCm: bodyBox.LeftCm,
-                topCm: bodyBox.TopCm,
-                widthCm: bodyBox.WidthCm,
-                heightCm: bodyBox.HeightCm);
+                },                includeHeaders: true,left: global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Left.ToCentimeters()),top: global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Top.ToCentimeters()),width: global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Width.ToCentimeters()),height: global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Height.ToCentimeters()));
             table.ApplyStyle(PowerPointTableStylePreset.Default);
             table.SetColumnWidthsEvenly();
             for (int c = 0; c < table.Columns; c++) {

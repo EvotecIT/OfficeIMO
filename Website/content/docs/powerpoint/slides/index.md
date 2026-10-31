@@ -9,49 +9,51 @@ This guide covers the main `OfficeIMO.PowerPoint` slide-building workflow. Inste
 ## Start with a title and body region
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Drawing;
 
-using var presentation = PowerPointPresentation.Create("presentation.pptx");
+using var presentation = PowerPointDocument.Create("presentation.pptx");
 const double marginCm = 1.5;
 
-var content = presentation.SlideSize.GetContentBoxCm(marginCm);
+var content = presentation.SlideSize.GetContentBox(OfficeLength.Centimeters(marginCm));
 var slide = presentation.AddSlide();
 
-slide.AddTitleCm(
+slide.AddTitle(
     "Quarterly Results",
-    content.LeftCm,
-    content.TopCm,
-    content.WidthCm,
-    1.4);
+    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(1.4));
 
-slide.AddTextBoxCm(
+slide.AddTextBox(
     "Generated from the reporting pipeline.",
-    content.LeftCm,
-    content.TopCm + 1.8,
-    content.WidthCm,
-    1.0);
+    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 1.8),
+    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(1.0));
 ```
 
 ## Add bullets and formatted text
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.PowerPoint;
 using A = DocumentFormat.OpenXml.Drawing;
 
-var text = slide.AddTextBoxCm(
+var text = slide.AddTextBox(
     string.Empty,
-    content.LeftCm,
-    content.TopCm + 3.0,
-    content.WidthCm / 2,
-    4.5);
+    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 3.0),
+    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters() / 2),
+    OfficeIMO.OfficeLength.Centimeters(4.5));
 
-text.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
+text.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2));
 text.TextAutoFit = PowerPointTextAutoFit.Normal;
 
 var heading = text.AddParagraph("Highlights", p => {
     p.Alignment = PowerPointTextAlignment.Left;
-    p.SpaceAfterPoints = 6;
+    p.SpaceAfter = global::OfficeIMO.OfficeLength.Points(6);
 });
 PowerPointTextStyle.Subtitle.WithColor("1F4E79").Apply(heading);
 
@@ -64,12 +66,13 @@ text.AddBullet("Release completed on schedule");
 text.AddBullet("Customer guide updated");
 text.AddNumberedItem("Review adoption metrics");
 text.AddNumberedItem("Prepare next milestone");
-text.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
+text.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfter: global::OfficeIMO.OfficeLength.Points(2));
 ```
 
 ## Build tables and charts from data
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.PowerPoint;
 
 var rows = new[] {
@@ -79,41 +82,35 @@ var rows = new[] {
 };
 
 var tableSlide = presentation.AddSlide();
-tableSlide.AddTitleCm("Sales by Product", content.LeftCm, content.TopCm, content.WidthCm, 1.4);
+tableSlide.AddTitle("Sales by Product", OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(1.4));
 
-var table = tableSlide.AddTableCm(
+var table = tableSlide.AddTable(
     rows,
     options => {
         options.HeaderCase = HeaderCase.Title;
         options.PinFirst("Product");
     },
     includeHeaders: true,
-    leftCm: content.LeftCm,
-    topCm: content.TopCm + 2.0,
-    widthCm: content.WidthCm,
-    heightCm: 4.5);
+    left: content.Left,
+    top: content.Top + OfficeLength.Centimeters(2.0),
+    width: content.Width,
+    height: OfficeLength.Centimeters(4.5));
 
 table.SetColumnWidthsEvenly();
 
 var chartSlide = presentation.AddSlide();
-chartSlide.AddTitleCm("Quarterly Performance", content.LeftCm, content.TopCm, content.WidthCm, 1.4);
+chartSlide.AddTitle("Quarterly Performance", OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(1.4));
 
 var chartData = new OfficeChartData(
     rows.Select(r => r.Product),
     new[] {
-        new OfficeChartSeries("Q1", rows.Select(r => (double)r.Q1)),
-        new OfficeChartSeries("Q2", rows.Select(r => (double)r.Q2)),
-        new OfficeChartSeries("Q3", rows.Select(r => (double)r.Q3)),
-        new OfficeChartSeries("Q4", rows.Select(r => (double)r.Q4))
+        new OfficeSeries("Q1", rows.Select(r => (double)r.Q1)),
+        new OfficeSeries("Q2", rows.Select(r => (double)r.Q2)),
+        new OfficeSeries("Q3", rows.Select(r => (double)r.Q3)),
+        new OfficeSeries("Q4", rows.Select(r => (double)r.Q4))
     });
 
-chartSlide.AddChartCm(
-    OfficeChartKind.ColumnClustered,
-    chartData,
-    content.LeftCm,
-    content.TopCm + 2.0,
-    content.WidthCm,
-    4.8);
+chartSlide.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()), Top = OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 2.0), Width = OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), Height = OfficeIMO.OfficeLength.Centimeters(4.8) });
 chartSlide.Notes.Text = "Chart and table share the same source data.";
 ```
 
@@ -123,20 +120,14 @@ For a native bubble chart, create each series with explicit X, Y, and size value
 var bubbleData = new OfficeChartData(
     new[] { "1", "2", "3" },
     new[] {
-        OfficeChartSeries.CreateBubble(
+        OfficeSeries.CreateBubble(
             "Portfolio",
             xValues: new[] { 1D, 2D, 3D },
             yValues: new[] { 12D, 18D, 15D },
             bubbleSizes: new[] { 9D, 36D, 16D })
     });
 
-chartSlide.AddChartCm(
-    OfficeChartKind.Bubble,
-    bubbleData,
-    content.LeftCm,
-    content.TopCm + 2.0,
-    content.WidthCm,
-    4.8);
+chartSlide.AddChart(OfficeChartType.Bubble, bubbleData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()), Top = OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 2.0), Width = OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), Height = OfficeIMO.OfficeLength.Centimeters(4.8) });
 ```
 
 Bubble sizes must be finite and non-negative, with one size for every X/Y point. The chart remains editable in PowerPoint, and `UpdateData(...)` refreshes both cached chart values and the embedded workbook.
@@ -145,13 +136,13 @@ Bubble sizes must be finite and non-negative, with one size for every X/Y point.
 
 ```csharp
 var intro = presentation.AddSlide();
-intro.AddTitleCm("Intro", content.LeftCm, content.TopCm, content.WidthCm, 1.4);
+intro.AddTitle("Intro", OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(1.4));
 
 var duplicate = presentation.DuplicateSlide(0);
 duplicate.Hidden = true;
 
-using var source = PowerPointPresentation.Create("source-deck.pptx");
-source.AddSlide().AddTitleCm("Imported slide", content.LeftCm, content.TopCm, content.WidthCm, 1.4);
+using var source = PowerPointDocument.Create("source-deck.pptx");
+source.AddSlide().AddTitle("Imported slide", OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(1.4));
 source.Save();
 
 presentation.ImportSlide(source, 0, insertAt: 1);
@@ -161,8 +152,8 @@ presentation.MoveSlide(2, 0);
 ## Common patterns
 
 - Use `AddTitleCm` and `AddTextBoxCm` when you want a readable layout in source code.
-- Use `SetTextMarginsCm`, `ApplyTextStyle`, and `TextAutoFit` early so slides stay legible as content grows.
-- Build data-heavy slides from objects with `AddTableCm` and shared `OfficeChartData` instead of hard-coded cell text.
+- Use `SetTextMargins`, `ApplyTextStyle`, and `TextAutoFit` early so slides stay legible as content grows.
+- Build data-heavy slides from objects with `AddTable` and shared `OfficeChartData` instead of hard-coded cell text.
 - Use `Notes.Text` for speaker notes and `DuplicateSlide`, `ImportSlide`, and `MoveSlide` when you need reusable deck templates.
 
 ## Related guides

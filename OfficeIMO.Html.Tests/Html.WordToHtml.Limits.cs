@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("Endnote anchor").AddEndNote(hiddenText);
             document.AddParagraph("Comment anchor").AddComment("Reviewer", "R", hiddenText);
 
-            var options = new WordToHtmlOptions {
+            var options = new WordHtmlExportOptions {
                 MaxOutputCharacters = 4096,
                 ExportHeadersAndFooters = false,
                 ExportFootnotes = false,
@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                 ExportComments = false
             };
 
-            string html = document.ToHtmlResult(options).RequireValue();
+            string html = document.ConvertToHtmlWithEvidence(options).RequireValue();
 
             Assert.Contains("Visible body", html, StringComparison.Ordinal);
             Assert.DoesNotContain(hiddenText, html, StringComparison.Ordinal);
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
             document.AddParagraph("Visible body");
             string orphanedText = new string('x', 8192);
-            WordParagraph footnoteReference = document.AddParagraph().AddFootNote(orphanedText);
+            WordParagraph footnoteReference = document.AddParagraph().AddFootNote(orphanedText).Paragraph;
             footnoteReference._run!.Remove();
             WordParagraph commentParagraph = document.AddParagraph("Unreviewed text");
             commentParagraph.AddComment("Reviewer", "R", orphanedText);
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
                 reference.Remove();
             }
 
-            string html = document.ToHtmlResult(new WordToHtmlOptions {
+            string html = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 MaxOutputCharacters = 4096,
                 ExportFootnotes = true,
                 ExportComments = true,
@@ -66,19 +66,19 @@ namespace OfficeIMO.Tests {
                 Instruction = "DATE"
             });
 
-            var omitted = document.ToHtmlResult(new WordToHtmlOptions {
+            var omitted = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 ExportHeadersAndFooters = false
             });
-            var exported = document.ToHtmlResult(new WordToHtmlOptions {
+            var exported = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 ExportHeadersAndFooters = true
             });
 
             Assert.Contains(omitted.Report.Diagnostics, diagnostic =>
-                diagnostic.Code == "HeadersFootersOmitted");
+                diagnostic.Code == "headers-footers-omitted");
             Assert.DoesNotContain(omitted.Report.Diagnostics, diagnostic =>
-                diagnostic.Code == "FieldInstructionsFlattened");
+                diagnostic.Code == "field-instructions-flattened");
             Assert.Contains(exported.Report.Diagnostics, diagnostic =>
-                diagnostic.Code == "FieldInstructionsFlattened");
+                diagnostic.Code == "field-instructions-flattened");
         }
     }
 }

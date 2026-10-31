@@ -23,7 +23,7 @@ New-OfficeExcel -Path $path {
         ExcelSort -Range 'A1:D20' -Key 'C' -Descending
         ExcelSparkline -DataRange 'C2:C7' -LocationRange 'E2:E7' -Type Line -ShowMarkers
         ExcelPivotTable -SourceRange 'A1:D7' -DestinationCell 'G2' -RowField 'Region' -DataField 'Sales'
-        ExcelChart -Range 'A1:C7' -Type Column -Title 'Sales by Region' -Row 1 -Column 9
+        ExcelChart -Range 'A1:C7' -Type ColumnClustered -Title 'Sales by Region' -Address I1
         ExcelHyperlink -Cell 'A2' -Uri 'https://evotec.xyz'
         ExcelComment -Cell 'C2' -Text 'Review this value'
 

@@ -66,7 +66,7 @@ public sealed class ConversionTests {
     public void PdfKeepsTopicPageBoundariesAndSearchableContent() {
         ChmDocument book = ChmDocument.Load(ChmFixture.Book());
         var result = book.ToPdfBytesResult();
-        PdfReadDocument read = PdfReadDocument.Open(result.Value);
+        PdfDocument read = PdfDocument.Load(new System.IO.MemoryStream(result.Value));
         Assert.Equal(2, read.Pages.Count); string text = read.ExtractText();
         Assert.Contains("Café", text); Assert.Contains("Second topic", text); Assert.Contains("42", text);
         Assert.NotEmpty(read.Pages[0].GetImages());
@@ -85,10 +85,10 @@ public sealed class ConversionTests {
         rendering.ResourcePolicy.AllowRemoteResourceResolution = true;
         var result = await book.ToPdfDocumentResultAsync(pdfOptions: rendering);
         Assert.Equal(0, delegated); Assert.NotEmpty(result.ToBytes());
-        Assert.Single(PdfReadDocument.Open(result.ToBytes()).Pages[0].GetImages());
+        Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).Pages[0].GetImages());
         rendering.ResourcePolicy.AllowEmbeddedPackageResources = false;
         var withoutImages = await book.ToPdfDocumentResultAsync(pdfOptions: rendering);
-        Assert.Empty(PdfReadDocument.Open(withoutImages.ToBytes()).Pages[0].GetImages());
+        Assert.Empty(PdfDocument.Load(new System.IO.MemoryStream(withoutImages.ToBytes())).Pages[0].GetImages());
     }
 
     [Fact]

@@ -26,8 +26,8 @@ internal static partial class HtmlPdfRenderedConverter {
 
         renderOptions.CssMediaWidthOverride = renderOptions.ViewportWidth;
         renderOptions.PrintOutputPageSize = renderOptions.PageSize;
-        renderOptions.PageSize = new OfficePageSize(layoutWidth / HtmlRenderOptions.CssPixelsPerInch,
-            layoutHeight / HtmlRenderOptions.CssPixelsPerInch);
+        renderOptions.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(layoutWidth / HtmlRenderOptions.CssPixelsPerInch),
+            global::OfficeIMO.OfficeLength.Inches(layoutHeight / HtmlRenderOptions.CssPixelsPerInch));
         HtmlRenderMargins margins = renderOptions.Margins;
         renderOptions.Margins = new HtmlRenderMargins(
             margins.Left / layoutScale,
@@ -38,6 +38,6 @@ internal static partial class HtmlPdfRenderedConverter {
 
     private static double ResolvePrintLayoutScale(HtmlToPdfOptions options) =>
         options.PrintFitScale ?? (options.PrintLayoutWidthCssPixels is double layoutWidth
-            ? (options.PrintOutputPageSize ?? options.PageSize).WidthInches * HtmlRenderOptions.CssPixelsPerInch / layoutWidth
+            ? (options.PrintOutputPageSize ?? options.PageSize).Width.ToInches() * HtmlRenderOptions.CssPixelsPerInch / layoutWidth
             : 1D);
 }

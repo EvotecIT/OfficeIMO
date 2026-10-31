@@ -51,7 +51,7 @@ namespace OfficeIMO.Excel {
             }
 
             string usedRange = GetUsedRangeA1();
-            if (!A1.TryParseRange(usedRange, out int usedStartRow, out int usedStartColumn, out int usedEndRow, out int usedEndColumn)) {
+            if (!ExcelA1.TryParseRange(usedRange, out int usedStartRow, out int usedStartColumn, out int usedEndRow, out int usedEndColumn)) {
                 return false;
             }
 
@@ -94,7 +94,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (!A1.TryParseRange(table.Reference.Value, out int startRow, out int startColumn, out int endRow, out _)) {
+            if (!ExcelA1.TryParseRange(table.Reference.Value, out int startRow, out int startColumn, out int endRow, out _)) {
                 return false;
             }
 
@@ -125,8 +125,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static string BuildSingleColumnRange(int startRow, int column, int endRow) {
-            string start = A1.CellReference(startRow, column);
-            string end = A1.CellReference(endRow, column);
+            string start = ExcelA1.CellReference(startRow, column);
+            string end = ExcelA1.CellReference(endRow, column);
             return $"{start}:{end}";
         }
     }

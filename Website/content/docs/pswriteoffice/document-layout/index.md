@@ -25,7 +25,7 @@ Keep headings with the content that follows them:
 WordParagraph {
     WordParagraphStyle -Style Heading1 -SpacingBeforePoints 16 `
         -SpacingAfterPoints 8 -KeepWithNext $true
-    WordText 'Compliance by site' -Bold -FontSize 15 -Color '17365D'
+    WordText 'Compliance by site' -Bold -Size 15pt -Color '17365D'
 }
 ```
 
@@ -53,4 +53,4 @@ Use the chart height that supports the message. A five-category chart in a one-p
 
 ## Check the delivered file
 
-Run the [patch compliance recipe](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-PatchCompliance.ps1), open the DOCX and inspect the exported PDF. Check every page for clipped text, split headings, table widths and chart labels. Native PDF conversion can paginate differently from a desktop Word editor; the PDF is the delivery copy when its layout is the agreed result.
+Run the [patch compliance recipe](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-PatchCompliance.ps1), open the DOCX and inspect the exported PDF. Check every page for clipped text, split headings, table widths and chart labels. Native PDF conversion can paginate differently from a desktop Word editor; the PDF is the delivery copy when its layout is the agreed result.

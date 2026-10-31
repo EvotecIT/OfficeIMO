@@ -4,7 +4,7 @@ namespace OfficeIMO.PowerPoint.IWork;
 
 /// <summary>Contains a PowerPoint conversion and the Keynote source evidence that produced it.</summary>
 public sealed class KeynoteToPowerPointResult : IDisposable {
-    internal KeynoteToPowerPointResult(PowerPointPresentation value, IWorkSourceDocument source,
+    internal KeynoteToPowerPointResult(PowerPointDocument value, IWorkSourceDocument source,
         IWorkKeynoteProjection projection, IWorkConversionReport report) {
         Value = value;
         Source = source;
@@ -13,7 +13,7 @@ public sealed class KeynoteToPowerPointResult : IDisposable {
     }
 
     /// <summary>Gets the converted OfficeIMO PowerPoint presentation.</summary>
-    public PowerPointPresentation Value { get; }
+    public PowerPointDocument Value { get; }
     /// <summary>Gets the bounded source package and preserved IWA records.</summary>
     public IWorkSourceDocument Source { get; }
     /// <summary>Gets the typed Keynote source projection.</summary>
@@ -26,11 +26,11 @@ public sealed class KeynoteToPowerPointResult : IDisposable {
     public bool HasLoss => Report.HasLoss;
 
     /// <summary>Returns the converted PowerPoint presentation.</summary>
-    public PowerPointPresentation RequireValue() => Value;
+    public PowerPointDocument RequireValue() => Value;
 
     /// <summary>Returns the converted PowerPoint presentation or throws unless its report permits complete editable reconstruction.</summary>
     /// <remarks>This checks assessed content completeness, not full appearance or record-level fidelity. A rejected value is disposed.</remarks>
-    public PowerPointPresentation RequireCompleteEditableReconstruction() {
+    public PowerPointDocument RequireCompleteEditableReconstruction() {
         try {
             Report.RequireCompleteEditableReconstruction();
             return Value;
@@ -41,7 +41,7 @@ public sealed class KeynoteToPowerPointResult : IDisposable {
     }
 
     /// <summary>Returns the converted PowerPoint presentation or throws when the conversion was lossy.</summary>
-    public PowerPointPresentation RequireNoLoss() {
+    public PowerPointDocument RequireNoLoss() {
         try {
             Report.RequireNoLoss();
             return Value;

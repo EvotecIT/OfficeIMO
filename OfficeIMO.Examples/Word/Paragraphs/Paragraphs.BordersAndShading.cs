@@ -1,7 +1,7 @@
 using System;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word;
 
@@ -14,7 +14,7 @@ internal static partial class Paragraphs {
             var bordered = document.AddParagraph("Bordered paragraph");
             bordered.Borders.LeftStyle = WordBorderStyle.Thick;
             bordered.Borders.LeftColor = Color.Red;
-            bordered.Borders.LeftSize = 24;
+            bordered.Borders.LeftSize = OfficeLength.Points(3);
 
             var shaded = document.AddParagraph("Shaded paragraph");
             shaded.ShadingFillColor = Color.LightGray;

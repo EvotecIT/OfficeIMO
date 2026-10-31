@@ -7,7 +7,7 @@ A compact technical guide authored with the Markdown builder.
 Keep data, document construction, and delivery as separate steps.
 
 ```csharp
-var report = MarkdownDoc.Create()
+var report = MarkdownDocument.Create()
     .H1("Weekly delivery")
     .P("Generated from application data.");
 ```

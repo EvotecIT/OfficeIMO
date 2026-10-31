@@ -17,7 +17,7 @@ internal static partial class HtmlPdfRenderedConverter {
             if (visual is HtmlRenderNamedDestination destination) {
                 OfficePoint point = transform.TransformPoint(new OfficePoint(destination.X, destination.Y));
                 canvas.NamedDestination(MapNamedDestination(destination.Name),
-                    point.X * PointsPerCssPixel, point.Y * PointsPerCssPixel);
+                    global::OfficeIMO.OfficeLength.Points(point.X * PointsPerCssPixel), global::OfficeIMO.OfficeLength.Points(point.Y * PointsPerCssPixel));
                 continue;
             }
             if (visual is HtmlRenderEffectGroup effect) {

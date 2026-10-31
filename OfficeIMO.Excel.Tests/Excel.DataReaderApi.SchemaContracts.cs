@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel.Tests;
 public partial class Excel {
     [Fact]
     public void OpenDataReader_XlsbFastPathPreservesTheCanonicalSchemaContract() {
-        using DbDataReader reader = ExcelDocument.OpenDataReader(
+        using DbDataReader reader = ExcelDocument.OpenReader(
             GetDataReaderXlsbFixture("basic-values-formula.xlsb"));
 
         DataReaderSchemaContractAssertions.AssertCanonicalSchema(reader);

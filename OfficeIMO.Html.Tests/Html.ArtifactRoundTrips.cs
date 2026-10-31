@@ -21,7 +21,7 @@ public class HtmlArtifactRoundTrips {
         HtmlConversionDocument source = OfficeIMO.Html.HtmlConversionDocument.Parse(
             "<h1>Conversion proof</h1><p>" + Marker + "</p><ul><li>First</li><li>Second</li></ul>");
 
-        HtmlToWordResult wordResult = source.ToWordDocumentResult();
+        HtmlToWordResult wordResult = source.ConvertToWordWithEvidence();
         using var docx = new MemoryStream();
         wordResult.Value.Save(docx);
         using WordDocument reopenedWord = WordDocument.Load(new MemoryStream(docx.ToArray()), new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
@@ -30,8 +30,8 @@ public class HtmlArtifactRoundTrips {
         string rtf = rtfResult.Value.ToRtf();
         RtfReadResult reopenedRtf = RtfDocument.Read(rtf);
 
-        string markdown = source.ToMarkdown();
-        byte[] pdf = source.ToPdfBytes();
+        string markdown = source.ToMarkdown().ToMarkdown();
+        byte[] pdf = (source.ToPdf()).ToBytes();
         string svg = source.ToSvg();
 
         Assert.NotEmpty(reopenedWord.Find(Marker, StringComparison.Ordinal));
@@ -59,7 +59,7 @@ public class HtmlArtifactRoundTrips {
     [Fact]
     public void SemanticHtml_ProducesReopenableXlsxAndPptxArtifacts() {
         using ExcelDocument sourceWorkbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sourceSheet = sourceWorkbook.AddWorksheet("Evidence");
+        ExcelSheet sourceSheet = sourceWorkbook.AddSheet("Evidence");
         sourceSheet.CellValue(1, 1, "Label");
         sourceSheet.CellValue(2, 1, Marker);
         sourceSheet.MergeRange("A2:B2");
@@ -68,15 +68,15 @@ public class HtmlArtifactRoundTrips {
         excelResult.Value.Save(xlsx);
         using ExcelDocument reopenedWorkbook = ExcelDocument.Load(new MemoryStream(xlsx.ToArray()), new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
 
-        using PowerPointPresentation sourcePresentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument sourcePresentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide sourceSlide = sourcePresentation.AddSlide();
-        PowerPointTable sourceTable = sourceSlide.AddTablePoints(2, 2, 40, 60, 300, 120);
+        PowerPointTable sourceTable = sourceSlide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(60),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(120));
         sourceTable.GetCell(0, 0).Text = Marker;
         sourceTable.MergeCells(0, 0, 0, 1);
-        HtmlToPowerPointResult powerPointResult = OfficeIMO.Html.HtmlConversionDocument.Parse(sourcePresentation.ToHtml()).ToPowerPointPresentationResult();
+        HtmlToPowerPointResult powerPointResult = OfficeIMO.Html.HtmlConversionDocument.Parse(sourcePresentation.ToHtml()).ToPowerPointDocumentResult();
         using var pptx = new MemoryStream();
         powerPointResult.Value.Save(pptx);
-        using PowerPointPresentation reopenedPresentation = PowerPointPresentation.Load(
+        using PowerPointDocument reopenedPresentation = PowerPointDocument.Load(
             new MemoryStream(pptx.ToArray()),
             new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
 

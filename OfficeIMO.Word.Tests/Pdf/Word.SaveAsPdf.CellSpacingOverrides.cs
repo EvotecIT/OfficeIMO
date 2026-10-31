@@ -37,9 +37,9 @@ public partial class Word {
         }
         using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
         string sourceXml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(sourceXml, imported._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         var words = pdf.GetPage(1).GetWords();
         var left = Assert.Single(words, word => word.Text == "Spacing0");

@@ -11,17 +11,17 @@ Computes reusable layout boxes for a presentation.
 ## SYNTAX
 ### Content (Default)
 ```powershell
-Get-OfficePowerPointLayoutBox [-Presentation <PowerPointPresentation>] [-MarginCm <double>] [<CommonParameters>]
+Get-OfficePowerPointLayoutBox [-Presentation <PowerPointDocument>] [-MarginCm <double>] [<CommonParameters>]
 ```
 
 ### Columns
 ```powershell
-Get-OfficePowerPointLayoutBox -ColumnCount <int> [-Presentation <PowerPointPresentation>] [-MarginCm <double>] [-GutterCm <double>] [<CommonParameters>]
+Get-OfficePowerPointLayoutBox -ColumnCount <int> [-Presentation <PowerPointDocument>] [-MarginCm <double>] [-GutterCm <double>] [<CommonParameters>]
 ```
 
 ### Rows
 ```powershell
-Get-OfficePowerPointLayoutBox -RowCount <int> [-Presentation <PowerPointPresentation>] [-MarginCm <double>] [-GutterCm <double>] [<CommonParameters>]
+Get-OfficePowerPointLayoutBox -RowCount <int> [-Presentation <PowerPointDocument>] [-MarginCm <double>] [-GutterCm <double>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -106,7 +106,7 @@ Accept wildcard characters: False
 Presentation to inspect (optional inside DSL).
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: Content, Columns, Rows
 Aliases: None
 Possible values:
@@ -139,7 +139,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

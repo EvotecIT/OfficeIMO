@@ -29,24 +29,24 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
     [Theory]
     [MemberData(nameof(ReferenceCharts))]
     public void AutomaticColorsMatchThePowerPointExport(int number) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(Path.Combine(FixtureFolder, "automatic-colors.pptx"));
+        using PowerPointDocument presentation = PowerPointDocument.Load(Path.Combine(FixtureFolder, "automatic-colors.pptx"));
         PowerPointChart chart = presentation.Slides[number - 1].Charts.Single();
 
         Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot, out string? reason), reason);
-        OfficeChartSnapshot office = PowerPointChartSnapshotMapper.ToOfficeSnapshot(snapshot, snapshot.WidthPoints, snapshot.HeightPoints);
+        OfficeChartSnapshot office = PowerPointChartSnapshotMapper.ToOfficeSnapshot(snapshot, snapshot.Width.ToPoints(), snapshot.Height.ToPoints());
 
         Assert.Equal(ReadReference().Single(chart => chart.Number == number).Fills, DrawnFills(office));
     }
 
     [Fact]
     public void AutomaticLineSeriesUseOfficeMarkerSequence() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(Path.Combine(FixtureFolder, "automatic-colors.pptx"));
+        using PowerPointDocument presentation = PowerPointDocument.Load(Path.Combine(FixtureFolder, "automatic-colors.pptx"));
         PowerPointChart chart = presentation.Slides[5].Charts.Single();
 
         Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot, out string? reason), reason);
         Assert.Equal(new OfficeChartMarkerShape?[] { OfficeChartMarkerShape.Diamond, OfficeChartMarkerShape.Square, OfficeChartMarkerShape.Triangle },
             snapshot.Data.Series.Select(series => series.SharedAppearance!.MarkerShape).ToArray());
-        Assert.All(snapshot.Data.Series, series => Assert.Equal(7, series.SharedAppearance!.MarkerSize));
+        Assert.All(snapshot.Data.Series, series => Assert.Equal(7, series.SharedAppearance!.MarkerSize?.ToPoints()));
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         OfficeOpenXmlChartSeriesReader.Result? result = OfficeOpenXmlChartSeriesReader.ReadCategories(
             bars.Elements<C.BarChartSeries>().Cast<OpenXmlCompositeElement>(),
-            OfficeChartKind.ColumnClustered, scheme: null, OfficeChartAxisGroup.Primary,
+            OfficeChartType.ColumnClustered, scheme: null, OfficeChartAxisGroup.Primary,
             maximumPoints: count);
         timer.Stop();
 
@@ -82,8 +82,8 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
     public void DenseLayoutReferenceDeckDrawsItsAutomaticColumnChart() {
         string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.Pdf.Tests", "Pdf", "ReferenceBaselines",
             "native-powerpoint-dense-layout.pptx");
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(path);
-        PdfDocumentConversionResult result = presentation.ToPdfDocumentResult();
+        using PowerPointDocument presentation = PowerPointDocument.Load(path);
+        PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence();
 
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "unsupported-chart");
         PowerPointChart chart = presentation.Slides.SelectMany(slide => slide.Charts).Single();
@@ -97,7 +97,7 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
     [InlineData(false, true)]
     [InlineData(false, false)]
     public void FlatRibbonUsesItsBodyPaintAndRetainsAnInvisibleNativeSeries(bool fill, bool outline) {
-        using var presentation = PowerPointPresentation.Load(RoadmapPath);
+        using var presentation = PowerPointDocument.Load(RoadmapPath);
         var slide = presentation.Slides.First(item => item.SlidePart.ChartParts.Any(part => part.ChartSpace!.Descendants<C.Line3DChart>().Any()));
         var part = slide.SlidePart.ChartParts.First(item => item.ChartSpace!.Descendants<C.Line3DChart>().Any());
         foreach (var native in part.ChartSpace!.Descendants<C.Line3DChart>().SelectMany(layer => layer.Elements<C.LineChartSeries>())) {
@@ -128,7 +128,7 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
 
     [Fact]
     public void FlatRibbonAutomaticBodyAcceptsCallerPaletteIndependentlyOfItsNativeBorder() {
-        using var presentation = PowerPointPresentation.Load(RoadmapPath);
+        using var presentation = PowerPointDocument.Load(RoadmapPath);
         var slide = presentation.Slides.First(item => item.SlidePart.ChartParts.Any(part => part.ChartSpace!.Descendants<C.Line3DChart>().Any()));
         var part = slide.SlidePart.ChartParts.First(item => item.ChartSpace!.Descendants<C.Line3DChart>().Any());
         foreach (var native in part.ChartSpace!.Descendants<C.Line3DChart>().SelectMany(layer => layer.Elements<C.LineChartSeries>())) {
@@ -151,9 +151,9 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
 
     [Fact]
     public void SkippedChartWarningNamesTheUnsupportedAppearance() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
-        presentation.AddSlide().AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A", "B" },
-            new[] { new OfficeChartSeries("Values", new[] { 2d, 3d }) }));
+        using PowerPointDocument presentation = PowerPointDocument.Create();
+        presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A", "B" },
+            new[] { new OfficeSeries("Values", new[] { 2d, 3d }) }));
         ChartPart part = presentation.Slides.Single().SlidePart.ChartParts.Single();
         C.ChartShapeProperties properties = part.ChartSpace!.Descendants<C.BarChartSeries>().Single()
             .GetFirstChild<C.ChartShapeProperties>()!;
@@ -162,7 +162,7 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
             new A.GradientStop(new A.RgbColorModelHex { Val = "112233" }) { Position = 0 },
             new A.GradientStop(new A.RgbColorModelHex { Val = "445566" }) { Position = 100000 })), 0);
 
-        PdfDocumentConversionResult result = presentation.ToPdfDocumentResult();
+        PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence();
 
         PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "unsupported-chart");
         Assert.Contains("'Values' uses a series fill, line or effect", warning.Message, StringComparison.Ordinal);
@@ -170,11 +170,11 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
 
     [Fact]
     public void MicrosoftAdvancedChartFamiliesRenderAndReportFlatProjections() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(RoadmapPath);
-        PdfDocumentConversionResult result = presentation.ToPdfDocumentResult();
+        using PowerPointDocument presentation = PowerPointDocument.Load(RoadmapPath);
+        PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence();
 
         Assert.DoesNotContain(result.Warnings, warning => warning.Code is "unsupported-chart" or "unsupported-smartart");
-        string[] projected = result.Warnings.Where(warning => warning.Code == "chart-projected")
+        string[] projected = result.Warnings.Where(warning => warning.Code == "chart-flattened")
             .Select(warning => warning.Message.Split(' ')[2]).OrderBy(name => name, StringComparer.Ordinal).ToArray();
         Assert.Equal(new[] { "area3DChart", "bar3DChart", "line3DChart", "ofPieChart", "pie3DChart", "surface3DChart", "surfaceChart" },
             projected);
@@ -187,7 +187,7 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
         });
         OfficeChartSnapshot flatRibbon = PowerPointChartSnapshotMapper.ToOfficeSnapshot(line, 640, 360);
         OfficeDrawing ribbonDrawing = OfficeChartDrawingRenderer.Render(flatRibbon);
-        foreach (OfficeChartSeries projectedSeries in flatRibbon.Data.Series)
+        foreach (OfficeSeries projectedSeries in flatRibbon.Data.Series)
             Assert.Contains(ribbonDrawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Line &&
                 shape.Shape.StrokeColor == projectedSeries.Color);
         PowerPointChartSnapshot stock = Snapshot(charts, "stockChart");
@@ -211,12 +211,12 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
             string hex = color.ToRgbHex();
             if (!fills.Contains(hex)) fills.Add(hex);
         }
-        if (snapshot.ChartKind is OfficeChartKind.Pie or OfficeChartKind.Doughnut) {
+        if (snapshot.ChartKind is OfficeChartType.Pie or OfficeChartType.Doughnut) {
             for (int index = 0; index < snapshot.Data.Categories.Count; index++) Add(snapshot.Style.GetSeriesColor(index));
             return fills;
         }
-        bool lines = snapshot.ChartKind is OfficeChartKind.Line or OfficeChartKind.Scatter;
-        foreach (OfficeChartSeries series in snapshot.Data.Series) {
+        bool lines = snapshot.ChartKind is OfficeChartType.Line or OfficeChartType.Scatter;
+        foreach (OfficeSeries series in snapshot.Data.Series) {
             if (lines && (!series.ShowMarkers || series.MarkerShape == OfficeChartMarkerShape.None)) continue;
             Add(series.Color!.Value);
         }

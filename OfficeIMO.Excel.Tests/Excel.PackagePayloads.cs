@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(macroPath)) {
-                    document.AddWorksheet("Macro").CellValue(1, 1, "Enabled");
+                    document.AddSheet("Macro").CellValue(1, 1, "Enabled");
                     Assert.Equal(SpreadsheetDocumentType.MacroEnabledWorkbook, document.OpenXmlDocument.DocumentType);
                     document.AddMacro(vbaProject);
 
@@ -73,7 +73,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + extension);
             try {
                 using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                    document.AddWorksheet("Type").CellValue(1, 1, expectedType.ToString());
+                    OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
+                    document.AddSheet("Type").CellValue(1, 1, expectedType.ToString());
                     Assert.Equal(expectedType, document.OpenXmlDocument.DocumentType);
                     document.Save();
                     Assert.Equal(ExcelSavePackageWriter.SimplePackage, document.LastSaveDiagnostics.Writer);
@@ -97,7 +98,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                    document.AddWorksheet("AddIn").CellValue(1, 1, "SaveCopy");
+                    document.AddSheet("AddIn").CellValue(1, 1, "SaveCopy");
                     document.SaveCopy(addInCopyPath);
                 }
 
@@ -117,7 +118,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                    document.AddWorksheet("Payload").CellValue(1, 1, "Embedded");
+                    document.AddSheet("Payload").CellValue(1, 1, "Embedded");
                     document.Save();
                 }
 

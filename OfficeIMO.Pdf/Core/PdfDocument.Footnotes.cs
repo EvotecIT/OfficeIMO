@@ -31,7 +31,7 @@ public sealed partial class PdfDocument {
         return new PdfFootnoteDefinition(this, content, snapshot, first, continuation, notice);
     }
 
-    internal static void ValidateFootnoteBlocks(IReadOnlyList<IPdfBlock> blocks, PdfOptions options, bool allowTables = true) {
+    internal static void ValidateFootnoteBlocks(IReadOnlyList<IPdfBlock> blocks, PdfCreateOptions options, bool allowTables = true) {
         foreach (IPdfBlock block in blocks) {
             switch (block) {
                 case RichParagraphBlock paragraph:
@@ -62,7 +62,7 @@ public sealed partial class PdfDocument {
                     break;
                 case FlowBlock { IsReplayable: false, StaticBlocks: { } children }:
                     var flow = (FlowBlock)block;
-                    if (flow.Options.KeepTogether || flow.Options.ShowIf != null || flow.Options.MinimumRemainingHeight > 0D || flow.Options.OverflowBehavior != PdfFlowOverflowBehavior.Continue)
+                    if (flow.Options.KeepTogether || flow.Options.ShowIf != null || flow.Options.MinimumRemainingHeight.ToPoints() > 0D || flow.Options.OverflowBehavior != PdfFlowOverflowBehavior.Continue)
                         throw new NotSupportedException("Footnote flow groups cannot introduce conditional or whole-group pagination constraints.");
                     ValidateFootnoteBlocks(children, options, allowTables);
                     break;
@@ -73,8 +73,8 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Admits eager inline tables whose cell content has a resumable, inert PDF fragment contract.</summary>
-    private static void ValidateFootnoteTable(TableBlock table, PdfOptions options) {
-        PdfTableStyle style = table.Style ?? options.DefaultTableStyleSnapshot ?? TableStyles.Light();
+    private static void ValidateFootnoteTable(TableBlock table, PdfCreateOptions options) {
+        PdfTableStyle style = table.Style ?? options.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
         if (style.Position != null || !style.ConsumesVerticalFlow || style.Caption != null)
             throw new NotSupportedException("Footnote tables require inline flow without floating placement or captions.");
         for (int row = 0; row < table.Cells.Count; row++) {
@@ -103,7 +103,7 @@ public sealed partial class PdfDocument {
         foreach (IPdfBlock block in _blocks) ValidateFootnoteBodyProfile(block, _options);
     }
 
-    internal static void ValidateFootnoteBodyProfile(IPdfBlock block, PdfOptions options) {
+    internal static void ValidateFootnoteBodyProfile(IPdfBlock block, PdfCreateOptions options) {
         if (block is MultiColumnBlock or RowBlock or PdfCanvasBlock)
             throw new NotSupportedException("Page-associated footnotes require single-column body flow without page-canvas content.");
         if (block is RichParagraphBlock paragraph && (paragraph.Style ?? options.DefaultParagraphStyleSnapshot)?.AnchoredCanvas != null ||

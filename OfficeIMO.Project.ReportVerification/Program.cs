@@ -54,7 +54,7 @@ using (var word = ProjectReportWorkflow.CreateWord(usageView)) {
 }
 using (var presentation = ProjectReportWorkflow.CreatePowerPoint(usageView)) {
     presentation.Save(Path.Combine(output, "report.pptx"));
-    using var copy = PowerPointPresentation.Load(Path.Combine(output, "report.pptx"));
+    using var copy = PowerPointDocument.Load(Path.Combine(output, "report.pptx"));
     if (copy.ValidateDocument().Count != 0) throw new InvalidDataException("PowerPoint report failed package validation.");
 }
 using (var workbook = ProjectReportWorkflow.CreateExcel(usageView)) {

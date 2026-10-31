@@ -15,7 +15,7 @@ public sealed class MarkdownIntelligenceXCachedToolEvidenceMarkerTransform : IMa
         RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
     /// <inheritdoc />
-    public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+    public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }

@@ -370,7 +370,7 @@ namespace OfficeIMO.Tests {
             foreach (var (path, text) in new[] { (destinationPath, "Destination"), (sourcePath, "Source") }) {
                 using var document = WordDocument.Create(path);
                 document.AddParagraph(text + " intro").AddBookmark("Intro");
-                document.AddParagraph(text + " image").AddImage(imagePath, 32, 32);
+                document.AddParagraph(text + " image").AddImage(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32));
                 document.AddParagraph("Jump").AddHyperLink(text + " link", "Intro");
                 document.AddParagraph(text + " list").AddFootNote(text + " footnote");
                 document.Save();

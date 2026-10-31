@@ -30,7 +30,7 @@ public sealed class PdfImageColorPreservationTests {
 
         // Stamps use typed dictionaries, unlike the direct writer's string dictionaries.
         byte[] stamped = PdfStamper.StampImage(PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Stamp target")).ToBytes(), png,
-            new PdfImageStampOptions { X = 20, Y = 20, Width = 20, Height = 10 });
+            new PdfImageStampOptions { X = global::OfficeIMO.OfficeLength.Points(20), Y = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(20), Height = global::OfficeIMO.OfficeLength.Points(10) });
         AssertTaggedPng(stamped, profile, indexed);
     }
 
@@ -41,7 +41,7 @@ public sealed class PdfImageColorPreservationTests {
     public void SixteenBitColorAndAlphaRespectTargetVersion(PdfFileVersion version, int bits) {
         // Reuse the same source across versions to protect the immutable preparation cache.
         byte[] png = PdfPngTestImages.Create16BitRgbaPng();
-        byte[] pdf = PdfDocument.Create(new PdfOptions { FileVersion = version }).Image(png, 10, 10).ToBytes();
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { FileVersion = version }).Image(png, 10, 10).ToBytes();
         var objects = PdfSyntax.ParseObjects(pdf).Map;
         PdfStream image = Images(objects).Single(stream => stream.Dictionary.Items.ContainsKey("SMask"));
         PdfReference maskRef = Assert.IsType<PdfReference>(image.Dictionary.Items["SMask"]);

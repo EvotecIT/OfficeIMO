@@ -171,11 +171,15 @@ namespace OfficeIMO.Excel {
                     int measure = rows.Layout.HasValues ? rowEntry.Measure : columnEntry.Measure;
                     values[dataRow + row, dataColumn + column] = groups.TryGetValue((rowEntry.Node.Id, columnEntry.Node.Id), out var aggregate)
                         ? aggregate[measure].GetValue(functions[measure]) : new ExcelCellData(ExcelCellDataKind.Number, 0d);
+                    // The data field's number format applies to its values, as in a refreshed pivot.
+                    if (measure >= 0 && measure < measures.Length && measures[measure].NumberFormatId?.Value is uint valueFormat && valueFormat != 0U) {
+                        plan.NumberFormatCells[(dataRow + row, dataColumn + column)] = valueFormat;
+                    }
                 }
             }
             plan.Values = values;
             Location location = definition.Location ?? new Location();
-            location.Reference = $"{A1.CellReference(plan.Top, plan.Left)}:{A1.CellReference(plan.Bottom, plan.Right)}";
+            location.Reference = $"{ExcelA1.CellReference(plan.Top, plan.Left)}:{ExcelA1.CellReference(plan.Bottom, plan.Right)}";
             location.FirstHeaderRow = columns.Layout.RealFields.Length > 0 || !columns.Layout.HasValues ? 1U : 0U;
             location.FirstDataRow = (uint)dataRow;
             location.FirstDataColumn = (uint)dataColumn;
@@ -264,7 +268,7 @@ namespace OfficeIMO.Excel {
 
         private void ValidatePivotMaterializationDestination(PivotTablePart part, ExcelSheet source, int r1, int c1, int r2, int c2,
             int top, int left, int bottom, int right, int oldBottom, int oldRight, CancellationToken token) {
-            bool Intersects(string? range) => range != null && A1.TryParseRange(range, out int rr1, out int cc1, out int rr2, out int cc2)
+            bool Intersects(string? range) => range != null && ExcelA1.TryParseRange(range, out int rr1, out int cc1, out int rr2, out int cc2)
                 && rr1 <= bottom && rr2 >= top && cc1 <= right && cc2 >= left;
             if (ReferenceEquals(_worksheetPart, source._worksheetPart) && r1 <= bottom && r2 >= top && c1 <= right && c2 >= left)
                 throw new InvalidOperationException("The pivot output overlaps its source range.");
@@ -277,7 +281,7 @@ namespace OfficeIMO.Excel {
                 for (int column = left; column <= right; column++) {
                     var cell = TryGetExistingCell(row, column);
                     if (cell?.CellFormula != null || ((row > oldBottom || column > oldRight) && GetCellValueSnapshot(cell).Kind != ExcelCellDataKind.Blank))
-                        throw new InvalidOperationException($"Pivot output would overwrite unrelated content at {A1.CellReference(row, column)}.");
+                        throw new InvalidOperationException($"Pivot output would overwrite unrelated content at {ExcelA1.CellReference(row, column)}.");
                 }
             }
         }

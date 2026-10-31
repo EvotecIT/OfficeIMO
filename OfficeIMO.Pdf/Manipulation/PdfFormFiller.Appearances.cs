@@ -1,4 +1,5 @@
 using System.Threading;
+using System.Linq;
 
 namespace OfficeIMO.Pdf;
 
@@ -159,7 +160,7 @@ internal static partial class PdfFormFiller {
         }
     }
 
-    private static PdfStream CreateTextAppearanceStream(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? inheritedDefaultResources, PdfDictionary? widgetAppearanceResources, PdfDictionary? widgetPageResources, string value, double width, double height, PdfFormFieldStyle? style, string? defaultAppearance, double fontSize, PdfFormFillerOptions? options, string? fieldName, ref int nextObjectNumber, IReadOnlyList<PdfFreeTextRichTextRun>? richAppearanceRuns = null, TextAppearanceFontPlan? preparedFontPlan = null, ChoiceAppearanceData? choiceAppearance = null, int maximumDecodedBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes, int maximumMeasurementCharacters = PdfReadLimits.DefaultMaxDecodedTextCharacters, CancellationToken cancellationToken = default) {
+    private static PdfStream CreateTextAppearanceStream(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? inheritedDefaultResources, PdfDictionary? widgetAppearanceResources, PdfDictionary? widgetPageResources, string value, double width, double height, PdfFormFieldStyle? style, string? defaultAppearance, double fontSize, PdfFormFillerOptions? options, string? fieldName, ref int nextObjectNumber, IReadOnlyList<PdfFreeTextRichTextRun>? richAppearanceRuns = null, TextAppearanceFontPlan? preparedFontPlan = null, ChoiceAppearanceData? choiceAppearance = null, bool addsObjects = true, int maximumDecodedBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes, int maximumMeasurementCharacters = PdfReadLimits.DefaultMaxDecodedTextCharacters, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfFormFieldStyle effectiveStyle = style ?? new PdfFormFieldStyle();
         if (richAppearanceRuns != null && !effectiveStyle.IsPassword && !effectiveStyle.IsComb) {
@@ -176,7 +177,9 @@ internal static partial class PdfFormFiller {
         string? defaultAppearanceFontResourceName = null;
         PdfDictionary? defaultAppearanceFontResources = null;
         if (!hasEmbeddedAppearanceFont) {
-            hasEmbeddedAppearanceFont = TryCreateEmbeddedTextAppearanceFontPlan(options, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, out string? configuredFontFailure);
+            hasEmbeddedAppearanceFont = TryCreateEmbeddedTextAppearanceFontPlan(options, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, out string? configuredFontFailure) ||
+                addsObjects && TryCreateInstalledInheritedTextAppearanceFontPlan(objects, options, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan,
+                    inheritedDefaultResources, widgetAppearanceResources, widgetPageResources);
             if (!hasEmbeddedAppearanceFont) {
                 hasEmbeddedAppearanceFont = TryCreateFallbackTextAppearanceFontPlan(options, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, out string? fallbackFontFailure);
                 if (!hasEmbeddedAppearanceFont &&
@@ -228,7 +231,7 @@ internal static partial class PdfFormFiller {
             ? fontPlan!.Resources
             : hasDefaultAppearanceSimpleFont
                 ? defaultAppearanceFontResources!
-                : CreateAppearanceResources();
+                : addsObjects ? CreateAppearanceResources(objects, ref nextObjectNumber) : CreateAppearanceResources();
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 
@@ -272,7 +275,8 @@ internal static partial class PdfFormFiller {
         }
 
         string diagnosticSource = CreateTextAppearanceDiagnosticSource(fieldName);
-        bool hasEmbeddedAppearanceFont = TryCreateEmbeddedTextAppearanceFontPlan(appearanceOptions, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, out string? configuredFontFailure);
+        bool hasEmbeddedAppearanceFont = TryCreateEmbeddedTextAppearanceFontPlan(appearanceOptions, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, out string? configuredFontFailure) ||
+            TryCreateInstalledInheritedTextAppearanceFontPlan(objects, appearanceOptions, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, defaultResources, pageResources);
         if (!hasEmbeddedAppearanceFont) {
             hasEmbeddedAppearanceFont = TryCreateFallbackTextAppearanceFontPlan(appearanceOptions, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, out string? fallbackFontFailure);
             if (!hasEmbeddedAppearanceFont &&
@@ -294,11 +298,11 @@ internal static partial class PdfFormFiller {
             fontSize,
             style.TextColor,
             style.BorderColor,
-            style.BorderWidth,
+            style.BorderWidth.ToPoints(),
             style.BackgroundColor,
             MapFormTextAlignment(style.TextAlignment),
             padding: 3D,
-            borderDashPattern: style.BorderDashPattern,
+            borderDashPattern: style.BorderDashPattern?.Select(static length => length.ToPoints()).ToArray(),
             borderStyle: style.BorderStyle);
 
         var dictionary = new PdfDictionary();
@@ -358,7 +362,7 @@ internal static partial class PdfFormFiller {
         PdfFormFieldStyle labelStyle = PdfAcroFormEditor.CreateButtonCaptionStyle(style);
         labelStyle.BackgroundColor = null;
         labelStyle.BorderColor = null;
-        labelStyle.BorderWidth = 0D;
+        labelStyle.BorderWidth = global::OfficeIMO.OfficeLength.Points(0D);
         labelStyle.TextAlignment = PdfFormFieldTextAlignment.Left;
         PdfStream labelAppearance = CreateAuthoredTextWidgetAppearance(
             objects,
@@ -399,28 +403,31 @@ internal static partial class PdfFormFiller {
         }
 
         if (ResolveDictionary(objects, widget.Items.TryGetValue("MK", out var mkObject) ? mkObject : null) is PdfDictionary mk) {
-            if (TryReadColor(objects, mk, "BG", out PdfColor backgroundColor)) {
+            if (TryReadColor(objects, mk, "BG", out global::OfficeIMO.OfficeColor backgroundColor)) {
                 style.BackgroundColor = backgroundColor;
             }
 
-            if (TryReadColor(objects, mk, "BC", out PdfColor borderColor)) {
+            if (TryReadColor(objects, mk, "BC", out global::OfficeIMO.OfficeColor borderColor)) {
                 style.BorderColor = borderColor;
+                // A bordered combo box shows its drop-down marker; borderless inline choices read as text.
+                style.ShowDropDownArrow = (fieldFlags & ComboChoiceFlag) != 0;
             }
         }
 
         if (TryReadWidgetBorderWidth(objects, widget, out double borderWidth)) {
-            style.BorderWidth = borderWidth;
+            style.BorderWidth = global::OfficeIMO.OfficeLength.Points(borderWidth);
         }
+
 
         if (TryReadWidgetBorderStyle(objects, widget, out PdfFormFieldBorderStyle borderStyle)) {
             style.BorderStyle = borderStyle;
         }
 
         if (TryReadWidgetBorderDashPattern(objects, widget, out IReadOnlyList<double>? borderDashPattern)) {
-            style.BorderDashPattern = borderDashPattern;
+            style.BorderDashPattern = borderDashPattern?.Select(global::OfficeIMO.OfficeLength.Points).ToArray();
         }
 
-        if (TryReadDefaultAppearanceTextColor(objects, widget, inheritedDefaultAppearance, out PdfColor textColor)) {
+        if (TryReadDefaultAppearanceTextColor(objects, widget, inheritedDefaultAppearance, out global::OfficeIMO.OfficeColor textColor)) {
             style.TextColor = textColor;
         }
 
@@ -493,7 +500,7 @@ internal static partial class PdfFormFiller {
         return true;
     }
 
-    private static bool TryReadColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key, out PdfColor color) {
+    private static bool TryReadColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key, out global::OfficeIMO.OfficeColor color) {
         color = default;
         if (!dictionary.Items.TryGetValue(key, out var colorObject) ||
             ResolveObject(objects, colorObject) is not PdfArray colorArray ||
@@ -507,7 +514,7 @@ internal static partial class PdfFormFiller {
             return false;
         }
 
-        color = new PdfColor(red.Value, green.Value, blue.Value);
+        color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(red.Value, green.Value, blue.Value);
         return true;
     }
 
@@ -613,7 +620,7 @@ internal static partial class PdfFormFiller {
         return true;
     }
 
-    private static bool TryReadDefaultAppearanceTextColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string? inheritedDefaultAppearance, out PdfColor color) {
+    private static bool TryReadDefaultAppearanceTextColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string? inheritedDefaultAppearance, out global::OfficeIMO.OfficeColor color) {
         return PdfDefaultAppearanceParser.TryReadTextColor(TryReadText(objects, widget, "DA") ?? inheritedDefaultAppearance, out color);
     }
 
@@ -631,8 +638,12 @@ internal static partial class PdfFormFiller {
         }
 
         foreach (PdfDictionary candidateResources in EnumerateCandidateTextAppearanceResources(inheritedDefaultResources, widgetAppearanceResources, widgetPageResources)) {
+            // Composite fonts need the encoder above. A subset missing a new value cannot be
+            // reused by the single-byte appearance fallback, even when its resource name matches.
             if (ResolveDictionary(objects, candidateResources.Items.TryGetValue("Font", out PdfObject? fontsObject) ? fontsObject : null) is not PdfDictionary fonts ||
-                !fonts.Items.TryGetValue(defaultAppearanceFontName, out PdfObject? fontObject)) {
+                !fonts.Items.TryGetValue(defaultAppearanceFontName, out PdfObject? fontObject) ||
+                ResolveDictionary(objects, fontObject) is not PdfDictionary font ||
+                font.Get<PdfName>("Subtype")?.Name is not ("Type1" or "TrueType")) {
                 continue;
             }
 
@@ -645,6 +656,17 @@ internal static partial class PdfFormFiller {
         }
 
         return false;
+    }
+
+    // Saved appearances reference the font as an indirect object: viewers and validators expect font
+    // dictionaries in resources to be indirect, and some report broken cross-references otherwise.
+    private static PdfDictionary CreateAppearanceResources(Dictionary<int, PdfIndirectObject> objects, ref int nextObjectNumber) {
+        PdfDictionary resources = CreateAppearanceResources();
+        var fonts = (PdfDictionary)resources.Items["Font"];
+        int fontObjectNumber = nextObjectNumber++;
+        objects[fontObjectNumber] = new PdfIndirectObject(fontObjectNumber, 0, fonts.Items[DefaultAppearanceFontName]);
+        fonts.Items[DefaultAppearanceFontName] = new PdfReference(fontObjectNumber, 0);
+        return resources;
     }
 
     private static PdfDictionary CreateAppearanceResources() {

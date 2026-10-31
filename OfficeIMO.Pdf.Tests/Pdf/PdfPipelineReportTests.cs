@@ -10,7 +10,7 @@ public sealed class PdfPipelineReportTests {
             .Meta(title: "Pipeline")
             .Paragraph(paragraph => paragraph.Text("Generated artifact"));
 
-        PdfBytesResult result = document.ToBytesResult();
+        PdfBytesResult result = document.SerializeWithEvidence();
 
         Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
         Assert.Collection(
@@ -37,7 +37,7 @@ public sealed class PdfPipelineReportTests {
             .Paragraph(paragraph => paragraph.Text("First page"))
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Second page"))
-            .Save(stream);
+            .SaveWithEvidence(stream);
 
         Assert.True(result.Succeeded);
         Assert.Equal(2, result.Pipeline.Output?.PageCount);
@@ -48,9 +48,9 @@ public sealed class PdfPipelineReportTests {
 
     [Fact]
     public void GeneratedEncryptedBytes_ReportReadablePageCountWithWriterCredentials() {
-        PdfBytesResult result = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        PdfBytesResult result = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted pipeline evidence"))
-            .ToBytesResult();
+            .SerializeWithEvidence();
 
         Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
         Assert.Equal(1, result.Pipeline.Output?.PageCount);
@@ -61,14 +61,14 @@ public sealed class PdfPipelineReportTests {
 
     [Fact]
     public void ArtifactSnapshot_UsesCanonicalReadForPageCountAndRetainsIdentityOnReadFailure() {
-        byte[] encrypted = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] encrypted = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Snapshot page"))
             .ToBytes();
 
-        PdfArtifactSnapshot readable = PdfArtifactSnapshot.Capture(
+        PdfArtifactInfo readable = PdfArtifactInfo.Capture(
             encrypted,
             new PdfLoadOptions { Password = "open" });
-        PdfArtifactSnapshot unreadable = PdfArtifactSnapshot.Capture(encrypted);
+        PdfArtifactInfo unreadable = PdfArtifactInfo.Capture(encrypted);
 
         Assert.Equal(1, readable.PageCount);
         Assert.Null(unreadable.PageCount);
@@ -83,10 +83,10 @@ public sealed class PdfPipelineReportTests {
             .Paragraph(paragraph => paragraph.Text("Pipeline mutation"))
             .ToBytes();
 
-        PdfDocument updated = PdfDocument.Load(source).UpdateMetadata(title: "After");
+        PdfDocument updated = PdfDocument.Load(new System.IO.MemoryStream(source)).UpdateMetadata(title: "After");
         using var stream = new MemoryStream();
 
-        PdfSaveResult result = updated.Save(stream);
+        PdfSaveResult result = updated.SaveWithEvidence(stream);
 
         Assert.True(result.Succeeded);
         Assert.Equal(3, result.Pipeline.Steps.Count);
@@ -112,7 +112,7 @@ public sealed class PdfPipelineReportTests {
             .Paragraph(paragraph => paragraph.Text("Append-only pipeline"))
             .ToBytes();
 
-        PdfDocument updated = PdfDocument.Load(source)
+        PdfDocument updated = PdfDocument.Load(new System.IO.MemoryStream(source))
             .AppendMetadataRevision(title: "After");
 
         PdfPipelineStep mutation = Assert.Single(
@@ -130,7 +130,7 @@ public sealed class PdfPipelineReportTests {
 
         PdfSaveResult result = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Failure evidence"))
-            .SaveResult(stream);
+            .TrySaveWithEvidence(stream);
 
         Assert.False(result.Succeeded);
         Assert.True(result.Pipeline.HasFailures);
@@ -206,7 +206,7 @@ public sealed class PdfPipelineReportTests {
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Third"))
             .ToBytes();
-        PdfDocument opened = PdfDocument.Load(source);
+        PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(source));
 
         IReadOnlyList<PdfDocument> pages = opened.Pages.Split();
         PdfDocument range = Assert.Single(opened.Pages.Split(new[] { PdfPageRange.From(1, 2) }));
@@ -228,7 +228,7 @@ public sealed class PdfPipelineReportTests {
 
         IReadOnlyList<PdfDocument> pages = generated.Pages.Split();
 
-        PdfArtifactSnapshot input = Assert.IsType<PdfArtifactSnapshot>(pages[0].Pipeline.Steps[1].Input);
+        PdfArtifactInfo input = Assert.IsType<PdfArtifactInfo>(pages[0].Pipeline.Steps[1].Input);
         Assert.All(
             pages,
             page => Assert.Same(input, page.Pipeline.Steps[1].Input));

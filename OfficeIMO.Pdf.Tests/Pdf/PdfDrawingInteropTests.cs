@@ -6,39 +6,48 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDrawingInteropTests {
     [Fact]
-    public void PdfColor_ConvertsToAndFromOfficeColor() {
-        OfficeColor officeColor = OfficeColor.Parse("#336699CC");
+    public void OptionsClone_RetainsNormalizedColorsAlphaThemeRolesAndNullDefaults() {
+        OfficeColor precise = OfficeColor.FromNormalizedRgb(0.12345, 0.23456, 0.34567, alpha: 77);
+        var options = new PdfCreateOptions {
+            DefaultTextColor = precise,
+            HeaderTextColor = OfficeColor.Accent1,
+            FooterTextColor = OfficeColor.Transparent,
+            BackgroundColor = null,
+            DefaultTableStyle = new PdfTableStyle { HeaderFill = precise }
+        };
 
-        PdfColor pdfColor = PdfColor.FromOfficeColor(officeColor);
-        OfficeColor roundTrip = pdfColor.ToOfficeColor(officeColor.A);
+        PdfCreateOptions clone = options.Clone();
+        options.DefaultTextColor = OfficeColor.Red;
+        PdfTableStyle table = clone.DefaultTableStyle!;
+        table.HeaderFill = OfficeColor.Blue;
 
-        Assert.Equal(0x33 / 255.0, pdfColor.R, 6);
-        Assert.Equal(0x66 / 255.0, pdfColor.G, 6);
-        Assert.Equal(0x99 / 255.0, pdfColor.B, 6);
-        Assert.Equal(officeColor, roundTrip);
+        Assert.Equal(precise, clone.DefaultTextColor);
+        Assert.Equal((0.12345, 0.23456, 0.34567), clone.DefaultTextColor!.Value.ToNormalizedRgb());
+        Assert.Equal((byte)77, clone.DefaultTextColor.Value.A);
+        Assert.Equal(OfficeColor.Accent1, clone.HeaderTextColor);
+        Assert.Equal(OfficeColor.Transparent, clone.FooterTextColor);
+        Assert.Null(clone.BackgroundColor);
+        Assert.Equal(precise, clone.DefaultTableStyle!.HeaderFill);
     }
 
     [Fact]
-    public void PdfColor_FromOfficeColorOrNull_ReturnsNullForTransparentColor() {
-        Assert.Null(PdfColor.FromOfficeColorOrNull(OfficeColor.Transparent));
-        Assert.NotNull(PdfColor.FromOfficeColorOrNull(OfficeColor.FromRgba(10, 20, 30, 1)));
-    }
+    public void PdfDocument_WritesNormalizedRootColorWithoutByteProjection() {
+        OfficeColor precise = OfficeColor.FromNormalizedRgb(0.12345, 0.23456, 0.34567, alpha: 77);
+        var options = new PdfCreateOptions { DefaultTextColor = precise };
+        using var document = PdfDocument.Create(options);
+        document.Paragraph(p => p.Text("Precise normalized color"));
+        options.DefaultTextColor = OfficeColor.Red;
 
-    [Theory]
-    [InlineData(-0.001, 0, 0, "r")]
-    [InlineData(0, 1.001, 0, "g")]
-    [InlineData(0, 0, double.NaN, "b")]
-    [InlineData(double.PositiveInfinity, 0, 0, "r")]
-    public void PdfColor_RejectsInvalidRgbComponents(double r, double g, double b, string paramName) {
-        var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new PdfColor(r, g, b));
+        byte[] saved = document.ToBytes();
+        string content = PdfTestContentText.ReadDecoded(saved);
 
-        Assert.Equal(paramName, exception.ParamName);
-        Assert.Contains("PDF color components must be finite values between 0 and 1.", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("0.123 0.235 0.346 rg", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("0.122 0.235 0.345 rg", content, StringComparison.Ordinal);
+        Assert.Single(PdfReadDocument.Open(saved).Pages);
     }
 
     [Fact]
-    public void PdfDocument_AcceptsOfficeColorThroughPdfColorConversion() {
+    public void PdfDocument_AcceptsByteRgbOfficeColor() {
         var doc = PdfDocument.Create();
         doc.Paragraph(p => p.Color(OfficeColor.CornflowerBlue).Text("Drawing color reuse"));
 
@@ -56,13 +65,13 @@ public class PdfDrawingInteropTests {
         shape.StrokeColor = OfficeColor.SteelBlue;
         shape.StrokeWidth = 1.5;
 
-        var doc = PdfDocument.Create(new PdfOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        var doc = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
             })
             .Shape(shape);
 
@@ -89,34 +98,34 @@ public class PdfDrawingInteropTests {
     public void Options_SnapshotDefaultDrawingStyle() {
         var style = new PdfDrawingStyle {
             Align = PdfAlign.Center,
-            SpacingBefore = 4,
-            SpacingAfter = 9,
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(9),
             KeepWithNext = true,
             ConstrainToContentWidth = true
         };
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultDrawingStyle = style
         };
 
         style.Align = PdfAlign.Right;
-        style.SpacingBefore = 1;
-        style.SpacingAfter = 2;
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(1);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(2);
         style.KeepWithNext = false;
         style.ConstrainToContentWidth = false;
 
         PdfDrawingStyle readback = options.DefaultDrawingStyle!;
         readback.Align = PdfAlign.Left;
-        readback.SpacingAfter = 20;
+        readback.SpacingAfter = global::OfficeIMO.OfficeLength.Points(20);
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(PdfAlign.Center, options.DefaultDrawingStyle!.Align);
-        Assert.Equal(4, options.DefaultDrawingStyle.SpacingBefore);
-        Assert.Equal(9, options.DefaultDrawingStyle.SpacingAfter);
+        Assert.Equal(4, options.DefaultDrawingStyle.SpacingBefore.ToPoints());
+        Assert.Equal(9, options.DefaultDrawingStyle.SpacingAfter.ToPoints());
         Assert.True(options.DefaultDrawingStyle.KeepWithNext);
         Assert.True(options.DefaultDrawingStyle.ConstrainToContentWidth);
         Assert.Equal(PdfAlign.Center, clone.DefaultDrawingStyle!.Align);
-        Assert.Equal(9, clone.DefaultDrawingStyle.SpacingAfter);
+        Assert.Equal(9, clone.DefaultDrawingStyle.SpacingAfter.ToPoints());
         Assert.True(clone.DefaultDrawingStyle.KeepWithNext);
         Assert.True(clone.DefaultDrawingStyle.ConstrainToContentWidth);
     }
@@ -125,22 +134,22 @@ public class PdfDrawingInteropTests {
     public void Options_ApplyThemeSnapshotsDefaultDrawingStyle() {
         var drawingStyle = new PdfDrawingStyle {
             Align = PdfAlign.Center,
-            SpacingAfter = 8,
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(8),
             KeepWithNext = true
         };
         var theme = new PdfTheme {
             DrawingStyle = drawingStyle
         };
-        var options = new PdfOptions().ApplyTheme(theme);
+        var options = new PdfCreateOptions().ApplyTheme(theme);
 
         drawingStyle.Align = PdfAlign.Right;
-        drawingStyle.SpacingAfter = 1;
+        drawingStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(1);
         drawingStyle.KeepWithNext = false;
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(PdfAlign.Center, options.DefaultDrawingStyle!.Align);
-        Assert.Equal(8, options.DefaultDrawingStyle.SpacingAfter);
+        Assert.Equal(8, options.DefaultDrawingStyle.SpacingAfter.ToPoints());
         Assert.True(options.DefaultDrawingStyle.KeepWithNext);
         Assert.Equal(PdfAlign.Center, clone.DefaultDrawingStyle!.Align);
         Assert.True(clone.DefaultDrawingStyle.KeepWithNext);
@@ -150,19 +159,19 @@ public class PdfDrawingInteropTests {
     public void DefaultDrawingStyle_AppliesAlignmentAndSpacingToFollowingShapesAndRows() {
         var style = new PdfDrawingStyle {
             Align = PdfAlign.Center,
-            SpacingBefore = 4,
-            SpacingAfter = 8
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
         };
         var shape = OfficeShape.Rectangle(40, 20);
         shape.FillColor = OfficeColor.WhiteSmoke;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             })
             .DefaultDrawingStyle(style)
             .Shape(shape)
@@ -175,7 +184,7 @@ public class PdfDrawingInteropTests {
             .ToBytes();
 
         style.Align = PdfAlign.Right;
-        style.SpacingBefore = 0;
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0);
 
         var (objects, _) = PdfSyntax.ParseObjects(bytes);
         string ReadPageProgram(PdfObject value) {
@@ -209,15 +218,15 @@ public class PdfDrawingInteropTests {
         var drawing = new OfficeDrawing(120, 60)
             .AddShape(background, 0, 0);
 
-        var doc = PdfDocument.Create(new PdfOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+        var doc = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             });
-        if (scaledCanvas) doc.Canvas(canvas => canvas.Drawing(drawing, 30D, 40D, 180D, 90D));
+        if (scaledCanvas) doc.Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(90D)));
         else doc.Drawing(drawing, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6);
 
         drawing.Shapes[0].Shape.Width = 20;

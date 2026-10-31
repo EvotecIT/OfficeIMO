@@ -61,7 +61,7 @@ public sealed class PdfReportComponent : IPdfComponent {
         if (_facts.Length > 0) {
             content.Table(
                 _facts.Select(static fact => new[] { fact.Key, fact.Value ?? string.Empty }),
-                style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null, SpacingAfter = 10 });
+                style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null, SpacingAfter = global::OfficeIMO.OfficeLength.Points(10) });
         }
         foreach (PdfReportSection section in _sections) {
             content.H2(section.Title);

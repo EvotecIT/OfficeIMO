@@ -93,7 +93,7 @@ public sealed class ConvertFromOfficeIWorkCommand : PSCmdlet
                     return result.Report;
                 }
             case IWorkDocumentKind.Keynote:
-                using (var result = source.ToPowerPointPresentationResult(ConversionOptions))
+                using (var result = source.ToPowerPointDocumentResult(ConversionOptions))
                 {
                     if (FailOnLoss.IsPresent) result.RequireNoLoss();
                     OfficeFileOutput.Write(output, Force.IsPresent, temporaryPath => result.Value.Save(temporaryPath));

@@ -94,7 +94,7 @@ public sealed class IWorkPagesMixedFontListNativeExportTests {
         Check(manifest.RootElement.GetProperty("receivingDocxPdf").GetString()!, manifest.RootElement.GetProperty("cases")[0]);
 
         static void Check(string path, JsonElement scenario) {
-            var pdf = PdfReadDocument.Open(File.ReadAllBytes(Corpus(path))); var page = Assert.Single(pdf.Pages);
+            var pdf = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(Corpus(path)))); var page = Assert.Single(pdf.Pages);
             string text = Compact(page.ExtractText()); int previous = -1;
             foreach (JsonElement item in scenario.GetProperty("expectedItems").EnumerateArray()) {
                 string wanted = Compact(item.GetProperty("marker").GetString()! + item.GetProperty("text").GetString());

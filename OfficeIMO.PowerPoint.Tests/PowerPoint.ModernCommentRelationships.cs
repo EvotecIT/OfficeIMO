@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ModernComments_SaveExplicitSlideReferenceAndPreserveOtherExtensions() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             var unrelated = new P.SlideExtension(
                 new OpenXmlUnknownElement("e", "producer", "urn:producer")
@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
 
             AssertSlideReference(slide);
             Assert.Equal(metadata, unrelated.OuterXml);
-            using var artifact = PresentationDocument.Open(new MemoryStream(presentation.ToBytes(PowerPointFileFormat.Pptx)), false);
+            using var artifact = PresentationDocument.Open(new MemoryStream(presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Pptx })), false);
             SlidePart savedSlide = artifact.PresentationPart!.SlideParts.Single();
             AssertReference(savedSlide);
             Assert.Equal(metadata, savedSlide.Slide.SlideExtensionList!.Elements<P.SlideExtension>()
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
         [InlineData(false)]
         [InlineData(true)]
         public void RemovingLastModernCommentRemovesOnlyItsSlideReferenceAndAllowsRecreation(bool withOtherExtension) {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             var author = new PowerPointCommentAuthor("Reviewer", "R");
             PowerPointModernComment first = presentation.AddModernComment(slide, author, "First");
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             else Assert.Null(slide.SlidePart.Slide.SlideExtensionList);
             presentation.AddModernComment(slide, author, "Recreated");
             AssertSlideReference(slide);
-            using var artifact = PresentationDocument.Open(new MemoryStream(presentation.ToBytes(PowerPointFileFormat.Pptx)), false);
+            using var artifact = PresentationDocument.Open(new MemoryStream(presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Pptx })), false);
             AssertReference(artifact.PresentationPart!.SlideParts.Single());
             Assert.Empty(new OpenXmlValidator(FileFormatVersions.Office2021).Validate(artifact));
         }
@@ -75,20 +75,20 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AppendingToLoadedUnreferencedCommentPartRestoresItsSlideReference() {
             byte[] legacy;
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create()) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create()) {
                 PowerPointSlide slide = presentation.AddSlide();
                 presentation.AddModernComment(slide, new PowerPointCommentAuthor("Reviewer", "R"), "Legacy root");
                 slide.SlidePart.Slide.SlideExtensionList?.Remove();
-                legacy = presentation.ToBytes(PowerPointFileFormat.Pptx);
+                legacy = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Pptx });
             }
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(new MemoryStream(legacy));
+            using PowerPointDocument reopened = PowerPointDocument.Load(new MemoryStream(legacy));
             PowerPointSlide target = reopened.Slides.Single();
             PowerPointCommentPart original = CommentPart(target.SlidePart);
             reopened.AddModernComment(target, new PowerPointCommentAuthor("Reviewer", "R"), "New root");
             Assert.Same(original, CommentPart(target.SlidePart));
             Assert.Equal(new[] { "Legacy root", "New root" }, reopened.GetModernComments(target).Select(comment => comment.Text));
             AssertSlideReference(target);
-            using var artifact = PresentationDocument.Open(new MemoryStream(reopened.ToBytes(PowerPointFileFormat.Pptx)), false);
+            using var artifact = PresentationDocument.Open(new MemoryStream(reopened.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Pptx })), false);
             AssertReference(artifact.PresentationPart!.SlideParts.Single());
         }
 

@@ -50,6 +50,7 @@ public enum OfficeOpenXmlFileFormatVersion {
 
 /// <summary>Low-level but SDK-independent controls for opening an Open XML package.</summary>
 public sealed class OfficeOpenXmlLoadSettings {
+        internal OfficeOpenXmlLoadSettings Snapshot() => (OfficeOpenXmlLoadSettings)MemberwiseClone();
     /// <summary>Gets or sets the Open XML SDK compatibility behavior.</summary>
     public OfficeOpenXmlCompatibilityLevel CompatibilityLevel { get; set; } = OfficeOpenXmlCompatibilityLevel.Version30;
 

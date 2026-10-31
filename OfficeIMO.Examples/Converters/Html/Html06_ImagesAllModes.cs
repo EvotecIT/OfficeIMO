@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Html {
             string html = File.ReadAllText(htmlPath);
 
             var baseDir = Path.GetDirectoryName(htmlPath)!;
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions { BasePath = baseDir });
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions { BasePath = baseDir });
             string docxPath = Path.Combine(folderPath, "Html06_ImagesAllModes.docx");
             try {
                 doc.Save(docxPath);
@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Html {
             }
 
             string htmlOut = Path.Combine(folderPath, "Html06_ImagesAllModes.roundtrip.html");
-            File.WriteAllText(htmlOut, doc.ToHtml(new WordToHtmlOptions { IncludeDefaultCss = true }));
+            File.WriteAllText(htmlOut, doc.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = true }));
 
             Console.WriteLine($"✓ Created: {docxPath}");
             Console.WriteLine($"✓ Round-trip HTML: {htmlOut}");

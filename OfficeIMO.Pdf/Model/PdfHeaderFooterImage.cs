@@ -10,32 +10,27 @@ public sealed class PdfHeaderFooterImage {
     private readonly PdfWriter.PdfImageStream? _preparedStream;
     private readonly PdfImageStyle _style;
 
-    /// <summary>Creates a header/footer image.</summary>
-    public PdfHeaderFooterImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch)
-        : this(data, width, height, align, fit, alternativeText: null) {
-    }
-
     /// <summary>Creates a meaningful header/footer image with alternate text.</summary>
-    public PdfHeaderFooterImage(byte[] data, double width, double height, string? alternativeText)
+    public PdfHeaderFooterImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText)
         : this(data, width, height, PdfAlign.Left, OfficeImageFit.Stretch, alternativeText) {
     }
 
     /// <summary>Creates a header/footer image.</summary>
-    public PdfHeaderFooterImage(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText)
+    public PdfHeaderFooterImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch, string? alternativeText = null)
         : this(data, width, height, align, new PdfImageStyle { Fit = fit, AlternativeText = alternativeText }) {
     }
 
     /// <summary>Creates a header/footer image with source crop, rotation, mirrors and alternate text from a reusable style.</summary>
     /// <remarks>The style is copied; the explicit alignment controls the image's position in its running-story group.</remarks>
-    public PdfHeaderFooterImage(byte[] data, double width, double height, PdfAlign align, PdfImageStyle style) {
+    public PdfHeaderFooterImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align, PdfImageStyle style) {
         Guard.NotNullOrEmpty(data, nameof(data));
         Guard.NotNull(style, nameof(style));
-        Guard.Positive(width, nameof(width));
-        Guard.Positive(height, nameof(height));
+        Guard.Positive(width.ToPoints(), nameof(width));
+        Guard.Positive(height.ToPoints(), nameof(height));
         Guard.LeftCenterRightAlign(align, nameof(align), "PDF header/footer image");
         _style = style.Clone();
         _style.Align = align;
-        PdfDocument.ValidateImageStyleForBox(_style, width, height, nameof(style));
+        PdfDocument.ValidateImageStyleForBox(_style, width.ToPoints(), height.ToPoints(), nameof(style));
 
         PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(data);
         PdfDocument.ValidateImageFitDimensions(prepared.Info, _style.Fit, nameof(style));
@@ -54,10 +49,10 @@ public sealed class PdfHeaderFooterImage {
     public byte[] Data => (byte[])_data.Clone();
 
     /// <summary>Requested image box width in PDF points.</summary>
-    public double Width { get; }
+    public global::OfficeIMO.OfficeLength Width { get; }
 
     /// <summary>Requested image box height in PDF points.</summary>
-    public double Height { get; }
+    public global::OfficeIMO.OfficeLength Height { get; }
 
     /// <summary>Horizontal placement inside the page content width.</summary>
     public PdfAlign Align { get; }
@@ -81,10 +76,17 @@ public sealed class PdfHeaderFooterImage {
         Fit = source.Fit;
         Info = source.Info;
         AlternativeText = source.AlternativeText;
+        RestsOnHeaderBaseline = source.RestsOnHeaderBaseline;
     }
+
+    /// <summary>
+    /// When true, a header image stands on the header text baseline, inline with that text, as a
+    /// spreadsheet header picture does. By default a header image hangs below the baseline.
+    /// </summary>
+    internal bool RestsOnHeaderBaseline { get; set; }
 
     internal PdfHeaderFooterImage Clone() => new PdfHeaderFooterImage(this);
 
-    internal ImageBlock ToImageBlock() => new ImageBlock(_data, Width, Height, Info, _style,
+    internal ImageBlock ToImageBlock() => new ImageBlock(_data, Width.ToPoints(), Height.ToPoints(), Info, _style,
         useDataSnapshot: true, preparedStream: _preparedStream);
 }

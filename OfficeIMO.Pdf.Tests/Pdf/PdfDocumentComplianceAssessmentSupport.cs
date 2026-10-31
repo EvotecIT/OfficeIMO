@@ -21,16 +21,16 @@ public partial class PdfDocumentComplianceAssessmentTests {
         return PdfDocument.Create(CreatePdfA3GroundworkOptions());
     }
 
-    private static PdfOptions CreatePdfA3GroundworkOptions() {
-        return new PdfOptions {
+    private static PdfCreateOptions CreatePdfA3GroundworkOptions() {
+        return new PdfCreateOptions {
                 IncludeStandardFontToUnicodeMaps = true
             }
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent();
     }
 
-    private static PdfOptions CreatePdfUaGroundworkOptions() {
-        return new PdfOptions {
+    private static PdfCreateOptions CreatePdfUaGroundworkOptions() {
+        return new PdfCreateOptions {
                 IncludeStandardFontToUnicodeMaps = true,
                 Language = "en-US",
                 ViewerPreferences = new PdfViewerPreferencesOptions {

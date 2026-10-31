@@ -25,7 +25,7 @@ namespace OfficeIMO.Examples.Html {
                 Margins = HtmlRenderMargins.All(24D),
                 BackgroundColor = OfficeColor.White,
                 Scale = 1.5D,
-                PdfOptions = new PdfCore.PdfOptions {
+                PdfOptions = new PdfCore.PdfCreateOptions {
                     FileVersion = PdfCore.PdfFileVersion.Pdf17,
                     ObjectSerializationMode = PdfCore.PdfObjectSerializationMode.ForwardOnly,
                     TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers
@@ -37,17 +37,17 @@ namespace OfficeIMO.Examples.Html {
             string svgPath = Path.Combine(folderPath, "HtmlInvoiceShowcase.svg");
 
             HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-            PdfCore.PdfSaveResult saved = document.SaveAsPdf(pdfPath, options).RequireSuccess();
-            document.ToImage(options)
-                .AsPng()
-                .OnFileConflict(OfficeImageExportFileConflictPolicy.Replace)
-                .Save(pngPath);
-            document.ToImage(options)
-                .AsSvg()
-                .OnFileConflict(OfficeImageExportFileConflictPolicy.Replace)
-                .Save(svgPath);
+            OfficeConversionReport saved = document.SaveAsPdf(pdfPath, options);
+            var imageOptions1 = options.Clone();
+            imageOptions1.Format = OfficeImageExportFormat.Png;
+            imageOptions1.FileConflictPolicy = OfficeImageExportFileConflictPolicy.Replace;
+            document.SaveAsImage(pngPath, imageOptions1);
+            var imageOptions2 = options.Clone();
+            imageOptions2.Format = OfficeImageExportFormat.Svg;
+            imageOptions2.FileConflictPolicy = OfficeImageExportFileConflictPolicy.Replace;
+            document.SaveAsImage(svgPath, imageOptions2);
 
-            Console.WriteLine($"    PDF: {pdfPath} ({saved.Serialization?.PageCount} pages, forward-only objects: {saved.Serialization?.IsForwardOnlyObjectSerialization})");
+            Console.WriteLine($"    PDF: {pdfPath} ({saved.ItemsWritten} pages)");
             Console.WriteLine($"    PNG: {pngPath}");
             Console.WriteLine($"    SVG: {svgPath}");
 

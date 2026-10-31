@@ -22,17 +22,17 @@ public sealed class PdfHtmlPageAppearanceTests {
             for (int x = y % 2; x < raster.Width; x += 2) raster.SetPixel(x, y, OfficeColor.Black);
         byte[] image = OfficePngWriter.Encode(raster);
         var pdf = PdfDocument.Load(PdfDocument.Create()
-            .Canvas(canvas => canvas.Image(image, 40, 50, 300, 300)).ToBytes());
+            .Canvas(canvas => canvas.Image(image, global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300))).ToBytes());
         var result = pdf.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
         Assert.DoesNotContain("pdf-page-appearance", result.Value);
         Assert.Contains("data:image/png;base64,", result.Value);
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "PageAppearanceImageFallback");
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == OfficeDiagnosticCodes.PageAppearanceImageFallback);
     }
 
     [Fact]
     public void OpenedPdfHonorsImageEmbeddingChoicesAndLimits() {
         var pdf = PdfDocument.Load(PdfDocument.Create()
-            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(2, 2), 40, 50, 60, 30)).ToBytes());
+            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(2, 2), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30))).ToBytes());
         var options = PdfToHtmlOptions.CreatePositionedReviewProfile();
         string embedded = pdf.ToHtml(options);
         Assert.Contains("pdf-page-appearance", embedded);
@@ -51,7 +51,7 @@ public sealed class PdfHtmlPageAppearanceTests {
         Assert.DoesNotContain("pdf-page-appearance", limited.Value);
         Assert.DoesNotContain("data:image/png;base64,", limited.Value);
         Assert.Equal(1, limited.Summary.ImagePlaceholderCount);
-        Assert.Contains(limited.Report.Warnings, warning => warning.Code == "ImageDataTooLarge");
+        Assert.Contains(limited.Report.Warnings, warning => warning.Code == OfficeDiagnosticCodes.ImageDataTooLarge);
         options.MaxEmbeddedImageBytes = null;
         options.ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly;
         Assert.DoesNotContain("data:image/png;base64,", pdf.ToHtml(options));
@@ -73,9 +73,9 @@ public sealed class PdfHtmlPageAppearanceTests {
         Assert.DoesNotContain("pdf-page-appearance", result.Value);
         Assert.DoesNotContain("data:image/jp2;base64,", result.Value);
         Assert.Equal(1, result.Summary.ImagePlaceholderCount);
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "PageAppearanceImageFallback");
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == OfficeDiagnosticCodes.PageAppearanceImageFallback);
         Assert.Contains(result.Report.Warnings, warning =>
-            warning.Code == "ImageDataUnavailable" && warning.LossKind == OfficeConversionLossKind.Omission);
+            warning.Code == OfficeDiagnosticCodes.ImageDataUnavailable && warning.LossKind == OfficeConversionLossKind.Omission);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public sealed class PdfHtmlPageAppearanceTests {
         Assert.DoesNotContain("pdf-page-appearance", result.Value);
         Assert.Contains("data:image/jpeg;base64,", result.Value);
         Assert.Equal(1, result.Summary.ImagePlaceholderCount);
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "PageAppearanceImageFallback");
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == OfficeDiagnosticCodes.PageAppearanceImageFallback);
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public sealed class PdfHtmlPageAppearanceTests {
 
         Assert.DoesNotContain("pdf-page-appearance", result.Value);
         Assert.Contains("data:image/jpeg;base64,", result.Value);
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "PageAppearanceImageFallback");
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == OfficeDiagnosticCodes.PageAppearanceImageFallback);
     }
 
     [Fact]
@@ -119,7 +119,7 @@ public sealed class PdfHtmlPageAppearanceTests {
         Assert.Contains("Invoice sample", textOverlay.TextContent);
         Assert.Equal("transparent", textOverlay.GetAttribute("fill"));
         Assert.Equal(1, CountOccurrences(html.Body!.TextContent, "Invoice sample"));
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "VectorAppearanceNotExported");
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == OfficeDiagnosticCodes.VectorAppearanceNotExported);
         Assert.Equal(result.Value, pdf.ToHtml(options));
         using var stream = new MemoryStream();
         pdf.SaveAsHtml(stream, options);
@@ -239,7 +239,7 @@ public sealed class PdfHtmlPageAppearanceTests {
         Assert.DoesNotContain("pdf-page-appearance", result.Value, StringComparison.Ordinal);
         Assert.DoesNotContain("data:image/", result.Value, StringComparison.Ordinal);
         Assert.Contains(result.Report.Warnings, static warning =>
-            warning.Code == "PageAppearanceUnaccountedImageOmitted" &&
+            warning.Code == OfficeDiagnosticCodes.PageAppearanceUnaccountedImageOmitted &&
             warning.LossKind == OfficeConversionLossKind.Omission);
         Assert.True(result.HasLoss);
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
@@ -267,7 +267,7 @@ public sealed class PdfHtmlPageAppearanceTests {
         Assert.Contains(svg.Descendants(), node => node.Name.LocalName is "path" or "rect");
         Assert.DoesNotContain(svg.Descendants(), node => node.Name.LocalName == "image");
         Assert.DoesNotContain(result.Report.Warnings, static warning =>
-            warning.Code == "PageAppearanceUnsafeImageFallback");
+            warning.Code == OfficeDiagnosticCodes.PageAppearanceUnsafeImageFallback);
     }
 
     [Theory]
@@ -288,7 +288,7 @@ public sealed class PdfHtmlPageAppearanceTests {
         Assert.Contains(DecodeAppearanceSvg(appearance.GetAttribute("src"))
             .Descendants(), node => node.Name.LocalName is "path" or "rect");
         Assert.Contains("Invoice sample", string.Join(" ", html.QuerySelectorAll(".pdf-text-overlay").Select(node => node.TextContent)));
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "VectorAppearanceNotExported");
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == OfficeDiagnosticCodes.VectorAppearanceNotExported);
     }
 
     [Fact]

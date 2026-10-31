@@ -16,12 +16,12 @@ public sealed class PdfRichWordDecorationVisualOrderTests {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
             Enumerable.Range(32, 95).Concat(new[] { 0x00A0, 0x05D0, 0x05D1, 0x05D2,
                 0x05D3, 0x05D5, 0x05D6 }).ToArray());
-        var options = new PdfOptions {
-            PageWidth = 300, PageHeight = 220, MarginLeft = 30, MarginRight = 30,
-            MarginTop = 30, MarginBottom = 30, DefaultFontSize = 12,
+        var options = new PdfCreateOptions {
+            PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(220), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
             TextShapingMode = PdfTextShapingMode.UnicodeScalar, CompressContentStreams = false
         }.EmbedStandardFont(PdfStandardFont.Helvetica, font, "RTL word decoration");
-        var run = new PdfTextRun(text, fontSize: 12, underlineStyle: OfficeTextDecorationStyle.Words);
+        var run = new PdfTextRun(text, fontSize: global::OfficeIMO.OfficeLength.Points(12), underlineStyle: OfficeTextDecorationStyle.Words);
         PdfDocument document = PdfDocument.Create(options).Compose(composition => composition.Page(page => {
             page.Content(content => {
                 if (owner == "Body") content.Paragraph(paragraph => paragraph.Runs(new[] { run }));
@@ -31,7 +31,7 @@ public sealed class PdfRichWordDecorationVisualOrderTests {
             else if (owner == "Footer") page.Footer(footer => footer.Text(builder => builder.Run(run)));
         }));
 
-        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        using var pdf = PdfPigDocument.Open(document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var strokes = pdf.GetPage(1).Paths.Where(path => path.IsStroked)
             .Select(path => path.GetBoundingRectangle()).Where(bounds => bounds.HasValue)
             .Select(bounds => bounds!.Value).OrderBy(bounds => bounds.Left).ToArray();

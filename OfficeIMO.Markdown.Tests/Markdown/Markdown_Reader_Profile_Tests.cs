@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 public class Markdown_Reader_Profile_Tests {
     [Fact]
     public void Portable_Profile_Disables_OfficeImo_Only_Block_Extensions() {
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
 
         Assert.False(options.Callouts);
         Assert.Equal(MarkdownCalloutTitleMode.OfficeIMO, options.CalloutTitleMode);
@@ -35,7 +35,7 @@ public class Markdown_Reader_Profile_Tests {
 
     [Fact]
     public void CommonMark_Profile_Disables_Extensions_Beyond_Core_Syntax() {
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
 
         Assert.False(options.FrontMatter);
         Assert.False(options.Callouts);
@@ -67,7 +67,7 @@ public class Markdown_Reader_Profile_Tests {
 
     [Fact]
     public void Gfm_Profile_Enables_Gfm_Syntax_But_Not_OfficeImo_Extensions() {
-        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        var options = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
 
         Assert.False(options.FrontMatter);
         Assert.False(options.Callouts);
@@ -114,14 +114,15 @@ public class Markdown_Reader_Profile_Tests {
     [Fact]
     public void Strict_Profiles_Keep_Emphasis_Extras_Literal() {
         const string markdown = "x^2^ and a ++b++ and ==mark== and H~2~O";
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null
         };
 
-        var commonMark = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile()).ToHtmlFragment(htmlOptions);
-        var portable = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile()).ToHtmlFragment(htmlOptions);
+        var commonMark = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile()).ToHtml(htmlOptions);
+        var portable = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreatePortableProfile()).ToHtml(htmlOptions);
 
         Assert.Equal("<p>x^2^ and a ++b++ and ==mark== and H~2~O</p>", commonMark);
         Assert.Equal(commonMark, portable);
@@ -133,11 +134,14 @@ public class Markdown_Reader_Profile_Tests {
 
     [Fact]
     public void Gfm_Profile_Keeps_Single_Tilde_As_Strikethrough_Instead_Of_Subscript() {
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse("Use ~this~", MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
-        var html = document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse("Use ~this~", MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
+        var html = document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
+            BodyClass = null,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
 
         Assert.Equal("<p>Use <del>this</del></p>", html);
@@ -146,34 +150,40 @@ public class Markdown_Reader_Profile_Tests {
 
     [Fact]
     public void InlineHtml_Disabled_Keeps_Character_References_Literal() {
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.InlineHtml = false;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse("&copy; stays literal", options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse("&copy; stays literal", options);
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         var text = Assert.IsType<MarkdownTextRun>(Assert.Single(paragraph.Inlines.Nodes));
 
         Assert.Equal("&copy; stays literal", text.Text);
         Assert.Equal(
             "<p>&amp;copy; stays literal</p>",
-            document.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            document.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                EscapeNonAsciiText = false
+                EscapeNonAsciiText = false,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             }));
     }
 
     [Fact]
     public void CommonMark_Profile_Keeps_Overlong_Hex_Character_References_Literal() {
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse("&#x0000041;", MarkdownReaderOptions.CreateCommonMarkProfile());
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse("&#x0000041;", MarkdownLoadOptions.CreateCommonMarkProfile());
 
         Assert.Equal(
             "<p>&amp;#x0000041;</p>",
-            document.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+            document.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             }));
     }
 
@@ -185,7 +195,7 @@ Beta
 ---
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
         var heading = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(2, heading.Level);
@@ -195,9 +205,9 @@ Beta
     [Fact]
     public void Nested_Profile_Clones_Preserve_StandaloneImageBlocks_Option() {
         const string markdown = "> ![Alt](image.png)";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var quote = Assert.IsType<QuoteBlock>(Assert.Single(document.Blocks));
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
 
@@ -208,18 +218,19 @@ Beta
     [Fact]
     public void CjkFriendlyEmphasis_Is_OptIn_And_Preserves_Markdown_Writing() {
         const string markdown = "これは**強調？**です";
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false
         };
 
-        var defaultHtml = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile()).ToHtmlFragment(htmlOptions);
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var defaultHtml = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreatePortableProfile()).ToHtml(htmlOptions);
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.CjkFriendlyEmphasis = true;
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
-        var optInHtml = document.ToHtmlFragment(htmlOptions);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
+        var optInHtml = document.ToHtml(htmlOptions);
 
         Assert.Equal("<p>これは**強調？**です</p>", defaultHtml);
         Assert.Equal("<p>これは<strong>強調？</strong>です</p>", optInHtml);
@@ -228,10 +239,10 @@ Beta
 
     [Fact]
     public void CreateProfile_Returns_Expected_Config() {
-        var office = MarkdownReaderOptions.CreateProfile(MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO);
-        var commonMark = MarkdownReaderOptions.CreateProfile(MarkdownReaderOptions.MarkdownDialectProfile.CommonMark);
-        var gfm = MarkdownReaderOptions.CreateProfile(MarkdownReaderOptions.MarkdownDialectProfile.GitHubFlavoredMarkdown);
-        var portable = MarkdownReaderOptions.CreateProfile(MarkdownReaderOptions.MarkdownDialectProfile.Portable);
+        var office = MarkdownLoadOptions.CreateProfile(MarkdownLoadOptions.MarkdownDialectProfile.OfficeIMO);
+        var commonMark = MarkdownLoadOptions.CreateProfile(MarkdownLoadOptions.MarkdownDialectProfile.CommonMark);
+        var gfm = MarkdownLoadOptions.CreateProfile(MarkdownLoadOptions.MarkdownDialectProfile.GitHubFlavoredMarkdown);
+        var portable = MarkdownLoadOptions.CreateProfile(MarkdownLoadOptions.MarkdownDialectProfile.Portable);
 
         Assert.True(office.Callouts);
         Assert.Equal(MarkdownCalloutTitleMode.OfficeIMO, office.CalloutTitleMode);
@@ -268,14 +279,17 @@ Beta
 alpha
 beta
 """;
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
         options.SoftLineBreaksAsHardLineBreaks = true;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
-        var html = document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
+        var html = document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
+            BodyClass = null,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
 
         Assert.Equal("<p>alpha<br/>beta</p>", html);
@@ -289,7 +303,7 @@ alpha
 beta
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
 
         Assert.DoesNotContain(paragraph.Inlines.Nodes, inline => inline is HardBreakInline);
@@ -302,14 +316,17 @@ beta
 - alpha
   beta
 """;
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
         options.SoftLineBreaksAsHardLineBreaks = true;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options)
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options)
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Contains("alpha<br/>beta", html);
@@ -325,7 +342,7 @@ Lead[^1]
 [^1]: Footnote text
 """;
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
 
         Assert.Equal(3, doc.Blocks.Count);
 
@@ -351,11 +368,14 @@ Lead[^1]
 [foo]
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<p><a href=\"/docs/start\" title=\"Docs title\">foo</a></p>", html);
@@ -369,11 +389,14 @@ Lead[^1]
 [Foo]
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<p><a href=\"/url\">Foo</a></p>", html);
@@ -387,11 +410,14 @@ Lead[^1]
 [foo]
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<p><a href=\"/%CF%86%CE%BF%CF%85\">foo</a></p>", html);
@@ -401,11 +427,14 @@ Lead[^1]
     public void CommonMark_Profile_Preserves_Bare_Autolink_Targets_Without_Trailing_Slash() {
         const string markdown = "<http://foo.bar.baz>";
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<p><a href=\"http://foo.bar.baz\">http://foo.bar.baz</a></p>", html);
@@ -420,11 +449,14 @@ Lead[^1]
 [Baz][Foo bar]
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<p><a href=\"/url\">Baz</a></p>", html);
@@ -437,11 +469,14 @@ Lead[^1]
 [SS]: /url
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<p><a href=\"/url\">ẞ</a></p>", html);
@@ -455,11 +490,14 @@ Lead[^1]
 [foo]: /url1
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<p><a href=\"/url1\">foo</a>(not a link)</p>", html);
@@ -473,11 +511,14 @@ Lead[^1]
 [baz]: /url
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<p>[foo]<a href=\"/url\">bar</a></p>", html);
@@ -489,11 +530,14 @@ Lead[^1]
 Lead ![foo *bar*](train.jpg "train & tracks")
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<p>Lead <img src=\"train.jpg\" alt=\"foo bar\" title=\"train &amp; tracks\" /></p>", html);
@@ -505,11 +549,14 @@ Lead ![foo *bar*](train.jpg "train & tracks")
 Lead ![foo ![bar](/url)](/url2) and ![foo [bar](/url)](/url2)
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<p>Lead <img src=\"/url2\" alt=\"foo bar\" /> and <img src=\"/url2\" alt=\"foo bar\" /></p>", html);
@@ -519,7 +566,7 @@ Lead ![foo ![bar](/url)](/url2) and ![foo [bar](/url)](/url2)
     public void CommonMark_Profile_Leaves_Standalone_Image_Lines_As_Paragraphs() {
         const string markdown = "![foo](train.jpg \"title\")";
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         var image = Assert.Single(paragraph.Inlines.Nodes, node => node is ImageInline);
@@ -530,7 +577,7 @@ Lead ![foo ![bar](/url)](/url2) and ![foo [bar](/url)](/url2)
     public void OfficeImo_Profile_Keeps_Standalone_Image_Lines_As_ImageBlocks() {
         const string markdown = "![foo](train.jpg \"title\")";
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateOfficeIMOProfile());
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateOfficeIMOProfile());
 
         var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
         Assert.Equal("foo", image.Alt);
@@ -545,11 +592,14 @@ Lead ![foo ![bar](/url)](/url2) and ![foo [bar](/url)](/url2)
        more code
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<ol><li><pre><code>indented code\n</code></pre><p>paragraph</p><pre><code>more code\n</code></pre></li></ol>", html);
@@ -564,11 +614,14 @@ Lead ![foo ![bar](/url)](/url2) and ![foo [bar](/url)](/url2)
        more code
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<ol><li><pre><code> indented code\n</code></pre><p>paragraph</p><pre><code>more code\n</code></pre></li></ol>", html);
@@ -597,11 +650,14 @@ Lead ![foo ![bar](/url)](/url2) and ![foo [bar](/url)](/url2)
 *
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal(
@@ -619,11 +675,14 @@ foo
 1.
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<p>foo *</p><p>foo 1.</p>", html);
@@ -639,11 +698,14 @@ foo
 - d
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<ul><li><p>a</p></li><li><p>b</p></li><li><p>d</p></li></ul>", html);
@@ -660,11 +722,14 @@ foo
 - c
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<ul><li>a</li><li><pre><code>b\n\n</code></pre></li><li>c</li></ul>", html);
@@ -680,11 +745,14 @@ foo
    bar
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<ol><li><pre><code>foo\n</code></pre><p>bar</p></li></ol>", html);
@@ -697,11 +765,14 @@ foo
    - bar
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<ol start=\"10\"><li>foo</li></ol><ul><li>bar</li></ul>", html);
@@ -716,11 +787,14 @@ foo
    - boo
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<ul><li>foo</li><li>bar</li><li>baz</li><li>boo</li></ul>", html);
@@ -734,11 +808,14 @@ foo
 1. - 2. foo
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<ul><li><ul><li>foo</li></ul></li></ul><ol><li><ul><li><ol start=\"2\"><li>foo</li></ol></li></ul></li></ol>", html);
@@ -753,11 +830,14 @@ foo
   baz
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<ul><li><h1 id=\"foo\">Foo</h1></li><li><h2 id=\"bar\">Bar</h2>baz</li></ul>", html);
@@ -771,11 +851,14 @@ foo
 + baz
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<ul><li>foo</li><li>bar</li></ul><ul><li>baz</li></ul>", html);
@@ -789,11 +872,14 @@ foo
 3) baz
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<ol><li>foo</li><li>bar</li></ol><ol start=\"3\"><li>baz</li></ol>", html);
@@ -809,11 +895,14 @@ foo
 - baz
 """;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<ul><li><p>foo</p></li><li><p>bar</p></li><li><p>baz</p></li></ul>", html);
@@ -835,7 +924,7 @@ Lead[^1]
 [^1]: Footnote text
 """;
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
 
         Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
         Assert.Equal("\\[TOC\\]", Assert.IsType<ParagraphBlock>(doc.Blocks[0]).Inlines.RenderMarkdown());
@@ -851,11 +940,11 @@ Lead[^1]
 
     [Fact]
     public void CommonMark_Profile_Can_Opt_Into_Callout_Extension_Explicitly() {
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
         options.Callouts = true;
         MarkdownReaderBuiltInExtensions.AddCallouts(options);
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("""
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse("""
 > [!NOTE] Example
 > Body text
 """, options);
@@ -871,7 +960,7 @@ Lead[^1]
 > [!NOTE] Example
 > Body text
 """;
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             CalloutTitleMode = MarkdownCalloutTitleMode.MarkdigCompatible,
             PreserveTrivia = true
         };
@@ -880,13 +969,16 @@ Lead[^1]
         var quote = Assert.IsType<QuoteBlock>(Assert.Single(result.Document.Blocks));
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
         var syntax = Assert.Single(result.SyntaxTree.Children);
-        var html = result.Document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null
+        var html = result.Document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
+            BodyClass = null,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
         var written = result.Document.ToMarkdown();
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, options);
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, options);
 
         Assert.Equal("\\[!NOTE\\] Example Body text", paragraph.Inlines.RenderMarkdown().Replace("\r\n", "\n"));
         Assert.Equal(2, quote.MarkerSourceSpans.Count);
@@ -901,17 +993,23 @@ Lead[^1]
     public void Gfm_Profile_Enables_SingleTilde_Strikethrough_While_CommonMark_Keeps_It_Literal() {
         const string markdown = "A proper ~strikethrough~.";
 
-        var gfmHtml = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var gfmHtml = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
-        var commonMarkHtml = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile())
-            .ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+        var commonMarkHtml = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile())
+            .ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
         Assert.Equal("<p>A proper <del>strikethrough</del>.</p>", gfmHtml);
@@ -920,13 +1018,16 @@ Lead[^1]
 
     [Fact]
     public void Gfm_Html_Option_Renders_Task_Lists_Without_OfficeImo_Task_Classes() {
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("- [ ] foo\n- [x] bar\n", MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse("- [ ] foo\n- [x] bar\n", MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
 
-        var html = doc.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
-            GitHubTaskListHtml = true
+            GitHubTaskListHtml = true,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
 
         Assert.Equal(
@@ -946,13 +1047,16 @@ Missing[^nope].
 [^1]: Note
 """;
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
 
-        var html = doc.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
-            GitHubFootnoteHtml = true
+            GitHubFootnoteHtml = true,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
 
         Assert.Contains(
@@ -969,9 +1073,9 @@ Missing[^nope].
 
     [Fact]
     public void Gfm_Profile_Treats_Exclamation_As_Punctuation_Before_Footnote_Reference() {
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(
             "This is some text![^1].\n\n[^1]: Note",
-            MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+            MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
 
         var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
 
@@ -996,7 +1100,7 @@ Lead paragraph
     or, naturally, simple paragraphs.
 """;
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
 
         Assert.Collection(
             doc.Blocks,

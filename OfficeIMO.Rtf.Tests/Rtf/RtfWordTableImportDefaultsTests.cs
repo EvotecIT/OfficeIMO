@@ -172,13 +172,13 @@ public class RtfWordTableImportDefaultsTests {
         using WordDocument mapped = source.ToWordDocument();
         mapped.AddTable(1, 1); // Existing public Word authoring default.
         WordTable callerStyled = mapped.AddTable(1, 1, WordTableStyle.TableGrid);
-        callerStyled.Rows[0].Cells[0].MarginLeftWidth = 180;
+        callerStyled.Rows[0].Cells[0].MarginLeft = global::OfficeIMO.OfficeLength.Points(9D);
         callerStyled.Rows[0].Cells[0].Borders.TopStyle = WordBorderStyle.Double;
         XElement[] tables = ReadPart(mapped.ToBytes(), "word/document.xml").Descendants(W + "tbl").ToArray();
 
         Assert.Equal(3, tables.Length);
         AssertNeutralTable(tables[0]);
-        Assert.Equal("TableGrid", (string?)tables[1].Element(W + "tblPr")?.Element(W + "tblStyle")?.Attribute(W + "val"));
+        Assert.Equal("OfficeIMOModern", (string?)tables[1].Element(W + "tblPr")?.Element(W + "tblStyle")?.Attribute(W + "val"));
         Assert.Equal("TableGrid", (string?)tables[2].Element(W + "tblPr")?.Element(W + "tblStyle")?.Attribute(W + "val"));
         Assert.Null(tables[1].Element(W + "tblPr")?.Element(W + "tblBorders"));
         XElement callerCellProperties = Assert.Single(tables[2].Descendants(W + "tcPr"));

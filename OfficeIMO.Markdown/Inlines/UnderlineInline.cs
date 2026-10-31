@@ -11,7 +11,7 @@ public sealed class UnderlineInline : MarkdownInline, IRenderableMarkdownInline,
     /// </summary>
     /// <param name="text">Text to render underlined.</param>
     public UnderlineInline(string text) { Text = text ?? string.Empty; }
-    internal string RenderMarkdown() => $"<u>{HtmlTextEncoder.Encode(Text, (HtmlOptions?)null)}</u>";
+    internal string RenderMarkdown() => $"<u>{HtmlTextEncoder.Encode(Text, (MarkdownHtmlExportOptions?)null)}</u>";
     internal string RenderHtml() => $"<u>{HtmlTextEncoder.Encode(Text, HtmlRenderContext.Options)}</u>";
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();

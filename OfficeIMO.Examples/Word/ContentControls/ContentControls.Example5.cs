@@ -17,7 +17,7 @@ namespace OfficeIMO.Examples.Word {
                 sdt1.Italic = true;
                 sdt1.Underline = WordUnderlineStyle.Single;
                 sdt1.FontFamily = "Calibri";
-                sdt1.FontSize = 12;
+                sdt1.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                 sdt1.ColorHex = "2F5597";
                 sdt1.Highlight = WordHighlightColor.Yellow;
 
@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Word {
                     .SetItalic()
                     .SetUnderline(WordUnderlineStyle.Single)
                     .SetFontFamily("Calibri")
-                    .SetFontSize(14)
+                    .SetFontSize(global::OfficeIMO.OfficeLength.Points(14))
                     .SetColorHex("C00000")
                     .SetHighlight(WordHighlightColor.LightGray);
 

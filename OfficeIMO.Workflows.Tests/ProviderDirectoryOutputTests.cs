@@ -8,7 +8,7 @@ public sealed class ProviderDirectoryOutputTests {
     public async Task RequiresReplaceBeforeResolvingAnyDestination() {
         using var provider = new Provider();
         var request = provider.Request();
-        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Rename;
+        request.ConflictPolicy = OfficePublicationPolicy.Rename;
         var result = await new OfficeWorkflowRunner().ExportPdfPagesAsync(request);
         Assert.Equal(OfficeWorkflowFailureKind.ValidationFailed, result.FailureKind);
         Assert.Empty(result.Files);
@@ -100,14 +100,14 @@ public sealed class ProviderDirectoryOutputTests {
         Assert.Empty(provider.Recovery.GetRecoveries());
     }
 
-    private sealed class Guard(Provider provider) : IOfficeWorkflowPublicationGuard {
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
+    private sealed class Guard(Provider provider) : IOfficePublicationGuard {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
             if (provider.WriteCount == 1) {
                 if (provider.Failure == "cancel-before") provider.Cancellation.Cancel();
                 if (provider.Failure == "source-change") provider.Source = CreatePdf(4);
-                if (provider.Failure == "deny") return ValueTask.FromResult(false);
+                if (provider.Failure == "deny") return Task.FromResult(false);
             }
-            return ValueTask.FromResult(true);
+            return Task.FromResult(true);
         }
     }
 
@@ -122,7 +122,7 @@ public sealed class ProviderDirectoryOutputTests {
 
         internal PdfPageImageExportRequest Request() => new() {
             InputPath = "content://provider/input", InputStream = new("input.pdf", _ => Task.FromResult<Stream>(new MemoryStream(Source))),
-            OutputDirectory = "content://provider/output", ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+            OutputDirectory = "content://provider/output", ConflictPolicy = OfficePublicationPolicy.Replace,
             MaximumDimension = 32, DirectoryOutput = new((name, token) => {
                 _resolved++;
                 if (Failure == "resolve" && _resolved == 2) throw new IOException("Provider resolution failed.");
@@ -156,6 +156,6 @@ public sealed class ProviderDirectoryOutputTests {
     }
 
     private static byte[] CreatePdf(int count) => PdfDocument.Create(compose => {
-        for (int index = 0; index < count; index++) compose.Page(page => page.Size(300, 400));
+        for (int index = 0; index < count; index++) compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)));
     }).ToBytes();
 }

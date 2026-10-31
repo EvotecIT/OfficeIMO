@@ -22,15 +22,15 @@ public sealed class WordPdfKerningTests {
         foreach (string text in new[] { "\t1.", "\t." }) {
             WordParagraph paragraph = cell == null ? document.AddParagraph(text) : cell.AddParagraph(text);
             paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
-            paragraph.FontSize = 10;
-            paragraph.KerningMinimumFontSizePoints = 1D;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+            paragraph.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(1D);
             paragraph.CharacterScale = characterScale;
             paragraph._paragraph.Descendants<Run>().Last().RunProperties!.Spacing = new Spacing { Val = spacingTwips };
-            paragraph.AddTabStop(2000, WordTabAlignment.Decimal);
+            paragraph.AddTabStop(OfficeLength.Points(100), WordTabAlignment.Decimal);
         }
 
-        byte[] bytes = document.ToPdfBytes(ConversionOptions(
-            FontOptions(ManagedTextShapingTestAssets.CreateFontWithPairPositioning('1', '.', includeSpace: true))));
+        byte[] bytes = document.ToPdf(ConversionOptions(
+            FontOptions(ManagedTextShapingTestAssets.CreateFontWithPairPositioning('1', '.', includeSpace: true)))).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         if (Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VISUAL_OUTPUT") is { Length: > 0 } output) {
             Directory.CreateDirectory(output);
             File.WriteAllBytes(Path.Combine(output, $"decimal-kerning-{inTable}-{characterScale}-{spacingTwips}.pdf"), bytes);
@@ -83,8 +83,8 @@ public sealed class WordPdfKerningTests {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("fi");
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
-        paragraph.FontSize = 10;
-        paragraph.KerningMinimumFontSizePoints = 1D;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+        paragraph.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(1D);
         paragraph._paragraph.Descendants<Run>().Single().RunProperties!.Append(
             new DocumentFormat.OpenXml.Office2010.Word.Ligatures { Val = DocumentFormat.OpenXml.Office2010.Word.LigaturesValues.Standard });
         document._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!
@@ -92,9 +92,9 @@ public sealed class WordPdfKerningTests {
                 Name = new DocumentFormat.OpenXml.EnumValue<CompatSettingNameValues> { InnerText = "enableOpenTypeFeatures" },
                 Uri = "http://schemas.microsoft.com/office/word", Val = "1"
             });
-        PdfOptions options = FontOptions(ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn"));
+        PdfCreateOptions options = FontOptions(ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn"));
         if (managedProvider) options.UseManagedTextShaping();
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(ConversionOptions(options)));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(ConversionOptions(options)).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Letter ligature = Assert.Single(pdf.GetPage(1).Letters);
         Assert.Equal("fi", ligature.Value);
         Assert.Equal(5D, ligature.Width, 3);
@@ -145,11 +145,11 @@ public sealed class WordPdfKerningTests {
             });
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         Assert.Empty(document.ValidateDocument());
-        PdfOptions options = FontOptions(ligatures
+        PdfCreateOptions options = FontOptions(ligatures
             ? ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn")
             : ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', 'V'));
         options.UseManagedTextShaping();
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(ConversionOptions(options)));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(ConversionOptions(options)).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         return Assert.Single(pdf.GetPages()).Letters.ToArray();
     }
 
@@ -181,9 +181,9 @@ public sealed class WordPdfKerningTests {
             paragraph = story.AddParagraph("AV");
         } else {
             paragraph = document.AddParagraph(route == "link" ? string.Empty : "AV");
-            if (route == "link") paragraph = paragraph.AddHyperLink("AV", new Uri("https://example.com/"));
+            if (route == "link") paragraph = paragraph.AddHyperLink("AV", new Uri("https://example.com/")).Paragraph;
         }
-        paragraph.FontSize = 10;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
         // This hierarchy independently tests a threshold inherited from document
         // defaults, a based-on paragraph style, a character style, and a direct reset.
@@ -205,25 +205,26 @@ public sealed class WordPdfKerningTests {
             table!._tableProperties!.TableStyle = new TableStyle { Val = "KernedHeader" };
             table.ConditionalFormattingFirstRow = true;
         }
-        if (level == "direct") paragraph.KerningMinimumFontSizePoints = threshold;
+        if (level == "direct") paragraph.KerningMinimumFontSize = threshold.HasValue
+            ? global::OfficeIMO.OfficeLength.Points(threshold.Value) : null;
         if (mixed) {
             WordParagraph following = paragraph.AddText("AV");
-            following.FontSize = 10;
+            following.FontSize = global::OfficeIMO.OfficeLength.Points(10);
             following.FontFamily = ManagedTextShapingTestAssets.FamilyName;
-            following.KerningMinimumFontSizePoints = 0D;
+            following.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(0D);
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(ConversionOptions(
-            FontOptions(ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', 'V')))));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(ConversionOptions(
+            FontOptions(ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', 'V')))).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         return pdf.GetPage(1).Letters.Where(letter => letter.Value is "A" or "V").ToArray();
     }
 
-    private static PdfOptions FontOptions(byte[] font) {
-        var options = new PdfOptions { DefaultFontSize = 10D };
+    private static PdfCreateOptions FontOptions(byte[] font) {
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D) };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName, font));
         return options;
     }
 
-    private static WordToPdfOptions ConversionOptions(PdfOptions options) => new() {
+    private static WordPdfExportOptions ConversionOptions(PdfCreateOptions options) => new() {
         IncludePageNumbers = false, PdfOptions = options,
         ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
     };

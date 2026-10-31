@@ -377,17 +377,76 @@
             <w:t>Table of Contents</w:t>
           </w:r>
         </w:p>
-        <w:p w:rsidR="00327375" w:rsidRDefault="00327375" w14:paraId="770BF6F5" w14:textId="2FB682F4">
+        <w:p>
           <w:fldSimple w:instr=" TOC \o &quot;1-3&quot; \h \z \u " w:dirty="true">
             <w:r>
-              <w:rPr>
-                <w:b />
-                <w:bCs />
-                <w:noProof />
-              </w:rPr>
-              <w:t>No table of contents entries found.</w:t>
+              <w:t xml:space="preserve" />
             </w:r>
           </w:fldSimple>
+        </w:p>
+        <w:p>
+          <w:pPr>
+            <w:pStyle w:val="TOC1" />
+          </w:pPr>
+          <w:hyperlink w:history="true" w:anchor="_OfficeIMO_Toc_0_0" r:id="R00000001">
+            <w:r>
+              <w:t xml:space="preserve">How to add a table to document?</w:t>
+            </w:r>
+            <w:r>
+              <w:tab />
+            </w:r>
+            <w:r>
+              <w:t>3</w:t>
+            </w:r>
+          </w:hyperlink>
+        </w:p>
+        <w:p>
+          <w:pPr>
+            <w:pStyle w:val="TOC1" />
+          </w:pPr>
+          <w:hyperlink w:history="true" w:anchor="_OfficeIMO_Toc_1_1" r:id="R00000002">
+            <w:r>
+              <w:t xml:space="preserve">How to add a list to document?</w:t>
+            </w:r>
+            <w:r>
+              <w:tab />
+            </w:r>
+            <w:r>
+              <w:t>3</w:t>
+            </w:r>
+          </w:hyperlink>
+        </w:p>
+        <w:p>
+          <w:pPr>
+            <w:pStyle w:val="TOC1" />
+          </w:pPr>
+          <w:hyperlink w:history="true" w:anchor="_OfficeIMO_Toc_2_2" r:id="R00000003">
+            <w:r>
+              <w:t xml:space="preserve">Adding headers / footers</w:t>
+            </w:r>
+            <w:r>
+              <w:tab />
+            </w:r>
+            <w:r>
+              <w:t>4</w:t>
+            </w:r>
+          </w:hyperlink>
+        </w:p>
+        <w:p>
+          <w:pPr>
+            <w:pStyle w:val="TOC1" />
+          </w:pPr>
+          <w:hyperlink w:history="true" w:anchor="_OfficeIMO_Toc_3_3" r:id="R00000004">
+            <w:r>
+              <w:t xml:space="preserve">Adding custom properties and page numbers to document</w:t>
+            </w:r>
+            <w:r>
+              <w:tab />
+            </w:r>
+            <w:r>
+              <w:t>5</w:t>
+            </w:r>
+          </w:hyperlink>
         </w:p>
       </w:sdtContent>
     </w:sdt>
@@ -404,9 +463,11 @@
           <w:numId w:val="1" />
         </w:numPr>
       </w:pPr>
+      <w:bookmarkStart w:name="_OfficeIMO_Toc_0_0" w:id="1" />
       <w:r>
         <w:t xml:space="preserve">How to add a table to document?</w:t>
       </w:r>
+      <w:bookmarkEnd w:id="1" />
     </w:p>
     <w:p>
       <w:pPr />
@@ -421,15 +482,15 @@
         <w:tblLook w:val="04A0" />
       </w:tblPr>
       <w:tblGrid>
-        <w:gridCol w:w="2400" />
-        <w:gridCol w:w="2400" />
-        <w:gridCol w:w="2400" />
-        <w:gridCol w:w="2400" />
+        <w:gridCol w:w="2340" />
+        <w:gridCol w:w="2340" />
+        <w:gridCol w:w="2340" />
+        <w:gridCol w:w="2340" />
       </w:tblGrid>
       <w:tr>
         <w:tc>
           <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
+            <w:tcW w:w="2340" w:type="dxa" />
           </w:tcPr>
           <w:p>
             <w:pPr />
@@ -438,7 +499,7 @@
         </w:tc>
         <w:tc>
           <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
+            <w:tcW w:w="2340" w:type="dxa" />
           </w:tcPr>
           <w:p>
             <w:pPr />
@@ -447,7 +508,7 @@
         </w:tc>
         <w:tc>
           <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
+            <w:tcW w:w="2340" w:type="dxa" />
           </w:tcPr>
           <w:p>
             <w:pPr />
@@ -456,45 +517,7 @@
         </w:tc>
         <w:tc>
           <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
-          </w:tcPr>
-          <w:p>
-            <w:pPr />
-            <w:r />
-          </w:p>
-        </w:tc>
-      </w:tr>
-      <w:tr>
-        <w:tc>
-          <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
-          </w:tcPr>
-          <w:p>
-            <w:pPr />
-            <w:r />
-          </w:p>
-        </w:tc>
-        <w:tc>
-          <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
-          </w:tcPr>
-          <w:p>
-            <w:pPr />
-            <w:r />
-          </w:p>
-        </w:tc>
-        <w:tc>
-          <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
-          </w:tcPr>
-          <w:p>
-            <w:pPr />
-            <w:r />
-          </w:p>
-        </w:tc>
-        <w:tc>
-          <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
+            <w:tcW w:w="2340" w:type="dxa" />
           </w:tcPr>
           <w:p>
             <w:pPr />
@@ -505,7 +528,7 @@
       <w:tr>
         <w:tc>
           <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
+            <w:tcW w:w="2340" w:type="dxa" />
           </w:tcPr>
           <w:p>
             <w:pPr />
@@ -514,7 +537,7 @@
         </w:tc>
         <w:tc>
           <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
+            <w:tcW w:w="2340" w:type="dxa" />
           </w:tcPr>
           <w:p>
             <w:pPr />
@@ -523,7 +546,7 @@
         </w:tc>
         <w:tc>
           <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
+            <w:tcW w:w="2340" w:type="dxa" />
           </w:tcPr>
           <w:p>
             <w:pPr />
@@ -532,7 +555,7 @@
         </w:tc>
         <w:tc>
           <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
+            <w:tcW w:w="2340" w:type="dxa" />
           </w:tcPr>
           <w:p>
             <w:pPr />
@@ -543,7 +566,7 @@
       <w:tr>
         <w:tc>
           <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
+            <w:tcW w:w="2340" w:type="dxa" />
           </w:tcPr>
           <w:p>
             <w:pPr />
@@ -552,7 +575,7 @@
         </w:tc>
         <w:tc>
           <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
+            <w:tcW w:w="2340" w:type="dxa" />
           </w:tcPr>
           <w:p>
             <w:pPr />
@@ -561,13 +584,51 @@
         </w:tc>
         <w:tc>
           <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
+            <w:tcW w:w="2340" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2340" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2340" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2340" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2340" w:type="dxa" />
           </w:tcPr>
           <w:p>
             <w:pPr />
             <w:r>
               <w:rPr>
-                <w:color w:val="0000ff" />
+                <w:color w:val="0000FF" />
               </w:rPr>
               <w:t xml:space="preserve">Adding text to cell</w:t>
             </w:r>
@@ -575,7 +636,7 @@
         </w:tc>
         <w:tc>
           <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
+            <w:tcW w:w="2340" w:type="dxa" />
           </w:tcPr>
           <w:p>
             <w:pPr />
@@ -588,7 +649,7 @@
       <w:tr>
         <w:tc>
           <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
+            <w:tcW w:w="2340" w:type="dxa" />
           </w:tcPr>
           <w:p>
             <w:pPr />
@@ -597,7 +658,7 @@
         </w:tc>
         <w:tc>
           <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
+            <w:tcW w:w="2340" w:type="dxa" />
           </w:tcPr>
           <w:p>
             <w:pPr />
@@ -606,7 +667,7 @@
         </w:tc>
         <w:tc>
           <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
+            <w:tcW w:w="2340" w:type="dxa" />
           </w:tcPr>
           <w:p>
             <w:pPr />
@@ -615,7 +676,7 @@
         </w:tc>
         <w:tc>
           <w:tcPr>
-            <w:tcW w:w="2400" w:type="dxa" />
+            <w:tcW w:w="2340" w:type="dxa" />
           </w:tcPr>
           <w:p>
             <w:pPr />
@@ -628,15 +689,15 @@
       <w:pPr />
       <w:r>
         <w:rPr>
-          <w:b />
-          <w:bCs />
+          <w:b w:val="true" />
+          <w:bCs w:val="true" />
           <w:u w:val="dotted" />
         </w:rPr>
         <w:t xml:space="preserve">As you can see adding a table with some style, and adding content to it </w:t>
       </w:r>
       <w:r>
         <w:rPr>
-          <w:color w:val="ff4500" />
+          <w:color w:val="FF4500" />
         </w:rPr>
         <w:t xml:space="preserve">is not really complicated</w:t>
       </w:r>
@@ -649,15 +710,17 @@
           <w:numId w:val="1" />
         </w:numPr>
       </w:pPr>
+      <w:bookmarkStart w:name="_OfficeIMO_Toc_1_1" w:id="2" />
       <w:r>
         <w:t xml:space="preserve">How to add a list to document?</w:t>
       </w:r>
+      <w:bookmarkEnd w:id="2" />
     </w:p>
     <w:p>
       <w:pPr />
       <w:r>
         <w:rPr>
-          <w:color w:val="0000ff" />
+          <w:color w:val="0000FF" />
         </w:rPr>
         <w:t xml:space="preserve">For example TOC List is just another list, but defining a specific style.</w:t>
       </w:r>
@@ -690,7 +753,7 @@
       <w:pPr>
         <w:jc w:val="center" />
       </w:pPr>
-      <w:hyperlink w:tooltip="URL with tooltip" w:history="true" r:id="R00000001">
+      <w:hyperlink w:tooltip="URL with tooltip" w:history="true" r:id="R00000005">
         <w:r>
           <w:rPr>
             <w:rStyle w:val="Hyperlink" />
@@ -724,7 +787,7 @@
       <w:r>
         <w:t xml:space="preserve">4th element with hyperlink </w:t>
       </w:r>
-      <w:hyperlink w:history="true" r:id="R00000002">
+      <w:hyperlink w:history="true" r:id="R00000006">
         <w:r>
           <w:rPr>
             <w:rStyle w:val="Hyperlink" />
@@ -804,15 +867,18 @@
           <w:numId w:val="1" />
         </w:numPr>
       </w:pPr>
+      <w:bookmarkStart w:name="_OfficeIMO_Toc_2_2" w:id="3" />
       <w:r>
         <w:t xml:space="preserve">Adding headers / footers</w:t>
       </w:r>
+      <w:bookmarkEnd w:id="3" />
     </w:p>
     <w:p>
       <w:pPr>
         <w:sectPr w:rsidR="R00000002">
-          <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
+          <w:type w:val="nextPage" />
           <w:pgSz w:w="16838" w:h="11906" w:orient="landscape" w:code="9" />
+          <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
         </w:sectPr>
       </w:pPr>
     </w:p>
@@ -824,9 +890,11 @@
           <w:numId w:val="1" />
         </w:numPr>
       </w:pPr>
+      <w:bookmarkStart w:name="_OfficeIMO_Toc_3_3" w:id="4" />
       <w:r>
         <w:t xml:space="preserve">Adding custom properties and page numbers to document</w:t>
       </w:r>
+      <w:bookmarkEnd w:id="4" />
     </w:p>
     <w:sdt>
       <w:sdtPr>
@@ -881,8 +949,9 @@
       </w:sdtContent>
     </w:sdt>
     <w:sectPr w:rsidR="R00000003">
-      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
+      <w:type w:val="nextPage" />
       <w:pgSz w:w="8391" w:h="11906" w:code="11" />
+      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
     </w:sectPr>
   </w:body>
 </w:document>
@@ -893,7 +962,8 @@
   <w:docDefaults>
     <w:rPrDefault>
       <w:rPr>
-        <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorHAnsi" w:cstheme="minorBidi" />
+        <w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" />
+        <w:color w:val="1B2433" />
         <w:sz w:val="22" />
         <w:szCs w:val="22" />
         <w:lang w:val="en-US" w:eastAsia="en-US" w:bidi="ar-SA" />
@@ -10826,18 +10896,19 @@
     <w:link w:val="Heading1Char" />
     <w:uiPriority w:val="9" />
     <w:qFormat />
-    <w:rsid w:val="00973C6F" />
     <w:pPr>
       <w:keepNext />
       <w:keepLines />
-      <w:spacing w:before="240" w:after="0" />
+      <w:spacing w:before="360" w:after="120" />
       <w:outlineLvl w:val="0" />
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="2F5496" w:themeColor="accent1" w:themeShade="BF" />
-      <w:sz w:val="32" />
-      <w:szCs w:val="32" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="40" />
+      <w:szCs w:val="40" />
     </w:rPr>
   </w:style>
   <w:style w:type="paragraph" w:styleId="Heading2">
@@ -10847,19 +10918,19 @@
     <w:link w:val="Heading2Char" />
     <w:uiPriority w:val="9" />
     <w:unhideWhenUsed />
-    <w:qFormat />
-    <w:rsid w:val="00973C6F" />
     <w:pPr>
       <w:keepNext />
       <w:keepLines />
-      <w:spacing w:before="40" w:after="0" />
+      <w:spacing w:before="280" w:after="80" />
       <w:outlineLvl w:val="1" />
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="2F5496" w:themeColor="accent1" w:themeShade="BF" />
-      <w:sz w:val="26" />
-      <w:szCs w:val="26" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="30" />
+      <w:szCs w:val="30" />
     </w:rPr>
   </w:style>
   <w:style w:type="paragraph" w:styleId="Heading3">
@@ -10868,21 +10939,20 @@
     <w:next w:val="Normal" />
     <w:link w:val="Heading3Char" />
     <w:uiPriority w:val="9" />
-    <w:semiHidden />
     <w:unhideWhenUsed />
-    <w:qFormat />
-    <w:rsid w:val="00700ED2" />
     <w:pPr>
       <w:keepNext />
       <w:keepLines />
-      <w:spacing w:before="40" w:after="0" />
+      <w:spacing w:before="240" w:after="60" />
       <w:outlineLvl w:val="2" />
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="1F3763" w:themeColor="accent1" w:themeShade="7F" />
-      <w:sz w:val="24" />
-      <w:szCs w:val="24" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="25" />
+      <w:szCs w:val="25" />
     </w:rPr>
   </w:style>
   <w:style w:type="paragraph" w:styleId="Heading4">
@@ -10891,21 +10961,20 @@
     <w:next w:val="Normal" />
     <w:link w:val="Heading4Char" />
     <w:uiPriority w:val="9" />
-    <w:semiHidden />
     <w:unhideWhenUsed />
-    <w:qFormat />
-    <w:rsid w:val="00700ED2" />
     <w:pPr>
       <w:keepNext />
       <w:keepLines />
-      <w:spacing w:before="40" w:after="0" />
+      <w:spacing w:before="240" w:after="60" />
       <w:outlineLvl w:val="3" />
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:i />
-      <w:iCs />
-      <w:color w:val="2F5496" w:themeColor="accent1" w:themeShade="BF" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="22" />
+      <w:szCs w:val="22" />
     </w:rPr>
   </w:style>
   <w:style w:type="paragraph" w:styleId="Heading5">
@@ -10914,19 +10983,20 @@
     <w:next w:val="Normal" />
     <w:link w:val="Heading5Char" />
     <w:uiPriority w:val="9" />
-    <w:semiHidden />
     <w:unhideWhenUsed />
-    <w:qFormat />
-    <w:rsid w:val="00700ED2" />
     <w:pPr>
       <w:keepNext />
       <w:keepLines />
-      <w:spacing w:before="40" w:after="0" />
+      <w:spacing w:before="240" w:after="60" />
       <w:outlineLvl w:val="4" />
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="2F5496" w:themeColor="accent1" w:themeShade="BF" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="22" />
+      <w:szCs w:val="22" />
     </w:rPr>
   </w:style>
   <w:style w:type="paragraph" w:styleId="Heading6">
@@ -10935,19 +11005,20 @@
     <w:next w:val="Normal" />
     <w:link w:val="Heading6Char" />
     <w:uiPriority w:val="9" />
-    <w:semiHidden />
     <w:unhideWhenUsed />
-    <w:qFormat />
-    <w:rsid w:val="00700ED2" />
     <w:pPr>
       <w:keepNext />
       <w:keepLines />
-      <w:spacing w:before="40" w:after="0" />
+      <w:spacing w:before="240" w:after="60" />
       <w:outlineLvl w:val="5" />
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="1F3763" w:themeColor="accent1" w:themeShade="7F" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="20" />
+      <w:szCs w:val="20" />
     </w:rPr>
   </w:style>
   <w:style w:type="paragraph" w:styleId="Heading7">
@@ -11032,6 +11103,43 @@
       <w:contextualSpacing />
     </w:pPr>
   </w:style>
+  <w:style w:type="paragraph" w:styleId="Title">
+    <w:name w:val="Title" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:uiPriority w:val="10" />
+    <w:qFormat />
+    <w:pPr>
+      <w:keepNext />
+      <w:spacing w:before="0" w:after="120" w:line="240" w:lineRule="auto" />
+      <w:contextualSpacing />
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:kern w:val="28" />
+      <w:sz w:val="56" />
+      <w:szCs w:val="56" />
+    </w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Subtitle">
+    <w:name w:val="Subtitle" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:uiPriority w:val="11" />
+    <w:qFormat />
+    <w:pPr>
+      <w:keepNext />
+      <w:spacing w:before="0" w:after="240" />
+    </w:pPr>
+    <w:rPr>
+      <w:color w:val="3F64D7" />
+      <w:sz w:val="25" />
+      <w:szCs w:val="25" />
+    </w:rPr>
+  </w:style>
   <w:style w:type="character" w:styleId="DefaultParagraphFont" w:default="true">
     <w:name w:val="Default Paragraph Font" />
     <w:uiPriority w:val="1" />
@@ -11043,12 +11151,15 @@
     <w:basedOn w:val="DefaultParagraphFont" />
     <w:link w:val="Heading1" />
     <w:uiPriority w:val="9" />
-    <w:rsid w:val="00700ED2" />
+    <w:semiHidden />
+    <w:unhideWhenUsed />
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="2F5496" w:themeColor="accent1" w:themeShade="BF" />
-      <w:sz w:val="32" />
-      <w:szCs w:val="32" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="40" />
+      <w:szCs w:val="40" />
     </w:rPr>
   </w:style>
   <w:style w:type="character" w:styleId="Heading2Char" w:customStyle="true">
@@ -11057,12 +11168,14 @@
     <w:link w:val="Heading2" />
     <w:uiPriority w:val="9" />
     <w:semiHidden />
-    <w:rsid w:val="00700ED2" />
+    <w:unhideWhenUsed />
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="2F5496" w:themeColor="accent1" w:themeShade="BF" />
-      <w:sz w:val="26" />
-      <w:szCs w:val="26" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="30" />
+      <w:szCs w:val="30" />
     </w:rPr>
   </w:style>
   <w:style w:type="character" w:styleId="Heading3Char" w:customStyle="true">
@@ -11071,12 +11184,14 @@
     <w:link w:val="Heading3" />
     <w:uiPriority w:val="9" />
     <w:semiHidden />
-    <w:rsid w:val="00700ED2" />
+    <w:unhideWhenUsed />
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="1F3763" w:themeColor="accent1" w:themeShade="7F" />
-      <w:sz w:val="24" />
-      <w:szCs w:val="24" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="25" />
+      <w:szCs w:val="25" />
     </w:rPr>
   </w:style>
   <w:style w:type="character" w:styleId="Heading4Char" w:customStyle="true">
@@ -11085,12 +11200,14 @@
     <w:link w:val="Heading4" />
     <w:uiPriority w:val="9" />
     <w:semiHidden />
-    <w:rsid w:val="00700ED2" />
+    <w:unhideWhenUsed />
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:i />
-      <w:iCs />
-      <w:color w:val="2F5496" w:themeColor="accent1" w:themeShade="BF" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="22" />
+      <w:szCs w:val="22" />
     </w:rPr>
   </w:style>
   <w:style w:type="character" w:styleId="Heading5Char" w:customStyle="true">
@@ -11099,10 +11216,14 @@
     <w:link w:val="Heading5" />
     <w:uiPriority w:val="9" />
     <w:semiHidden />
-    <w:rsid w:val="00700ED2" />
+    <w:unhideWhenUsed />
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="2F5496" w:themeColor="accent1" w:themeShade="BF" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="22" />
+      <w:szCs w:val="22" />
     </w:rPr>
   </w:style>
   <w:style w:type="character" w:styleId="Heading6Char" w:customStyle="true">
@@ -11111,10 +11232,14 @@
     <w:link w:val="Heading6" />
     <w:uiPriority w:val="9" />
     <w:semiHidden />
-    <w:rsid w:val="00700ED2" />
+    <w:unhideWhenUsed />
     <w:rPr>
-      <w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:cstheme="majorBidi" />
-      <w:color w:val="1F3763" w:themeColor="accent1" w:themeShade="7F" />
+      <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:cstheme="minorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="20" />
+      <w:szCs w:val="20" />
     </w:rPr>
   </w:style>
   <w:style w:type="character" w:styleId="Heading7Char" w:customStyle="true">
@@ -11289,6 +11414,203 @@
       <w:vertAlign w:val="superscript" />
     </w:rPr>
   </w:style>
+  <w:style w:type="paragraph" w:styleId="TOCHeading">
+    <w:name w:val="TOC Heading" />
+    <w:basedOn w:val="Heading1" />
+    <w:next w:val="Normal" />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:qFormat />
+    <w:pPr>
+      <w:outlineLvl w:val="9" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="TOC1">
+    <w:name w:val="toc 1" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:autoRedefine />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="right" w:leader="dot" w:pos="9350" />
+      </w:tabs>
+      <w:spacing w:after="100" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="TOC2">
+    <w:name w:val="toc 2" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:autoRedefine />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="right" w:leader="dot" w:pos="9350" />
+      </w:tabs>
+      <w:spacing w:after="100" />
+      <w:ind w:left="220" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="TOC3">
+    <w:name w:val="toc 3" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:autoRedefine />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="right" w:leader="dot" w:pos="9350" />
+      </w:tabs>
+      <w:spacing w:after="100" />
+      <w:ind w:left="440" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="TOC4">
+    <w:name w:val="toc 4" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:autoRedefine />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="right" w:leader="dot" w:pos="9350" />
+      </w:tabs>
+      <w:spacing w:after="100" />
+      <w:ind w:left="660" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="TOC5">
+    <w:name w:val="toc 5" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:autoRedefine />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="right" w:leader="dot" w:pos="9350" />
+      </w:tabs>
+      <w:spacing w:after="100" />
+      <w:ind w:left="880" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="TOC6">
+    <w:name w:val="toc 6" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:autoRedefine />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="right" w:leader="dot" w:pos="9350" />
+      </w:tabs>
+      <w:spacing w:after="100" />
+      <w:ind w:left="1100" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="TOC7">
+    <w:name w:val="toc 7" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:autoRedefine />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="right" w:leader="dot" w:pos="9350" />
+      </w:tabs>
+      <w:spacing w:after="100" />
+      <w:ind w:left="1320" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="TOC8">
+    <w:name w:val="toc 8" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:autoRedefine />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="right" w:leader="dot" w:pos="9350" />
+      </w:tabs>
+      <w:spacing w:after="100" />
+      <w:ind w:left="1540" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="TOC9">
+    <w:name w:val="toc 9" />
+    <w:basedOn w:val="Normal" />
+    <w:next w:val="Normal" />
+    <w:autoRedefine />
+    <w:uiPriority w:val="39" />
+    <w:unhideWhenUsed />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="right" w:leader="dot" w:pos="9350" />
+      </w:tabs>
+      <w:spacing w:after="100" />
+      <w:ind w:left="1760" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="table" w:styleId="OfficeIMOModern">
+    <w:name w:val="OfficeIMO Modern" />
+    <w:basedOn w:val="TableNormal" />
+    <w:uiPriority w:val="40" />
+    <w:pPr>
+      <w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto" />
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos" w:cs="Aptos" />
+      <w:color w:val="1B2433" />
+      <w:sz w:val="20" />
+      <w:szCs w:val="20" />
+    </w:rPr>
+    <w:tblPr>
+      <w:tblStyleRowBandSize w:val="1" />
+      <w:tblStyleColBandSize w:val="1" />
+      <w:tblBorders>
+        <w:bottom w:val="single" w:color="DCE2EA" w:sz="4" w:space="0" />
+        <w:insideH w:val="single" w:color="DCE2EA" w:sz="4" w:space="0" />
+      </w:tblBorders>
+      <w:tblCellMar>
+        <w:top w:w="100" w:type="dxa" />
+        <w:left w:w="140" w:type="dxa" />
+        <w:bottom w:w="100" w:type="dxa" />
+        <w:right w:w="140" w:type="dxa" />
+      </w:tblCellMar>
+    </w:tblPr>
+    <w:tblStylePr w:type="firstRow">
+      <w:pPr>
+        <w:keepNext />
+      </w:pPr>
+      <w:rPr>
+        <w:b w:val="true" />
+        <w:bCs w:val="true" />
+        <w:color w:val="1B2433" />
+      </w:rPr>
+      <w:trPr>
+        <w:tblHeader />
+      </w:trPr>
+      <w:tcPr>
+        <w:tcBorders>
+          <w:bottom w:val="single" w:color="3F64D7" w:sz="8" w:space="0" />
+        </w:tcBorders>
+        <w:shd w:val="clear" w:color="auto" w:fill="EAF0FC" />
+      </w:tcPr>
+    </w:tblStylePr>
+    <w:tblStylePr w:type="band2Horz">
+      <w:tcPr>
+        <w:shd w:val="clear" w:color="auto" w:fill="F6F8FB" />
+      </w:tcPr>
+    </w:tblStylePr>
+  </w:style>
 </w:styles>
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/webSettings.xml
@@ -11405,55 +11727,69 @@
     <w:pitch w:val="variable" />
     <w:sig w:usb0="E4002EFF" w:usb1="C000247B" w:usb2="00000009" w:usb3="00000000" w:csb0="000001FF" w:csb1="00000000" />
   </w:font>
+  <w:font w:name="Aptos">
+    <w:panose1 w:val="020B0004020202020204" />
+    <w:charset w:val="00" />
+    <w:family w:val="swiss" />
+    <w:pitch w:val="variable" />
+    <w:sig w:usb0="20000287" w:usb1="00000003" w:usb2="00000000" w:usb3="00000000" w:csb0="0000019F" w:csb1="00000000" />
+  </w:font>
+  <w:font w:name="Aptos Display">
+    <w:panose1 w:val="020B0004020202020204" />
+    <w:charset w:val="00" />
+    <w:family w:val="swiss" />
+    <w:pitch w:val="variable" />
+    <w:sig w:usb0="20000287" w:usb1="00000003" w:usb2="00000000" w:usb3="00000000" w:csb0="0000019F" w:csb1="00000000" />
+  </w:font>
 </w:fonts>
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/theme/theme1.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<a:theme xmlns:thm15="http://schemas.microsoft.com/office/thememl/2012/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office Theme">
+<a:theme xmlns:thm15="http://schemas.microsoft.com/office/thememl/2012/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Modern">
   <a:themeElements>
-    <a:clrScheme name="Office">
+    <a:clrScheme name="Modern">
       <a:dk1>
-        <a:sysClr val="windowText" lastClr="000000" />
+        <a:srgbClr val="1B2433" />
       </a:dk1>
       <a:lt1>
-        <a:sysClr val="window" lastClr="FFFFFF" />
+        <a:srgbClr val="FFFFFF" />
       </a:lt1>
       <a:dk2>
-        <a:srgbClr val="44546A" />
+        <a:srgbClr val="5B6575" />
       </a:dk2>
       <a:lt2>
-        <a:srgbClr val="E7E6E6" />
+        <a:srgbClr val="F6F8FB" />
       </a:lt2>
       <a:accent1>
-        <a:srgbClr val="4472C4" />
+        <a:srgbClr val="3F64D7" />
       </a:accent1>
       <a:accent2>
-        <a:srgbClr val="ED7D31" />
+        <a:srgbClr val="DC7536" />
       </a:accent2>
       <a:accent3>
-        <a:srgbClr val="A5A5A5" />
+        <a:srgbClr val="058E80" />
       </a:accent3>
       <a:accent4>
-        <a:srgbClr val="FFC000" />
+        <a:srgbClr val="A52758" />
       </a:accent4>
       <a:accent5>
-        <a:srgbClr val="5B9BD5" />
+        <a:srgbClr val="3F2F6B" />
       </a:accent5>
       <a:accent6>
-        <a:srgbClr val="70AD47" />
+        <a:srgbClr val="255319" />
       </a:accent6>
       <a:hlink>
-        <a:srgbClr val="0563C1" />
+        <a:srgbClr val="3F64D7" />
       </a:hlink>
       <a:folHlink>
-        <a:srgbClr val="954F72" />
+        <a:srgbClr val="DC7536" />
       </a:folHlink>
     </a:clrScheme>
-    <a:fontScheme name="Office">
+    <a:fontScheme name="Modern">
       <a:majorFont>
-        <a:latin typeface="Calibri Light" panose="020F0302020204030204" />
-        <a:ea typeface="" />
-        <a:cs typeface="" />
+        <a:latin typeface="Aptos" />
+        <a:ea typeface="Aptos" />
+        <a:cs typeface="Aptos" />
         <a:font script="Jpan" typeface="游ゴシック Light" />
         <a:font script="Hang" typeface="맑은 고딕" />
         <a:font script="Hans" typeface="等线 Light" />
@@ -11503,9 +11839,9 @@
         <a:font script="Tfng" typeface="Ebrima" />
       </a:majorFont>
       <a:minorFont>
-        <a:latin typeface="Calibri" panose="020F0502020204030204" />
-        <a:ea typeface="" />
-        <a:cs typeface="" />
+        <a:latin typeface="Aptos" />
+        <a:ea typeface="Aptos" />
+        <a:cs typeface="Aptos" />
         <a:font script="Jpan" typeface="游明朝" />
         <a:font script="Hang" typeface="맑은 고딕" />
         <a:font script="Hans" typeface="等线" />
@@ -11992,93 +12328,12 @@
   </w:abstractNum>
   <w:num w:numId="1">
     <w:abstractNumId w:val="0" />
-    <w:lvlOverride w:ilvl="0">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="1">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="2">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="3">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="4">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="5">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="6">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="7">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="8">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
   </w:num>
   <w:num w:numId="2">
     <w:abstractNumId w:val="1" />
-    <w:lvlOverride w:ilvl="0">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="1">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="2">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="3">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="4">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="5">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="6">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="7">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="8">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
   </w:num>
   <w:num w:numId="3">
     <w:abstractNumId w:val="2" />
-    <w:lvlOverride w:ilvl="0">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="1">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="2">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="3">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="4">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="5">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="6">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="7">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
-    <w:lvlOverride w:ilvl="8">
-      <w:startOverride w:val="1" />
-    </w:lvlOverride>
   </w:num>
 </w:numbering>
 <!--------------------------------------------------------------------------------------------------------------------->

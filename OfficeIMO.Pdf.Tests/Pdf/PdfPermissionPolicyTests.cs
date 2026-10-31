@@ -123,8 +123,8 @@ public class PdfPermissionPolicyTests {
             OwnerPassword = "visual-owner",
             AllowedPermissions = PdfStandardPermissions.None
         };
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
-            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), 20D, 20D, 40D, 40D))
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
+            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(40D)))
             .ToBytes();
         var enforced = new PdfLoadOptions { Password = "visual-open" };
         PdfReadDocument document = PdfReadDocument.Open(pdf, enforced);
@@ -190,7 +190,7 @@ public class PdfPermissionPolicyTests {
             OwnerPassword = "accessible-image-owner",
             AllowedPermissions = PdfStandardPermissions.Accessibility
         };
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
             .Paragraph(paragraph => paragraph.Text("Accessible text"))
             .Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), 40D, 40D)
             .ToBytes();
@@ -215,7 +215,7 @@ public class PdfPermissionPolicyTests {
             OwnerPassword = "direct-owner",
             AllowedPermissions = PdfStandardPermissions.None
         };
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CreateOutlineFromHeadings = true,
                 IncludeXmpMetadata = true
             }.SetSrgbOutputIntent().SetEncryption(encryption))
@@ -315,7 +315,7 @@ public class PdfPermissionPolicyTests {
         };
         PdfDocument plain = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Plain page"));
         var mergeOptions = new PdfMergeOptions {
-            ResizePages = new PdfPageResizeOptions(PageSizes.A4)
+            ResizePages = new PdfPageResizeOptions(PdfPageSizes.A4)
         };
 
         PdfMergeResult result = PdfDocument.MergeResult(
@@ -602,7 +602,7 @@ public class PdfPermissionPolicyTests {
             OwnerPassword = ownerPassword,
             AllowedPermissions = PdfStandardPermissions.None
         };
-        return PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+        return PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
             .Paragraph(paragraph => paragraph.Text("Page one"))
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Page two"))
@@ -616,8 +616,8 @@ public class PdfPermissionPolicyTests {
             OwnerPassword = ownerPassword,
             AllowedPermissions = PdfStandardPermissions.None
         };
-        return PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
-            .TextField("Name", width: 180, height: 24, value: value)
+        return PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
+            .TextField("Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: value)
             .ToBytes();
     }
 
@@ -630,7 +630,7 @@ public class PdfPermissionPolicyTests {
             OwnerPassword = ownerPassword,
             AllowedPermissions = permissions
         };
-        return PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+        return PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
             .Paragraph(paragraph => paragraph.Text(text))
             .ToBytes();
     }

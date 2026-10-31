@@ -214,11 +214,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private static bool TryParseRange(string? reference, out XlsbCellRange? range) {
             range = null;
             if (string.IsNullOrWhiteSpace(reference)) return false;
-            if (A1.TryParseRange(reference!, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+            if (ExcelA1.TryParseRange(reference!, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 range = new XlsbCellRange(firstRow, lastRow, firstColumn, lastColumn);
                 return true;
             }
-            if (!A1.TryParseCellReferenceFast(reference!, out firstRow, out firstColumn)) return false;
+            if (!ExcelA1.TryParseCellReferenceFast(reference!, out firstRow, out firstColumn)) return false;
             range = new XlsbCellRange(firstRow, firstRow, firstColumn, firstColumn);
             return true;
         }

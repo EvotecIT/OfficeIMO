@@ -6,7 +6,7 @@ namespace OfficeIMO.Markdown.Pdf;
 
 // First-party Markdown to PDF conversion helpers.
 public static partial class MarkdownPdfConverterExtensions {
-    private static void RenderTable(PdfCore.PdfDocument pdf, TableBlock table, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderTable(PdfCore.PdfDocument pdf, TableBlock table, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
         RenderCaption(pdf, table.Attributes.GetAttribute("caption"), visualTheme.FigureStyleSnapshot);
         int columnCount = GetMarkdownTableColumnCount(table);
         if (columnCount == 0) {
@@ -50,7 +50,7 @@ public static partial class MarkdownPdfConverterExtensions {
         int rowColumnCount = table.Rows.Count == 0 ? 0 : table.Rows.Max(row => Math.Min(row.Count, TableBlock.MaxEffectiveColumnCount));
         int columnCount = Math.Max(Math.Min(table.Headers.Count, TableBlock.MaxEffectiveColumnCount), rowColumnCount);
         columnCount = Math.Max(columnCount, Math.Min(table.Alignments.Count, TableBlock.MaxEffectiveColumnCount));
-        columnCount = Math.Max(columnCount, Math.Min(table.ColumnWidthPoints.Count, TableBlock.MaxEffectiveColumnCount));
+        columnCount = Math.Max(columnCount, Math.Min(table.ColumnWidths.Count, TableBlock.MaxEffectiveColumnCount));
         columnCount = Math.Max(columnCount, Math.Min(table.ColumnWidthWeights.Count, TableBlock.MaxEffectiveColumnCount));
         columnCount = Math.Max(columnCount, CountLogicalColumns(table.HeaderCells));
 
@@ -156,16 +156,16 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         bool hasFixedWidths = false;
-        if (table.ColumnWidthPoints.Count > 0) {
-            var fixedWidths = new List<double?>(columnCount);
+        if (table.ColumnWidths.Count > 0) {
+            var fixedWidths = new List<OfficeLength?>(columnCount);
             for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                double? width = columnIndex < table.ColumnWidthPoints.Count ? table.ColumnWidthPoints[columnIndex] : null;
-                fixedWidths.Add(width.HasValue && width.Value > 0D && !double.IsNaN(width.Value) && !double.IsInfinity(width.Value) ? width : null);
+                OfficeLength? width = columnIndex < table.ColumnWidths.Count ? table.ColumnWidths[columnIndex] : null;
+                fixedWidths.Add(width.HasValue && width.Value > OfficeLength.Zero ? width : null);
                 hasFixedWidths |= fixedWidths[columnIndex].HasValue;
             }
 
             if (hasFixedWidths) {
-                style.ColumnWidthPoints = fixedWidths;
+                style.ColumnWidths = fixedWidths;
             }
         }
 
@@ -198,8 +198,8 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         var cellFills = style.CellFills == null
-            ? new Dictionary<(int Row, int Column), PdfCore.PdfColor>()
-            : new Dictionary<(int Row, int Column), PdfCore.PdfColor>(style.CellFills);
+            ? new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>()
+            : new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>(style.CellFills);
 
         bool hasCellFills = cellFills.Count > 0;
         var activeRowSpans = new int[columnCount];
@@ -218,7 +218,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static void ApplyMarkdownTableCellBackgrounds(Dictionary<(int Row, int Column), PdfCore.PdfColor> cellFills, IReadOnlyList<TableCell> cells, int pdfRowIndex, int columnCount, int[] activeRowSpans, ref bool hasCellFills) {
+    private static void ApplyMarkdownTableCellBackgrounds(Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> cellFills, IReadOnlyList<TableCell> cells, int pdfRowIndex, int columnCount, int[] activeRowSpans, ref bool hasCellFills) {
         int meaningfulCount = GetMeaningfulCellCount(cells);
         int logicalColumn = 0;
         for (int cellIndex = 0; cellIndex < meaningfulCount; cellIndex++) {
@@ -236,7 +236,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 continue;
             }
 
-            if (TryParseTableCellColor(cell.BackgroundColor, out PdfCore.PdfColor fill)) {
+            if (TryParseTableCellColor(cell.BackgroundColor, out global::OfficeIMO.OfficeColor fill)) {
                 cellFills[(pdfRowIndex, logicalColumn)] = fill;
                 hasCellFills = true;
             }
@@ -257,13 +257,13 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static bool TryParseTableCellColor(string? value, out PdfCore.PdfColor color) {
+    private static bool TryParseTableCellColor(string? value, out global::OfficeIMO.OfficeColor color) {
         color = default;
         if (string.IsNullOrWhiteSpace(value) || !OfficeColor.TryParse(value, out OfficeColor officeColor)) {
             return false;
         }
 
-        PdfCore.PdfColor? pdfColor = PdfCore.PdfColor.FromOfficeColorOrNull(officeColor);
+        global::OfficeIMO.OfficeColor? pdfColor = (officeColor.A == 0 ? (global::OfficeIMO.OfficeColor?)null : officeColor);
         if (!pdfColor.HasValue) {
             return false;
         }
@@ -279,7 +279,7 @@ public static partial class MarkdownPdfConverterExtensions {
             underline: cell.Underline ? true : null,
             strike: cell.Strikethrough ? true : null);
 
-        if (TryParseTableCellColor(cell.TextColor, out PdfCore.PdfColor textColor)) {
+        if (TryParseTableCellColor(cell.TextColor, out global::OfficeIMO.OfficeColor textColor)) {
             style = style.With(color: textColor);
         }
 
@@ -298,11 +298,11 @@ public static partial class MarkdownPdfConverterExtensions {
         bool hasExplicitAlignment = false;
 
         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-            ColumnAlignment markdownAlignment = columnIndex < table.Alignments.Count ? table.Alignments[columnIndex] : ColumnAlignment.None;
+            MarkdownColumnAlignment markdownAlignment = columnIndex < table.Alignments.Count ? table.Alignments[columnIndex] : MarkdownColumnAlignment.None;
             PdfCore.PdfColumnAlign pdfAlignment = MapMarkdownTableAlignment(markdownAlignment);
             alignments.Add(pdfAlignment);
 
-            if (markdownAlignment == ColumnAlignment.None) {
+            if (markdownAlignment == MarkdownColumnAlignment.None) {
                 continue;
             }
 
@@ -359,7 +359,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 continue;
             }
 
-            if (cell.Alignment != ColumnAlignment.None) {
+            if (cell.Alignment != MarkdownColumnAlignment.None) {
                 cellAlignments[(pdfRowIndex, logicalColumn)] = MapMarkdownTableAlignment(cell.Alignment);
                 hasExplicitAlignment = true;
             }
@@ -380,10 +380,10 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static PdfCore.PdfColumnAlign MapMarkdownTableAlignment(ColumnAlignment alignment) {
+    private static PdfCore.PdfColumnAlign MapMarkdownTableAlignment(MarkdownColumnAlignment alignment) {
         return alignment switch {
-            ColumnAlignment.Center => PdfCore.PdfColumnAlign.Center,
-            ColumnAlignment.Right => PdfCore.PdfColumnAlign.Right,
+            MarkdownColumnAlignment.Center => PdfCore.PdfColumnAlign.Center,
+            MarkdownColumnAlignment.Right => PdfCore.PdfColumnAlign.Right,
             _ => PdfCore.PdfColumnAlign.Left
         };
     }
@@ -452,20 +452,36 @@ public static partial class MarkdownPdfConverterExtensions {
                 .FontSize(visualTheme.CodeBlockFontSizeSnapshot)
                 .Color(visualTheme.CodeBlockTextColorSnapshot);
             AppendTextWithLineBreaks(builder, content);
-        }, style: new PdfCore.PdfParagraphStyle { TextWhitespaceMode = PdfCore.PdfTextWhitespaceMode.Preformatted }), visualTheme.CodeBlockPanelStyleSnapshot);
+        }, style: new PdfCore.PdfParagraphStyle {
+            TextWhitespaceMode = PdfCore.PdfTextWhitespaceMode.Preformatted,
+            // Code reads as a block at a tighter leading than prose, with the panel padding equal on both sides.
+            LineHeight = 1.25D,
+            SpacingBefore = OfficeLength.Zero,
+            SpacingAfter = OfficeLength.Zero
+        }), ShortCodePanelStyle(visualTheme.CodeBlockPanelStyleSnapshot, content));
 
         if (!string.IsNullOrWhiteSpace(code.Caption)) {
-            pdf.Paragraph(builder => builder.Italic(code.Caption!), style: new PdfCore.PdfParagraphStyle { SpacingAfter = 8 });
+            pdf.Paragraph(builder => builder.Italic(code.Caption!), style: new PdfCore.PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(8) });
         }
     }
 
-    private static void RenderSemanticFencedBlock(PdfCore.PdfDocument pdf, SemanticFencedBlock semantic, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+    // Short listings stay on one page; long ones may continue on the next.
+    private const int KeepTogetherCodeLineLimit = 15;
+
+    private static PdfCore.PdfPanelStyle ShortCodePanelStyle(PdfCore.PdfPanelStyle style, string content) {
+        int lines = 1;
+        foreach (char ch in content) if (ch == '\n') lines++;
+        if (lines <= KeepTogetherCodeLineLimit) style.KeepTogether = true;
+        return style;
+    }
+
+    private static void RenderSemanticFencedBlock(PdfCore.PdfDocument pdf, SemanticFencedBlock semantic, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
         if (TryRenderChartFencedBlock(pdf, semantic, options, visualTheme)) {
             return;
         }
 
         if (!IsChartSemanticFence(semantic)) {
-            AddWarning(options, "UnsupportedSemanticFence", semantic.SemanticKind, "The Markdown semantic fenced block is rendered as a styled code panel because no PDF visual renderer is registered for its semantic kind.");
+            AddWarning(options, "unsupported-semantic-fence", semantic.SemanticKind, "The Markdown semantic fenced block is rendered as a styled code panel because no PDF visual renderer is registered for its semantic kind.");
         }
 
         string label = semantic.SemanticKind;
@@ -484,11 +500,11 @@ public static partial class MarkdownPdfConverterExtensions {
         }, visualTheme.SemanticBlockPanelStyleSnapshot);
 
         if (!string.IsNullOrWhiteSpace(semantic.Caption)) {
-            pdf.Paragraph(builder => builder.Italic(semantic.Caption!), style: new PdfCore.PdfParagraphStyle { SpacingAfter = 8 });
+            pdf.Paragraph(builder => builder.Italic(semantic.Caption!), style: new PdfCore.PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(8) });
         }
     }
 
-    private static void RenderCalloutBlock(PdfCore.PdfDocument pdf, CalloutBlock callout, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderCalloutBlock(PdfCore.PdfDocument pdf, CalloutBlock callout, MarkdownDocument document, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
         string title = string.IsNullOrWhiteSpace(callout.Title) ? FormatTitleFromKind(callout.Kind) : callout.Title;
 
         IReadOnlyList<IMarkdownBlock> children = callout.ChildBlocks;
@@ -539,7 +555,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static void RenderDetailsBlock(PdfCore.PdfDocument pdf, DetailsBlock details, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderDetailsBlock(PdfCore.PdfDocument pdf, DetailsBlock details, MarkdownDocument document, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
         if (details.Summary != null) {
             pdf.PanelParagraph(builder => {
                 builder.Bold(details.Open ? "Details: " : "Collapsed details: ");
@@ -554,7 +570,7 @@ public static partial class MarkdownPdfConverterExtensions {
         group.Definitions.Any(definition => definition.ChildBlocks.Count > 1 ||
             definition.ChildBlocks.Count == 1 && definition.ChildBlocks[0] is not ParagraphBlock));
 
-    private static void RenderDefinitionList(PdfCore.PdfDocument pdf, DefinitionListBlock definitionList, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderDefinitionList(PdfCore.PdfDocument pdf, DefinitionListBlock definitionList, MarkdownDocument document, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
         if (HasStructuredDefinitions(definitionList)) {
             foreach (DefinitionListGroup group in definitionList.Groups) {
                 options.CancellationToken.ThrowIfCancellationRequested();
@@ -581,7 +597,7 @@ public static partial class MarkdownPdfConverterExtensions {
         pdf.KeyValueTable(rows, style: style);
     }
 
-    private static void RenderFootnoteDefinition(PdfCore.PdfDocument pdf, FootnoteDefinitionBlock footnote, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderFootnoteDefinition(PdfCore.PdfDocument pdf, FootnoteDefinitionBlock footnote, MarkdownDocument document, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
         if (string.IsNullOrWhiteSpace(footnote.Label)) {
             return;
         }
@@ -594,7 +610,7 @@ public static partial class MarkdownPdfConverterExtensions {
             } else if (footnote.ChildBlocks.Count == 0) {
                 AppendTextWithLineBreaks(builder, footnote.Text);
             }
-        }, style: new PdfCore.PdfParagraphStyle { SpacingBefore = 4, SpacingAfter = 4 });
+        }, style: new PdfCore.PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(4), SpacingAfter = global::OfficeIMO.OfficeLength.Points(4) });
 
         if (footnote.ChildBlocks.Count > 0) {
             int firstChild = footnote.ChildBlocks[0] is ParagraphBlock ? 1 : 0;
@@ -614,7 +630,7 @@ public static partial class MarkdownPdfConverterExtensions {
             pdf.PanelParagraph(builder => {
                 if (toc.IncludeTitle && !string.IsNullOrWhiteSpace(toc.Title)) {
                     builder.Bold(true)
-                        .FontSize(GetTocTitleFontSize(toc.TitleLevel))
+                        .FontSize(global::OfficeIMO.OfficeLength.Points(GetTocTitleFontSize(toc.TitleLevel)))
                         .Color(visualTheme.TocTitleColorSnapshot)
                         .Text(toc.Title.Trim())
                         .Bold(false)
@@ -658,7 +674,7 @@ public static partial class MarkdownPdfConverterExtensions {
     }
 
     private static bool ShouldRenderTocAsPanel(TocBlock toc) =>
-        toc.Layout != TocLayout.List || toc.Chrome == TocChrome.Panel || toc.Chrome == TocChrome.Outline;
+        toc.Layout != MarkdownTocLayout.List || toc.Chrome == MarkdownTocChrome.Panel || toc.Chrome == MarkdownTocChrome.Outline;
 
     private static void AppendTocEntry(PdfCore.PdfParagraphBuilder builder, TocBlock.Entry entry, int index, int baseLevel, bool ordered, MarkdownPdfStyle visualTheme) {
         int depth = Math.Max(0, entry.Level - baseLevel);

@@ -1,0 +1,222 @@
+using System.Collections.Generic;
+using System.Threading;
+using PdfCore = OfficeIMO.Pdf;
+
+namespace OfficeIMO.Pdf.Word {
+    /// <summary>Chooses editable reconstruction or rendered page appearances in Word.</summary>
+    public enum WordPdfImportMode {
+        /// <summary>Reconstructs supported text, tables, links, and images as editable Word content.</summary>
+        EditableContent,
+        /// <summary>Embeds one rendered image per page; text and interactive objects are not editable.</summary>
+        VisualPages
+    }
+    /// <summary>
+    /// Options for importing PDF content as editable Word objects or rendered page images.
+    /// </summary>
+    /// <remarks>
+    /// The default editable mode reconstructs content through the first-party logical PDF reader. It preserves
+    /// supported metadata, page breaks, headings, paragraphs, list items, logical tables, and source
+    /// placeholders. VisualPages instead embeds managed-rendered page appearances at their physical page sizes;
+    /// image quality depends on the rendering resolution and the PDF renderer's supported content.
+    /// </remarks>
+    public sealed class WordPdfImportOptions {
+    /// <summary>Blocks conversion when fidelity loss is reported.</summary>
+    public bool FailOnLoss { get; set; }
+
+        /// <summary>Import strategy. Editable reconstruction remains the default.</summary>
+        public WordPdfImportMode Mode { get; set; } = WordPdfImportMode.EditableContent;
+        /// <summary>Resolution of rendered page images in VisualPages mode.</summary>
+        public double Dpi { get; set; } = 144D;
+        /// <summary>Maximum pages rendered in VisualPages mode.</summary>
+        public int MaxPages { get; set; } = 100;
+        /// <summary>Maximum pixels for each rendered page in VisualPages mode.</summary>
+        public long MaxPixelsPerPage { get; set; } = 64L * 1024L * 1024L;
+        /// <summary>Maximum encoded bytes for each rendered page in VisualPages mode.</summary>
+        public long MaxOutputBytesPerPage { get; set; } = 64L * 1024L * 1024L;
+        /// <summary>Maximum aggregate encoded page-image bytes in VisualPages mode.</summary>
+        public long MaxTotalOutputBytes { get; set; } = 256L * 1024L * 1024L;
+        /// <summary>Maximum image versus text-span comparisons during editable import.</summary>
+        public long MaxImageTextOverlapComparisons { get; set; } = 1_000_000;
+
+        /// <summary>Creates an appearance-preserving profile using rendered page images.</summary>
+        public static WordPdfImportOptions CreateVisualPages() => new WordPdfImportOptions { Mode = WordPdfImportMode.VisualPages };
+        /// <summary>Cancellation observed at page and import-item boundaries.</summary>
+        internal CancellationToken CancellationToken { get; set; }
+
+        /// <summary>
+        /// Canonical semantic-read settings used when importing an opened <see cref="PdfCore.PdfDocument"/>.
+        /// Null uses <see cref="PdfCore.PdfLoadOptions"/>. This setting is ignored when the source is already a
+        /// <see cref="PdfCore.PdfDocumentReadResult"/>.
+        /// </summary>
+        public PdfCore.PdfLoadOptions? ReadOptions { get; set; }
+
+        /// <summary>Whether PDF Info dictionary metadata should be copied into Word built-in properties.</summary>
+        public bool IncludeMetadata { get; set; } = true;
+
+        /// <summary>Whether source PDF page transitions should be represented by Word page breaks.</summary>
+        public bool PreservePageBreaks { get; set; } = true;
+
+        /// <summary>
+        /// Whether editable output should create page sections with the physical width and height of each source PDF page.
+        /// This avoids silently converting A4, landscape, or mixed-size PDFs to Word's default Letter page size.
+        /// </summary>
+        public bool PreserveSourcePageSize { get; set; } = true;
+
+        /// <summary>
+        /// Uniform page margin, in points, used by source-sized editable sections. The narrow default leaves enough
+        /// flow space for dense business documents while retaining a printable margin.
+        /// </summary>
+        public double EditablePageMarginPoints { get; set; } = 36D;
+
+        /// <summary>
+        /// Whether imported PDF paragraphs and headings should suppress Word's style-level before/after spacing.
+        /// When false (the default), reflowed paragraphs keep the document style's spacing so they read as separate
+        /// paragraphs. Table cells, list items and image paragraphs are always compact.
+        /// </summary>
+        public bool PreserveCompactSourceSpacing { get; set; }
+
+        /// <summary>Whether empty PDF pages should produce an empty Word paragraph when page breaks are preserved.</summary>
+        public bool IncludeEmptyPages { get; set; }
+
+        /// <summary>Whether logical heading lines should be imported as Word heading paragraphs.</summary>
+        public bool ImportHeadings { get; set; } = true;
+
+        /// <summary>Whether grouped logical paragraphs should be imported as Word paragraphs.</summary>
+        public bool ImportParagraphs { get; set; } = true;
+
+        /// <summary>
+        /// Whether semantic content should use the shared crop-, rotation-, and column-aware logical reading order.
+        /// Disable only when preserving the legacy top-to-bottom page sort is required.
+        /// </summary>
+        public bool UseSharedPageReadingOrder { get; set; } = true;
+
+        /// <summary>Whether logical list items should be imported as editable Word list items.</summary>
+        public bool ImportLists { get; set; } = true;
+
+        /// <summary>Whether logical PDF tables should be imported as editable Word tables.</summary>
+        public bool ImportTables { get; set; } = true;
+
+        /// <summary>Whether safe URI link annotations should be imported as editable Word hyperlinks.</summary>
+        public bool ImportUriLinks { get; set; } = true;
+
+        /// <summary>Whether supported PDF internal destination links should be imported as Word bookmark hyperlinks.</summary>
+        public bool ImportInternalLinks { get; set; } = true;
+
+        /// <summary>Prefix used for generated Word bookmarks that represent imported PDF pages and named destinations.</summary>
+        public string BookmarkPrefix { get; set; } = "OfficeIMO_Pdf";
+
+        /// <summary>Absolute URI schemes allowed when creating active Word hyperlinks from PDF URI annotations.</summary>
+        public ISet<string> AllowedHyperlinkUriSchemes { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+            Uri.UriSchemeHttp,
+            Uri.UriSchemeHttps,
+            Uri.UriSchemeMailto
+        };
+
+        /// <summary>Whether complete PDF image-file payloads should be embedded as native Word images.</summary>
+        public bool ImportImages { get; set; } = true;
+
+        /// <summary>Whether embedded images should use detected PDF placement size when available.</summary>
+        public bool PreserveImagePlacementSize { get; set; } = true;
+
+        /// <summary>
+        /// Whether axis-aligned images on unrotated pages should retain their source page position as floating Word images.
+        /// When false (the default), images are placed inline in reading order so reflowed text never runs under them;
+        /// only images that sit behind source text, such as backgrounds and panels, keep their page position behind the text.
+        /// Unsupported rotations and transforms always use inline editable placement.
+        /// </summary>
+        public bool PreserveImagePlacementPosition { get; set; }
+
+        /// <summary>Whether image resources should be represented by editable placeholder paragraphs when native image embedding is unavailable or disabled.</summary>
+        public bool IncludeImagePlaceholders { get; set; } = true;
+
+        /// <summary>Whether AcroForm widgets should be represented by editable placeholder paragraphs.</summary>
+        public bool IncludeFormFieldPlaceholders { get; set; } = true;
+
+        /// <summary>Maximum body rows to import per detected table. Values less than or equal to zero import all rows.</summary>
+        public int MaxTableRows { get; set; }
+
+        /// <summary>Word table style applied to imported PDF tables.</summary>
+        public WordTableStyle TableStyle { get; set; } = WordTableStyle.TableGrid;
+
+        /// <summary>When true, tables with inferred column headers repeat the first row at the top of each Word page.</summary>
+        public bool RepeatHeaderRows { get; set; } = true;
+
+        /// <summary>When true, imported tables use the full content width while preserving detected PDF column proportions.</summary>
+        public bool FitTablesToPageWidth { get; set; } = true;
+
+        /// <summary>When true, body cells in inferred numeric PDF columns are right-aligned in the generated Word tables.</summary>
+        public bool AlignNumericColumns { get; set; } = true;
+
+        /// <summary>Paragraph text written when no supported PDF content is detected, keeping the produced document meaningful.</summary>
+        public string EmptyDocumentMessage { get; set; } = "No supported PDF content detected.";
+
+        internal PdfCore.PdfConversionReport Report { get; } = new PdfCore.PdfConversionReport();
+
+        /// <summary>Creates an import profile that reconstructs only detected PDF tables.</summary>
+        public static WordPdfImportOptions CreateTablesOnly() => new WordPdfImportOptions {
+            IncludeMetadata = false,
+            PreservePageBreaks = false,
+            IncludeEmptyPages = false,
+            ImportHeadings = false,
+            ImportParagraphs = false,
+            UseSharedPageReadingOrder = true,
+            ImportLists = false,
+            ImportTables = true,
+            ImportUriLinks = false,
+            ImportInternalLinks = false,
+            ImportImages = false,
+            PreserveImagePlacementSize = false,
+            IncludeImagePlaceholders = false,
+            IncludeFormFieldPlaceholders = false,
+            EmptyDocumentMessage = "No PDF tables detected."
+        };
+
+        /// <summary>Creates a reusable copy of this option set.</summary>
+        public WordPdfImportOptions Clone() => new WordPdfImportOptions {
+            FailOnLoss = FailOnLoss,
+            Mode = Mode, Dpi = Dpi, MaxPages = MaxPages, MaxPixelsPerPage = MaxPixelsPerPage,
+            MaxOutputBytesPerPage = MaxOutputBytesPerPage, MaxTotalOutputBytes = MaxTotalOutputBytes,
+            MaxImageTextOverlapComparisons = MaxImageTextOverlapComparisons,
+            CancellationToken = CancellationToken,
+            ReadOptions = ReadOptions?.Clone(),
+            IncludeMetadata = IncludeMetadata,
+            PreservePageBreaks = PreservePageBreaks,
+            PreserveSourcePageSize = PreserveSourcePageSize,
+            EditablePageMarginPoints = EditablePageMarginPoints,
+            PreserveCompactSourceSpacing = PreserveCompactSourceSpacing,
+            IncludeEmptyPages = IncludeEmptyPages,
+            ImportHeadings = ImportHeadings,
+            ImportParagraphs = ImportParagraphs,
+            UseSharedPageReadingOrder = UseSharedPageReadingOrder,
+            ImportLists = ImportLists,
+            ImportTables = ImportTables,
+            ImportUriLinks = ImportUriLinks,
+            ImportInternalLinks = ImportInternalLinks,
+            BookmarkPrefix = BookmarkPrefix,
+            ImportImages = ImportImages,
+            PreserveImagePlacementSize = PreserveImagePlacementSize,
+            PreserveImagePlacementPosition = PreserveImagePlacementPosition,
+            IncludeImagePlaceholders = IncludeImagePlaceholders,
+            IncludeFormFieldPlaceholders = IncludeFormFieldPlaceholders,
+            MaxTableRows = MaxTableRows,
+            TableStyle = TableStyle,
+            RepeatHeaderRows = RepeatHeaderRows,
+            FitTablesToPageWidth = FitTablesToPageWidth,
+            AlignNumericColumns = AlignNumericColumns,
+            EmptyDocumentMessage = EmptyDocumentMessage
+        }.CopyAllowedHyperlinkUriSchemesFrom(AllowedHyperlinkUriSchemes);
+
+        internal WordPdfImportOptions CloneForConversion() => Clone();
+
+        private WordPdfImportOptions CopyAllowedHyperlinkUriSchemesFrom(IEnumerable<string> schemes) {
+            AllowedHyperlinkUriSchemes.Clear();
+            foreach (string scheme in schemes) {
+                if (!string.IsNullOrWhiteSpace(scheme)) {
+                    AllowedHyperlinkUriSchemes.Add(scheme);
+                }
+            }
+
+            return this;
+        }
+    }
+}

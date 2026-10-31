@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfComplianceAnalyzer {
 
-    private static PdfComplianceRequirement BuildElectronicInvoiceXmlAttachmentRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildElectronicInvoiceXmlAttachmentRequirement(PdfCreateOptions options) {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
         var diagnostics = new List<string>();
         for (int i = 0; i < embeddedFiles.Count; i++) {
@@ -26,7 +26,7 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostic);
     }
 
-    private static PdfComplianceRequirement BuildElectronicInvoiceXmlProfileContextRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildElectronicInvoiceXmlProfileContextRequirement(PdfCreateOptions options) {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
         var diagnostics = new List<string>();
         for (int i = 0; i < embeddedFiles.Count; i++) {
@@ -68,7 +68,7 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostic);
     }
 
-    private static PdfComplianceRequirement BuildElectronicInvoiceXmlDocumentHeaderRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildElectronicInvoiceXmlDocumentHeaderRequirement(PdfCreateOptions options) {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
         var diagnostics = new List<string>();
         for (int i = 0; i < embeddedFiles.Count; i++) {
@@ -127,7 +127,7 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostic);
     }
 
-    private static PdfComplianceRequirement BuildElectronicInvoiceXmlTradeTransactionRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildElectronicInvoiceXmlTradeTransactionRequirement(PdfCreateOptions options) {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
         var diagnostics = new List<string>();
         for (int i = 0; i < embeddedFiles.Count; i++) {
@@ -198,7 +198,7 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostic);
     }
 
-    private static PdfComplianceRequirement BuildElectronicInvoiceXmlPartyIdentificationRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildElectronicInvoiceXmlPartyIdentificationRequirement(PdfCreateOptions options) {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
         var diagnostics = new List<string>();
         for (int i = 0; i < embeddedFiles.Count; i++) {
@@ -257,7 +257,7 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostic);
     }
 
-    private static PdfComplianceRequirement BuildElectronicInvoiceXmlLineItemRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildElectronicInvoiceXmlLineItemRequirement(PdfCreateOptions options) {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
         var diagnostics = new List<string>();
         for (int i = 0; i < embeddedFiles.Count; i++) {
@@ -328,7 +328,7 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostic);
     }
 
-    private static PdfComplianceRequirement BuildElectronicInvoiceXmlPartyTaxRegistrationRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildElectronicInvoiceXmlPartyTaxRegistrationRequirement(PdfCreateOptions options) {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
         var diagnostics = new List<string>();
         for (int i = 0; i < embeddedFiles.Count; i++) {
@@ -376,7 +376,7 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostic);
     }
 
-    private static PdfComplianceRequirement BuildElectronicInvoiceXmlSettlementSummaryRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildElectronicInvoiceXmlSettlementSummaryRequirement(PdfCreateOptions options) {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
         var diagnostics = new List<string>();
         for (int i = 0; i < embeddedFiles.Count; i++) {
@@ -439,7 +439,7 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostic);
     }
 
-    private static PdfComplianceRequirement BuildElectronicInvoiceXmlLinePricingRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildElectronicInvoiceXmlLinePricingRequirement(PdfCreateOptions options) {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
         var diagnostics = new List<string>();
         for (int i = 0; i < embeddedFiles.Count; i++) {
@@ -502,7 +502,7 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostic);
     }
 
-    private static PdfComplianceRequirement BuildElectronicInvoiceXmlAmountConsistencyRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildElectronicInvoiceXmlAmountConsistencyRequirement(PdfCreateOptions options) {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
         var diagnostics = new List<string>();
         for (int i = 0; i < embeddedFiles.Count; i++) {
@@ -598,7 +598,7 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostic);
     }
 
-    private static PdfComplianceRequirement BuildElectronicInvoiceXmlTaxBreakdownRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildElectronicInvoiceXmlTaxBreakdownRequirement(PdfCreateOptions options) {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
         var diagnostics = new List<string>();
         for (int i = 0; i < embeddedFiles.Count; i++) {
@@ -681,7 +681,7 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostic);
     }
 
-    private static PdfComplianceRequirement BuildElectronicInvoiceXmlPaymentInstructionsRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildElectronicInvoiceXmlPaymentInstructionsRequirement(PdfCreateOptions options) {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
         var diagnostics = new List<string>();
         for (int i = 0; i < embeddedFiles.Count; i++) {
@@ -752,7 +752,7 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostic);
     }
 
-    private static PdfComplianceRequirement BuildElectronicInvoiceXmlPaymentTermsRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildElectronicInvoiceXmlPaymentTermsRequirement(PdfCreateOptions options) {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
         var diagnostics = new List<string>();
         for (int i = 0; i < embeddedFiles.Count; i++) {
@@ -803,7 +803,7 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostic);
     }
 
-    private static PdfComplianceRequirement BuildElectronicInvoiceXmlAttachmentParamsRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildElectronicInvoiceXmlAttachmentParamsRequirement(PdfCreateOptions options) {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
         for (int i = 0; i < embeddedFiles.Count; i++) {
             var diagnostics = new List<string>();

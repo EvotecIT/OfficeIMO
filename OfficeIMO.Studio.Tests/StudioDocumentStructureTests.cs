@@ -158,7 +158,7 @@ public sealed class StudioDocumentStructureTests {
     public async Task FormImportRemainsAvailableWhenSelectedFieldIsReadOnly() {
         string root = CreateRoot();
         string path = Path.Combine(root, "forms.pdf");
-        File.WriteAllBytes(path, PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400))).Forms.Edit(edit => edit
+        File.WriteAllBytes(path, PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).Forms.Edit(edit => edit
             .Create(new() { Name = "Account.Fixed", Value = "Locked", X = 30, Y = 300,
                 Style = new() { IsReadOnly = true } })
             .Create(new() { Name = "Account.Code", Value = "", X = 30, Y = 240 })).ToBytes());
@@ -582,8 +582,8 @@ public sealed class StudioDocumentStructureTests {
     private static string CreateDocument(string root) {
         string path = Path.Combine(root, "structure.pdf");
         PdfDocument.Create(compose => {
-            compose.Page(page => page.Size(400D, 500D).Content(content => content.Text("First page body")));
-            compose.Page(page => page.Size(400D, 500D).Content(content => content.Text("Second page body")));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400D), global::OfficeIMO.OfficeLength.Points(500D)).Content(content => content.Text("First page body")));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400D), global::OfficeIMO.OfficeLength.Points(500D)).Content(content => content.Text("Second page body")));
         }).Save(path);
         return path;
     }

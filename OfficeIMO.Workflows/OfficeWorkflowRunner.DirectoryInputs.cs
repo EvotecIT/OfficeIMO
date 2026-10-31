@@ -29,8 +29,8 @@ public sealed partial class OfficeWorkflowRunner {
                 // The original member name determines routing; the intermediate snapshot uses a safe extension.
                 using var snapshot = await OfficeStreamFileSnapshot.CaptureAsync(input.OpenRead, ".data", remaining,
                     input.ExpectedSha256, token).ConfigureAwait(false);
-                await using (var source = new FileStream(snapshot.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                await using (var output = OfficeTemporaryFile.CreateAtPath(path, 81920, FileOptions.Asynchronous)) {
+                using (var source = new FileStream(snapshot.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                using (var output = OfficeTemporaryFile.CreateAtPath(path, 81920, FileOptions.Asynchronous)) {
                     await source.CopyToAsync(output, 81920, token).ConfigureAwait(false);
                 }
                 bytes = checked(bytes + snapshot.Length);
@@ -53,9 +53,9 @@ public sealed partial class OfficeWorkflowRunner {
         OfficeWorkflowDirectoryReadOptions Options, string[] Manifest,
         IReadOnlyDictionary<string, (string Fingerprint, WorkflowSourceAccess Access)> Files, long MaximumBytes);
 
-    private sealed class DirectoryMembershipPublicationGuard(IOfficeWorkflowPublicationGuard? host,
-        DirectoryMembership[] directories) : IOfficeWorkflowPublicationGuard {
-        public async ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
+    private sealed class DirectoryMembershipPublicationGuard(IOfficePublicationGuard? host,
+        DirectoryMembership[] directories) : IOfficePublicationGuard {
+        public async Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
             await VerifyAsync(token).ConfigureAwait(false);
             if (host is not null && !await host.CanPublishAsync(path, isDirectory, token).ConfigureAwait(false)) return false;
             await VerifyAsync(token).ConfigureAwait(false);
@@ -100,7 +100,7 @@ public sealed partial class OfficeWorkflowRunner {
             if (location.Length > 4096 || location.Contains('\0')) throw new InvalidDataException("The provider member identity is invalid.");
             if (!paths.TryAdd(relative, entry.Input is null)) throw new InvalidDataException("The provider folder contains conflicting member names.");
             int slash = relative.LastIndexOf('/');
-            if (slash >= 0 && !directories.Contains(relative[..slash]))
+            if (slash >= 0 && !directories.Contains(relative.Substring(0, slash)))
                 throw new InvalidDataException("The provider must enumerate each parent directory before its members.");
             if (entry.Input is null) directories.Add(relative);
             entries.Add(entry with { RelativePath = relative, Location = location });
@@ -110,12 +110,12 @@ public sealed partial class OfficeWorkflowRunner {
     }
 
     private static string ValidateDirectoryMemberPath(string path, int maximumDepth) {
-        if (string.IsNullOrWhiteSpace(path) || path.Length > 1024 || path.Contains('\\'))
+        if ((path == null || string.IsNullOrWhiteSpace(path)) || path.Length > 1024 || path.Contains('\\'))
             throw new InvalidDataException("The provider member path is invalid.");
         string[] segments = path.Split('/');
         if (segments.Length > maximumDepth) throw new InvalidDataException("The provider folder exceeds the supported depth.");
         foreach (string segment in segments) {
-            if (segment.Length is 0 or > 255 || segment is "." or ".." || segment.EndsWith('.') || segment.EndsWith(' ') ||
+            if (segment.Length is 0 or > 255 || segment is "." or ".." || segment.EndsWith(".", StringComparison.Ordinal) || segment.EndsWith(" ", StringComparison.Ordinal) ||
                 segment.Any(character => character < 32 || "<>:\"|?*".Contains(character)))
                 throw new InvalidDataException("The provider member path cannot be staged safely.");
             string stem = segment.Split('.')[0];

@@ -55,7 +55,9 @@ public sealed class PdfImageDocumentSource {
 }
 
 /// <summary>Options for creating one PDF page per source image.</summary>
-public sealed class PdfImageDocumentOptions {
+public sealed class PdfImageImportOptions {
+    /// <summary>Rejects fidelity loss before returning PDF or writing its destination.</summary>
+    public bool FailOnLoss { get; set; }
     /// <summary>Maximum encoded bytes accepted from each image source. Defaults to 128 MiB.</summary>
     public long MaximumEncodedImageBytes { get; set; } = PdfImageInput.DefaultMaximumEncodedBytes;
 
@@ -63,37 +65,38 @@ public sealed class PdfImageDocumentOptions {
     /// Optional fixed paper size. When omitted, each page uses the image physical dimensions derived from its DPI.
     /// Images without usable dimensions fall back to <see cref="FallbackPageSize"/>.
     /// </summary>
-    public PageSize? FixedPageSize { get; set; }
+    public PdfPageSize? FixedPageSize { get; set; }
 
     /// <summary>Fallback paper size for an image whose physical dimensions cannot be determined.</summary>
-    public PageSize FallbackPageSize { get; set; } = PageSizes.A4;
+    public PdfPageSize FallbackPageSize { get; set; } = PdfPageSizes.A4;
 
     /// <summary>Automatically rotates a fixed or fallback paper size to match the image orientation.</summary>
     public bool AutoOrientPage { get; set; } = true;
 
-    /// <summary>Uniform page margin in points.</summary>
-    public double Margin { get; set; }
+    /// <summary>Uniform physical page margin.</summary>
+    public OfficeLength Margin { get; set; }
 
     /// <summary>How each image is fitted into the printable page rectangle.</summary>
     public OfficeImageFit Fit { get; set; } = OfficeImageFit.Contain;
 
-    /// <summary>Maximum generated page width or height in points.</summary>
-    public double MaximumPageDimension { get; set; } = 14_400D;
+    /// <summary>Maximum physical page width or height.</summary>
+    public OfficeLength MaximumPageDimension { get; set; } = OfficeLength.Points(14_400D);
 
-    internal PdfImageDocumentOptions CloneAndValidate() {
+    internal PdfImageImportOptions CloneAndValidate() {
         PdfImageInput.ValidateMaximum(MaximumEncodedImageBytes);
-        if (Margin < 0D || double.IsNaN(Margin) || double.IsInfinity(Margin)) {
+        if (Margin.ToEmus() < 0) {
             throw new ArgumentOutOfRangeException(nameof(Margin));
         }
 #pragma warning disable CA2263 // Generic Enum.IsDefined is unavailable on net472.
         if (!Enum.IsDefined(typeof(OfficeImageFit), Fit)) throw new ArgumentOutOfRangeException(nameof(Fit));
 #pragma warning restore CA2263
-        if (MaximumPageDimension <= 0D || double.IsNaN(MaximumPageDimension) || double.IsInfinity(MaximumPageDimension)) {
+        if (MaximumPageDimension.ToEmus() <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaximumPageDimension));
         }
         ValidatePageSize(FallbackPageSize, nameof(FallbackPageSize), validatePrintableArea: false);
         if (FixedPageSize.HasValue) ValidatePageSize(FixedPageSize.Value, nameof(FixedPageSize), validatePrintableArea: true);
-        return new PdfImageDocumentOptions {
+        return new PdfImageImportOptions {
+            FailOnLoss = FailOnLoss,
             MaximumEncodedImageBytes = MaximumEncodedImageBytes,
             FixedPageSize = FixedPageSize,
             FallbackPageSize = FallbackPageSize,
@@ -104,11 +107,11 @@ public sealed class PdfImageDocumentOptions {
         };
     }
 
-    private void ValidatePageSize(PageSize size, string name, bool validatePrintableArea) {
+    private void ValidatePageSize(PdfPageSize size, string name, bool validatePrintableArea) {
         if (size.Width > MaximumPageDimension || size.Height > MaximumPageDimension) {
-            throw new ArgumentOutOfRangeException(name, $"Page dimensions cannot exceed {MaximumPageDimension:N0} points.");
+            throw new ArgumentOutOfRangeException(name, $"Page dimensions cannot exceed {MaximumPageDimension.ToPoints():N0} points.");
         }
-        if (validatePrintableArea && (size.Width <= Margin * 2D || size.Height <= Margin * 2D)) {
+        if (validatePrintableArea && (size.Width.ToPoints() <= Margin.ToPoints() * 2D || size.Height.ToPoints() <= Margin.ToPoints() * 2D)) {
             throw new ArgumentException("Page margins leave no printable image area.", name);
         }
     }
@@ -116,22 +119,22 @@ public sealed class PdfImageDocumentOptions {
 
 public sealed partial class PdfDocument {
     /// <summary>Creates one PDF page per image file in caller order.</summary>
-    public static PdfDocument CreateFromImages(
+    internal static PdfDocument CreateFromImages(
         IEnumerable<string> imagePaths,
-        PdfImageDocumentOptions? options = null) {
+        PdfImageImportOptions? options = null) {
         Guard.NotNull(imagePaths, nameof(imagePaths));
-        PdfImageDocumentOptions effective = (options ?? new PdfImageDocumentOptions()).CloneAndValidate();
+        PdfImageImportOptions effective = (options ?? new PdfImageImportOptions()).CloneAndValidate();
         return CreateFromImagesCore(imagePaths.Select(path => PdfImageDocumentSource.FromFile(path, effective.MaximumEncodedImageBytes)), effective, CancellationToken.None);
     }
 
     /// <summary>Creates one PDF page per image file in caller order with cooperative cancellation.</summary>
-    public static PdfDocument CreateFromImages(
+    internal static PdfDocument CreateFromImages(
         IEnumerable<string> imagePaths,
-        PdfImageDocumentOptions? options,
+        PdfImageImportOptions? options,
         CancellationToken cancellationToken) {
         Guard.NotNull(imagePaths, nameof(imagePaths));
         cancellationToken.ThrowIfCancellationRequested();
-        PdfImageDocumentOptions effective = (options ?? new PdfImageDocumentOptions()).CloneAndValidate();
+        PdfImageImportOptions effective = (options ?? new PdfImageImportOptions()).CloneAndValidate();
         return CreateFromImagesCore(
             imagePaths.Select(path => PdfImageDocumentSource.FromFile(path, effective.MaximumEncodedImageBytes, cancellationToken)),
             effective,
@@ -139,28 +142,28 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Creates one PDF page per encoded image source in caller order.</summary>
-    public static PdfDocument CreateFromImages(
+    internal static PdfDocument CreateFromImages(
         IEnumerable<PdfImageDocumentSource> images,
-        PdfImageDocumentOptions? options = null) {
+        PdfImageImportOptions? options = null) {
         return CreateFromImages(images, options, CancellationToken.None);
     }
 
     /// <summary>Creates one PDF page per encoded image source in caller order with cooperative cancellation.</summary>
-    public static PdfDocument CreateFromImages(
+    internal static PdfDocument CreateFromImages(
         IEnumerable<PdfImageDocumentSource> images,
-        PdfImageDocumentOptions? options,
+        PdfImageImportOptions? options,
         CancellationToken cancellationToken) {
         Guard.NotNull(images, nameof(images));
         cancellationToken.ThrowIfCancellationRequested();
-        PdfImageDocumentOptions effective = (options ?? new PdfImageDocumentOptions()).CloneAndValidate();
+        PdfImageImportOptions effective = (options ?? new PdfImageImportOptions()).CloneAndValidate();
         return CreateFromImagesCore(images, effective, cancellationToken);
     }
 
     private static PdfDocument CreateFromImagesCore(
         IEnumerable<PdfImageDocumentSource> images,
-        PdfImageDocumentOptions effective,
+        PdfImageImportOptions effective,
         CancellationToken cancellationToken) {
-        var document = new PdfDocument();
+        var document = new PdfDocument(useThemeDefaults: false);
         int sourceCount = 0;
         foreach (PdfImageDocumentSource source in images) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -169,9 +172,9 @@ public sealed partial class PdfDocument {
             byte[] sourceBytes = source.GetBytes(cancellationToken);
             PreparedImage prepared = PrepareImageDocumentSource(sourceBytes, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            PageSize pageSize = ResolveImagePageSize(prepared.Info, effective);
-            double frameWidth = pageSize.Width - effective.Margin * 2D;
-            double frameHeight = pageSize.Height - effective.Margin * 2D;
+            PdfPageSize pageSize = ResolveImagePageSize(prepared.Info, effective);
+            double frameWidth = pageSize.Width.ToPoints() - effective.Margin.ToPoints() * 2D;
+            double frameHeight = pageSize.Height.ToPoints() - effective.Margin.ToPoints() * 2D;
             string? alternativeText = string.IsNullOrWhiteSpace(source.Name) ? null : source.Name;
             OfficeImageFit placementFit = effective.FixedPageSize.HasValue
                 ? effective.Fit
@@ -180,11 +183,11 @@ public sealed partial class PdfDocument {
 
             document.AddComposedPage(page => page
                 .Size(pageSize)
-                .Margin(0D)
+                .Margin(global::OfficeIMO.OfficeLength.Points(0D))
                 .Canvas(canvas => canvas.ImageShared(
                     imageResource,
-                    effective.Margin,
-                    effective.Margin,
+                    effective.Margin.ToPoints(),
+                    effective.Margin.ToPoints(),
                     frameWidth,
                     frameHeight,
                     new PdfImageStyle { Fit = placementFit },
@@ -200,33 +203,33 @@ public sealed partial class PdfDocument {
         byte[] sourceBytes,
         CancellationToken cancellationToken) => PrepareImageBytes(sourceBytes, cancellationToken);
 
-    private static PageSize ResolveImagePageSize(OfficeImageInfo info, PdfImageDocumentOptions options) {
+    private static PdfPageSize ResolveImagePageSize(OfficeImageInfo info, PdfImageImportOptions options) {
         double dpiX = ResolveImageDpi(info.DpiX);
         double dpiY = ResolveImageDpi(info.DpiY);
         bool isLandscape = info.Width > 0 && info.Height > 0 &&
             info.Width / dpiX > info.Height / dpiY;
-        PageSize pageSize;
+        PdfPageSize pageSize;
         if (options.FixedPageSize.HasValue) {
             pageSize = options.FixedPageSize.Value;
         } else if (info.Width > 0 && info.Height > 0) {
             double width = info.Width * 72D / dpiX;
             double height = info.Height * 72D / dpiY;
-            double maximumContentDimension = options.MaximumPageDimension - options.Margin * 2D;
+            double maximumContentDimension = options.MaximumPageDimension.ToPoints() - options.Margin.ToPoints() * 2D;
             if (maximumContentDimension <= 0D) {
                 throw new ArgumentException("Page margins leave no printable image area.", nameof(options));
             }
             double scale = Math.Min(1D, maximumContentDimension / Math.Max(width, height));
-            pageSize = new PageSize(width * scale + options.Margin * 2D, height * scale + options.Margin * 2D);
+            pageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(width * scale + options.Margin.ToPoints() * 2D),OfficeIMO.OfficeLength.Points(height * scale + options.Margin.ToPoints() * 2D));
             return pageSize;
         } else {
             pageSize = options.FallbackPageSize;
         }
 
         if (options.AutoOrientPage) pageSize = isLandscape ? pageSize.Landscape() : pageSize.Portrait();
-        if (pageSize.Width > options.MaximumPageDimension || pageSize.Height > options.MaximumPageDimension) {
+        if (pageSize.Width.ToPoints() > options.MaximumPageDimension.ToPoints() || pageSize.Height.ToPoints() > options.MaximumPageDimension.ToPoints()) {
             throw new ArgumentOutOfRangeException(nameof(options), "Resolved page dimensions exceed the configured maximum.");
         }
-        if (pageSize.Width <= options.Margin * 2D || pageSize.Height <= options.Margin * 2D) {
+        if (pageSize.Width.ToPoints() <= options.Margin.ToPoints() * 2D || pageSize.Height.ToPoints() <= options.Margin.ToPoints() * 2D) {
             throw new ArgumentException("Page margins leave no printable image area.", nameof(options));
         }
         return pageSize;

@@ -124,7 +124,7 @@ namespace OfficeIMO.Word {
                     new[] { "Digital-signature inspection stopped before parsing because the signature-part count exceeded policy." });
                 return WordSignatureValidationReport.WithValidationFailure(
                     WordSignatureValidationReport.From(boundedInfo),
-                    "SignatureResourceLimitExceeded",
+                    "signature-resource-limit-exceeded",
                     "The package contains more than " + options.MaxSignatureParts + " XML signature parts.");
             }
             byte[] packageBytes;
@@ -141,7 +141,7 @@ namespace OfficeIMO.Word {
                     new[] { exception.Message });
                 return WordSignatureValidationReport.WithValidationFailure(
                     WordSignatureValidationReport.From(boundedInfo),
-                    "SignatureResourceLimitExceeded",
+                    "signature-resource-limit-exceeded",
                     exception.Message);
             } catch (InvalidDataException exception) {
                 WordSignatureInfo boundedInfo = WordSignatureInspector.Inspect(
@@ -160,7 +160,7 @@ namespace OfficeIMO.Word {
                     verifyDigests: false);
                 return WordSignatureValidationReport.WithValidationFailure(
                     WordSignatureValidationReport.From(boundedInfo),
-                    "PackageByteLimitExceeded",
+                    "package-byte-limit-exceeded",
                     exception.Message);
             }
 
@@ -186,7 +186,7 @@ namespace OfficeIMO.Word {
             if (signatureInfo.InspectionResourceLimitExceeded) {
                 return WordSignatureValidationReport.WithValidationFailure(
                     structural,
-                    "SignatureResourceLimitExceeded",
+                    "signature-resource-limit-exceeded",
                     signatureInfo.UnsupportedDetails.FirstOrDefault() ??
                     "Digital-signature inspection stopped at the configured package resource limit.");
             }
@@ -205,7 +205,7 @@ namespace OfficeIMO.Word {
             } catch (InvalidDataException exception) {
                 return WordSignatureValidationReport.WithValidationFailure(
                     structural,
-                    "SignatureResourceLimitExceeded",
+                    "signature-resource-limit-exceeded",
                     exception.Message);
             }
         }

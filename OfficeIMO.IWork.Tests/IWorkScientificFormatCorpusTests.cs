@@ -53,7 +53,7 @@ public sealed class IWorkScientificFormatCorpusTests {
         using var reopened = ExcelDocument.Load(saved);
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
         int count = manifest.RootElement.GetProperty("cases").GetArrayLength();
-        ExcelRangeVisualSnapshot snapshot = sheet.Range($"B1:B{count}").CreateVisualSnapshot();
+        ExcelRangeVisualInfo snapshot = sheet.Range($"B1:B{count}").CreateVisualSnapshot();
         foreach (JsonElement expected in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
             int row = expected.GetProperty("row").GetInt32();
             ExcelCellData cell = sheet.CellAt(row, 2).GetValue();

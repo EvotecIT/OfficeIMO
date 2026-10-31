@@ -1,6 +1,7 @@
 using System;
 using System.Management.Automation;
 using OfficeIMO.PowerPoint;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.PowerPoint;
 
@@ -29,7 +30,7 @@ public sealed class AddOfficePowerPointDesignerDeckCommand : PSCmdlet
 {
     /// <summary>Presentation to update. Optional inside New-OfficePowerPoint.</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Deck plan to render.</summary>
     [Parameter(Mandatory = true)]
@@ -122,7 +123,8 @@ public sealed class AddOfficePowerPointDesignerDeckCommand : PSCmdlet
             return;
         }
 
-        var presentation = Presentation ?? PowerPointDslContext.Require(this).Presentation;
+        var presentation = Presentation ?? OfficeDocumentContext.Find<PowerPointDocument>()
+            ?? throw new PSArgumentException("Supply -Presentation or invoke the command inside New-OfficePowerPoint.");
         var slideIndexOffset = presentation.Slides.Count;
         var options = PowerPointCompositionOptions.FromBrief(brief);
         options.AlternativeCount = AlternativeCount;

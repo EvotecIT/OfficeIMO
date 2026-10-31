@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesWorksheetRangeMetadata() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             Worksheet worksheet = sheet.WorksheetPart.Worksheet;
             sheet.AutoFilterAdd("A5:B6");
             worksheet.Append(
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesQueryTableSortRanges() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             AddQueryTableRefreshSortState(document, sheet, "A5:C10");
 
             ExcelRowMutationPlan plan = sheet.PlanInsertRows(5);
@@ -78,8 +78,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_QueryTableSortInspectionUsesChargedSnapshot() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             AddQueryTableRefreshSortState(document, sheet, "A5:C10");
+            // Isolate the semantic query-table scan from admission of the generated theme's unloaded XML.
+            _ = document.OpenXmlDocument.WorkbookPart?.ThemePart?.Theme;
 
             ExcelRowMutationPlan baseline = sheet.PlanInsertRows(5);
             ExcelRowMutationPlan bounded = sheet.PlanInsertRows(
@@ -98,7 +100,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesChartCacheInvalidation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
+            ExcelSheet data = document.AddSheet("Data");
             ExcelSheet summary = CreateChartOwner(document, "Summary");
             ChartPart chartPart = Assert.Single(summary.WorksheetPart.DrawingsPart!.ChartParts);
             C.Formula formula = chartPart.ChartSpace.Descendants<C.Formula>().First();
@@ -118,9 +120,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanDoesNotRegisterTransientSheetWrappers() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            document.AddWorksheet("Summary");
-            document.AddWorksheet("Archive");
+            ExcelSheet data = document.AddSheet("Data");
+            document.AddSheet("Summary");
+            document.AddSheet("Archive");
             int registeredBefore = document.RegisteredSheetWrapperCountForTests;
 
             for (int iteration = 0; iteration < 5; iteration++) {

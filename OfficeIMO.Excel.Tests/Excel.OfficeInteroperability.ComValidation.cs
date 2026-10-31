@@ -48,7 +48,7 @@ public partial class Excel {
 
         string generatedModern = Path.Combine(outputDirectory, "officeimo-modern-source.xlsx");
         using (ExcelDocument workbook = ExcelDocument.Create(generatedModern)) {
-            ExcelSheet sheet = workbook.AddWorksheet("Compatibility");
+            ExcelSheet sheet = workbook.AddSheet("Compatibility");
             sheet.CellValue(1, 1, "OfficeIMO modern to binary");
             sheet.CellValue(2, 1, 42);
             workbook.Save();

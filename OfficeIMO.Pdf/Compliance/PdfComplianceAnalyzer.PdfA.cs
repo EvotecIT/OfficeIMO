@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfComplianceAnalyzer {
 
-    private static void AddPdfARequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfOptions options, PdfStandardFont[]? generatedStandardFonts, PdfGeneratedFontComplianceEvidence[]? generatedFontUsages, PdfGeneratedDocumentComplianceEvidence? generatedEvidence) {
+    private static void AddPdfARequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfCreateOptions options, PdfStandardFont[]? generatedStandardFonts, PdfGeneratedFontComplianceEvidence[]? generatedFontUsages, PdfGeneratedDocumentComplianceEvidence? generatedEvidence) {
         PdfAIdentification? identification = options.PdfAIdentification;
         (int Part, string? Conformance) target = GetPdfAIdentificationTarget(profile);
 
@@ -63,7 +63,7 @@ internal static partial class PdfComplianceAnalyzer {
             "The optional veraPDF test gate exists for groundwork fixtures, but profile success has not been enabled for generated output."));
     }
 
-    private static PdfComplianceRequirement BuildPdfAEmbeddedFileModificationDateRequirement(PdfOptions options, PdfGeneratedDocumentComplianceEvidence? generatedEvidence) {
+    private static PdfComplianceRequirement BuildPdfAEmbeddedFileModificationDateRequirement(PdfCreateOptions options, PdfGeneratedDocumentComplianceEvidence? generatedEvidence) {
         PdfEmbeddedFile[] embeddedFiles = options.EmbeddedFileSnapshots
             .Concat(generatedEvidence?.StructureAssociatedFiles ?? System.Array.Empty<PdfEmbeddedFile>()).ToArray();
         string[] missingDates = embeddedFiles
@@ -89,7 +89,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Set PdfEmbeddedFile.ModificationDate or call PdfOptions.SetEmbeddedFileModificationDate(...) for: " + string.Join(", ", missingDates) + ".");
     }
 
-    private static PdfComplianceRequirement BuildPdfAEncryptionPolicyRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildPdfAEncryptionPolicyRequirement(PdfCreateOptions options) {
         if (options.EncryptionSnapshot == null) {
             return new PdfComplianceRequirement(
                 "pdfa-no-encryption",
@@ -105,7 +105,7 @@ internal static partial class PdfComplianceAnalyzer {
             "PDF/A-backed profiles cannot be claimed with Standard security encryption. Clear PdfOptions.Encryption before assessing or claiming PDF/A or e-invoice readiness.");
     }
 
-    private static PdfComplianceRequirement BuildOutputIntentPolicyRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildOutputIntentPolicyRequirement(PdfCreateOptions options) {
         PdfOutputIntent? outputIntent = options.OutputIntent;
         if (outputIntent == null) {
             return new PdfComplianceRequirement(
@@ -154,7 +154,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Use a supported PDF output-intent policy.");
     }
 
-    private static void AddEmbeddedFontCoverageRequirement(List<PdfComplianceRequirement> requirements, PdfOptions options, PdfStandardFont[]? generatedStandardFonts, PdfGeneratedFontComplianceEvidence[]? generatedFontUsages) {
+    private static void AddEmbeddedFontCoverageRequirement(List<PdfComplianceRequirement> requirements, PdfCreateOptions options, PdfStandardFont[]? generatedStandardFonts, PdfGeneratedFontComplianceEvidence[]? generatedFontUsages) {
         if (generatedStandardFonts == null) {
             requirements.Add(new PdfComplianceRequirement(
                 "embedded-font-coverage",

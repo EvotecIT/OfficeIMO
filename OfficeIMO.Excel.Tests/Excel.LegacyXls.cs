@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
             Assert.Single(records);
             Assert.Equal((ushort)BiffRecordType.Bof, records[0].Type);
             Assert.Equal(new byte[] { 0x01, 0x02 }, records[0].Payload);
-            Assert.Contains(diagnostics, item => item.Code == "XLS-BIFF-TRUNCATED-PAYLOAD");
+            Assert.Contains(diagnostics, item => item.Code == "xls-biff-truncated-payload");
         }
 
         [Fact]
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
 
             LegacyXlsImportDiagnostic diagnostic = Assert.Single(
                 legacy.Diagnostics,
-                item => item.Code == "XLS-COMPOUND-CORRUPT");
+                item => item.Code == "xls-compound-corrupt");
             Assert.Equal(LegacyXlsDiagnosticSeverity.Error, diagnostic.Severity);
             Assert.Contains("could not be read", diagnostic.Message);
         }
@@ -234,7 +234,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
+            ExcelWorkbookInfo snapshot = document.Inspect();
             Assert.Equal("B2:D5", snapshot.Worksheets[0].UsedRangeA1);
             Assert.Equal("A1:A1", snapshot.Worksheets[1].UsedRangeA1);
         }
@@ -306,13 +306,13 @@ namespace OfficeIMO.Tests {
             LegacyXlsImportReport report = legacy.CreateImportReport();
 
             Assert.Contains(legacy.Diagnostics, d =>
-                d.Code == "XLS-BIFF-FILEPASS-UNSUPPORTED"
+                d.Code == "xls-biff-filepass-unsupported"
                 && d.Severity == LegacyXlsDiagnosticSeverity.Error
                 && d.DetailCode == "Encryption:FilePass:XorObfuscation"
                 && d.Message.Contains("XorObfuscation"));
             Assert.Equal(1, report.ErrorCount);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["EncryptedWorkbook|XLS-BIFF-FILEPASS-UNSUPPORTED|Encryption:FilePass:XorObfuscation"]);
+            Assert.Equal(1, report.UnsupportedFeaturesByDetail["EncryptedWorkbook|xls-biff-filepass-unsupported|Encryption:FilePass:XorObfuscation"]);
             Assert.Equal(1, report.PreservedFeatureRecordCount);
             Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook]);
             Assert.Equal(0, report.UnsupportedProjectionGapCount);
@@ -324,7 +324,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.FileFormatBlockers["EncryptedWorkbook|Encryption:FilePass:XorObfuscation"]);
             Assert.Equal(1, report.FileFormatBlockersByRecordType["EncryptedWorkbook|0x002F"]);
             Assert.Equal(1, report.FileFormatBlockersByRecordName["EncryptedWorkbook|Record0x002F"]);
-            Assert.Equal(1, report.FileFormatBlockersByLocation["XLS-BIFF-FILEPASS-UNSUPPORTED|(workbook)"]);
+            Assert.Equal(1, report.FileFormatBlockersByLocation["xls-biff-filepass-unsupported|(workbook)"]);
             Assert.Equal(1, report.EncryptedWorkbooksByMethod["XorObfuscation"]);
             string markdown = report.ToMarkdown();
             Assert.Contains("File Format States", markdown);
@@ -368,7 +368,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.WorksheetCount);
             Assert.Equal(0, result.ImportReport.UnsupportedFeatureCount);
             Assert.Empty(result.Workbook.UnsupportedFeatures);
-            Assert.DoesNotContain(result.Workbook.Diagnostics, diagnostic => diagnostic.Code.StartsWith("XLS-BIFF-FILEPASS", StringComparison.Ordinal));
+            Assert.DoesNotContain(result.Workbook.Diagnostics, diagnostic => diagnostic.Code.StartsWith("xls-biff-filepass-", StringComparison.Ordinal));
 
             LegacyXlsWorksheet sheet = Assert.Single(result.Workbook.Worksheets);
             Assert.Equal("XorSheet", sheet.Name);
@@ -399,7 +399,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(legacy.UnsupportedFeatures);
             Assert.Contains(legacy.Diagnostics, diagnostic =>
                 diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error
-                && diagnostic.Code == "XLS-BIFF-FILEPASS-PASSWORD-INVALID"
+                && diagnostic.Code == "xls-biff-filepass-password-invalid"
                 && diagnostic.DetailCode == "Encryption:FilePass:XorObfuscation");
             Assert.True(report.HasImportErrors);
             Assert.Equal(0, report.UnsupportedFeatureCount);
@@ -421,7 +421,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.WorksheetCount);
             Assert.Equal(0, result.ImportReport.UnsupportedFeatureCount);
             Assert.Empty(result.Workbook.UnsupportedFeatures);
-            Assert.DoesNotContain(result.Workbook.Diagnostics, diagnostic => diagnostic.Code.StartsWith("XLS-BIFF-FILEPASS", StringComparison.Ordinal));
+            Assert.DoesNotContain(result.Workbook.Diagnostics, diagnostic => diagnostic.Code.StartsWith("xls-biff-filepass-", StringComparison.Ordinal));
 
             LegacyXlsWorksheet sheet = Assert.Single(result.Workbook.Worksheets);
             Assert.Equal("Rc4Sheet", sheet.Name);
@@ -452,7 +452,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(legacy.UnsupportedFeatures);
             Assert.Contains(legacy.Diagnostics, diagnostic =>
                 diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error
-                && diagnostic.Code == "XLS-BIFF-FILEPASS-PASSWORD-INVALID"
+                && diagnostic.Code == "xls-biff-filepass-password-invalid"
                 && diagnostic.DetailCode == "Encryption:FilePass:Rc4");
             Assert.True(report.HasImportErrors);
             Assert.Equal(0, report.UnsupportedFeatureCount);
@@ -471,7 +471,7 @@ namespace OfficeIMO.Tests {
             Assert.False(result.HasDocument);
             Assert.NotNull(result.ProjectionException);
             Assert.True(result.HasImportErrors);
-            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FILEPASS-UNSUPPORTED");
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "xls-biff-filepass-unsupported");
             Assert.Equal(0, result.ImportReport.WorksheetCount);
 
             InvalidOperationException documentException = Assert.Throws<InvalidOperationException>(() => result.Document);
@@ -488,7 +488,7 @@ namespace OfficeIMO.Tests {
             LegacyXlsImportReport report = legacy.CreateImportReport();
 
             Assert.Contains(legacy.Diagnostics, d =>
-                d.Code == "XLS-BIFF-FILEPASS-UNSUPPORTED"
+                d.Code == "xls-biff-filepass-unsupported"
                 && d.Severity == LegacyXlsDiagnosticSeverity.Error
                 && d.DetailCode == "Encryption:FilePass:Rc4"
                 && d.Message.Contains("Rc4"));
@@ -509,13 +509,13 @@ namespace OfficeIMO.Tests {
 
             LegacyXlsUnsupportedFeature feature = Assert.Single(legacy.UnsupportedFeatures);
             Assert.Equal(LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook, feature.Kind);
-            Assert.Equal("XLS-BIFF-FILEPASS-UNSUPPORTED", feature.Code);
+            Assert.Equal("xls-biff-filepass-unsupported", feature.Code);
             Assert.Single(legacy.Diagnostics);
             Assert.Equal(1, report.ErrorCount);
             Assert.Equal(1, report.FileFormatBlockers["EncryptedWorkbook|Encryption:FilePass:XorObfuscation"]);
             Assert.Equal(1, report.FileFormatBlockersByRecordType["EncryptedWorkbook|0x002F"]);
             Assert.Equal(1, report.FileFormatBlockersByRecordName["EncryptedWorkbook|Record0x002F"]);
-            Assert.Equal(1, report.FileFormatBlockersByLocation["XLS-BIFF-FILEPASS-UNSUPPORTED|(workbook)"]);
+            Assert.Equal(1, report.FileFormatBlockersByLocation["xls-biff-filepass-unsupported|(workbook)"]);
             Assert.Equal(1, report.EncryptedWorkbooksByMethod["XorObfuscation"]);
             Assert.Empty(legacy.Worksheets);
         }
@@ -629,7 +629,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ExternalQueryConnectionsByHtmlFormat["HtmlFormat:0x0003"]);
             Assert.Equal(1, report.ExternalQueryConnectionsByVersionTriplet["Edit:3;Refreshed:2;RefreshableMin:1"]);
             Assert.Equal(1, report.ExternalQueryConnectionsBySourceSpecificFlags["Flags:0x010A"]);
-            Assert.DoesNotContain("ExternalReference|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED|ExternalReference:DbQueryExt", report.UnsupportedFeaturesByDetail.Keys);
+            Assert.DoesNotContain("ExternalReference|xls-biff-feature-external-reference-unsupported|ExternalReference:DbQueryExt", report.UnsupportedFeaturesByDetail.Keys);
             Assert.Equal(1, report.ThemeRecordsByVersion["Default"]);
             Assert.Equal(1, report.ThemeRecordsByRawVersion["Version:124226"]);
             Assert.Equal(1, report.ThemeRecordsByContentState["NoEmbeddedThemeBytes"]);
@@ -746,7 +746,7 @@ namespace OfficeIMO.Tests {
                 feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject
                 && feature.DetailCode == "Drawing:HFPicture");
 
-            ExcelSheet.ExcelHeaderFooterSnapshot headerFooter = result.Document.Sheets.Single().GetHeaderFooter();
+            ExcelSheet.ExcelHeaderFooterInfo headerFooter = result.Document.Sheets.Single().GetHeaderFooter();
             Assert.True(headerFooter.HeaderHasPicturePlaceholder);
             Assert.NotNull(headerFooter.HeaderCenterImage);
             Assert.Equal(ExcelHeaderFooterPosition.Center, headerFooter.HeaderCenterImage!.Position);
@@ -795,7 +795,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = false
             });
 
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code.StartsWith("XLS-BIFF-FEATURE-", StringComparison.Ordinal));
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code.StartsWith("xls-biff-feature-", StringComparison.Ordinal));
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.Hyperlink && feature.Code == "XLS-BIFF-FEATURE-HYPERLINK-UNSUPPORTED");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.Comment && feature.Code == "XLS-BIFF-FEATURE-COMMENT-UNSUPPORTED");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject && feature.Code == "XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED");
@@ -1205,7 +1205,7 @@ namespace OfficeIMO.Tests {
             Assert.True(result.Document.Sheets[0].TryGetCellText(1, 1, out string? value));
             Assert.Equal("Feature", value);
             Assert.Single(result.Workbook.Worksheets);
-            Assert.DoesNotContain(result.Diagnostics, d => d.Code.StartsWith("XLS-BIFF-FEATURE-", StringComparison.Ordinal));
+            Assert.DoesNotContain(result.Diagnostics, d => d.Code.StartsWith("xls-biff-feature-", StringComparison.Ordinal));
             Assert.False(result.HasImportErrors);
             Assert.True(result.HasUnsupportedFeatures);
             Assert.Same(result, result.EnsureNoImportErrors());
@@ -1298,22 +1298,22 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(3, document.Sheets.Count);
             ExcelSheet projected = document.Sheets[0];
-            ExcelColumnSnapshot projectedColumn = Assert.Single(projected.GetColumnDefinitions());
+            ExcelColumnInfo projectedColumn = Assert.Single(projected.GetColumnDefinitions());
             Assert.Equal(2, projectedColumn.StartIndex);
             Assert.Equal(2, projectedColumn.EndIndex);
-            Assert.Equal(12.5d, projectedColumn.Width);
+            Assert.Equal(12.5d, (projectedColumn.Width?.CharacterCount));
             Assert.True(projectedColumn.Hidden);
             Assert.Equal((byte?)2, projectedColumn.OutlineLevel);
             Assert.True(projectedColumn.Collapsed);
 
-            ExcelRowSnapshot projectedRow = Assert.Single(projected.GetRowDefinitions());
+            ExcelRowInfo projectedRow = Assert.Single(projected.GetRowDefinitions());
             Assert.Equal(2, projectedRow.Index);
-            Assert.Equal(18d, projectedRow.Height);
+            Assert.Equal(18d, (projectedRow.Height?.PhysicalLength?.ToPoints()));
             Assert.True(projectedRow.Hidden);
             Assert.Equal((byte?)1, projectedRow.OutlineLevel);
             Assert.True(projectedRow.Collapsed);
 
-            ExcelMergedRangeSnapshot projectedMerge = Assert.Single(projected.GetMergedRanges());
+            ExcelMergedRangeInfo projectedMerge = Assert.Single(projected.GetMergedRanges());
             Assert.Equal("A1:C1", projectedMerge.A1Range);
             Assert.True(document.Sheets[1].Hidden);
             Assert.False(document.Sheets[1].VeryHidden);
@@ -1322,9 +1322,9 @@ namespace OfficeIMO.Tests {
             Assert.True(projected.RightToLeft);
             Assert.False(projected.RowColumnHeadingsVisible);
             Assert.False(projected.ZeroValuesVisible);
-            Assert.Equal(18.5d, projected.DefaultRowHeight);
+            Assert.Equal(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18.5d)), projected.DefaultRowHeight);
             Assert.False(projected.DefaultRowsHidden);
-            Assert.Equal(11d, projected.DefaultColumnWidth);
+            Assert.Equal(ExcelColumnWidth.Characters(11d), projected.DefaultColumnWidth);
             ExcelWorksheetViewInfo projectedView = projected.GetViewInfo();
             Assert.Equal(120U, projectedView.ZoomScale);
             Assert.Equal(90U, projectedView.ZoomScaleNormal);
@@ -1401,7 +1401,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(PaneStateValues.Split, projectedPane.State!.Value);
             Assert.Equal(1200D, projectedPane.HorizontalSplit!.Value);
             Assert.Equal(900D, projectedPane.VerticalSplit!.Value);
-            Assert.Equal(A1.CellReference(901, 1201), projectedPane.TopLeftCell!.Value);
+            Assert.Equal(ExcelA1.CellReference(901, 1201), projectedPane.TopLeftCell!.Value);
             Assert.Equal(PaneValues.BottomRight, projectedPane.ActivePane!.Value);
         }
 
@@ -1805,9 +1805,9 @@ namespace OfficeIMO.Tests {
             CellFormat quotePrefixFormat = workbookPart.WorkbookStylesPart.Stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)quotePrefixCell.StyleIndex!.Value);
             Assert.True(quotePrefixFormat.QuotePrefix!.Value);
 
-            List<ExcelColumnSnapshot> columnSnapshots = document.Sheets[0].GetColumnDefinitions().ToList();
+            List<ExcelColumnInfo> columnSnapshots = document.Sheets[0].GetColumnDefinitions().ToList();
             Assert.Equal(2, columnSnapshots.Count);
-            ExcelColumnSnapshot columnSnapshot = Assert.Single(columnSnapshots, column => column.StartIndex == 11);
+            ExcelColumnInfo columnSnapshot = Assert.Single(columnSnapshots, column => column.StartIndex == 11);
             Assert.Equal(11, columnSnapshot.StartIndex);
             Assert.Equal(11, columnSnapshot.EndIndex);
             Assert.NotNull(columnSnapshot.StyleIndex);
@@ -1820,14 +1820,14 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(columnFill.PatternFill.ForegroundColor.Tint);
             Assert.InRange(columnFill.PatternFill.ForegroundColor.Tint!.Value, 0.3999D, 0.4001D);
 
-            ExcelColumnSnapshot fontColumnSnapshot = Assert.Single(columnSnapshots, column => column.StartIndex == 12);
+            ExcelColumnInfo fontColumnSnapshot = Assert.Single(columnSnapshots, column => column.StartIndex == 12);
             CellFormat fontColumnFormat = workbookPart.WorkbookStylesPart.Stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)fontColumnSnapshot.StyleIndex!.Value);
             DocumentFormat.OpenXml.Spreadsheet.Font fontColumnFont = workbookPart.WorkbookStylesPart.Stylesheet.Fonts!.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ElementAt((int)fontColumnFormat.FontId!.Value);
             Assert.Equal(VerticalAlignmentRunValues.Subscript, fontColumnFont.VerticalTextAlignment!.Val!.Value);
 
-            List<ExcelRowSnapshot> rowSnapshots = document.Sheets[0].GetRowDefinitions().ToList();
+            List<ExcelRowInfo> rowSnapshots = document.Sheets[0].GetRowDefinitions().ToList();
             Assert.Equal(2, rowSnapshots.Count);
-            ExcelRowSnapshot rowSnapshot = Assert.Single(rowSnapshots, row => row.Index == 3);
+            ExcelRowInfo rowSnapshot = Assert.Single(rowSnapshots, row => row.Index == 3);
             Assert.Equal(3, rowSnapshot.Index);
             Assert.True(rowSnapshot.CustomFormat);
             Assert.NotNull(rowSnapshot.StyleIndex);
@@ -1838,7 +1838,7 @@ namespace OfficeIMO.Tests {
             Assert.True(rowFormat.ApplyAlignment!.Value);
             Assert.Equal(HorizontalAlignmentValues.Center, rowFormat.Alignment!.Horizontal!.Value);
             Assert.Equal(VerticalAlignmentValues.Center, rowFormat.Alignment.Vertical!.Value);
-            ExcelRowSnapshot fontRowSnapshot = Assert.Single(rowSnapshots, row => row.Index == 4);
+            ExcelRowInfo fontRowSnapshot = Assert.Single(rowSnapshots, row => row.Index == 4);
             CellFormat fontRowFormat = workbookPart.WorkbookStylesPart.Stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)fontRowSnapshot.StyleIndex!.Value);
             DocumentFormat.OpenXml.Spreadsheet.Font fontRowFont = workbookPart.WorkbookStylesPart.Stylesheet.Fonts!.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ElementAt((int)fontRowFormat.FontId!.Value);
             Assert.Equal(VerticalAlignmentRunValues.Subscript, fontRowFont.VerticalTextAlignment!.Val!.Value);
@@ -1890,7 +1890,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_Load_ReportsInvalidCompoundFile() {
             LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(new byte[] { 1, 2, 3 });
 
-            Assert.Contains(legacy.Diagnostics, item => item.Code == "XLS-COMPOUND-SIGNATURE");
+            Assert.Contains(legacy.Diagnostics, item => item.Code == "xls-compound-signature");
             Assert.Empty(legacy.Worksheets);
         }
 
@@ -1906,7 +1906,7 @@ namespace OfficeIMO.Tests {
             Assert.Throws<OperationCanceledException>(() => {
                 ExcelWorkbookDataReader.ValidateLegacyFormulaProjection(
                     result.Workbook,
-                    new ExcelReadOptions {
+                    new ExcelReaderOptions {
                         UseCachedFormulaResult = false,
                         CancellationToken = cancellation.Token
                     });
@@ -1945,7 +1945,7 @@ namespace OfficeIMO.Tests {
 
             ExcelWorkbookDataReader.ValidateLegacyFormulaProjection(
                 workbook,
-                new ExcelReadOptions {
+                new ExcelReaderOptions {
                     SheetName = "selected",
                     A1Range = "A1:A1",
                     UseCachedFormulaResult = false
@@ -1953,7 +1953,7 @@ namespace OfficeIMO.Tests {
 
             ExcelWorkbookDataReader.ValidateLegacyFormulaProjection(
                 workbook,
-                new ExcelReadOptions {
+                new ExcelReaderOptions {
                     SheetIndex = 0,
                     A1Range = "A1:A1",
                     UseCachedFormulaResult = false
@@ -1962,14 +1962,14 @@ namespace OfficeIMO.Tests {
             Assert.Throws<NotSupportedException>(() =>
                 ExcelWorkbookDataReader.ValidateLegacyFormulaProjection(
                     workbook,
-                    new ExcelReadOptions {
+                    new ExcelReaderOptions {
                         SheetName = "unselected",
                         UseCachedFormulaResult = false
                     }));
             Assert.Throws<NotSupportedException>(() =>
                 ExcelWorkbookDataReader.ValidateLegacyFormulaProjection(
                     workbook,
-                    new ExcelReadOptions {
+                    new ExcelReaderOptions {
                         SheetIndex = 0,
                         A1Range = "B2:B2",
                         UseCachedFormulaResult = false

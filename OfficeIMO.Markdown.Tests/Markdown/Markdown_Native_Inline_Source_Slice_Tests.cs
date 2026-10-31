@@ -34,7 +34,7 @@ public class Markdown_Native_Inline_Source_Slice_Tests {
     [Fact]
     public void NativeInlineMetadata_OriginalSourceSlice_Can_Address_LineEnding_Equivalent_Input() {
         var markdown = "See [docs](https://example.com \"Docs title\").\r\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             PreserveTrivia = true
         };
         var native = MarkdownNativeDocument.Parse(markdown, options);

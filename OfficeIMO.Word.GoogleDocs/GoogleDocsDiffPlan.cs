@@ -136,13 +136,13 @@ namespace OfficeIMO.Word.GoogleDocs {
         }
 
         private static IReadOnlyDictionary<string, string> BuildHashes(WordDocument document) {
-            WordDocumentSnapshot snapshot = document.CreateInspectionSnapshot();
+            WordDocumentInfo snapshot = document.Inspect();
             var result = new Dictionary<string, string>(StringComparer.Ordinal) {
                 ["document/properties"] = Hash($"{snapshot.Title}|{snapshot.Author}|{snapshot.Subject}|{snapshot.Keywords}"),
             };
-            foreach (WordSectionSnapshot section in snapshot.Sections) {
+            foreach (WordSectionInfo section in snapshot.Sections) {
                 string sectionPath = GoogleWorkspaceCheckpointFormat.Format($"section/{section.Index}");
-                result[sectionPath] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{section.SectionBreakType}|{section.Orientation}|{section.PageWidthPoints}|{section.PageHeightPoints}|{section.MarginTopPoints}|{section.MarginBottomPoints}|{section.MarginLeftPoints}|{section.MarginRightPoints}|{section.ColumnCount}"));
+                result[sectionPath] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{section.SectionBreakType}|{section.Orientation}|{section.PageWidth?.ToPoints()}|{section.PageHeight?.ToPoints()}|{section.MarginTop?.ToPoints()}|{section.MarginBottom?.ToPoints()}|{section.MarginLeft?.ToPoints()}|{section.MarginRight?.ToPoints()}|{section.ColumnCount}"));
                 AddBlocks(result, sectionPath, section.Elements);
                 AddBlocks(result, sectionPath + "/header/default", section.DefaultHeader?.Elements);
                 AddBlocks(result, sectionPath + "/footer/default", section.DefaultFooter?.Elements);
@@ -155,17 +155,17 @@ namespace OfficeIMO.Word.GoogleDocs {
             return result;
         }
 
-        private static void AddBlocks(IDictionary<string, string> result, string parent, IReadOnlyList<WordBlockSnapshot>? blocks) {
+        private static void AddBlocks(IDictionary<string, string> result, string parent, IReadOnlyList<WordBlockInfo>? blocks) {
             if (blocks == null) return;
             for (int blockIndex = 0; blockIndex < blocks.Count; blockIndex++) {
-                WordBlockSnapshot block = blocks[blockIndex];
+                WordBlockInfo block = blocks[blockIndex];
                 string path = GoogleWorkspaceCheckpointFormat.Format($"{parent}/{block.Kind}/{blockIndex}");
-                if (block is WordParagraphSnapshot paragraph) {
+                if (block is WordParagraphInfo paragraph) {
                     result[path] = Hash(ParagraphFingerprint(paragraph));
-                } else if (block is WordTableSnapshot table) {
+                } else if (block is WordTableInfo table) {
                     result[path] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{table.RowCount}|{table.ColumnCount}|{table.StyleName}|{table.Title}|{table.Description}"));
-                    foreach (WordTableRowSnapshot row in table.Rows) {
-                        foreach (WordTableCellSnapshot cell in row.Cells) {
+                    foreach (WordTableRowInfo row in table.Rows) {
+                        foreach (WordTableCellInfo cell in row.Cells) {
                             string cellPath = GoogleWorkspaceCheckpointFormat.Format($"{path}/cell/{row.RowIndex}:{cell.ColumnIndex}");
                             string paragraphs = string.Join("\n", cell.Paragraphs.Select(ParagraphFingerprint));
                             result[cellPath] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{cell.ColumnSpan}|{cell.RowSpan}|{cell.ShadingFillColorHex}|{TableCellBorderFingerprint(cell.LeftBorder)}|{TableCellBorderFingerprint(cell.RightBorder)}|{TableCellBorderFingerprint(cell.TopBorder)}|{TableCellBorderFingerprint(cell.BottomBorder)}|{paragraphs}"));
@@ -203,18 +203,18 @@ namespace OfficeIMO.Word.GoogleDocs {
             }
         }
 
-        private static string ParagraphFingerprint(WordParagraphSnapshot paragraph) {
+        private static string ParagraphFingerprint(WordParagraphInfo paragraph) {
             string runs = string.Join("~", paragraph.Runs.Select(RunFingerprint));
-            string tabs = string.Join("~", paragraph.TabStops.Select(tab => GoogleWorkspaceCheckpointFormat.Format($"{tab.Alignment}|{tab.Leader}|{tab.PositionPoints}")));
-            return GoogleWorkspaceCheckpointFormat.Format($"{paragraph.Text}|{paragraph.StyleId}|{paragraph.StyleName}|{paragraph.Alignment}|{paragraph.IsListItem}|{paragraph.IsOrderedList}|{paragraph.ListLevel}|{paragraph.ListStyleName}|{paragraph.IndentStartPoints}|{paragraph.IndentEndPoints}|{paragraph.IndentFirstLinePoints}|{paragraph.SpaceAbovePoints}|{paragraph.SpaceBelowPoints}|{paragraph.LineSpacingValue}|{paragraph.LineSpacingRule}|{paragraph.ShadingFillColorHex}|{ParagraphBorderFingerprint(paragraph.LeftBorder)}|{ParagraphBorderFingerprint(paragraph.RightBorder)}|{ParagraphBorderFingerprint(paragraph.TopBorder)}|{ParagraphBorderFingerprint(paragraph.BottomBorder)}|{paragraph.IsRightToLeft}|{paragraph.KeepWithNext}|{paragraph.KeepLinesTogether}|{paragraph.AvoidWidowAndOrphan}|{paragraph.PageBreakBefore}|{paragraph.BookmarkName}|{paragraph.BookmarkId}|{tabs}|{runs}");
+            string tabs = string.Join("~", paragraph.TabStops.Select(tab => GoogleWorkspaceCheckpointFormat.Format($"{tab.Alignment}|{tab.Leader}|{tab.Position.ToPoints()}")));
+            return GoogleWorkspaceCheckpointFormat.Format($"{paragraph.Text}|{paragraph.StyleId}|{paragraph.StyleName}|{paragraph.Alignment}|{paragraph.IsListItem}|{paragraph.IsOrderedList}|{paragraph.ListLevel}|{paragraph.ListStyleName}|{paragraph.IndentStart?.ToPoints()}|{paragraph.IndentEnd?.ToPoints()}|{paragraph.IndentFirstLine?.ToPoints()}|{paragraph.SpaceAbove?.ToPoints()}|{paragraph.SpaceBelow?.ToPoints()}|{paragraph.LineSpacingValue}|{paragraph.LineSpacingRule}|{paragraph.ShadingFillColorHex}|{ParagraphBorderFingerprint(paragraph.LeftBorder)}|{ParagraphBorderFingerprint(paragraph.RightBorder)}|{ParagraphBorderFingerprint(paragraph.TopBorder)}|{ParagraphBorderFingerprint(paragraph.BottomBorder)}|{paragraph.IsRightToLeft}|{paragraph.KeepWithNext}|{paragraph.KeepLinesTogether}|{paragraph.AvoidWidowAndOrphan}|{paragraph.PageBreakBefore}|{paragraph.BookmarkName}|{paragraph.BookmarkId}|{tabs}|{runs}");
         }
 
-        private static string RunFingerprint(WordRunSnapshot run) =>
-            GoogleWorkspaceCheckpointFormat.Format($"{run.Text}|{run.Bold}|{run.Italic}|{run.Underline}|{run.Strike}|{run.FontFamily}|{run.FontSize}|{run.ColorHex}|{run.HighlightColor}|{run.VerticalTextAlignment}|{run.CapsStyle}|{run.HyperlinkUri}|{run.HyperlinkAnchor}|{InlineImageFingerprint(run.InlineImage)}");
+        private static string RunFingerprint(WordRunInfo run) =>
+            GoogleWorkspaceCheckpointFormat.Format($"{run.Text}|{run.Bold}|{run.Italic}|{run.Underline}|{run.Strike}|{run.FontFamily}|{(run.FontSize is OfficeLength size ? checked((int)size.ToPoints()) : (int?)null)}|{run.ColorHex}|{run.HighlightColor}|{run.VerticalTextAlignment}|{run.CapsStyle}|{run.HyperlinkUri}|{run.HyperlinkAnchor}|{InlineImageFingerprint(run.InlineImage)}");
 
-        private static string InlineImageFingerprint(WordInlineImageSnapshot? image) => image == null
+        private static string InlineImageFingerprint(WordInlineImageInfo? image) => image == null
             ? string.Empty
-            : GoogleWorkspaceCheckpointFormat.Format($"{image.FileName}|{image.ContentType}|{Hash(image.Bytes ?? Array.Empty<byte>())}|{image.Description}|{image.Title}|{image.Width}|{image.Height}|{image.IsInline}|{image.WrapText}");
+            : GoogleWorkspaceCheckpointFormat.Format($"{image.FileName}|{image.ContentType}|{Hash(image.Bytes ?? Array.Empty<byte>())}|{image.Description}|{image.Title}|{image.Width?.ToPixels()}|{image.Height?.ToPixels()}|{image.IsInline}|{image.WrapText}");
 
         private static string CommentFingerprint(CommentThreadEntry entry) =>
             $"{entry.Comment.Author}|{entry.Comment.Initials}|{entry.Comment.Text}|{entry.IsResolved}";
@@ -234,13 +234,13 @@ namespace OfficeIMO.Word.GoogleDocs {
             internal bool? IsResolved { get; }
         }
 
-        private static string ParagraphBorderFingerprint(WordParagraphBorderSnapshot? border) => border == null
+        private static string ParagraphBorderFingerprint(WordParagraphBorderInfo? border) => border == null
             ? string.Empty
-            : GoogleWorkspaceCheckpointFormat.Format($"{border.Style}|{border.ColorHex}|{border.Size}|{border.Space}");
+            : GoogleWorkspaceCheckpointFormat.Format($"{border.Style}|{border.ColorHex}|{(border.Size.HasValue ? Math.Round(border.Size.Value.ToPoints() * 8D, MidpointRounding.AwayFromZero) : (double?)null)}|{border.Space?.ToPoints()}");
 
-        private static string TableCellBorderFingerprint(WordTableCellBorderSnapshot? border) => border == null
+        private static string TableCellBorderFingerprint(WordTableCellBorderInfo? border) => border == null
             ? string.Empty
-            : GoogleWorkspaceCheckpointFormat.Format($"{border.Style}|{border.ColorHex}|{border.Size}");
+            : GoogleWorkspaceCheckpointFormat.Format($"{border.Style}|{border.ColorHex}|{(border.Size.HasValue ? Math.Round(border.Size.Value.ToPoints() * 8D, MidpointRounding.AwayFromZero) : (double?)null)}");
 
         private static string Hash(string value) {
             using SHA256 sha = SHA256.Create();

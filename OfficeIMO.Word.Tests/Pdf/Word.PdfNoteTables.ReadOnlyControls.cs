@@ -39,7 +39,7 @@ public partial class Word {
         } else Assert.False(Assert.Single(loadedControl.Descendants<W.SimpleField>()).Dirty!.Value);
         string[] original = CaptureReadOnlyNoteControlXml(document);
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         // The font inventory runs before supported-profile admission. Rejecting
         // this control later must not excuse editing its source while reading it.
         Assert.Equal(original, CaptureReadOnlyNoteControlXml(document));
@@ -50,8 +50,8 @@ public partial class Word {
             foreach (string token in new[] { "INITIALNOTE", "OUTERCELLTEXT", "OUTERRIGHTTEXT", profile == "nestedTable" ? "INNERCACHEDTEXT" : "TOCCACHEDTEXT" })
                 Assert.Single(Regex.Matches(text, Regex.Escape(token)));
             Assert.Single(result.Warnings, warning => warning.Code == (endnote
-                ? "NativeEndnoteContinuationApproximated" : "NativeFootnotePlacementApproximated"));
-            if (endnote) Assert.Contains(result.Warnings, warning => warning.Code == "NativeEndnoteContentApproximated");
+                ? "native-endnote-continuation-approximated" : "native-footnote-placement-approximated"));
+            if (endnote) Assert.Contains(result.Warnings, warning => warning.Code == "native-endnote-content-approximated");
             Assert.True(result.HasLoss);
             Assert.Equal(original, CaptureReadOnlyNoteControlXml(document));
             Assert.False(document.Settings.UpdateFieldsOnOpen);

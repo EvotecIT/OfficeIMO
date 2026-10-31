@@ -3,12 +3,22 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
-        private static void ApplyWorksheetHeaderFooter(PdfCore.PdfPageBuilder page, ExcelSheet.ExcelHeaderFooterSnapshot? headerFooter, string sheetName, string? workbookPath, ExcelToPdfOptions options) {
+        private static void ApplyWorksheetHeaderFooter(PdfCore.PdfPageBuilder page, ExcelSheet.ExcelHeaderFooterInfo? headerFooter, string sheetName, string? workbookPath, ExcelPdfExportOptions options, ExcelSheetPageSetup? pageSetup = null) {
             if (headerFooter == null) {
                 return;
             }
 
             PreparedHeaderFooterImages preparedImages = PrepareHeaderFooterImages(headerFooter, sheetName, options);
+            PdfCore.PdfPageMargins pageMargins = GetEffectiveMargins(options, pageSetup);
+            // Header pictures stand inline on the header line, which starts at the header margin,
+            // so the room they have is the band between the header margin and the sheet.
+            double headerMarginPoints = GetHeaderFooterMarginPoints(pageSetup, header: true);
+            // Keep the line's descent and a small gap clear of the sheet below it.
+            double headerLineClearance = (options.RunningLineFontSize ?? options.PdfOptions?.HeaderFontSize.ToPoints() ?? DefaultHeaderFooterFontSize) * 0.25D + 3D;
+            FitHeaderFooterImagesToMargin(preparedImages, header: true, Math.Max(0D, pageMargins.Top.ToPoints() - headerMarginPoints - headerLineClearance) + HeaderTextAllowance, sheetName, options);
+            double tallestHeaderImage = new[] { preparedImages.HeaderLeft, preparedImages.HeaderCenter, preparedImages.HeaderRight }
+                .Where(image => image != null).Select(image => image!.HeightPoints).DefaultIfEmpty(0D).Max();
+            double? footerImageOffset = FitHeaderFooterImagesToMargin(preparedImages, header: false, pageMargins.Bottom.ToPoints(), sheetName, options);
 
             HeaderFooterZones? headerZones = options.UseWorksheetHeadersAndFooters ? ConvertHeaderFooterZones(headerFooter.HeaderLeft, headerFooter.HeaderCenter, headerFooter.HeaderRight, sheetName, workbookPath, options, "header") : null;
             var firstHeaderZones = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentFirstPage
@@ -20,8 +30,11 @@ namespace OfficeIMO.Excel.Pdf {
             bool hasFirstHeaderVariant = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentFirstPage;
             bool hasEvenHeaderVariant = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentOddEven;
             if (HasAnyText(headerZones) || hasFirstHeaderVariant || hasEvenHeaderVariant || preparedImages.HasHeaderImages) {
+                HeaderFooterLineStyle? headerStyle = WithBodyFont(ResolveSharedHeaderFooterStyle(new[] { headerZones, firstHeaderZones, evenHeaderZones }, sheetName, options, "header"), options);
+                double headerOffset = ResolveHeaderLineOffset(pageMargins.Top.ToPoints(), headerMarginPoints, headerStyle?.FontSize ?? options.PdfOptions?.HeaderFontSize.ToPoints(), tallestHeaderImage);
                 page.Header(header => {
-                    ApplyHeaderFooterStyle(header, ResolveSharedHeaderFooterStyle(new[] { headerZones, firstHeaderZones, evenHeaderZones }, sheetName, options, "header"));
+                    ApplyHeaderFooterStyle(header, headerStyle);
+                    header.Offset(OfficeLength.Points(headerOffset));
 
                     if (HasAnyText(headerZones)) {
                         header.Zones(headerZones!.Left, headerZones.Center, headerZones.Right);
@@ -55,8 +68,11 @@ namespace OfficeIMO.Excel.Pdf {
             bool hasFirstFooterVariant = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentFirstPage;
             bool hasEvenFooterVariant = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentOddEven;
             if (HasAnyText(footerZones) || hasFirstFooterVariant || hasEvenFooterVariant || preparedImages.HasFooterImages) {
+                HeaderFooterLineStyle? footerStyle = WithBodyFont(ResolveSharedHeaderFooterStyle(new[] { footerZones, firstFooterZones, evenFooterZones }, sheetName, options, "footer"), options);
+                double footerOffset = ResolveHeaderFooterLineOffset(header: false, pageMargins.Bottom.ToPoints(), GetHeaderFooterMarginPoints(pageSetup, header: false), footerStyle?.FontSize ?? options.PdfOptions?.FooterFontSize.ToPoints(), footerImageOffset);
                 page.Footer(footer => {
-                    ApplyHeaderFooterStyle(footer, ResolveSharedHeaderFooterStyle(new[] { footerZones, firstFooterZones, evenFooterZones }, sheetName, options, "footer"));
+                    ApplyHeaderFooterStyle(footer, footerStyle);
+                    footer.Offset(OfficeLength.Points(footerOffset));
 
                     if (HasAnyText(footerZones)) {
                         footer.Zones(footerZones!.Left, footerZones.Center, footerZones.Right);
@@ -88,18 +104,22 @@ namespace OfficeIMO.Excel.Pdf {
                 bool evenHasImage = HasPicturePlaceholder(evenZone);
                 bool hasSpecificPlaceholder = defaultHasImage || firstHasImage || evenHasImage;
                 if (!hasSpecificPlaceholder || defaultHasImage) {
-                    header.Image(image.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    header.Image(CreateInlineHeaderImage(image, align));
                 }
 
                 if (firstHasImage) {
-                    header.FirstPageImage(image.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    header.FirstPageImage(CreateInlineHeaderImage(image, align));
                 }
 
                 if (evenHasImage) {
-                    header.EvenPagesImage(image.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    header.EvenPagesImage(CreateInlineHeaderImage(image, align));
                 }
             }
         }
+
+        // Excel sets a header picture inline with the section's text, standing on its baseline.
+        private static PdfCore.PdfHeaderFooterImage CreateInlineHeaderImage(PreparedHeaderFooterImage image, PdfCore.PdfAlign align) =>
+            new PdfCore.PdfHeaderFooterImage(image.Bytes, OfficeLength.Points(image.WidthPoints), OfficeLength.Points(image.HeightPoints), align) { RestsOnHeaderBaseline = true };
 
         private static void AddFooterImage(PdfCore.PdfFooterBuilder footer, PreparedHeaderFooterImage? image, PdfCore.PdfAlign align, string defaultZone, string firstZone, string evenZone) {
             if (image != null) {
@@ -108,15 +128,15 @@ namespace OfficeIMO.Excel.Pdf {
                 bool evenHasImage = HasPicturePlaceholder(evenZone);
                 bool hasSpecificPlaceholder = defaultHasImage || firstHasImage || evenHasImage;
                 if (!hasSpecificPlaceholder || defaultHasImage) {
-                    footer.Image(image.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    footer.Image(image.Bytes, global::OfficeIMO.OfficeLength.Points(image.WidthPoints), global::OfficeIMO.OfficeLength.Points(image.HeightPoints), align);
                 }
 
                 if (firstHasImage) {
-                    footer.FirstPageImage(image.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    footer.FirstPageImage(image.Bytes, global::OfficeIMO.OfficeLength.Points(image.WidthPoints), global::OfficeIMO.OfficeLength.Points(image.HeightPoints), align);
                 }
 
                 if (evenHasImage) {
-                    footer.EvenPagesImage(image.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    footer.EvenPagesImage(image.Bytes, global::OfficeIMO.OfficeLength.Points(image.WidthPoints), global::OfficeIMO.OfficeLength.Points(image.HeightPoints), align);
                 }
             }
         }
@@ -125,9 +145,9 @@ namespace OfficeIMO.Excel.Pdf {
             text?.IndexOf("&G", StringComparison.Ordinal) >= 0;
 
         private static PreparedHeaderFooterImages PrepareHeaderFooterImages(
-            ExcelSheet.ExcelHeaderFooterSnapshot headerFooter,
+            ExcelSheet.ExcelHeaderFooterInfo headerFooter,
             string sheetName,
-            ExcelToPdfOptions options) {
+            ExcelPdfExportOptions options) {
             if (!options.UseWorksheetHeaderFooterImages) return new PreparedHeaderFooterImages();
 
             return new PreparedHeaderFooterImages {
@@ -141,25 +161,25 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static PreparedHeaderFooterImage? PrepareHeaderFooterImage(
-            ExcelSheet.ExcelHeaderFooterImageSnapshot? image,
+            ExcelSheet.ExcelHeaderFooterImageInfo? image,
             string sheetName,
             string location,
-            ExcelToPdfOptions options) {
+            ExcelPdfExportOptions options) {
             if (image == null) return null;
 
             if (image.Bytes.Length > 0 &&
-                image.WidthPoints > 0D &&
-                image.HeightPoints > 0D &&
+                image.Width.ToPoints() > 0D &&
+                image.Height.ToPoints() > 0D &&
                 IsPdfSupportedImageContentType(image.ContentType) &&
                 TryPreparePdfImageBytes(image.Bytes, image.ContentType, out byte[] preparedBytes, out _)) {
-                return new PreparedHeaderFooterImage(preparedBytes, image.WidthPoints, image.HeightPoints);
+                return new PreparedHeaderFooterImage(preparedBytes, image.Width.ToPoints(), image.Height.ToPoints());
             }
 
             AddWarning(
                 options,
                 sheetName,
-                "WorksheetHeaderFooterImage",
-                $"The {location} image was not exported because it is not a supported PDF image payload. ContentType='{image.ContentType}', WidthPoints={image.WidthPoints.ToString(CultureInfo.InvariantCulture)}, HeightPoints={image.HeightPoints.ToString(CultureInfo.InvariantCulture)}, Bytes={image.Bytes.Length.ToString(CultureInfo.InvariantCulture)}.");
+                "worksheet-header-footer-image",
+                $"The {location} image was not exported because it is not a supported PDF image payload. ContentType='{image.ContentType}', WidthPoints={image.Width.ToPoints().ToString(CultureInfo.InvariantCulture)}, HeightPoints={image.Height.ToPoints().ToString(CultureInfo.InvariantCulture)}, Bytes={image.Bytes.Length.ToString(CultureInfo.InvariantCulture)}.");
             return null;
         }
 
@@ -182,7 +202,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
 
-        private static HeaderFooterZones ConvertHeaderFooterZones(string? left, string? center, string? right, string sheetName, string? workbookPath, ExcelToPdfOptions options, string scope) {
+        private static HeaderFooterZones ConvertHeaderFooterZones(string? left, string? center, string? right, string sheetName, string? workbookPath, ExcelPdfExportOptions options, string scope) {
             HeaderFooterZone leftZone = ConvertHeaderFooterText(left, sheetName, workbookPath, options, scope, "left");
             HeaderFooterZone centerZone = ConvertHeaderFooterText(center, sheetName, workbookPath, options, scope, "center");
             HeaderFooterZone rightZone = ConvertHeaderFooterText(right, sheetName, workbookPath, options, scope, "right");
@@ -193,7 +213,7 @@ namespace OfficeIMO.Excel.Pdf {
                 ResolveSharedHeaderFooterZoneStyle(new[] { leftZone, centerZone, rightZone }, sheetName, options, scope));
         }
 
-        private static HeaderFooterZone ConvertHeaderFooterText(string? text, string sheetName, string? workbookPath, ExcelToPdfOptions options, string scope, string zone) {
+        private static HeaderFooterZone ConvertHeaderFooterText(string? text, string sheetName, string? workbookPath, ExcelPdfExportOptions options, string scope, string zone) {
             if (string.IsNullOrWhiteSpace(text)) {
                 return HeaderFooterZone.Empty;
             }
@@ -276,7 +296,7 @@ namespace OfficeIMO.Excel.Pdf {
 
                         break;
                     case 'K':
-                        if (TryReadHeaderFooterColor(text, i + 1, out PdfCore.PdfColor color, out int colorEndIndex)) {
+                        if (TryReadHeaderFooterColor(text, i + 1, out global::OfficeIMO.OfficeColor color, out int colorEndIndex)) {
                             ApplyHeaderFooterStyleToken(style, hasVisibleContent, ref unsupportedFormatting, ref canApplyLineStyle, s => s.Color = color);
                             i = colorEndIndex;
                         } else {
@@ -316,7 +336,7 @@ namespace OfficeIMO.Excel.Pdf {
                 AddWarning(
                     options,
                     sheetName,
-                    "WorksheetHeaderFooterFormatting",
+                    "worksheet-header-footer-formatting",
                     $"Excel header/footer formatting in the {scope} {zone} zone was simplified. Text, page tokens, total-page tokens, sheet-name, date/time, and workbook file fields are preserved, but rich formatting is not exported yet.");
             }
 
@@ -336,7 +356,7 @@ namespace OfficeIMO.Excel.Pdf {
             apply(style);
         }
 
-        private static HeaderFooterLineStyle? ResolveSharedHeaderFooterZoneStyle(HeaderFooterZone[] zones, string sheetName, ExcelToPdfOptions options, string scope) {
+        private static HeaderFooterLineStyle? ResolveSharedHeaderFooterZoneStyle(HeaderFooterZone[] zones, string sheetName, ExcelPdfExportOptions options, string scope) {
             HeaderFooterLineStyle? shared = null;
             bool hasStyle = false;
             bool hasUnstyledText = false;
@@ -370,7 +390,7 @@ namespace OfficeIMO.Excel.Pdf {
             return shared;
         }
 
-        private static HeaderFooterLineStyle? ResolveSharedHeaderFooterStyle(HeaderFooterZones?[] zoneSets, string sheetName, ExcelToPdfOptions options, string scope) {
+        private static HeaderFooterLineStyle? ResolveSharedHeaderFooterStyle(HeaderFooterZones?[] zoneSets, string sheetName, ExcelPdfExportOptions options, string scope) {
             HeaderFooterLineStyle? shared = null;
             bool hasStyle = false;
             bool hasUnstyledText = false;
@@ -410,7 +430,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             if (style.FontSize.HasValue) {
-                header.FontSize(style.FontSize.Value);
+                header.FontSize(global::OfficeIMO.OfficeLength.Points(style.FontSize.Value));
             }
 
             if (style.Color.HasValue) {
@@ -432,7 +452,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             if (style.FontSize.HasValue) {
-                footer.FontSize(style.FontSize.Value);
+                footer.FontSize(global::OfficeIMO.OfficeLength.Points(style.FontSize.Value));
             }
 
             if (style.Color.HasValue) {
@@ -448,15 +468,15 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static void AddMixedHeaderFooterFormattingWarning(ExcelToPdfOptions options, string sheetName, string scope) {
+        private static void AddMixedHeaderFooterFormattingWarning(ExcelPdfExportOptions options, string sheetName, string scope) {
             AddWarning(
                 options,
                 sheetName,
-                "WorksheetHeaderFooterFormatting",
+                "worksheet-header-footer-formatting",
                 $"Excel header/footer formatting in the {scope} uses mixed or partial styles that cannot be represented as one PDF header/footer line style yet. Text is preserved, but rich formatting is simplified.");
         }
 
-        private static DateTime GetHeaderFooterDateTime(ExcelToPdfOptions options, ref DateTime? dateTime) {
+        private static DateTime GetHeaderFooterDateTime(ExcelPdfExportOptions options, ref DateTime? dateTime) {
             if (!dateTime.HasValue) {
                 dateTime = options.HeaderFooterDateTimeProvider != null
                     ? options.HeaderFooterDateTimeProvider()
@@ -504,7 +524,7 @@ namespace OfficeIMO.Excel.Pdf {
             return double.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out fontSize) && fontSize > 0D;
         }
 
-        private static bool TryReadHeaderFooterColor(string text, int startIndex, out PdfCore.PdfColor color, out int endIndex) {
+        private static bool TryReadHeaderFooterColor(string text, int startIndex, out global::OfficeIMO.OfficeColor color, out int endIndex) {
             color = default;
             endIndex = startIndex;
             if (startIndex + 6 > text.Length) {
@@ -520,7 +540,7 @@ namespace OfficeIMO.Excel.Pdf {
             byte red = byte.Parse(text.Substring(startIndex, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
             byte green = byte.Parse(text.Substring(startIndex + 2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
             byte blue = byte.Parse(text.Substring(startIndex + 4, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-            color = PdfCore.PdfColor.FromRgb(red, green, blue);
+            color = global::OfficeIMO.OfficeColor.FromRgb(red, green, blue);
             endIndex = startIndex + 5;
             return true;
         }
@@ -597,6 +617,109 @@ namespace OfficeIMO.Excel.Pdf {
             return (value >= '0' && value <= '9') ||
                    (value >= 'a' && value <= 'f') ||
                    (value >= 'A' && value <= 'F');
+        }
+
+        /// <summary>Gives header or footer text without its own font the workbook body font.</summary>
+        private static HeaderFooterLineStyle? WithBodyFont(HeaderFooterLineStyle? style, ExcelPdfExportOptions options) {
+            if (string.IsNullOrWhiteSpace(options.RunningLineFontFamily) ||
+                options.PdfOptions?.HeaderFontFamily != null || options.PdfOptions?.FooterFontFamily != null) return style;
+            // Text with its own font, or bold or italic text, keeps the existing font mapping.
+            if (style != null && (!string.IsNullOrWhiteSpace(style.FontFamilyName) || style.FontFamily.HasValue || style.Bold || style.Italic)) return style;
+            return new HeaderFooterLineStyle {
+                FontSize = style?.FontSize ?? options.RunningLineFontSize,
+                Color = style?.Color,
+                FontFamilyName = options.RunningLineFontFamily
+            };
+        }
+
+        private static double GetHeaderFooterMarginPoints(ExcelSheetPageSetup? pageSetup, bool header) {
+            double inches = header ? pageSetup?.Margins?.Header.ToInches() ?? ExcelNormalHeaderFooterMarginInches : pageSetup?.Margins?.Footer.ToInches() ?? ExcelNormalHeaderFooterMarginInches;
+            if (double.IsNaN(inches) || double.IsInfinity(inches) || inches < 0D) inches = ExcelNormalHeaderFooterMarginInches;
+            return inches * 72D;
+        }
+
+        /// <summary>
+        /// Places the running line the way Excel does: the header text starts at the header
+        /// margin below the top edge and the footer text ends at the footer margin above the
+        /// bottom edge. The PDF line offset is measured from the body edge to the baseline.
+        /// A picture that needs more room than that keeps its larger offset.
+        /// </summary>
+        private static double ResolveHeaderFooterLineOffset(bool header, double bodyMargin, double headerFooterMargin, double? fontSize, double? imageOffset) {
+            double size = fontSize is double value && value > 0D ? value : DefaultHeaderFooterFontSize;
+            // Typical ascent and descent of office text faces, as a share of the font size.
+            double baselineFromEdge = headerFooterMargin + size * (header ? 0.8D : 0.2D);
+            double offset = bodyMargin - baselineFromEdge;
+            if (imageOffset.HasValue) offset = Math.Max(offset, imageOffset.Value);
+            double textAllowance = header ? size * 0.8D : size * 0.2D;
+            double maximum = Math.Max(0D, bodyMargin - textAllowance);
+            if (offset > maximum) offset = maximum;
+            return Math.Max(0D, offset);
+        }
+
+        /// <summary>Room left above a header baseline for the text's ascent, in points.</summary>
+        private const double HeaderTextAllowance = 10D;
+
+        /// <summary>
+        /// The header line starts at the header margin and is as tall as its tallest picture or
+        /// its text ascent; the pictures stand on its baseline beside the text.
+        /// </summary>
+        private static double ResolveHeaderLineOffset(double bodyMargin, double headerMargin, double? fontSize, double tallestImage) {
+            double size = fontSize is double value && value > 0D ? value : DefaultHeaderFooterFontSize;
+            double baselineFromEdge = headerMargin + Math.Max(size * 0.8D, tallestImage);
+            double offset = bodyMargin - baselineFromEdge;
+            double maximum = Math.Max(0D, bodyMargin - size * 0.8D);
+            return Math.Max(0D, Math.Min(maximum, offset));
+        }
+
+        /// <summary>Font size of a header or footer line without explicit formatting, in points.</summary>
+        private const double DefaultHeaderFooterFontSize = 9D;
+
+        /// <summary>Default distance of the running header and footer lines from the body, in points.</summary>
+        private const double DefaultHeaderFooterOffset = 18D;
+
+        /// <summary>
+        /// Excel keeps header and footer pictures in the page margin. The running line hangs
+        /// a picture from its baseline toward the body, so move the line out far enough for
+        /// the picture to end before the sheet, and shrink a picture taller than the margin.
+        /// </summary>
+        /// <returns>The line offset to use, or null to keep the default.</returns>
+        private static double? FitHeaderFooterImagesToMargin(PreparedHeaderFooterImages images, bool header, double margin, string sheetName, ExcelPdfExportOptions options) {
+            const double gap = 2D;
+            // Leave room for the text that shares the line: its ascent above a header
+            // baseline, its descent below a footer baseline.
+            double textAllowance = header ? 10D : 4D;
+            double maximumHeight = Math.Max(4D, margin - textAllowance - gap);
+            double tallest = 0D;
+            bool scaled = false;
+            PreparedHeaderFooterImage? Fit(PreparedHeaderFooterImage? image) {
+                if (image == null) return null;
+                if (image.HeightPoints > maximumHeight) {
+                    double factor = maximumHeight / image.HeightPoints;
+                    image = new PreparedHeaderFooterImage(image.Bytes, image.WidthPoints * factor, maximumHeight);
+                    scaled = true;
+                }
+
+                tallest = Math.Max(tallest, image.HeightPoints);
+                return image;
+            }
+
+            if (header) {
+                images.HeaderLeft = Fit(images.HeaderLeft);
+                images.HeaderCenter = Fit(images.HeaderCenter);
+                images.HeaderRight = Fit(images.HeaderRight);
+            } else {
+                images.FooterLeft = Fit(images.FooterLeft);
+                images.FooterCenter = Fit(images.FooterCenter);
+                images.FooterRight = Fit(images.FooterRight);
+            }
+
+            if (scaled) {
+                AddWarning(options, sheetName, header ? "header-image" : "footer-image",
+                    $"A {(header ? "header" : "footer")} picture is taller than the page margin and was scaled down to fit it instead of covering the sheet.");
+            }
+
+            if (tallest + gap <= DefaultHeaderFooterOffset) return null;
+            return Math.Min(tallest + gap, Math.Max(0D, margin - textAllowance));
         }
 
         private sealed class PreparedHeaderFooterImages {

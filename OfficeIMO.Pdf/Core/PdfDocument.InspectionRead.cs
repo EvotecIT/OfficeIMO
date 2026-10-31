@@ -9,9 +9,9 @@ public sealed partial class PdfDocument {
     /// Cancellation, resource admission, authentication, permissions, structural parsing, and unexpected
     /// stage failures remain terminal and are never converted to partial success.
     /// </summary>
-    public PdfInspectionReadResult ReadForInspection(PdfReadOptions? options = null,
+    public PdfInspectionReadResult ReadForInspection(PdfLoadOptions? options = null,
         CancellationToken cancellationToken = default) {
-        PdfReadOptions effective = PdfReadOptions.Resolve(options).Clone();
+        PdfLoadOptions effective = PdfLoadOptions.Resolve(options).Clone();
         var snapshot = GetReadSnapshot(cancellationToken: cancellationToken);
         snapshot.Document.DemandContentExtraction("logical object");
         PdfDocumentInfo sourceInfo = PdfInspector.Inspect(snapshot.Bytes, snapshot.Document, cancellationToken);

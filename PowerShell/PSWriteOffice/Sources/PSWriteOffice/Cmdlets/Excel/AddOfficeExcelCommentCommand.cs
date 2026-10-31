@@ -7,10 +7,10 @@ namespace PSWriteOffice.Cmdlets.Excel;
 
 /// <summary>Adds or replaces a comment (note) on a worksheet cell.</summary>
 /// <example>
-///   <summary>Add a comment to A1.</summary>
+///   <summary>Add a comment to ExcelA1.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>ExcelSheet 'Data' { Add-OfficeExcelComment -Address 'A1' -Text 'Review this cell' }</code>
-///   <para>Creates a cell comment at A1.</para>
+///   <para>Creates a cell comment at ExcelA1.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeExcelComment", DefaultParameterSetName = ParameterSetContext)]
 [Alias("ExcelComment")]

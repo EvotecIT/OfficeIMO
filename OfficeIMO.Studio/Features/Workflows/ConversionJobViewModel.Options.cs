@@ -1,3 +1,5 @@
+using OfficeIMO.Pdf.Word;
+using OfficeIMO.Pdf.PowerPoint;
 using CommunityToolkit.Mvvm.ComponentModel;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html.Pdf;
@@ -18,20 +20,20 @@ public sealed partial class ConversionJobViewModel {
     public bool IsLegacyWordExport => Route.Route.Id == "doc-pdf";
     public bool IsPlainTextExport => Route.Route.Id == "txt-pdf";
     public bool CanEditOptions => State == ConversionJobState.Queued || CanRetry;
-    public bool UsesRasterPages => IsWordImport && WordMode == PdfWordImportMode.VisualPages ||
-        IsPowerPointImport && PowerPointMode is PdfPowerPointImportMode.VisualPages or PdfPowerPointImportMode.HybridVisualAndEditableTables;
-    public IReadOnlyList<PdfWordImportMode> WordModes { get; } = Enum.GetValues<PdfWordImportMode>();
-    public IReadOnlyList<PdfPowerPointImportMode> PowerPointModes { get; } = [
-        PdfPowerPointImportMode.EditableContent, PdfPowerPointImportMode.VisualPages,
-        PdfPowerPointImportMode.HybridVisualAndEditableTables, PdfPowerPointImportMode.EditableTables];
+    public bool UsesRasterPages => IsWordImport && WordMode == WordPdfImportMode.VisualPages ||
+        IsPowerPointImport && PowerPointMode is PowerPointPdfImportMode.VisualPages or PowerPointPdfImportMode.HybridVisualAndEditableTables;
+    public IReadOnlyList<WordPdfImportMode> WordModes { get; } = Enum.GetValues<WordPdfImportMode>();
+    public IReadOnlyList<PowerPointPdfImportMode> PowerPointModes { get; } = [
+        PowerPointPdfImportMode.EditableContent, PowerPointPdfImportMode.VisualPages,
+        PowerPointPdfImportMode.HybridVisualAndEditableTables, PowerPointPdfImportMode.EditableTables];
     public IReadOnlyList<ExcelPdfWorksheetLayoutMode> WorksheetLayouts { get; } = Enum.GetValues<ExcelPdfWorksheetLayoutMode>();
     public IReadOnlyList<PdfHtmlProfile> HtmlProfiles { get; } = Enum.GetValues<PdfHtmlProfile>();
 
     [ObservableProperty] private string _pageRanges = string.Empty;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(UsesRasterPages)), NotifyPropertyChangedFor(nameof(Fidelity))]
-    private PdfWordImportMode _wordMode = PdfWordImportMode.EditableContent;
+    private WordPdfImportMode _wordMode = WordPdfImportMode.EditableContent;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(UsesRasterPages)), NotifyPropertyChangedFor(nameof(Fidelity))]
-    private PdfPowerPointImportMode _powerPointMode = PdfPowerPointImportMode.EditableContent;
+    private PowerPointPdfImportMode _powerPointMode = PowerPointPdfImportMode.EditableContent;
     [ObservableProperty] private ExcelPdfWorksheetLayoutMode _worksheetLayout = ExcelPdfWorksheetLayoutMode.WorksheetCanvas;
     [ObservableProperty] private PdfHtmlProfile _htmlProfile = PdfHtmlProfile.PositionedReview;
     [ObservableProperty] private decimal _rasterDpi = 144;
@@ -45,32 +47,29 @@ public sealed partial class ConversionJobViewModel {
         NotifyOutcome();
     }
 
-    internal OfficeWorkflowConversionOptions CreateConversionOptions() => new() {
-        Word = Route.Route.Id is "docx-pdf" or "doc-pdf"
-            ? new WordToPdfOptions().UseProfile(PdfProfile)
-            : null,
-        Excel = IsWorksheetExport
-            ? new ExcelToPdfOptions().UseProfile(PdfProfile)
-            : null,
-        PowerPoint = Route.Route.Id == "pptx-pdf"
-            ? new PowerPointToPdfOptions().UseProfile(PdfProfile)
-            : null,
-        PageRanges = SupportsPageSelection ? PageRanges : null,
-        WordMode = IsWordImport ? WordMode : null,
-        PowerPointMode = IsPowerPointImport ? PowerPointMode : null,
-        WorksheetLayout = IsWorksheetExport ? WorksheetLayout : null,
-        HtmlProfile = IsHtmlExport ? HtmlProfile : null,
-        RasterDpi = UsesRasterPages ? (double)RasterDpi : null,
-        CompressPdfOutput = SupportsPdfCompression && CompressPdfOutput,
-        LegacyDocLossPolicy = IsLegacyWordExport && AllowLegacyImportLoss ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block,
-        PlainText = IsPlainTextExport ? new PdfPlainTextOptions { EncodingName = string.IsNullOrWhiteSpace(TextEncoding) ? null : TextEncoding, TabSize = (int)TabSize } : null
-    };
+    internal OfficeConversionOptions CreateConversionOptions() {
+        var options = new OfficeConversionOptions {
+            Word = Route.Route.Id is "docx-pdf" or "doc-pdf" ? new WordPdfExportOptions().UseProfile(PdfProfile) : null,
+            Excel = IsWorksheetExport ? new ExcelPdfExportOptions().UseProfile(PdfProfile) : null,
+            PowerPoint = Route.Route.Id == "pptx-pdf" ? new PowerPointPdfExportOptions().UseProfile(PdfProfile) : null,
+            PdfLoad = SupportsPageSelection && !string.IsNullOrWhiteSpace(PageRanges)
+                ? new PdfLoadOptions { PageSelection = PdfPageSelection.Parse(PageRanges) } : null,
+            PdfWord = IsWordImport ? new WordPdfImportOptions { Mode = WordMode, Dpi = (double)RasterDpi } : null,
+            PdfPowerPoint = IsPowerPointImport ? new PowerPointPdfImportOptions { Mode = PowerPointMode, Dpi = (double)RasterDpi } : null,
+            PdfHtml = IsHtmlExport ? new PdfToHtmlOptions { Profile = HtmlProfile } : null,
+            CompressPdfOutput = SupportsPdfCompression && CompressPdfOutput,
+            WordLoad = IsLegacyWordExport ? new OfficeIMO.Word.WordLoadOptions { FailOnLoss = !AllowLegacyImportLoss } : null,
+            PlainText = IsPlainTextExport ? new PdfTextImportOptions { EncodingName = string.IsNullOrWhiteSpace(TextEncoding) ? null : TextEncoding, TabSize = (int)TabSize } : null
+        };
+        if (options.Excel != null) options.Excel.WorksheetLayout = WorksheetLayout;
+        return options;
+    }
 
     private PdfExportProfile PdfProfile => OutputProfile switch {
-        OfficeWorkflowOutputProfile.Faithful => PdfExportProfile.Faithful,
-        OfficeWorkflowOutputProfile.Lightweight => PdfExportProfile.Lightweight,
-        OfficeWorkflowOutputProfile.PrintReady => PdfExportProfile.PrintReady,
-        OfficeWorkflowOutputProfile.TextOnly => PdfExportProfile.TextOnly,
+        OfficeConversionProfile.Faithful => PdfExportProfile.Faithful,
+        OfficeConversionProfile.Lightweight => PdfExportProfile.Lightweight,
+        OfficeConversionProfile.PrintReady => PdfExportProfile.PrintReady,
+        OfficeConversionProfile.TextOnly => PdfExportProfile.TextOnly,
         _ => throw new ArgumentOutOfRangeException(nameof(OutputProfile), OutputProfile, "Unsupported PDF export profile.")
     };
 

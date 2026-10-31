@@ -106,15 +106,15 @@ namespace OfficeIMO.Word.Html {
             ref WordParagraph? currentParagraph,
             WordTableCell? cell,
             WordHeaderFooter? headerFooter,
-            HtmlToWordOptions options) {
+            WordHtmlImportOptions options) {
             if (!options.ImportHtmlComments) {
-                AddDiagnostic(options, "HtmlCommentSkipped", "HTML comment was skipped because raw HTML comment import is disabled.", "comment");
+                AddDiagnostic(options, "html-comment-skipped", "HTML comment was skipped because raw HTML comment import is disabled.", "comment");
                 return;
             }
 
             var text = comment.TextContent?.Trim();
             if (string.IsNullOrWhiteSpace(text)) {
-                AddDiagnostic(options, "HtmlCommentSkipped", "HTML comment was skipped because it was empty.", "comment");
+                AddDiagnostic(options, "html-comment-skipped", "HTML comment was skipped because it was empty.", "comment");
                 return;
             }
 

@@ -172,6 +172,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void DisqualifyDirectDataSetFastSaveState() {
+            MaterializeDeferredDataSetImport();
             ClearDirectDataSetSaveCandidate();
             _materializedDirectDataSetFastSaveModel = null;
             _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet = false;

@@ -25,7 +25,7 @@ public sealed partial class HtmlRenderingTests {
         string html = SourceOrderStyles(400)
             + "<section style='" + effect + "'><h1>Heading</h1>" + atomic
             + "<p>Summary</p>" + SourceOrderTable(2) + "<h2>End</h2></section>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(SourceOrderOptions());
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(SourceOrderOptions())).ToBytes();
         var root = SourceOrderRoot(pdf, out var elements);
 
         // Searchable field text has its own existing Span carrier. The widget's
@@ -41,7 +41,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_TaggedSourceOrderSurvivesRepeatedTableFragments() {
         string html = SourceOrderStyles(160) + "<section><h1>Heading</h1><p>Before</p>"
             + SourceOrderImage("raster") + SourceOrderTable(24) + "<h2>After</h2></section>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(SourceOrderOptions());
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(SourceOrderOptions())).ToBytes();
         var root = SourceOrderRoot(pdf, out var elements);
 
         Assert.True(PdfCore.PdfInspector.Inspect(pdf).PageCount >= 4);
@@ -61,7 +61,7 @@ public sealed partial class HtmlRenderingTests {
             + "<section><h1>Heading</h1><div style='display:flex'>"
             + "<section style='display:contents'><p>First</p>" + SourceOrderTable(1) + "</section>"
             + "<section style='order:-1'><p>Second</p></section></div><p>After</p></section>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(SourceOrderOptions());
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(SourceOrderOptions())).ToBytes();
         var root = SourceOrderRoot(pdf, out var elements);
 
         Assert.Equal(new[] { "H1", "Div", "P" }, root.ChildElementObjectNumbers.Select(id => elements[id].StructureType));
@@ -96,7 +96,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_TaggedSourceOrderRetainsAnonymousParagraphs(string before) {
         string html = SourceOrderStyles(400) + "<section><h1>Heading</h1>" + before
             + SourceOrderTable(2) + "<p>After</p></section>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(SourceOrderOptions());
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(SourceOrderOptions())).ToBytes();
         var root = SourceOrderRoot(pdf, out var elements);
         Assert.Equal(new[] { "H1", "P", "Table", "P" },
             root.ChildElementObjectNumbers.Select(id => elements[id].StructureType));
@@ -109,7 +109,7 @@ public sealed partial class HtmlRenderingTests {
         string html = SourceOrderStyles(400)
             + (generated ? "<style>.items::before{content:'F'}.items::after{content:'Z'}</style>" : "")
             + "<section><div class='items' style='display:flex'>A<span>B</span>C</div></section>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(SourceOrderOptions());
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(SourceOrderOptions())).ToBytes();
         var root = SourceOrderRoot(pdf, out var elements);
         var order = new List<int>();
         Collect(root);
@@ -125,7 +125,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPdf_TaggedSourceOrderKeepsDiagnosedEmptyAnonymousContent() {
         string html = SourceOrderStyles(400) + "<section><div>&#xf000;</div>" + SourceOrderTable(1) + "</section>";
-        var result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(SourceOrderOptions());
+        var result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(SourceOrderOptions());
         Assert.Contains(result.Report.Warnings,
             warning => warning.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
         Assert.DoesNotContain("\uf000", PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
@@ -136,7 +136,7 @@ public sealed partial class HtmlRenderingTests {
         string html = SourceOrderStyles(120) + "<section><h1>Heading</h1><div dir='rtl'>"
             + string.Join(" ", Enumerable.Repeat("Before <span class='rtl'>א</span> After", 16))
             + "</div>" + SourceOrderTable(2) + "<h2>End</h2></section>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(SourceOrderOptions());
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(SourceOrderOptions())).ToBytes();
         var root = SourceOrderRoot(pdf, out var elements);
         string?[] roles = root.ChildElementObjectNumbers.Select(id => elements[id].StructureType).ToArray();
         int table = Array.IndexOf(roles, "Table");
@@ -154,7 +154,7 @@ public sealed partial class HtmlRenderingTests {
         string middle = SourceOrderImage("raster").Replace("<img ", "<img style='display:inline' ");
         string html = SourceOrderStyles(400) + "<section><p>Before" + middle
             + (bidi ? "<span class='rtl'>א</span>" : "") + "After</p></section>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(SourceOrderOptions());
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(SourceOrderOptions())).ToBytes();
         var root = SourceOrderRoot(pdf, out var elements);
         var paragraph = elements[Assert.Single(root.ChildElementObjectNumbers)];
         Assert.Equal("P", paragraph.StructureType);
@@ -171,7 +171,7 @@ public sealed partial class HtmlRenderingTests {
         string html = SourceOrderStyles(400)
             + "<section><h1>Heading</h1><p>Before</p><iframe style='display:block;height:60px'"
             + " srcdoc='&lt;p&gt;Inside&lt;/p&gt;'></iframe><p>After</p></section>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(SourceOrderOptions());
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(SourceOrderOptions())).ToBytes();
         var root = SourceOrderRoot(pdf, out var elements);
         Assert.Equal(new[] { "H1", "P", "Div", "P" },
             root.ChildElementObjectNumbers.Select(id => elements[id].StructureType));
@@ -191,7 +191,7 @@ public sealed partial class HtmlRenderingTests {
             + "<p>After</p></section>";
         var options = SourceOrderOptions();
         options.InteractiveFormControls = interactive;
-        var result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        var result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
         byte[] pdf = result.ToBytes();
         if (interactive) Assert.Contains(result.Report.Warnings,
             warning => warning.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback);
@@ -209,7 +209,7 @@ public sealed partial class HtmlRenderingTests {
         string html = SourceOrderStyles(400)
             + "<section><h1>Heading</h1><p>Before<iframe style='display:" + display + ";" + style + "width:100px;height:60px'"
             + " srcdoc='&lt;p&gt;Inside&lt;/p&gt;'></iframe>After</p></section>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(SourceOrderOptions());
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(SourceOrderOptions())).ToBytes();
         var root = SourceOrderRoot(pdf, out var elements);
         // Spatial extraction sees the frame's higher line first. Tagged reading
         // follows the source owners around that independently positioned content.

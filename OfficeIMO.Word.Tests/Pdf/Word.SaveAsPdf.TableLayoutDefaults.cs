@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
@@ -11,20 +12,18 @@ public partial class Word {
     public void SaveAsPdf_OmittedTableLayoutRetainsAutofitAcrossNativeDocRoundTrip() {
         using WordDocument source = WordDocument.Create();
         WordTable table = source.AddTable(1, 1, WordTableStyle.TableGrid);
-        table.WidthType = WordTableWidthUnit.Auto;
-        table.Width = 0;
-        table.GridColumnWidth = new List<int> { 2160 };
+        table.Width = WordTableWidth.Auto;
+        table.GridColumnWidth = new List<int> { 2160 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         WordTableCell cell = table.Rows[0].Cells[0];
-        cell.WidthType = WordTableWidthUnit.Dxa;
-        cell.Width = 2160;
+        cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2160) * 635)));
         cell.Paragraphs[0].Text = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         cell.Paragraphs[0].FontFamily = "Arial";
-        cell.Paragraphs[0].FontSize = 12;
+        cell.Paragraphs[0].FontSize = global::OfficeIMO.OfficeLength.Points(12);
         table._tableProperties!.TableLayout = null;
         string sourceXml = source._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         double originalWidth = TableLayoutContractPdfWidth(source);
         Assert.Equal(sourceXml, source._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
-        using WordDocument native = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument native = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal(WordTableLayoutMode.AutoFit, native.Tables[0].LayoutMode);
         Assert.Equal(originalWidth, TableLayoutContractPdfWidth(native), 2);
         table._tableProperties.TableLayout = new W.TableLayout { Type = W.TableLayoutValues.Autofit };
@@ -32,7 +31,7 @@ public partial class Word {
     }
 
     private static double TableLayoutContractPdfWidth(WordDocument document) {
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         var boxes = page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle())
             .Where(box => box.HasValue).Select(box => box!.Value).ToArray();

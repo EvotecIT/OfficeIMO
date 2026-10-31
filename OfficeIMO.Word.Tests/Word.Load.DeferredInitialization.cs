@@ -101,7 +101,7 @@ public sealed class WordLoadDeferredInitializationTests {
         }
 
         Assert.True(section.DifferentOddAndEvenPages);
-        Assert.True(Assert.Single(document.CreateInspectionSnapshot().Sections).DifferentOddAndEvenPages);
+        Assert.True(Assert.Single(document.Inspect().Sections).DifferentOddAndEvenPages);
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public sealed class WordLoadDeferredInitializationTests {
         Assert.DoesNotContain(inheritedSection._sectionProperties.Elements<FooterReference>(), reference =>
             reference.Type?.Value == HeaderFooterValues.Even);
         Assert.True(inheritedSection.DifferentOddAndEvenPages);
-        WordSectionSnapshot inheritedSnapshot = document.CreateInspectionSnapshot().Sections[1];
+        WordSectionInfo inheritedSnapshot = document.Inspect().Sections[1];
         Assert.True(inheritedSnapshot.DifferentOddAndEvenPages);
         Assert.Equal("Inherited even header", Assert.Single(inheritedSnapshot.EvenHeader!.Paragraphs).Text);
         Assert.Equal("Inherited even footer", Assert.Single(inheritedSnapshot.EvenFooter!.Paragraphs).Text);
@@ -133,7 +133,7 @@ public sealed class WordLoadDeferredInitializationTests {
 
         Assert.False(firstSection.DifferentOddAndEvenPages);
         Assert.False(inheritedSection.DifferentOddAndEvenPages);
-        WordSectionSnapshot disabledSnapshot = document.CreateInspectionSnapshot().Sections[1];
+        WordSectionInfo disabledSnapshot = document.Inspect().Sections[1];
         Assert.False(disabledSnapshot.DifferentOddAndEvenPages);
         Assert.Equal("Inherited even header", Assert.Single(disabledSnapshot.EvenHeader!.Paragraphs).Text);
         Assert.Equal("Inherited even footer", Assert.Single(disabledSnapshot.EvenFooter!.Paragraphs).Text);
@@ -146,7 +146,7 @@ public sealed class WordLoadDeferredInitializationTests {
         using WordDocument reloaded = WordDocument.Load(reloadedStream);
         Assert.True(reloaded.Sections[1].DifferentOddAndEvenPages);
         Assert.Equal("Inherited even header", Assert.Single(
-            reloaded.CreateInspectionSnapshot().Sections[1].EvenHeader!.Paragraphs).Text);
+            reloaded.Inspect().Sections[1].EvenHeader!.Paragraphs).Text);
     }
 
     [Fact]
@@ -167,8 +167,8 @@ public sealed class WordLoadDeferredInitializationTests {
         Assert.False(paragraph.AvoidWidowAndOrphan);
         Assert.False(paragraph.BiDi);
 
-        WordParagraphSnapshot snapshot = Assert.IsType<WordParagraphSnapshot>(
-            Assert.Single(Assert.Single(document.CreateInspectionSnapshot().Sections).Elements));
+        WordParagraphInfo snapshot = Assert.IsType<WordParagraphInfo>(
+            Assert.Single(Assert.Single(document.Inspect().Sections).Elements));
         Assert.False(snapshot.PageBreakBefore);
         Assert.False(snapshot.KeepWithNext);
         Assert.False(snapshot.KeepLinesTogether);
@@ -184,8 +184,8 @@ public sealed class WordLoadDeferredInitializationTests {
         Run run = Assert.Single(paragraph._paragraph.Elements<Run>());
         run.RunProperties = new RunProperties(new Vanish());
 
-        WordParagraphSnapshot snapshot = Assert.IsType<WordParagraphSnapshot>(
-            Assert.Single(Assert.Single(document.CreateInspectionSnapshot().Sections).Elements));
+        WordParagraphInfo snapshot = Assert.IsType<WordParagraphInfo>(
+            Assert.Single(Assert.Single(document.Inspect().Sections).Elements));
 
         Assert.Equal("Minimal document", snapshot.Text);
         Assert.Equal("Minimal document", Assert.Single(snapshot.Runs).Text);
@@ -202,7 +202,7 @@ public sealed class WordLoadDeferredInitializationTests {
 
         Assert.Null(mainPart.DocumentSettingsPart);
 
-        document.Background.SetImage(imageStream, "background.png", 1, 1);
+        document.Background.SetImage(imageStream, "background.png", OfficeLength.Pixels(1), OfficeLength.Pixels(1));
 
         Assert.NotNull(mainPart.DocumentSettingsPart?.Settings?.DisplayBackgroundShape);
         Assert.NotNull(mainPart.Document?.DocumentBackground);
@@ -216,11 +216,11 @@ public sealed class WordLoadDeferredInitializationTests {
 
         Assert.Null(mainPart.StyleDefinitionsPart);
 
-        document.Settings.FontSize = 13;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(13);
         document.Settings.FontFamily = "Aptos";
 
         Assert.NotNull(mainPart.StyleDefinitionsPart?.Styles);
-        Assert.Equal(13, document.Settings.FontSize);
+        Assert.Equal(13, document.Settings.FontSize?.ToPoints());
         Assert.Equal("Aptos", document.Settings.FontFamily);
         Assert.Empty(new OpenXmlValidator().Validate(document._wordprocessingDocument));
     }

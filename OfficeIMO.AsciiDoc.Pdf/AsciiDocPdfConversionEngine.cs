@@ -14,7 +14,7 @@ internal static class AsciiDocPdfConversionEngine {
 
         AsciiDocToPdfOptions operation = (options ?? new AsciiDocToPdfOptions()).CloneForConversion();
         AsciiDocToMarkdownResult projection = document.ToMarkdownDocumentResult(operation.ProjectionOptions);
-        PdfCore.PdfDocumentConversionResult result = projection.Value.ToPdfDocumentResult(operation.MarkdownOptions, cancellationToken);
+        PdfCore.PdfDocumentConversionResult result = projection.Value.ConvertToPdfWithEvidence(operation.MarkdownOptions, cancellationToken);
         return result
             .WithSourceConversionReport(projection.Report)
             .WithAdditionalWarnings(ToPdfWarnings(document));

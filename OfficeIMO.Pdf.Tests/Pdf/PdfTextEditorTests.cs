@@ -207,7 +207,7 @@ public partial class PdfTextEditorTests {
         PdfTextEditResult added = moved.Document.Text.Add(addRegion, "Added caption", new PdfTextEditOptions {
             Font = PdfStandardFont.CourierBold,
             FontSize = 14D,
-            Color = PdfColor.FromRgb(10, 80, 160)
+            Color = global::OfficeIMO.OfficeColor.FromRgb(10, 80, 160)
         });
         PdfTextMatch addedMatch = Assert.Single(added.Document.Text.Find("Added caption", new PdfTextSearchOptions { MatchCase = true }));
         Assert.InRange(addedMatch.X, 71.9D, 72.1D);
@@ -724,7 +724,7 @@ public partial class PdfTextEditorTests {
 
         PdfRegionText inspected = PdfDocument.Load(source).Text.Inspect(new PdfPageRegion(1, 45D, 680D, 180D, 45D));
 
-        Assert.True(inspected.Color.R > inspected.Color.B);
+        Assert.True(inspected.Color.ToNormalizedRgb().R > inspected.Color.ToNormalizedRgb().B);
     }
 
     [Fact]
@@ -965,12 +965,12 @@ public partial class PdfTextEditorTests {
             "cat",
             "a much wider replacement",
             new PdfTextSearchOptions { MatchCase = true },
-            new PdfTextEditOptions { Color = PdfColor.FromRgb(0, 0, 255) });
+            new PdfTextEditOptions { Color = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255) });
         PdfTextMatch replacement = Assert.Single(result.Document.Text.Find("a much wider replacement", new PdfTextSearchOptions { MatchCase = true }));
         PdfTextMatch tail = Assert.Single(result.Document.Text.Find("tail", new PdfTextSearchOptions { MatchCase = true }));
 
-        Assert.True(replacement.Color.B > replacement.Color.R);
-        Assert.True(tail.Color.R > tail.Color.B);
+        Assert.True(replacement.Color.ToNormalizedRgb().B > replacement.Color.ToNormalizedRgb().R);
+        Assert.True(tail.Color.ToNormalizedRgb().R > tail.Color.ToNormalizedRgb().B);
         Assert.True(tail.X >= replacement.X + replacement.Width - 1D);
     }
 

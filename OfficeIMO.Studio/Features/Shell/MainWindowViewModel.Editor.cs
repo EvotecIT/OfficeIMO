@@ -624,7 +624,7 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private async Task UpdateSelectedAnnotationAsync(CancellationToken cancellationToken) {
         if (_workspace is null || SelectedAnnotationObjectNumber is not int objectNumber) return;
-        PdfColor color;
+        global::OfficeIMO.OfficeColor color;
         try { color = ParseColor(EditorColorHex); }
         catch (Exception error) { ErrorMessage = Infrastructure.StudioMessages.Describe(error); return; }
         string contents = SelectedAnnotationContents;
@@ -639,7 +639,7 @@ public sealed partial class MainWindowViewModel {
     private async Task ReplyToSelectedAnnotationAsync(CancellationToken cancellationToken) {
         if (_workspace is null || SelectedAnnotationObjectNumber is not int objectNumber) return;
         string reply = AnnotationReplyText;
-        PdfColor color;
+        global::OfficeIMO.OfficeColor color;
         try { color = ParseColor(EditorColorHex); }
         catch (Exception error) { ErrorMessage = Infrastructure.StudioMessages.Describe(error); return; }
         ClearObjectSelection();
@@ -679,7 +679,7 @@ public sealed partial class MainWindowViewModel {
     private PdfEditorProperties CreateEditorProperties(bool fillSignPlacement = false) => new(
         EditorText ?? string.Empty,
         EditorAuthor ?? string.Empty,
-        fillSignPlacement ? OfficeIMO.Pdf.PdfColor.FromRgb(27, 42, 74) : ParseColor(EditorColorHex),
+        fillSignPlacement ? global::OfficeIMO.OfficeColor.FromRgb(27, 42, 74) : ParseColor(EditorColorHex),
         string.IsNullOrWhiteSpace(EditorStampName) ? "Approved" : EditorStampName.Trim(),
         EditorLinkUri ?? string.Empty,
         Math.Clamp(EditorFontSize, 4D, 144D),
@@ -749,7 +749,7 @@ public sealed partial class MainWindowViewModel {
         foreach (PdfPageViewModel page in Pages) page.SelectedObject = null;
     }
 
-    private static PdfColor ParseColor(string? value) {
+    private static global::OfficeIMO.OfficeColor ParseColor(string? value) {
         string hex = (value ?? string.Empty).Trim().TrimStart('#');
         if (hex.Length != 6 ||
             !byte.TryParse(hex.AsSpan(0, 2), System.Globalization.NumberStyles.HexNumber, null, out byte red) ||
@@ -757,7 +757,7 @@ public sealed partial class MainWindowViewModel {
             !byte.TryParse(hex.AsSpan(4, 2), System.Globalization.NumberStyles.HexNumber, null, out byte blue)) {
             throw new FormatException("Editor color must be a six-digit hex value such as #E5484D.");
         }
-        return PdfColor.FromRgb(red, green, blue);
+        return global::OfficeIMO.OfficeColor.FromRgb(red, green, blue);
     }
 
     private static string FormatColor(IReadOnlyList<double> color) => string.Create(

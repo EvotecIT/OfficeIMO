@@ -105,12 +105,14 @@ public sealed class HtmlEpubImageExportTests {
             package,
             new EpubReadOptions { IncludeRawHtml = true });
 
-        OfficeImageExportResult result = Assert.Single(book.ToImages()
-            .Continuous()
-            .WithScale(100D)
-            .FitWithin(360, 360)
-            .AsPng()
-            .Export());
+        var imageOptions1 = new EpubImageExportOptions();
+        imageOptions1.Mode = HtmlRenderMode.Continuous;
+        imageOptions1.Scale = 100D;
+        imageOptions1.TargetDpi = null;
+        imageOptions1.MaximumOutputWidth = 360;
+        imageOptions1.MaximumOutputHeight = 360;
+        imageOptions1.Format = OfficeImageExportFormat.Png;
+        OfficeImageExportResult result = Assert.Single(book.ExportImages(OfficeImageExportFormat.Png, imageOptions1));
 
         Assert.True(result.Width <= 360);
         Assert.True(result.Height <= 360);
@@ -148,11 +150,11 @@ public sealed class HtmlEpubImageExportTests {
                 IncludeResourceData = true
             });
 
+        var imageOptions2 = new EpubImageExportOptions();
+        imageOptions2.Mode = HtmlRenderMode.Continuous;
+        imageOptions2.Format = OfficeImageExportFormat.Png;
         var results = await book
-            .ToImages()
-            .Continuous()
-            .AsPng()
-            .ExportAsync();
+            .ExportImagesAsync(OfficeImageExportFormat.Png, imageOptions2);
 
         OfficeImageExportResult result = Assert.Single(results);
         Assert.Equal("Chapter One", result.Name);
@@ -204,8 +206,7 @@ public sealed class HtmlEpubImageExportTests {
         Assert.True(result.Bytes.Length > 32);
         if (format == OfficeImageExportFormat.Svg) {
             OfficeDrawing drawing = HtmlSvgPaintAssertions.Read(result.Bytes);
-            Assert.Contains(DrawingTestTraversal.Elements(drawing).OfType<OfficeDrawingText>(), text =>
-                text.Text == "Styled EPUB" && (text.Font.Style & OfficeFontStyle.Italic) != 0);
+            HtmlSvgPaintAssertions.TextPaint(drawing, result.Bytes, "Styled EPUB", OfficeFontStyle.Italic);
             HtmlSvgPaintAssertions.WavyStrokes(drawing, OfficeColor.FromRgb(0x33, 0x66, 0x99), 2);
         }
     }

@@ -4,7 +4,7 @@ description: "Build, inspect, validate, compare, repair, and publish workbook wo
 layout: docs
 ---
 
-Excel is the largest PSWriteOffice family with 162 exported commands. It covers workbook creation and reading, sheet and range operations, formulas, styling, tables, charts, pivots, validation, comments, images, links, templates, dashboards, protection, accessibility, comparison, repair, streaming contracts, and direct range or chart image export.
+Excel is the largest PSWriteOffice family with 163 exported commands. It covers workbook creation and reading, sheet and range operations, formulas, styling, tables, charts, pivots, validation, comments, images, links, templates, dashboards, protection, accessibility, comparison, repair, streaming contracts, and direct range or chart image export.
 
 ## Export rows in one line
 
@@ -36,16 +36,16 @@ New-OfficeExcel -Path '.\Output\Revenue.xlsx' {
 
 ## Copy complete DSL recipes
 
-- [Project tracker](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ProjectTracker.ps1): table, validation list, conditional rules, chart, frozen header, print layout, and workbook index.
-- [Budget dashboard](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-BudgetDashboard.ps1): summary formulas and chart over a separate styled detail sheet.
-- [Operational dashboard](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1): the larger example with KPIs, pivots, sparklines, charts, links, comments, queries, and validation.
+- [Project tracker](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ProjectTracker.ps1): table, validation list, conditional rules, chart, frozen header, print layout, and workbook index.
+- [Budget dashboard](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-BudgetDashboard.ps1): summary formulas and chart over a separate styled detail sheet.
+- [Operational dashboard](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1): the larger example with KPIs, pivots, sparklines, charts, links, comments, queries, and validation.
 
 ## Other Excel workflows
 
-- [Object composition](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ObjectComposition.ps1): keep a workbook and worksheet object, then add cells and a table incrementally.
-- [Append or replace rows](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-AppendAndReplace.ps1): update a recurring export without rebuilding the surrounding workbook.
-- [Template invoice](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-TemplateInvoice.ps1): fill a prepared workbook while preserving its design.
-- [Pivots and sparklines](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-PivotAndSparklines.ps1): build analytical views beyond a flat export.
+- [Object composition](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ObjectComposition.ps1): keep a workbook and worksheet object, then add cells and a table incrementally.
+- [Append or replace rows](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-AppendAndReplace.ps1): update a recurring export without rebuilding the surrounding workbook.
+- [Template invoice](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-TemplateInvoice.ps1): fill a prepared workbook while preserving its design.
+- [Pivots and sparklines](https://github.com/EvotecIT/OfficeIMO/blob/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-PivotAndSparklines.ps1): build analytical views beyond a flat export.
 
 The [DSL cookbook](/docs/pswriteoffice/dsl-cookbook/) shows how Excel composition differs from the Word, PowerPoint, PDF, and Markdown blocks that consume the same objects.
 
@@ -69,4 +69,4 @@ The read surface can return used ranges, tables, named ranges, formulas, comment
 - `Compare-OfficeExcelWorkbook` and `Compare-OfficeExcelRange` make change evidence explicit.
 - `Repair-OfficeExcelWorkbook` is a deliberate repair path, not an implicit side effect of reading.
 
-Templates, joins, merges, sheet ordering, workbook copying, HTML review, and delimited import/export cover the surrounding pipeline. Search the [command reference](/api/powershell/) for `OfficeExcel`; use the [Excel examples](https://github.com/EvotecIT/OfficeIMO/tree/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Excel) for end-to-end patterns.
+Templates, joins, merges, sheet ordering, workbook copying, HTML review, and delimited import/export cover the surrounding pipeline. Search the [command reference](/api/powershell/) for `OfficeExcel`; use the [Excel examples](https://github.com/EvotecIT/OfficeIMO/tree/6266f235da958ad12a48e9a560a3586b708b2a1a/PowerShell/PSWriteOffice/Examples/Excel) for end-to-end patterns.

@@ -63,7 +63,7 @@ public partial class Word {
         document.Settings.GutterAtTop = true;
         document.Settings.TrackRevisions = true;
         document.Sections[0].DifferentOddAndEvenPages = true;
-        document.Sections[0].Margins.Gutter = 400;
+        document.Sections[0].Margins.Gutter = global::OfficeIMO.OfficeLength.Points(20D);
         document.Sections[0].AddEndnoteProperties(WordNumberFormat.Decimal,
             WordEndnotePosition.DocumentEnd, WordNoteNumberRestart.Continuous, startNumber: 1);
         document.CompatibilitySettings.DoNotBalanceTextColumns = true;
@@ -78,7 +78,7 @@ public partial class Word {
         Assert.True(cleared.Settings.GutterAtTop);
         Assert.True(cleared.Settings.TrackRevisions);
         Assert.True(cleared.Sections[0].DifferentOddAndEvenPages);
-        Assert.Equal(400U, cleared.Sections[0].Margins.Gutter);
+        Assert.Equal(400U, checked((uint)(cleared.Sections[0].Margins.Gutter.GetValueOrDefault().ToTwips())));
         Assert.Equal(EndnotePositionValues.DocumentEnd,
             cleared.Sections[0].EndnoteProperties.EndnotePosition!.Val!.Value);
         Assert.Equal("Preserved options", Assert.Single(cleared.Paragraphs).Text);

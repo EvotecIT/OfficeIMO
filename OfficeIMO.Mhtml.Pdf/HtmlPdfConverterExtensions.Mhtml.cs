@@ -52,7 +52,7 @@ public static class MhtmlPdfConverterExtensions {
         if (document == null) throw new ArgumentNullException(nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
         PdfCore.PdfDocumentConversionResult result = await document.HtmlDocument
-            .ToPdfDocumentResultAsync(PrepareMhtmlOptions(document, options), cancellationToken)
+            .ConvertToPdfWithEvidenceAsync(PrepareMhtmlOptions(document, options), cancellationToken)
             .ConfigureAwait(false);
         return AddMhtmlDiagnostics(result, document);
     }
@@ -101,7 +101,7 @@ public static class MhtmlPdfConverterExtensions {
     /// <summary>Attempts to convert an MHTML archive and save it as a PDF file.</summary>
     public static PdfCore.PdfSaveResult SaveAsPdfResult(this MhtmlDocument document, string path, HtmlToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(path, cancellationToken); }
+        try { return document.ToPdfDocumentResult(options, cancellationToken).TrySaveWithEvidence(path, cancellationToken); }
         catch (OperationCanceledException) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
     }
@@ -109,7 +109,7 @@ public static class MhtmlPdfConverterExtensions {
     /// <summary>Attempts to convert an MHTML archive and write it as PDF to a caller-owned stream.</summary>
     public static PdfCore.PdfSaveResult SaveAsPdfResult(this MhtmlDocument document, Stream stream, HtmlToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(stream, cancellationToken); }
+        try { return document.ToPdfDocumentResult(options, cancellationToken).TrySaveWithEvidence(stream, cancellationToken); }
         catch (OperationCanceledException) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
     }
@@ -123,7 +123,7 @@ public static class MhtmlPdfConverterExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         try {
             PdfCore.PdfDocumentConversionResult result = await document.ToPdfDocumentResultAsync(options, cancellationToken).ConfigureAwait(false);
-            return await result.SaveResultAsync(path, cancellationToken).ConfigureAwait(false);
+            return await result.TrySaveWithEvidenceAsync(path, cancellationToken).ConfigureAwait(false);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
         } catch (Exception exception) {
@@ -140,7 +140,7 @@ public static class MhtmlPdfConverterExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         try {
             PdfCore.PdfDocumentConversionResult result = await document.ToPdfDocumentResultAsync(options, cancellationToken).ConfigureAwait(false);
-            return await result.SaveResultAsync(stream, cancellationToken).ConfigureAwait(false);
+            return await result.TrySaveWithEvidenceAsync(stream, cancellationToken).ConfigureAwait(false);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
         } catch (Exception exception) {

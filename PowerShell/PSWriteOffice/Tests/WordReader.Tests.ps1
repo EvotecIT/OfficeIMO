@@ -17,7 +17,7 @@ Describe 'Word reader helpers' {
             Add-OfficeWordParagraph -Text 'Hello world'
         }
 
-        $doc = Get-OfficeWord -Path $path
+        $doc = Open-OfficeWord -Path $path
         try {
             $null = $doc.AddBookmark('Bookmark1')
             $paragraph = $doc.AddParagraph('Page')
@@ -99,9 +99,9 @@ Describe 'Word reader helpers' {
 
             Add-OfficeWordParagraph {
                 Add-OfficeWordText -Text 'See '
-                Add-OfficeWordHyperlink -Text 'Example' -Url 'https://example.org/docs' -Styled
+                Add-OfficeWordText -Text 'Example' -Link 'https://example.org/docs'
                 Add-OfficeWordText -Text ' and '
-                Add-OfficeWordHyperlink -Text 'Summary' -Anchor 'Summary'
+                Add-OfficeWordText -Text 'Summary' -Anchor 'Summary'
             }
 
             Add-OfficeWordParagraph {
@@ -148,7 +148,7 @@ Describe 'Word reader helpers' {
             }) -PreserveFields
         } | Out-Null
 
-        $doc = Get-OfficeWord -Path $path -ReadOnly
+        $doc = Open-OfficeWord -Path $path -ReadOnly
         try {
             $mergeFieldType = Get-TestPSWriteOfficeEnumValue -AssemblyName 'OfficeIMO.Word' -TypeName 'OfficeIMO.Word.WordFieldType' -Name 'MergeField'
             $doc.Fields.Where({ $_.FieldType -eq $mergeFieldType }).Count | Should -Be 1

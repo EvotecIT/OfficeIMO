@@ -5,6 +5,9 @@ using OfficeIMO.OpenDocument;
 namespace PSWriteOffice.Cmdlets.OpenDocument;
 
 /// <summary>Saves a native OpenDocument model with entry-level preservation diagnostics.</summary>
+/// <example><summary>Save a live document to its associated destination.</summary>
+/// <code>$document = New-OfficeOpenDocument -Path ./Proposal.odt
+/// Save-OfficeOpenDocument -Document $document</code></example>
 [Cmdlet(VerbsData.Save, "OfficeOpenDocument", SupportsShouldProcess = true)]
 [OutputType(typeof(OdfSaveResult))]
 public sealed class SaveOfficeOpenDocumentCommand : PSCmdlet {
@@ -12,9 +15,9 @@ public sealed class SaveOfficeOpenDocumentCommand : PSCmdlet {
     [Parameter(Mandatory = true, ValueFromPipeline = true)]
     public OdfDocument Document { get; set; } = null!;
 
-    /// <summary>Destination path.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
-    public string Path { get; set; } = string.Empty;
+    /// <summary>Destination path; defaults to the document's associated save path.</summary>
+    [Parameter(Position = 0), ValidateNotNullOrEmpty]
+    public string? Path { get; set; }
 
     /// <summary>Optional package save and preservation settings.</summary>
     [Parameter]
@@ -30,7 +33,8 @@ public sealed class SaveOfficeOpenDocumentCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var output = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+        string destination = Path ?? Document.FilePath ?? throw new PSArgumentException("Supply Path when the document has no associated save path.", nameof(Path));
+        var output = SessionState.Path.GetUnresolvedProviderPathFromPSPath(destination);
         OpenDocumentCommandUtilities.ValidateOpenDocumentExtension(output, Document.Kind, nameof(Path));
         if (!ShouldProcess(output, "Save OpenDocument package")) return;
         if (FailOnLoss.IsPresent) {

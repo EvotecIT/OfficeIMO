@@ -168,11 +168,11 @@ public sealed partial class HtmlRenderingTests {
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
         pdfOptions = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(120D / HtmlRenderOptions.CssPixelsPerInch, 30D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(120D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(30D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open((OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes()).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(OfficeColor.Red, raster.GetPixel(38, 18));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(98, 18));
@@ -182,7 +182,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.White, svgRaster.GetPixel(50, 18));
         Assert.Equal(OfficeColor.Blue, svgRaster.GetPixel(98, 18));
         Assert.Contains("ColPdf", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -196,7 +196,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='paged-column-b' style='height:20px;background:#0000ff'>Six</div></div>";
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(120D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(120D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(40D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };

@@ -45,7 +45,7 @@ public sealed class ReaderNativeInspectionEvidenceTests {
     public void ExcelSeparatesExpressionsSavedCachesAndMissingCachesAndRetainsEmptyCellRepliesAndVisibility() {
         using var stream = new MemoryStream();
         using (ExcelDocument workbook = ExcelDocument.Create(stream)) {
-            ExcelSheet sheet = workbook.AddWorksheet("Hidden data");
+            ExcelSheet sheet = workbook.AddSheet("Hidden data");
             sheet.Cell(1, 1, 1); sheet.Cell(2, 1, 99);
             sheet.SetComment("A2", "Review cache", "Ada");
             var parent = sheet.AddThreadedComment("C4", "Blank-cell parent", "Grace");
@@ -74,15 +74,27 @@ public sealed class ReaderNativeInspectionEvidenceTests {
     public void PowerPointRetainsReviewAndHiddenSourceStateEvenWhenHiddenShapesAreExcludedFromText() {
         using var stream = new MemoryStream();
         byte[] bytes;
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
             PowerPointSlide slide = presentation.AddSlide(); slide.Hidden = true;
             slide.AddTextBox("Hidden author text").Hidden = true;
-            presentation.AddClassicComment(slide, new PowerPointCommentAuthor("Reviewer", "R"), "Review evidence");
+            var author = new PowerPointCommentAuthor("Reviewer", "R");
+            presentation.AddClassicComment(slide, author, "Review evidence",
+                x: OfficeLength.Points(1 / 8D), y: OfficeLength.Points(-25 / 8D));
+            presentation.AddModernComment(slide, author, "Modern evidence",
+                x: OfficeLength.Inches(1), y: OfficeLength.Inches(-1));
             bytes = presentation.ToBytes();
         }
         ReaderOptions options = Options(); options.Inspection!.IncludeVisibility = true;
         OfficeDocumentReadResult result = new OfficeDocumentReaderBuilder().AddPowerPointHandler(new ReaderPowerPointOptions { IncludeHiddenShapes = false }).Build().ReadDocument(bytes, "review.pptx", options);
         Assert.Contains(result.Metadata, item => item.Category == OfficeDocumentInspectionCategories.Comment && item.Value == "Review evidence" && item.Location!.Slide == 1);
+        OfficeDocumentMetadataEntry classic = Assert.Single(result.Metadata,
+            item => item.Category == OfficeDocumentInspectionCategories.Comment && item.Value == "Review evidence");
+        Assert.Equal("1", classic.Attributes["x"]);
+        Assert.Equal("-25", classic.Attributes["y"]);
+        OfficeDocumentMetadataEntry modern = Assert.Single(result.Metadata,
+            item => item.Category == OfficeDocumentInspectionCategories.Comment && item.Value == "Modern evidence");
+        Assert.False(modern.Attributes.ContainsKey("x"));
+        Assert.False(modern.Attributes.ContainsKey("y"));
         Assert.Contains(result.Metadata, item => item.Category == OfficeDocumentInspectionCategories.Visibility && item.Name == "Slide");
         Assert.Contains(result.Metadata, item => item.Category == OfficeDocumentInspectionCategories.Visibility && item.Name == "Shape");
     }

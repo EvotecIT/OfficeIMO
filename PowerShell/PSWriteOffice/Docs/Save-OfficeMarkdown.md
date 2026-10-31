@@ -6,46 +6,67 @@ schema: 2.0.0
 ---
 # Save-OfficeMarkdown
 ## SYNOPSIS
-Saves a Markdown document without changing its lifetime.
+Saves a live Markdown document using its native save policy and keeps it available.
 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Save-OfficeMarkdown [-Document] <MarkdownDoc> [-Path] <string> [-WriteOptions <MarkdownWriteOptions>] [-WriteProfile <OfficeMarkdownWriteProfile>] [-ImageRenderingMode <MarkdownImageRenderingMode>] [-LineEnding <string>] [-UnorderedListMarker <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-OfficeMarkdown [[-Path] <string>] -Document <MarkdownDocument> [-WriteOptions <MarkdownSaveOptions>] [-WriteProfile <OfficeMarkdownWriteProfile>] [-ImageRenderingMode <MarkdownImageRenderingMode>] [-LineEnding <OfficeLineEnding>] [-UnorderedListMarker <string>] [-AllowLoss] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Saves a Markdown document without changing its lifetime.
+Saves a live Markdown document using its native save policy and keeps it available.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $doc | Save-OfficeMarkdown -Path .\Report.md
+$document | Save-OfficeMarkdown -PassThru
 ```
 
-Writes the Markdown artifact and keeps the document available for further changes.
+
+### EXAMPLE 2
+```powershell
+Save-OfficeMarkdown -Document $document -Path ./Publish/Report.md -LineEnding CRLF -PassThru
+```
+
 
 ## PARAMETERS
+
+### -AllowLoss
+Accept explicit native-save omissions, overriding WriteOptions when supplied.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
 
 ### -Document
 Markdown document to save.
 
 ```yaml
-Type: MarkdownDoc
+Type: MarkdownDocument
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
 
 Required: True
-Position: 0
+Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
 ### -ImageRenderingMode
-Controls how Markdown images are serialized.
+Controls Markdown image serialization.
 
 ```yaml
 Type: MarkdownImageRenderingMode
@@ -61,13 +82,13 @@ Accept wildcard characters: False
 ```
 
 ### -LineEnding
-Markdown line ending: CRLF, LF, CR, or a literal line ending string.
+Output line endings.
 
 ```yaml
-Type: String
+Type: OfficeLineEnding
 Parameter Sets: __AllParameterSets
 Aliases: None
-Possible values:
+Possible values: LF, CRLF, CR
 
 Required: False
 Position: named
@@ -77,7 +98,7 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the Markdown document rather than the saved file.
+Return the saved file.
 
 ```yaml
 Type: SwitchParameter
@@ -93,29 +114,29 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Destination Markdown path.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: FilePath
-Possible values:
-
-Required: True
-Position: 1
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -UnorderedListMarker
-Unordered list marker: '-', '*', or '+'.
+Optional destination; omission saves to the associated path.
 
 ```yaml
 Type: String
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
+
+Required: False
+Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -UnorderedListMarker
+Unordered list marker.
+
+```yaml
+Type: String
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values: -, *, +
 
 Required: False
 Position: named
@@ -125,10 +146,10 @@ Accept wildcard characters: False
 ```
 
 ### -WriteOptions
-Optional Markdown writer options.
+Native save settings, or a hashtable of native option properties.
 
 ```yaml
-Type: MarkdownWriteOptions
+Type: MarkdownSaveOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -161,11 +182,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## OUTPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `System.IO.FileInfo`
 
 ## RELATED LINKS
 

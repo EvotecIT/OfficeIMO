@@ -1,11 +1,11 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren) MergeMarkdigDefinitionLazyListContinuations(
         IReadOnlyList<IMarkdownBlock> blocks,
         IReadOnlyList<MarkdownSyntaxNode> syntaxChildren,
         IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         if (blocks == null || syntaxChildren == null || blocks.Count < 2 || blocks.Count != syntaxChildren.Count) {
             return (blocks ?? Array.Empty<IMarkdownBlock>(), syntaxChildren ?? Array.Empty<MarkdownSyntaxNode>());
@@ -40,7 +40,7 @@ public static partial class MarkdownReader {
         IMarkdownBlock nextBlock,
         MarkdownSyntaxNode nextSyntax,
         IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state,
         out MarkdownSyntaxNode combinedSyntax) {
         combinedSyntax = currentSyntax;
@@ -145,7 +145,7 @@ public static partial class MarkdownReader {
         ParagraphBlock paragraph,
         MarkdownSyntaxNode paragraphSyntax,
         IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         if (listBlock == null || paragraph == null || listBlock.ListItems.Count == 0) {
             return false;
@@ -184,7 +184,7 @@ public static partial class MarkdownReader {
         ParagraphBlock paragraph,
         MarkdownSyntaxNode paragraphSyntax,
         IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         if (TryGetDefinitionLazyParagraphSourceText(paragraphSyntax, sourceLines, out var sourceText)) {
             if (!ContainsBackslashEscapableCharacter(sourceText)) {
@@ -201,7 +201,7 @@ public static partial class MarkdownReader {
 
     private static IReadOnlyList<IMarkdownInline> ParseDefinitionLazyListItemContinuationNodes(
         string sourceText,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         if (string.IsNullOrEmpty(sourceText)) {
             return Array.Empty<IMarkdownInline>();

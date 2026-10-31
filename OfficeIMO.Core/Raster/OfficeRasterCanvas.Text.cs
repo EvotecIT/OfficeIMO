@@ -389,6 +389,8 @@ public sealed partial class OfficeRasterCanvas {
 
         string value = text!;
         double fontHeight = Math.Max(1D, height);
+        if (Math.Abs(rotationDegrees % 360D) < 0.000001D && !flipVertical)
+            top += SnapBaselineOffset(top + fontHeight * .84D);
         OfficeFontStyle fontStyle = (bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
         if (TryDrawMixedTextLine(

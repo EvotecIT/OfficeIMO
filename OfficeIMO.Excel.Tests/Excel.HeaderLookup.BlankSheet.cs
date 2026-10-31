@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath))
             {
-                document.AddWorksheet("Empty");
+                document.AddSheet("Empty");
                 document.Save();
             }
 

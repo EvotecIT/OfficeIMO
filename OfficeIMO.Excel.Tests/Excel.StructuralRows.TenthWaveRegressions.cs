@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_TracksTableFormulaTargetsIndependentlyFromTableMovement() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(5, 1).SetValue("Value");
             sheet.CellAt(5, 2).SetValue("Result");
             sheet.CellAt(6, 1).SetValue(10);
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_ShrinksPartiallyDeletedRelativeAnchoredRanges() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 2).SetValue(1);
             sheet.CellAt(2, 1).SetValue(2);
             sheet.CellAt(3, 1).SetValue(3);
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RenumbersScenarioViewIndicesAfterRemoval() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(2, 1).SetValue(1);
             sheet.CellAt(3, 1).SetValue(2);
             var removed = new Scenario(
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RejectsVmlOnlyFormControlsAtomically() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(2, 1).SetValue("Keep");
             VmlDrawingPart vmlPart = sheet.WorksheetPart.AddNewPart<VmlDrawingPart>();
             string relationshipId = sheet.WorksheetPart.GetIdOfPart(vmlPart);
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemapsNormalAndCustomViewSelections() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(5, 1).SetValue(1);
             var normalSelection = new Selection {
                 ActiveCell = "A5",
@@ -159,12 +159,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreflightsSavedViewSelections() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Keep");
             var selection = new Selection {
-                ActiveCell = $"A{A1.MaxRows}",
+                ActiveCell = $"A{ExcelA1.MaxRows}",
                 SequenceOfReferences = new ListValue<StringValue> {
-                    InnerText = $"A{A1.MaxRows}"
+                    InnerText = $"A{ExcelA1.MaxRows}"
                 }
             };
             var sheetViews = new SheetViews(
@@ -177,7 +177,7 @@ namespace OfficeIMO.Tests {
                 () => sheet.InsertRows(1));
 
             Assert.Contains("row limit", exception.Message);
-            Assert.Equal($"A{A1.MaxRows}", selection.ActiveCell!.Value);
+            Assert.Equal($"A{ExcelA1.MaxRows}", selection.ActiveCell!.Value);
             Assert.Equal("Keep", sheet.CellAt(1, 1).GetValue<string>());
         }
     }

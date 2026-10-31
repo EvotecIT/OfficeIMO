@@ -1,0 +1,58 @@
+#nullable enable
+OfficeIMO.OfficeBatchItemReport.SkippedReason.get -> string?
+OfficeIMO.OfficeBatchItemReport.SkippedReason.init -> void
+OfficeIMO.OfficeBatchOptions.SkipExistingOutputs.get -> bool
+OfficeIMO.OfficeBatchOptions.SkipExistingOutputs.set -> void
+OfficeIMO.OfficeBatchOptions.SkipUpToDate.get -> bool
+OfficeIMO.OfficeBatchOptions.SkipUpToDate.set -> void
+OfficeIMO.OfficeConversionOptions.SourceExtension.get -> string?
+OfficeIMO.OfficeConversionOptions.SourceExtension.set -> void
+OfficeIMO.OfficeConversionOptions.SourceFormat.get -> OfficeIMO.OfficeDocumentFormat?
+OfficeIMO.OfficeConversionOptions.SourceFormat.set -> void
+OfficeIMO.OfficeDocumentInfo.Confidence.get -> OfficeIMO.Reader.ReaderDetectionConfidence
+OfficeIMO.OfficeDocumentInfo.Details.get -> object?
+OfficeIMO.OfficeDocumentInfo.DetectedFormat.get -> OfficeIMO.Reader.ReaderInputKind
+OfficeIMO.OfficeDocumentInfo.Detection.get -> OfficeIMO.Reader.ReaderDetectionResult?
+OfficeIMO.OfficeDocumentInfo.Format.get -> OfficeIMO.Reader.ReaderInputKind
+OfficeIMO.OfficeDocumentInfo.IsEncrypted.get -> bool?
+OfficeIMO.OfficeDocumentInfo.Modified.get -> System.DateTime?
+OfficeIMO.OfficeDocumentInfo.PageCount.get -> int?
+OfficeIMO.OfficeDocumentInfo.Path.get -> string?
+OfficeIMO.OfficeDocumentInfo.SheetCount.get -> int?
+OfficeIMO.OfficeDocumentInfo.SlideCount.get -> int?
+OfficeIMO.OfficeInspectOptions.Detailed.get -> bool
+OfficeIMO.OfficeInspectOptions.Detailed.set -> void
+OfficeIMO.OfficeInspectOptions.Detection.get -> OfficeIMO.Reader.ReaderDetectionOptions?
+OfficeIMO.OfficeInspectOptions.Detection.set -> void
+OfficeIMO.OfficeInspectOptions.DocumentReader.get -> OfficeIMO.Reader.OfficeDocumentReader?
+OfficeIMO.OfficeInspectOptions.DocumentReader.set -> void
+OfficeIMO.OfficeInspectOptions.ExcelInspection.get -> OfficeIMO.Excel.ExcelReaderOptions?
+OfficeIMO.OfficeInspectOptions.ExcelInspection.set -> void
+OfficeIMO.OfficeInspectOptions.IncludeSummary.get -> bool
+OfficeIMO.OfficeInspectOptions.IncludeSummary.set -> void
+OfficeIMO.OfficeInspectOptions.PowerPointInspection.get -> OfficeIMO.PowerPoint.PowerPointInspectionOptions?
+OfficeIMO.OfficeInspectOptions.PowerPointInspection.set -> void
+static OfficeIMO.OfficeConverter.Convert(System.IO.Stream! source, OfficeIMO.OfficeDocumentFormat sourceFormat, string! destination) -> OfficeIMO.OfficeConversionReport!
+static OfficeIMO.OfficeConverter.Convert(System.IO.Stream! source, OfficeIMO.OfficeDocumentFormat sourceFormat, string! destination, OfficeIMO.OfficeConversionOptions? options) -> OfficeIMO.OfficeConversionReport!
+static OfficeIMO.OfficeConverter.Convert(string! source, System.IO.Stream! destination, OfficeIMO.OfficeDocumentFormat target) -> OfficeIMO.OfficeConversionReport!
+static OfficeIMO.OfficeConverter.Convert(string! source, System.IO.Stream! destination, OfficeIMO.OfficeDocumentFormat target, OfficeIMO.OfficeConversionOptions? options) -> OfficeIMO.OfficeConversionReport!
+static OfficeIMO.OfficeConverter.Convert(string! source, string! destination) -> OfficeIMO.OfficeConversionReport!
+static OfficeIMO.OfficeConverter.Convert(string! source, string! destination, OfficeIMO.OfficeConversionOptions? options) -> OfficeIMO.OfficeConversionReport!
+static OfficeIMO.OfficeConverter.ConvertAsync(OfficeIMO.OfficeBatchOptions! options) -> System.Threading.Tasks.Task<OfficeIMO.OfficeBatchReport!>!
+static OfficeIMO.OfficeConverter.ConvertAsync(OfficeIMO.OfficeBatchOptions! options, System.IProgress<OfficeIMO.OfficeBatchItemReport!>? progress) -> System.Threading.Tasks.Task<OfficeIMO.OfficeBatchReport!>!
+static OfficeIMO.OfficeConverter.ConvertAsync(OfficeIMO.OfficeBatchOptions! options, System.IProgress<OfficeIMO.OfficeBatchItemReport!>? progress, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<OfficeIMO.OfficeBatchReport!>!
+static OfficeIMO.OfficeConverter.ConvertAsync(System.IO.Stream! source, OfficeIMO.OfficeDocumentFormat sourceFormat, string! destination) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeConverter.ConvertAsync(System.IO.Stream! source, OfficeIMO.OfficeDocumentFormat sourceFormat, string! destination, OfficeIMO.OfficeConversionOptions? options) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeConverter.ConvertAsync(System.IO.Stream! source, OfficeIMO.OfficeDocumentFormat sourceFormat, string! destination, OfficeIMO.OfficeConversionOptions? options, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeConverter.ConvertAsync(string! source, System.IO.Stream! destination, OfficeIMO.OfficeDocumentFormat target) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeConverter.ConvertAsync(string! source, System.IO.Stream! destination, OfficeIMO.OfficeDocumentFormat target, OfficeIMO.OfficeConversionOptions? options) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeConverter.ConvertAsync(string! source, System.IO.Stream! destination, OfficeIMO.OfficeDocumentFormat target, OfficeIMO.OfficeConversionOptions? options, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeConverter.ConvertAsync(string! source, string! destination) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeConverter.ConvertAsync(string! source, string! destination, OfficeIMO.OfficeConversionOptions? options) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeConverter.ConvertAsync(string! source, string! destination, OfficeIMO.OfficeConversionOptions? options, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeDocument.Inspect(object! document) -> OfficeIMO.OfficeDocumentInfo!
+static OfficeIMO.OfficeDocument.Inspect(object! document, OfficeIMO.OfficeInspectOptions? options) -> OfficeIMO.OfficeDocumentInfo!
+static OfficeIMO.OfficeDocument.Inspect(object! document, OfficeIMO.OfficeInspectOptions? options, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.OfficeDocumentInfo!
+static OfficeIMO.OfficeDocument.Inspect(string! path) -> OfficeIMO.OfficeDocumentInfo!
+static OfficeIMO.OfficeDocument.Inspect(string! path, OfficeIMO.OfficeInspectOptions? options) -> OfficeIMO.OfficeDocumentInfo!
+static OfficeIMO.OfficeDocument.Inspect(string! path, OfficeIMO.OfficeInspectOptions? options, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.OfficeDocumentInfo!

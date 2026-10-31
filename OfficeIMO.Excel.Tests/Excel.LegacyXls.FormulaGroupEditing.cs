@@ -16,8 +16,8 @@ public sealed class ExcelLegacyFormulaGroupEditingTests {
     [InlineData(false, true, true)]
     [InlineData(true, true, true)]
     public void Editing_one_shared_member_materializes_the_remaining_native_relative_formulas(bool encrypted, bool crossSheet, bool area) {
-        using var seed = ExcelDocument.Create(); var data = seed.AddWorksheet("Data");
-        var sheet = crossSheet ? seed.AddWorksheet("Formulas") : data;
+        using var seed = ExcelDocument.Create(); var data = seed.AddSheet("Data");
+        var sheet = crossSheet ? seed.AddSheet("Formulas") : data;
         string prefix = crossSheet ? "'Data'!" : string.Empty;
         data.CellValue(4, 1, 40D);
         for (int row = 1; row <= 3; row++) {
@@ -27,7 +27,7 @@ public sealed class ExcelLegacyFormulaGroupEditingTests {
             formula.FormulaType = CellFormulaValues.Shared; formula.SharedIndex = 0;
             if (row == 1) formula.Reference = "B1:B3"; else formula.Text = string.Empty;
         }
-        byte[] bytes = seed.ToBytes(ExcelFileFormat.Xls);
+        byte[] bytes = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         if (crossSheet) bytes = MakePreviousWriter3dGroup(bytes);
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out _));
         Assert.Contains(BiffRecordReader.ReadRecords(compound!.Streams["Workbook"], new()), record => record.Type == 0x04bc);
@@ -58,12 +58,12 @@ public sealed class ExcelLegacyFormulaGroupEditingTests {
     [InlineData(true)]
     public void Adding_self_references_reuses_the_native_supporting_workbook(bool encrypted) {
         using var seed = ExcelDocument.Create();
-        var data = seed.AddWorksheet("Data"); data.CellValue(1, 1, 10D);
-        var calculations = seed.AddWorksheet("Calculations"); calculations.CellFormula(1, 1, "Data!A1+1");
-        byte[] original = seed.ToBytes(ExcelFileFormat.Xls);
+        var data = seed.AddSheet("Data"); data.CellValue(1, 1, 10D);
+        var calculations = seed.AddSheet("Calculations"); calculations.CellFormula(1, 1, "Data!A1+1");
+        byte[] original = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         using var document = ExcelDocument.Load(new MemoryStream(original));
         for (int iteration = 0; iteration < 3; iteration++) {
-            var added = document.AddWorksheet("Added" + iteration); added.CellValue(1, 1, 20D + iteration);
+            var added = document.AddSheet("Added" + iteration); added.CellValue(1, 1, 20D + iteration);
             document.Sheets[1].CellFormula(iteration + 2, 1, "'" + added.Name + "'!A1+1");
             using var output = new MemoryStream();
             if (encrypted) document.SaveEncrypted(output, "test-password", ExcelFileFormat.Xls);
@@ -83,7 +83,7 @@ public sealed class ExcelLegacyFormulaGroupEditingTests {
     public void Shared_RTD_functions_are_materialized_without_invoking_the_server(bool encrypted, bool nested) {
         const string rtd = "RTD(\"ProgId\",\"Server\",\"Topic\")";
         string expression = nested ? "IF(A1>0," + rtd + ",\"offline\")" : rtd;
-        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Data");
+        using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data");
         for (int row = 1; row <= 2; row++) {
             sheet.CellValue(row, 1, (double)row); sheet.CellValue(row, 2, "snapshot");
             sheet.CellFormula(row, 2, expression);
@@ -104,10 +104,10 @@ public sealed class ExcelLegacyFormulaGroupEditingTests {
 
     [Fact]
     public void Clearing_array_caches_keeps_every_native_member_and_the_array_definition() {
-        using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Data");
+        using var seed = ExcelDocument.Create(); var sheet = seed.AddSheet("Data");
         sheet.CellValue(1, 1, 2D); sheet.CellValue(2, 1, 3D);
         sheet.SetArrayFormula("B1:B2", "SUM(A1:A2)"); sheet.CellValue(1, 2, 5D); sheet.CellValue(2, 2, 5D);
-        byte[] original = seed.ToBytes(ExcelFileFormat.Xls);
+        byte[] original = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         foreach (bool reload in new[] { false, true }) {
             using var imported = ExcelDocument.Load(new MemoryStream(original));
             var document = reload ? imported : seed;

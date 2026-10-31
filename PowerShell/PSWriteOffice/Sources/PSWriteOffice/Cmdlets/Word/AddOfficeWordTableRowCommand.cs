@@ -17,7 +17,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Append values to the first table.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Report.docx
+///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// $doc | Get-OfficeWordTable | Select-Object -First 1 |
 ///     Add-OfficeWordTableRow -Values 'Service', 'Ready', 'Low'</code>
 ///   <para>Adds one table row and writes the supplied values into its cells.</para>
@@ -25,7 +25,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Append an object-like row to a table found by marker text.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Report.docx
+///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// $table = Find-OfficeWordTable -Document $doc -Text 'Risk marker' | Select-Object -First 1
 /// $table | Add-OfficeWordTableRow -Values ([ordered]@{
 ///     Item  = 'Mitigation plan'

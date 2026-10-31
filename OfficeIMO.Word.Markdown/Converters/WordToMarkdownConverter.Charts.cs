@@ -6,7 +6,7 @@ namespace OfficeIMO.Word.Markdown {
     internal partial class WordToMarkdownConverter {
         private bool TryCreateChartSvgFallbackBlock(
             WordChart chart,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             out IMarkdownBlock block) {
             block = null!;
 
@@ -24,7 +24,7 @@ namespace OfficeIMO.Word.Markdown {
 
                 byte[] svgBytes = OfficeDrawingSvgExporter.ToSvgBytes(rendering.Drawing);
                 string displayName = GetChartDisplayName(snapshot);
-                string source = options.VisualFallbackMode == MarkdownVisualFallbackMode.SvgFile
+                string source = options.VisualFallbackMode == WordMarkdownVisualFallbackMode.SvgFile
                     ? WriteVisualFallbackSvgResource(svgBytes, displayName, options)
                     : "data:image/svg+xml;base64," + System.Convert.ToBase64String(svgBytes);
                 string alt = string.IsNullOrWhiteSpace(snapshot.Title) ? "Word chart" : snapshot.Title!;

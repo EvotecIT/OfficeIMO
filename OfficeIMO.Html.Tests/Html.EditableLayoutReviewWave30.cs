@@ -23,7 +23,7 @@ public sealed class HtmlEditableLayoutReviewWave30Tests {
     [Fact]
     public void WordShapeRejectsInvalidDrawingFillWithoutMutation() {
         using WordDocument document = WordDocument.Create();
-        WordShape shape = document.AddShapeDrawing(WordShapeType.Rectangle, 80, 40);
+        WordShape shape = document.AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40));
         shape.FillColorHex = "ABCDEF";
 
         foreach (string? invalid in new[] { null, string.Empty, "red", "12345", "12345G" }) {

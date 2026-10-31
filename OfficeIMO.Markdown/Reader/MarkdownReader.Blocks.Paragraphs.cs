@@ -4,9 +4,9 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
-    private static List<IMarkdownBlock> ParseBlocksFromLines(string[] lines, MarkdownReaderOptions options, MarkdownReaderState state, List<MarkdownSyntaxNode>? syntaxNodes = null, int lineOffset = 0) {
-        var doc = MarkdownDoc.Create();
+internal static partial class MarkdownReader {
+    private static List<IMarkdownBlock> ParseBlocksFromLines(string[] lines, MarkdownLoadOptions options, MarkdownReaderState state, List<MarkdownSyntaxNode>? syntaxNodes = null, int lineOffset = 0) {
+        var doc = MarkdownDocument.Create();
         var opt = CloneOptionsWithoutFrontMatter(options);
         var pipeline = MarkdownReaderPipeline.Default(opt);
         int previousLineOffset = state.SourceLineOffset;
@@ -91,7 +91,7 @@ public static partial class MarkdownReader {
         public bool UsesLineBreakSeparator => HardBreak || PreserveLineBreak;
     }
 
-    private static List<InlineSequence> ParseParagraphsFromLines(List<string> lines, MarkdownReaderOptions options, MarkdownReaderState? state) {
+    private static List<InlineSequence> ParseParagraphsFromLines(List<string> lines, MarkdownLoadOptions options, MarkdownReaderState? state) {
         var paragraphs = new List<InlineSequence>();
         if (lines == null || lines.Count == 0) {
             paragraphs.Add(ParseInlines(string.Empty, options, state));
@@ -121,7 +121,7 @@ public static partial class MarkdownReader {
         return paragraphs;
     }
 
-    private static List<InlineSequence> ParseParagraphsFromSourceLines(List<MarkdownSourceLineSlice> lines, MarkdownReaderOptions options, MarkdownReaderState? state) {
+    private static List<InlineSequence> ParseParagraphsFromSourceLines(List<MarkdownSourceLineSlice> lines, MarkdownLoadOptions options, MarkdownReaderState? state) {
         var paragraphs = new List<InlineSequence>();
         if (lines == null || lines.Count == 0) {
             paragraphs.Add(ParseInlines(string.Empty, options, state));
@@ -159,13 +159,13 @@ public static partial class MarkdownReader {
 
     private static InlineSequence ParseParagraphFromSourceLines(
         List<MarkdownSourceLineSlice> lines,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state) {
         var (text, sourceMap) = JoinParagraphSourceLinesWithSourceMap(lines, options, state);
         return ParseInlines(text, options, state, sourceMap);
     }
 
-    private static List<ParagraphBlock> ParseParagraphBlocksFromLines(List<string> lines, MarkdownReaderOptions options, MarkdownReaderState? state) {
+    private static List<ParagraphBlock> ParseParagraphBlocksFromLines(List<string> lines, MarkdownLoadOptions options, MarkdownReaderState? state) {
         var paragraphInlines = ParseParagraphsFromLines(lines, options, state);
         var blocks = new List<ParagraphBlock>(paragraphInlines.Count);
         for (int i = 0; i < paragraphInlines.Count; i++) {
@@ -174,7 +174,7 @@ public static partial class MarkdownReader {
         return blocks;
     }
 
-    private static List<ParagraphBlock> ParseParagraphBlocksFromSourceLines(List<MarkdownSourceLineSlice> lines, MarkdownReaderOptions options, MarkdownReaderState? state) {
+    private static List<ParagraphBlock> ParseParagraphBlocksFromSourceLines(List<MarkdownSourceLineSlice> lines, MarkdownLoadOptions options, MarkdownReaderState? state) {
         var paragraphInlines = ParseParagraphsFromSourceLines(lines, options, state);
         var blocks = new List<ParagraphBlock>(paragraphInlines.Count);
         for (int i = 0; i < paragraphInlines.Count; i++) {
@@ -183,7 +183,7 @@ public static partial class MarkdownReader {
         return blocks;
     }
 
-    private static void AddListItemLeadSyntaxNodes(ListItem item, List<string> lines, int lineOffset, MarkdownReaderOptions options, MarkdownReaderState? state, List<MarkdownSourceLineSlice>? sourceLines = null) {
+    private static void AddListItemLeadSyntaxNodes(ListItem item, List<string> lines, int lineOffset, MarkdownLoadOptions options, MarkdownReaderState? state, List<MarkdownSourceLineSlice>? sourceLines = null) {
         if (item == null || lines == null || lines.Count == 0) return;
         if (HasNonSyntaxOnlyListItemLeadSyntaxChildren(item.SyntaxChildren)) return;
         int absoluteLineOffset = (state?.SourceLineOffset ?? 0) + lineOffset;
@@ -280,7 +280,7 @@ public static partial class MarkdownReader {
         }
     }
 
-    private static void AddParagraphSyntaxNodes(List<MarkdownSyntaxNode> nodes, List<string> lines, int lineOffset, MarkdownReaderOptions options, MarkdownReaderState? state) {
+    private static void AddParagraphSyntaxNodes(List<MarkdownSyntaxNode> nodes, List<string> lines, int lineOffset, MarkdownLoadOptions options, MarkdownReaderState? state) {
         if (nodes == null || lines == null || lines.Count == 0) return;
 
         var current = new List<string>();
@@ -302,7 +302,7 @@ public static partial class MarkdownReader {
         FlushParagraphSyntaxNode(nodes, current, currentStart, lines.Count - 1, lineOffset, options, state);
     }
 
-    private static void AddParagraphSyntaxNodes(List<MarkdownSyntaxNode> nodes, List<MarkdownSourceLineSlice> lines, MarkdownReaderOptions options, MarkdownReaderState? state) {
+    private static void AddParagraphSyntaxNodes(List<MarkdownSyntaxNode> nodes, List<MarkdownSourceLineSlice> lines, MarkdownLoadOptions options, MarkdownReaderState? state) {
         if (nodes == null || lines == null || lines.Count == 0) return;
 
         var current = new List<MarkdownSourceLineSlice>();
@@ -321,7 +321,7 @@ public static partial class MarkdownReader {
 
     private static IReadOnlyList<MarkdownSyntaxNode> ParseBlockSyntaxNodesFromSourceLines(
         List<MarkdownSourceLineSlice> lines,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state) {
         if (lines == null || lines.Count == 0) {
             return Array.Empty<MarkdownSyntaxNode>();
@@ -332,7 +332,7 @@ public static partial class MarkdownReader {
         return syntaxChildren;
     }
 
-    private static void FlushParagraphSyntaxNode(List<MarkdownSyntaxNode> nodes, List<string> lines, int startIndex, int endIndex, int lineOffset, MarkdownReaderOptions options, MarkdownReaderState? state) {
+    private static void FlushParagraphSyntaxNode(List<MarkdownSyntaxNode> nodes, List<string> lines, int startIndex, int endIndex, int lineOffset, MarkdownLoadOptions options, MarkdownReaderState? state) {
         if (nodes == null || lines == null || lines.Count == 0 || startIndex < 0 || endIndex < startIndex) return;
 
         var inlines = ParseJoinedParagraphLines(lines, options, state);
@@ -340,7 +340,7 @@ public static partial class MarkdownReader {
         nodes.Add(BuildSyntaxNode(paragraph, CreateLineSpan(state, lineOffset + startIndex + 1, lineOffset + endIndex + 1)));
     }
 
-    private static void FlushParagraphSyntaxNode(List<MarkdownSyntaxNode> nodes, List<MarkdownSourceLineSlice> lines, MarkdownReaderOptions options, MarkdownReaderState? state) {
+    private static void FlushParagraphSyntaxNode(List<MarkdownSyntaxNode> nodes, List<MarkdownSourceLineSlice> lines, MarkdownLoadOptions options, MarkdownReaderState? state) {
         if (nodes == null || lines == null || lines.Count == 0) return;
 
         var (text, sourceMap) = JoinParagraphSourceLinesWithSourceMap(lines, options, state);

@@ -17,7 +17,7 @@ internal static class AdfGraphGuard {
 
     internal static void Check(AdfDocument document, AdfProcessingOptions options) => AdfGraphSafety.EnsureSafe(document, options);
 
-    internal static void CheckMarkdown(MarkdownDoc document, AdfProcessingOptions options) {
+    internal static void CheckMarkdown(MarkdownDocument document, AdfProcessingOptions options) {
         options.Check();
         var ancestors = new HashSet<MarkdownObject>(MarkdownReferenceComparer.Instance);
         var pending = new Stack<(MarkdownObject Node, int Depth, bool Exit)>();

@@ -24,7 +24,7 @@ public class ExcelBufferedTypedReadBenchmarks {
         _path = Path.Combine(root, $"buffered-typed-{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(_path)) {
-                document.AddWorksheet("Data");
+                document.AddSheet("Data");
                 document.Save();
             }
             using (var package = ZipFile.Open(_path, ZipArchiveMode.Update)) {

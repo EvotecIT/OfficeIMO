@@ -9,12 +9,12 @@ BeforeAll {
 
 Describe 'Markdown cmdlets' {
     It 'parses Markdown text into a document' {
-        $doc = Get-OfficeMarkdown -Text "# Title`n`nHello"
-        $doc.GetType().FullName | Should -Be 'OfficeIMO.Markdown.MarkdownDoc'
+        $doc = Open-OfficeMarkdown -Text "# Title`n`nHello"
+        $doc.GetType().FullName | Should -Be 'OfficeIMO.Markdown.MarkdownDocument'
     }
 
     It 'supports reader profiles when parsing Markdown' {
-        $doc = Get-OfficeMarkdown -Text "---`ntitle: Test`n---`n# Title" -Profile CommonMark
+        $doc = Open-OfficeMarkdown -Text "---`ntitle: Test`n---`n# Title" -Options (New-OfficeMarkdownReaderOptions -Profile CommonMark)
         $doc.HasDocumentHeader | Should -BeFalse
     }
 
@@ -43,7 +43,7 @@ Describe 'Markdown cmdlets' {
 
     It 'converts HTML to a Markdown document' {
         $doc = ConvertFrom-OfficeMarkdownHtml -Html '<h1>Title</h1><p>Hello</p>' -AsDocument
-        $doc.GetType().FullName | Should -Be 'OfficeIMO.Markdown.MarkdownDoc'
+        $doc.GetType().FullName | Should -Be 'OfficeIMO.Markdown.MarkdownDocument'
         $doc.ToMarkdown() | Should -Match '# Title'
     }
 
@@ -69,7 +69,7 @@ Describe 'Markdown cmdlets' {
 "@
 
         $nodes = Get-OfficeMarkdownNode -Text $markdown
-        $nodes[0].Type | Should -Be 'MarkdownDoc'
+        $nodes[0].Type | Should -Be 'MarkdownDocument'
         $nodes.Type | Should -Contain 'HeadingBlock'
         $nodes.Type | Should -Contain 'CalloutBlock'
         $nodes.Type | Should -Contain 'TableBlock'
@@ -82,7 +82,7 @@ Describe 'Markdown cmdlets' {
 
         $nodes.Count | Should -Be 2
         $nodes.Type | Should -Contain 'HeadingBlock'
-        ($nodes | Where-Object Type -EQ 'MarkdownDoc').Count | Should -Be 0
+        ($nodes | Where-Object Type -EQ 'MarkdownDocument').Count | Should -Be 0
     }
 
     It 'gets front matter entries from Markdown' {
@@ -161,10 +161,10 @@ Describe 'Markdown cmdlets' {
         $content | Should -Match 'Value'
     }
 
-    It 'creates an empty Markdown file when no DSL content is supplied' {
+    It 'publishes an empty Markdown file from an explicit empty content block' {
         $path = Join-Path $TestDrive 'EmptyMarkdown.md'
 
-        $file = New-OfficeMarkdown -Path $path -PassThru
+        $file = New-OfficeMarkdown -Path $path -Content {} -PassThru
 
         $file | Should -BeOfType System.IO.FileInfo
         Test-Path -LiteralPath $path | Should -BeTrue
@@ -204,7 +204,7 @@ Describe 'Markdown cmdlets' {
     }
 
     It 'adds Markdown tables to piped document objects' {
-        $doc = Get-OfficeMarkdown -Text '# Seed'
+        $doc = Open-OfficeMarkdown -Text '# Seed'
         $rows = @(
             [pscustomobject]@{ Name = 'Alpha'; Value = 1 }
             [pscustomobject]@{ Name = 'Beta'; Value = 2 }
@@ -219,7 +219,7 @@ Describe 'Markdown cmdlets' {
     }
 
     It 'adds piped Markdown table rows to a supplied document' {
-        $doc = Get-OfficeMarkdown -Text '# Seed'
+        $doc = Open-OfficeMarkdown -Text '# Seed'
         $rows = @(
             [pscustomobject]@{ Name = 'Alpha'; Value = 1 }
             [pscustomobject]@{ Name = 'Beta'; Value = 2 }
@@ -234,8 +234,8 @@ Describe 'Markdown cmdlets' {
     }
 
     It 'adds explicit Markdown table rows to each piped document' {
-        $doc1 = Get-OfficeMarkdown -Text '# First'
-        $doc2 = Get-OfficeMarkdown -Text '# Second'
+        $doc1 = Open-OfficeMarkdown -Text '# First'
+        $doc2 = Open-OfficeMarkdown -Text '# Second'
         $rows = @(
             [pscustomobject]@{ Name = 'Alpha'; Value = 1 }
             [pscustomobject]@{ Name = 'Beta'; Value = 2 }
@@ -250,14 +250,13 @@ Describe 'Markdown cmdlets' {
         ($doc2.ToMarkdown() | Select-String -Pattern 'Alpha' -AllMatches).Matches.Count | Should -Be 1
     }
 
-    It 'returns an in-memory Markdown document when NoSave is used' {
+    It 'returns a live Markdown document when the content block is omitted' {
         $path = Join-Path $TestDrive 'NoSave.md'
 
-        $document = New-OfficeMarkdown -Path $path -NoSave {
-            MarkdownHeading -Level 1 -Text 'Draft'
-        }
+        $document = New-OfficeMarkdown -Path $path
+        $document | MarkdownHeading -Level 1 -Text 'Draft'
 
-        $document.GetType().FullName | Should -Be 'OfficeIMO.Markdown.MarkdownDoc'
+        $document.GetType().FullName | Should -Be 'OfficeIMO.Markdown.MarkdownDocument'
         $document.ToMarkdown() | Should -Match '# Draft'
         Test-Path $path | Should -BeFalse
     }
@@ -295,7 +294,7 @@ Describe 'Markdown cmdlets' {
     }
 
     It 'supports advanced Markdown cmdlets against document objects' {
-        $doc = Get-OfficeMarkdown -Text '# Seed'
+        $doc = Open-OfficeMarkdown -Text '# Seed'
 
         $doc |
             Add-OfficeMarkdownFrontMatter -InputObject @{ title = 'Doc pipeline' } -PassThru |

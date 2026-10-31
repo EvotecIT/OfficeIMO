@@ -18,8 +18,8 @@ public sealed class PdfSaveFailureEvidenceTests {
             string input = Path.Combine(root, "source" + extension), output = Path.Combine(root, "result.pdf");
             const string text = "مرحبا";
             if (extension == ".docx") { using var word = WordDocument.Create(input); word.AddParagraph(text); word.Save(); }
-            else if (extension == ".xlsx") { using var excel = ExcelDocument.Create(input); excel.AddWorksheet("Unicode").CellValue(1, 1, text); excel.Save(); }
-            else if (extension == ".pptx") { using var ppt = PowerPointPresentation.Create(input); ppt.AddSlide().AddTextBox(text); ppt.Save(); }
+            else if (extension == ".xlsx") { using var excel = ExcelDocument.Create(input); excel.AddSheet("Unicode").CellValue(1, 1, text); excel.Save(); }
+            else if (extension == ".pptx") { using var ppt = PowerPointDocument.Create(input); ppt.AddSlide().AddTextBox(text); ppt.Save(); }
             else {
                 var drawing = OdgDocument.Create();
                 drawing.AddPage("Unicode").Shapes.AddTextBox(OdfRect.FromCentimeters(1, 1, 12, 5), text);
@@ -28,19 +28,23 @@ public sealed class PdfSaveFailureEvidenceTests {
             byte[] source = File.ReadAllBytes(input), destination = { 1, 2, 3 };
             File.WriteAllBytes(output, destination);
             // Portable hosts can deliberately disable font discovery and generated fallbacks.
-            var options = new OfficeWorkflowConversionOptions();
+            var options = new OfficeConversionOptions();
             if (extension == ".docx") options.Word = new() { TextFallbacks = PdfTextFallbackFeatures.None, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
             else if (extension == ".xlsx") options.Excel = new() { TextFallbacks = PdfTextFallbackFeatures.None, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
             else if (extension == ".pptx") options.PowerPoint = new() { TextFallbacks = PdfTextFallbackFeatures.None, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
+            else options.RegisteredSettings = new OfficeWorkflowRouteSettings {
+                Draw = new() { PdfOptions = new() { EmbedDefaultFonts = false } }
+            };
             var result = await new OfficeWorkflowRunner().RunAsync(new() {
                 Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output,
-                ConversionRouteId = route, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                ConversionRouteId = route, ConflictPolicy = OfficePublicationPolicy.Replace,
                 ConversionOptions = options
             });
             Assert.False(result.Succeeded);
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
-            Assert.Contains(evidence.FidelityDiagnostics, finding => finding.Code == "unsupported-text-glyph");
-            Assert.Contains(result.Diagnostics, finding => finding.Code == "unsupported-text-glyph");
+            const string encodingCode = "unsupported-text-glyph";
+            Assert.Contains(evidence.FidelityDiagnostics, finding => finding.Code == encodingCode);
+            Assert.Contains(result.Diagnostics, finding => finding.Code == encodingCode);
             Assert.Equal(source, File.ReadAllBytes(input));
             Assert.Equal(destination, File.ReadAllBytes(output));
             Assert.Empty(Directory.GetFiles(root, ".*.tmp"));

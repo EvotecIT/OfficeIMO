@@ -13,20 +13,20 @@ internal static partial class PdfWriter {
         }
 
         return tabStops
-            .Where(tabStop => tabStop.Alignment != PdfTabAlignment.Bar && !double.IsNaN(tabStop.Position) && !double.IsInfinity(tabStop.Position))
+            .Where(tabStop => tabStop.Alignment != PdfTabAlignment.Bar)
             .Select(tabStop => tabStop.ResolveFramePosition(frameWidth))
             .OrderBy(tabStop => tabStop.Position)
             .ToArray();
     }
 
-    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCore(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null, System.Threading.CancellationToken cancellationToken = default) {
+    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCore(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfCreateOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null, System.Threading.CancellationToken cancellationToken = default) {
         return WrapRichRunsCoreWithFirstLineOrigin(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, null, tabStopWidth, options, tabStops, cancellationToken: cancellationToken);
     }
 
-    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsWithSpacing(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfOptions? options, PdfLineSpacing? lineSpacing, PdfJustificationMode? wordJustificationMode = null, IReadOnlyList<PdfTabStop>? tabStops = null, System.Threading.CancellationToken cancellationToken = default) =>
+    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsWithSpacing(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfCreateOptions? options, PdfLineSpacing? lineSpacing, PdfJustificationMode? wordJustificationMode = null, IReadOnlyList<PdfTabStop>? tabStops = null, System.Threading.CancellationToken cancellationToken = default) =>
         WrapRichRunsCoreWithFirstLineOrigin(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, null, tabStopWidth, options, tabStops, lineSpacing: lineSpacing, wordJustificationMode: wordJustificationMode, cancellationToken: cancellationToken);
 
-    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCoreWithFirstLineOrigin(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double? firstLineOriginOffsetPts, double tabStopWidth, PdfOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null, Func<int, double, double, double, (double Width, double Origin, double Gap)>? lineLayout = null, double? minimumLineHeight = null, PdfLineSpacing? lineSpacing = null, PdfTextWhitespaceMode? textWhitespaceMode = null, RichWrapPurpose purpose = RichWrapPurpose.Layout, double? inlineRuleWidth = null, double? firstLineInlineRuleWidth = null, PdfJustificationMode? wordJustificationMode = null, Func<int, double, double, double, RichTextRowFrame>? rowLayout = null, System.Threading.CancellationToken cancellationToken = default) {
+    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCoreWithFirstLineOrigin(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double? firstLineOriginOffsetPts, double tabStopWidth, PdfCreateOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null, Func<int, double, double, double, (double Width, double Origin, double Gap)>? lineLayout = null, double? minimumLineHeight = null, PdfLineSpacing? lineSpacing = null, PdfTextWhitespaceMode? textWhitespaceMode = null, RichWrapPurpose purpose = RichWrapPurpose.Layout, double? inlineRuleWidth = null, double? firstLineInlineRuleWidth = null, PdfJustificationMode? wordJustificationMode = null, Func<int, double, double, double, RichTextRowFrame>? rowLayout = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfTextWhitespaceMode whitespaceMode = textWhitespaceMode ?? options?.TextWhitespaceMode ?? PdfTextWhitespaceMode.Collapse;
         bool compressWordSpaces = wordJustificationMode.HasValue && purpose == RichWrapPurpose.Layout;
@@ -67,7 +67,7 @@ internal static partial class PdfWriter {
         bool pendingLeadingIsOrdinarySpace = false;
         bool oversizedWordContinuation = false;
         OfficeIMO.Drawing.OfficeTextDecorationStyle pendingLeadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
-        PdfColor? pendingLeadingDecorationColor = null;
+        global::OfficeIMO.OfficeColor? pendingLeadingDecorationColor = null;
         double pendingLeadingDecorationFontSize = 0;
         double pendingLeadingDecorationTextRise = 0;
         bool pendingLeadingIsExpandable = true;
@@ -94,11 +94,11 @@ internal static partial class PdfWriter {
         double currentLineInlineDescent = 0;
         bool currentRunIsInline = false;
         bool currentLineHasInline = false;
-        PdfColor? currentRunDecorationColor = null;
+        global::OfficeIMO.OfficeColor? currentRunDecorationColor = null;
         OfficeTextFeatureSettings currentRunFeatureSettings = OfficeTextFeatureSettings.Default;
         double currentRunHorizontalTextScaling = 100D, currentRunCharacterSpacing = 0D;
         OfficeIMO.Drawing.OfficeTextDecorationStyle currentRunUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
-        PdfColor? currentRunUnderlineColor = null;
+        global::OfficeIMO.OfficeColor? currentRunUnderlineColor = null;
         double currentRunDecorationFontSize = 0;
         double currentRunDecorationTextRise = 0;
         var currentFrame = ResolveCurrentFrame(0, completedHeight, CurrentFrameFitHeight(lineHeight, includeCurrentRun: false), 0, true, out _);
@@ -375,14 +375,14 @@ internal static partial class PdfWriter {
             }
             if (lineSpacing.LineGridPitch.HasValue)
                 ascent += lineSpacing.GetGridBaselineExpansion(ascent + descent);
-            else ascent = Math.Max(inlineAscent, ascent - bodyAscent * (1D - Math.Min(1D, lineSpacing.Value / natural)));
+            else ascent = Math.Max(inlineAscent, ascent - bodyAscent * (1D - Math.Min(1D, lineSpacing.MultipleValue!.Value / natural)));
             return Math.Min(advance, Math.Max(0D, ascent + descent));
         }
 
         PdfTabStop? ResolveNextExplicitTabStop() => TakeNextParagraphTabStop(explicitTabStops,
             CurrentLineOriginOffset() + lineWidth, ref nextExplicitTabStopIndex);
         PdfTabStop? ResolveRelativeTabStop(PdfTextRun? run) => run?.RelativeTabStop is { } relative
-            ? new PdfTabStop(Math.Max(0.001D, maxWidthPts * relative.Fraction + relative.Offset), run.TabAlignment, run.TabLeader)
+            ? new PdfTabStop(global::OfficeIMO.OfficeLength.Points(Math.Max(0.001D, maxWidthPts * relative.Fraction + relative.Offset)), run.TabAlignment, run.TabLeader)
             : null;
 
         void ResolvePendingLeadingTabForCurrentLine(double followingTextWidth, double spaceW, string followingText, PdfStandardFont followingFont, double followingFontSize, PdfTextBaseline followingBaseline, RichTabFieldMeasurement? field = null) {
@@ -598,15 +598,15 @@ internal static partial class PdfWriter {
             currentRunDecorationColor = run.DecorationColor;
             currentRunFeatureSettings = run.FeatureSettings;
             currentRunHorizontalTextScaling = run.HorizontalTextScaling;
-            currentRunCharacterSpacing = run.CharacterSpacing;
+            currentRunCharacterSpacing = (run.CharacterSpacing.ToPoints());
             currentRunUnderlineStyle = underline && underlineStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.Words ? (underlineStyle == OfficeIMO.Drawing.OfficeTextDecorationStyle.None ? OfficeIMO.Drawing.OfficeTextDecorationStyle.Single : underlineStyle) : OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
             currentRunUnderlineColor = run.DecorationColor ?? color;
             string? uri = run.LinkUri;
             string? destinationName = run.LinkDestinationName;
             string? contents = run.LinkContents;
             var baseline = run.Baseline;
-            currentRunDecorationFontSize = EffectiveRichFontSize(run.FontSize ?? fontSize, baseline);
-            currentRunDecorationTextRise = TextRiseForBaseline(run.FontSize ?? fontSize, baseline);
+            currentRunDecorationFontSize = EffectiveRichFontSize((run.FontSize?.ToPoints()) ?? fontSize, baseline);
+            currentRunDecorationTextRise = TextRiseForBaseline((run.FontSize?.ToPoints()) ?? fontSize, baseline);
             var tabLeader = run.TabLeader;
             var tabAlignment = run.TabAlignment;
             var runBaseFont = run.Font.HasValue ? ChooseNormal(run.Font.Value) : baseFont;
@@ -615,7 +615,7 @@ internal static partial class PdfWriter {
                                   options.TryResolveNamedFontFace(run.FontFamily, bold, italic, out PdfNamedFontFace resolvedNamedFont)
                 ? resolvedNamedFont
                 : null;
-            double runFontSize = run.FontSize ?? fontSize;
+            double runFontSize = (run.FontSize?.ToPoints()) ?? fontSize;
             bool whitespaceFootnote = run.InlineElement == null && run.FootnoteReference != null && text.All(character => character is ' ' or '\t' or '\n');
             if (whitespaceFootnote) {
                 // Defer invisible associations until wrapping is complete so an anchor
@@ -676,16 +676,16 @@ internal static partial class PdfWriter {
                             fontSize, options, lineSpacing, out currentRunAscent, out currentRunDescent);
                     inlineHeight = RunLineHeight(runFontSize);
                 } else {
-                    currentRunAscent = Math.Max(0D, inlineElement.BaselineOffset + inlineElement.Height);
-                    currentRunDescent = Math.Max(0D, -inlineElement.BaselineOffset);
-                    inlineHeight = Math.Max(GetAscenderForOptions(baseFont, fontSize, options), inlineElement.BaselineOffset + inlineElement.Height)
-                        + Math.Max(GetDescenderForOptions(baseFont, fontSize, options), -inlineElement.BaselineOffset);
+                    currentRunAscent = Math.Max(0D, inlineElement.BaselineOffset.ToPoints() + inlineElement.Height.ToPoints());
+                    currentRunDescent = Math.Max(0D, -inlineElement.BaselineOffset.ToPoints());
+                    inlineHeight = Math.Max(GetAscenderForOptions(baseFont, fontSize, options), inlineElement.BaselineOffset.ToPoints() + inlineElement.Height.ToPoints())
+                        + Math.Max(GetDescenderForOptions(baseFont, fontSize, options), -inlineElement.BaselineOffset.ToPoints());
                     if (lineSpacing?.FontLineBoxMultiplier != null)
                         inlineHeight = Math.Max(lineHeight, currentRunAscent + currentRunDescent);
                 }
-                PrepareLineFrame(inlineHeight, inlineElement.Width);
+                PrepareLineFrame(inlineHeight, inlineElement.Width.ToPoints());
                 double currentMaxWidth = CurrentMaxWidth();
-                if (inlineElement.Width > currentMaxWidth + 0.001D &&
+                if (inlineElement.Width.ToPoints() > currentMaxWidth + 0.001D &&
                     inlineElement is not PdfInlineImage { AllowFrameOverflow: true }) {
                     throw new ArgumentException("Inline element width exceeds the available paragraph width.");
                 }
@@ -695,28 +695,28 @@ internal static partial class PdfWriter {
                         ? MeasureRichTabField(effectiveRuns, runIndex, 0, baseFont, fontSize, options, whitespaceMode)
                         : null;
                 if (pendingLeadingIsTab) {
-                    ResolvePendingLeadingTabForCurrentLine(inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
-                    RevalidateLeadingTabFrame(inlineHeight, inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
+                    ResolvePendingLeadingTabForCurrentLine(inlineElement.Width.ToPoints(), spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
+                    RevalidateLeadingTabFrame(inlineHeight, inlineElement.Width.ToPoints(), spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
                     currentMaxWidth = CurrentMaxWidth();
                 }
 
-                ResolveBufferedTab(inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField, inlineHeight);
+                ResolveBufferedTab(inlineElement.Width.ToPoints(), spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField, inlineHeight);
 
                 List<RichSeg> currentLine = lines[lines.Count - 1];
                 double leadingAdvance = currentLine.Count > 0 || pendingLeadingIsTab || whitespaceMode == PdfTextWhitespaceMode.Preserve ? pendingLeadingAdvance : 0D;
                 if ((currentLine.Count > 0 || whitespaceMode == PdfTextWhitespaceMode.Preserve && leadingAdvance > 0D)
                     && MinimumCandidateWidth(CreateRunKerningProbe(string.Empty, run, baseFont, fontSize, options), null,
-                        lineWidth + leadingAdvance + inlineElement.Width) > currentMaxWidth + 0.001D) {
+                        lineWidth + leadingAdvance + inlineElement.Width.ToPoints()) > currentMaxWidth + 0.001D) {
                     if (pendingLeadingAdvance > 0D) {
                         MarkRichLineTextSeparator(currentLine);
                     }
 
                     StartNewLine();
-                    PrepareLineFrame(inlineHeight, inlineElement.Width);
+                    PrepareLineFrame(inlineHeight, inlineElement.Width.ToPoints());
                     currentLine = lines[lines.Count - 1];
                     if (pendingLeadingIsTab) {
-                        ResolvePendingLeadingTabForCurrentLine(inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
-                        RevalidateLeadingTabFrame(inlineHeight, inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
+                        ResolvePendingLeadingTabForCurrentLine(inlineElement.Width.ToPoints(), spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
+                        RevalidateLeadingTabFrame(inlineHeight, inlineElement.Width.ToPoints(), spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
                     }
 
                     leadingAdvance = pendingLeadingIsTab ? pendingLeadingAdvance : 0D;
@@ -736,7 +736,7 @@ internal static partial class PdfWriter {
                         : inlineRuleWidth ?? CurrentMaxWidth();
                     inlineElement = ResolveInlineRule(rule, Math.Min(CurrentMaxWidth(), ruleFrameWidth) - lineWidth - leadingAdvance, purpose);
                 }
-                double inlineAndLeadingWidth = leadingAdvance + inlineElement.Width;
+                double inlineAndLeadingWidth = leadingAdvance + inlineElement.Width.ToPoints();
                 if (AppendPendingSourceTab(leadingAdvance)) leadingAdvance = 0D;
                 currentLine.Add(new RichSeg(
                     string.Empty,
@@ -752,7 +752,7 @@ internal static partial class PdfWriter {
                     fontForRun,
                     runFontSize,
                     baseline,
-                    inlineElement.Width,
+                    inlineElement.Width.ToPoints(),
                     leadingSpace: leadingAdvance != 0D,
                     leadingAdvance: leadingAdvance,
                     leadingSpaceIsExpandable: pendingLeadingIsExpandable,
@@ -1176,8 +1176,8 @@ internal static partial class PdfWriter {
             bool strike,
             OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle,
             OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle,
-            PdfColor? color,
-            PdfColor? backgroundColor,
+            global::OfficeIMO.OfficeColor? color,
+            global::OfficeIMO.OfficeColor? backgroundColor,
             string? uri,
             string? destinationName,
             string? contents,
@@ -1216,8 +1216,8 @@ internal static partial class PdfWriter {
             bool strike,
             OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle,
             OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle,
-            PdfColor? color,
-            PdfColor? backgroundColor,
+            global::OfficeIMO.OfficeColor? color,
+            global::OfficeIMO.OfficeColor? backgroundColor,
             string? uri,
             string? destinationName,
             string? contents,
@@ -1254,8 +1254,8 @@ internal static partial class PdfWriter {
             bool strike,
             OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle,
             OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle,
-            PdfColor? color,
-            PdfColor? backgroundColor,
+            global::OfficeIMO.OfficeColor? color,
+            global::OfficeIMO.OfficeColor? backgroundColor,
             string? uri,
             string? destinationName,
             string? contents,
@@ -1493,8 +1493,8 @@ internal static partial class PdfWriter {
             bool strike,
             OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle,
             OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle,
-            PdfColor? color,
-            PdfColor? backgroundColor,
+            global::OfficeIMO.OfficeColor? color,
+            global::OfficeIMO.OfficeColor? backgroundColor,
             string? uri,
             string? destinationName,
             string? contents,

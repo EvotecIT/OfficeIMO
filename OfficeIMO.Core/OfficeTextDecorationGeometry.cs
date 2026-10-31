@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace OfficeIMO.Drawing;
 
 /// <summary>Creates backend-neutral horizontal text-decoration paint at an explicit thickness.</summary>
-public static class OfficeTextDecorationGeometry {
+internal static class OfficeTextDecorationGeometry {
     /// <summary>
     /// Creates a local vector band with the supplied advance, thickness, pattern and color.
     /// The caller owns baseline positioning and clipping. Pattern work is bounded to 65,536 segments.

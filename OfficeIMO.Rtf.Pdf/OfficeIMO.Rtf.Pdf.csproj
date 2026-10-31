@@ -52,4 +52,9 @@
     <Using Include="System.Threading.Tasks" />
     <Using Include="OfficeIMO.Rtf" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Workflows" />
+    <InternalsVisibleTo Include="OfficeIMO.Rtf.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
+  </ItemGroup>
 </Project>

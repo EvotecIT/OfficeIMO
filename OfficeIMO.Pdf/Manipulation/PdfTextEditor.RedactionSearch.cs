@@ -45,7 +45,7 @@ internal static partial class PdfTextEditor {
                     search.CancellationToken.ThrowIfCancellationRequested();
                     if (!CanSelectGlyphs(span, out IReadOnlyList<PdfTextGlyph> glyphs)) {
                         PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionGlyphBounds(span, 0D, span.Advance);
-                        if (IntersectsAreas(pageAreas, bounds)) Block(pageAreas.Key, "RedactionSearchGlyphMappingUnsupported",
+                        if (IntersectsAreas(pageAreas, bounds)) Block(pageAreas.Key, "redaction-search-glyph-mapping-unsupported",
                             "A precise search area intersects text without an unambiguous encoded glyph mapping.");
                         continue;
                     }
@@ -54,7 +54,7 @@ internal static partial class PdfTextEditor {
                         budget.Charge(1L);
                         if (selected.Contains(GlyphKey(pageAreas.Key, span, glyph))) continue;
                         PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionGlyphBounds(span, boundaries[glyph.TextStart], glyph.PaintedAdvance);
-                        if (IntersectsAreas(pageAreas, bounds)) Block(pageAreas.Key, "RedactionSearchUnselectedTextIntersection",
+                        if (IntersectsAreas(pageAreas, bounds)) Block(pageAreas.Key, "redaction-search-unselected-text-intersection",
                             "A precise search area would remove an unselected glyph. Use reviewed geometry or complete-block selection instead.");
                     }
                 }
@@ -79,7 +79,7 @@ internal static partial class PdfTextEditor {
                     search.CancellationToken.ThrowIfCancellationRequested();
                     PdfTextSpan span = segment.Span;
                     if (!CanSelectGlyphs(span, out IReadOnlyList<PdfTextGlyph> glyphs)) {
-                        Block(hit.PageNumber, "RedactionSearchGlyphMappingUnsupported",
+                        Block(hit.PageNumber, "redaction-search-glyph-mapping-unsupported",
                             "The matched text does not have an unambiguous encoded glyph mapping. Precise selection cannot be reviewed.");
                         continue;
                     }
@@ -87,7 +87,7 @@ internal static partial class PdfTextEditor {
                     PdfTextGlyph[] covered = glyphs.Where(glyph => glyph.TextStart >= segment.Start && glyph.TextStart + glyph.TextLength <= end).ToArray();
                     if (covered.Length == 0 || covered[0].TextStart != segment.Start ||
                         covered[covered.Length - 1].TextStart + covered[covered.Length - 1].TextLength != end) {
-                        Block(hit.PageNumber, "RedactionSearchPartialGlyph",
+                        Block(hit.PageNumber, "redaction-search-partial-glyph",
                             "The match selects only part of an encoded glyph, such as a ligature. Precise selection requires complete glyph boundaries.");
                         continue;
                     }

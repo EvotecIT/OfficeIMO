@@ -11,7 +11,7 @@ Updates the primary title, language or creator through the package model.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Set-OfficeEpubMetadata -Publication <EpubPublication> [-Title <string>] [-Language <string>] [-Author <string>] [-PassThru] [<CommonParameters>]
+Set-OfficeEpubMetadata [-Title <string>] [-Language <string>] [-Author <string>] [-PassThru] [-Document <EpubPublication>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -40,6 +40,22 @@ Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Document
+Gets or sets an explicit live document; omission uses the enclosing content block.
+
+```yaml
+Type: EpubPublication
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -72,22 +88,6 @@ Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Publication
-Live editable publication.
-
-```yaml
-Type: EpubPublication
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 

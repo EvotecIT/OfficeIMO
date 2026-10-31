@@ -42,7 +42,7 @@ public sealed class XpsGradientColorInterpolationTests {
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(exported), out var reimported, out unsupported));
         Assert.Equal(0, unsupported);
         var roundtrip = OfficeDrawingRasterRenderer.Render(reimported!, background: OfficeColor.White);
-        var pdf = PdfReadDocument.Open(document.ToPdf());
+        var pdf = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf()));
         var pdfRaster = OfficeDrawingRasterRenderer.Render(pdf.Pages[0].ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
         foreach (int x in new[] { 40, 120, 140 }) {
             double px = x + .5, py = .5 / 25D;

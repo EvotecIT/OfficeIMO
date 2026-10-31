@@ -6,7 +6,7 @@ public static partial class ExcelHtmlConverterExtensions {
     private static string ExpandUsedRangeForMerges(
         ExcelSheet sheet,
         string usedRange,
-        IReadOnlyList<ExcelMergedRangeSnapshot> mergedRanges,
+        IReadOnlyList<ExcelMergedRangeInfo> mergedRanges,
         int maximumRows,
         int maximumColumns,
         int maximumCells) {
@@ -20,25 +20,25 @@ public static partial class ExcelHtmlConverterExtensions {
             : Math.Min(Math.Min(rowCount, maximumRows), Math.Max(1, maximumCells / scanColumns));
         if (mergedRanges.Count > 0 &&
             !SheetHasUsedCells(sheet, firstRow, firstColumn, scanRows, scanColumns)) {
-            ExcelMergedRangeSnapshot firstMerge = mergedRanges[0];
+            ExcelMergedRangeInfo firstMerge = mergedRanges[0];
             firstRow = firstMerge.StartRow;
             firstColumn = firstMerge.StartColumn;
             lastRow = firstMerge.EndRow;
             lastColumn = firstMerge.EndColumn;
         }
 
-        foreach (ExcelMergedRangeSnapshot merge in mergedRanges) {
+        foreach (ExcelMergedRangeInfo merge in mergedRanges) {
             firstRow = Math.Min(firstRow, merge.StartRow);
             firstColumn = Math.Min(firstColumn, merge.StartColumn);
             lastRow = Math.Max(lastRow, merge.EndRow);
             lastColumn = Math.Max(lastColumn, merge.EndColumn);
         }
 
-        return A1.CellReference(firstRow, firstColumn) + ":" + A1.CellReference(lastRow, lastColumn);
+        return ExcelA1.CellReference(firstRow, firstColumn) + ":" + ExcelA1.CellReference(lastRow, lastColumn);
     }
 
     private static ExcelMergeExportMap BuildMergeExportMap(
-        IReadOnlyList<ExcelMergedRangeSnapshot> mergedRanges,
+        IReadOnlyList<ExcelMergedRangeInfo> mergedRanges,
         int firstRow,
         int firstColumn,
         int rowCount,
@@ -47,7 +47,7 @@ public static partial class ExcelHtmlConverterExtensions {
         int lastColumn = firstColumn + columnCount - 1;
         var candidates = new List<ExcelMergeExportRange>();
 
-        foreach (ExcelMergedRangeSnapshot merge in mergedRanges) {
+        foreach (ExcelMergedRangeInfo merge in mergedRanges) {
             int startRow = Math.Max(firstRow, merge.StartRow);
             int startColumn = Math.Max(firstColumn, merge.StartColumn);
             int endRow = Math.Min(lastRow, merge.EndRow);
@@ -174,7 +174,7 @@ public static partial class ExcelHtmlConverterExtensions {
 
         internal int ColumnSpan => EndColumn - StartColumn + 1;
 
-        internal string A1Range => A1.CellReference(StartRow, StartColumn) + ":" + A1.CellReference(EndRow, EndColumn);
+        internal string A1Range => ExcelA1.CellReference(StartRow, StartColumn) + ":" + ExcelA1.CellReference(EndRow, EndColumn);
 
         internal bool Intersects(ExcelMergeExportRange other) =>
             StartRow <= other.EndRow && EndRow >= other.StartRow

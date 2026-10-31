@@ -53,4 +53,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
   </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.OneNote.Pdf" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Latex.Pdf" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.AsciiDoc.Pdf" /></ItemGroup>
 </Project>

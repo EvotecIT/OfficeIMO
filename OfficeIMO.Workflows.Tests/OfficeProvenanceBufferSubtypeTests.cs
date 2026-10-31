@@ -11,8 +11,8 @@ public sealed class OfficeProvenanceBufferSubtypeTests {
     [Fact]
     public void RenamedBinaryWorkbookIsRejectedBeforeInspectionOrRemoval() {
         using var workbook = ExcelDocument.Create();
-        workbook.AddWorksheet("Data").Cell(1, 1, "Binary workbook");
-        byte[] bytes = workbook.ToBytes(ExcelFileFormat.Xlsb);
+        workbook.AddSheet("Data").Cell(1, 1, "Binary workbook");
+        byte[] bytes = workbook.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         Verify(bytes, "renamed.xlsx", workflowSupported: false, ownerSupported: true,
             (data, options) => ExcelDocument.InspectProvenance(data, "owner.xlsb", options));
     }
@@ -41,7 +41,7 @@ public sealed class OfficeProvenanceBufferSubtypeTests {
                 package.AddPresentationPart().Presentation = new DocumentFormat.OpenXml.Presentation.Presentation();
             bool supported = type == PresentationDocumentType.Presentation;
             Verify(stream.ToArray(), "renamed.pptx", supported, supported,
-                (bytes, options) => PowerPointPresentation.InspectProvenance(bytes, "owner.pptx", options));
+                (bytes, options) => PowerPointDocument.InspectProvenance(bytes, "owner.pptx", options));
         }
     }
 

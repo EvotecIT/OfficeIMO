@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfAdvancedUnderstandingStages {
+internal static partial class PdfAdvancedUnderstandingStages {
     private static PdfLogicalVisualBounds GetSelectionBounds(PdfUnderstandingPageContext context,
         double x, double y, double advance, double height, double angle) {
         double radians = angle * Math.PI / 180D, cos = Math.Cos(radians), sin = Math.Sin(radians);

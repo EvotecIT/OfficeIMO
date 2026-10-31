@@ -14,10 +14,10 @@ public sealed class PdfRunSpacingRegressionTests {
     [InlineData(PdfTabLeaderStyle.Hyphens, "-", 50D, 1D)]
     [InlineData(PdfTabLeaderStyle.Underscores, "_", 150D, 1D)]
     public void TabLeadersUseTheRunGlyphWidthAndTracking(PdfTabLeaderStyle leader, string glyph, double scale, double tracking) {
-        PdfOptions options = Options();
-        options.DefaultParagraphStyle = new PdfParagraphStyle { DefaultTabStopWidth = 150D };
+        PdfCreateOptions options = Options();
+        options.DefaultParagraphStyle = new PdfParagraphStyle { DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(150D) };
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
-            .Paragraph(p => p.HorizontalTextScaling(scale).CharacterSpacing(tracking)
+            .Paragraph(p => p.HorizontalTextScaling(scale).CharacterSpacing(global::OfficeIMO.OfficeLength.Points(tracking))
                 .Text("A").Tab(leader).Text("Z")).ToBytes());
         var dots = pdf.GetPage(1).Letters.Where(letter => letter.Value == glyph).ToArray();
         Assert.True(dots.Length >= 3);
@@ -25,8 +25,8 @@ public sealed class PdfRunSpacingRegressionTests {
         double advance = units * 12D / 1000D * scale / 100D + tracking;
         Assert.InRange(Math.Abs(dots[1].StartBaseLine.X - dots[0].StartBaseLine.X - advance), 0D, 0.02D);
         Assert.InRange(Math.Abs(pdf.GetPage(1).Letters.Single(letter => letter.Value == "Z").StartBaseLine.X
-            - (options.MarginLeft + 150D)), 0D, 0.02D);
-        Assert.True(dots[dots.Length - 1].EndBaseLine.X <= options.MarginLeft + 150D + 0.02D);
+            - (options.MarginLeft.ToPoints() + 150D)), 0D, 0.02D);
+        Assert.True(dots[dots.Length - 1].EndBaseLine.X <= options.MarginLeft.ToPoints() + 150D + 0.02D);
     }
 
     [Theory]
@@ -36,12 +36,12 @@ public sealed class PdfRunSpacingRegressionTests {
     [InlineData(100D, -3.336D, 1, false)]
     [InlineData(100D, -4D, 2, true)]
     public void CondensedRunWithSpaces_PreservesSignedSeparatorAdvances(double scaling, double spacing, int separatorCount, bool preserveWhitespace) {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         options.PreserveTextWhitespace = preserveWhitespace;
-        var run = new PdfTextRun("MMMM" + new string(' ', separatorCount) + "MMMM", fontSize: 12D)
-            .WithHorizontalTextScaling(scaling).WithCharacterSpacing(spacing);
+        var run = new PdfTextRun("MMMM" + new string(' ', separatorCount) + "MMMM", fontSize: global::OfficeIMO.OfficeLength.Points(12D))
+            .WithHorizontalTextScaling(scaling).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(spacing));
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
-            .Paragraph(p => p.Runs(new[] { run, PdfTextRun.Normal("X", fontSize: 12D) })).ToBytes());
+            .Paragraph(p => p.Runs(new[] { run, PdfTextRun.Normal("X", fontSize: global::OfficeIMO.OfficeLength.Points(12D)) })).ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
         Letter[] letters = pdf.GetPage(1).Letters.ToArray();
         Letter[] ems = letters.Where(letter => letter.Value == "M").ToArray();
@@ -56,7 +56,7 @@ public sealed class PdfRunSpacingRegressionTests {
 
     [Fact]
     public void CondensedRunWithoutSpaces_DoesNotMeasureAnUnusedSpace() {
-        var run = new PdfTextRun("MMMM", fontSize: 12D).WithHorizontalTextScaling(50D).WithCharacterSpacing(-2D);
+        var run = new PdfTextRun("MMMM", fontSize: global::OfficeIMO.OfficeLength.Points(12D)).WithHorizontalTextScaling(50D).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(-2D));
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options()).Paragraph(p => p.Runs(new[] { run })).ToBytes());
         Letter[] letters = pdf.GetPage(1).Letters.ToArray();
         Assert.Equal("MMMM", string.Concat(letters.Select(letter => letter.Value)));
@@ -66,8 +66,8 @@ public sealed class PdfRunSpacingRegressionTests {
     [Fact]
     public void StyledSeparatorBeforeDefaultRun_UsesItsMeasuredAdvance() {
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options())
-            .Paragraph(p => p.HorizontalTextScaling(50D).CharacterSpacing(1D).Text("AB ")
-                .HorizontalTextScaling(100D).CharacterSpacing(0D).Text("CD")).ToBytes());
+            .Paragraph(p => p.HorizontalTextScaling(50D).CharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D)).Text("AB ")
+                .HorizontalTextScaling(100D).CharacterSpacing(global::OfficeIMO.OfficeLength.Points(0D)).Text("CD")).ToBytes());
         var letters = pdf.GetPage(1).Letters;
         double origin = letters.First(letter => letter.Value == "A").StartBaseLine.X;
         double c = letters.Single(letter => letter.Value == "C").StartBaseLine.X;
@@ -77,32 +77,32 @@ public sealed class PdfRunSpacingRegressionTests {
 
     [Fact]
     public void ScaledDecimalTabs_AlignDifferentNumericPrefixes() {
-        PdfOptions options = Options();
-        options.DefaultParagraphStyle = new PdfParagraphStyle { DefaultTabStopWidth = 150D, SpacingAfter = 0D };
+        PdfCreateOptions options = Options();
+        options.DefaultParagraphStyle = new PdfParagraphStyle { DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(150D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) };
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
             .Paragraph(p => p.Text("Tax").Tab(PdfTabLeaderStyle.None, PdfTabAlignment.DecimalSeparator)
-                .HorizontalTextScaling(50D).CharacterSpacing(1D).Text("8.50"))
+                .HorizontalTextScaling(50D).CharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D)).Text("8.50"))
             .Paragraph(p => p.Text("Total").Tab(PdfTabLeaderStyle.None, PdfTabAlignment.DecimalSeparator)
-                .HorizontalTextScaling(50D).CharacterSpacing(1D).Text("12845.75")).ToBytes());
+                .HorizontalTextScaling(50D).CharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D)).Text("12845.75")).ToBytes());
         var periods = pdf.GetPage(1).Letters.Where(letter => letter.Value == ".").ToArray();
         Assert.Equal(2, periods.Length);
         Assert.InRange(Math.Abs(periods[0].StartBaseLine.X - periods[1].StartBaseLine.X), 0D, 0.02D);
-        Assert.InRange(Math.Abs(periods[0].StartBaseLine.X - (options.MarginLeft + 150D)), 0D, 0.02D);
+        Assert.InRange(Math.Abs(periods[0].StartBaseLine.X - (options.MarginLeft.ToPoints() + 150D)), 0D, 0.02D);
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void WordOnlyUnderline_UsesStyledGlyphAdvances(bool embedded) {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         if (embedded) {
             string? font = PdfComplianceTestFonts.FindBundledTrueTypeFont();
             Assert.NotNull(font);
             options.EmbedStandardFont(PdfStandardFont.Helvetica, System.IO.File.ReadAllBytes(font!), "SpacingUnderline");
         }
-        var run = new PdfTextRun("ABCD", fontSize: 12D, underlineStyle: OfficeTextDecorationStyle.Words)
-            .WithHorizontalTextScaling(50D).WithCharacterSpacing(1D);
-        using var pdf = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p => p.Runs(new[] { run, PdfTextRun.Normal("X", fontSize: 12D) })).ToBytes());
+        var run = new PdfTextRun("ABCD", fontSize: global::OfficeIMO.OfficeLength.Points(12D), underlineStyle: OfficeTextDecorationStyle.Words)
+            .WithHorizontalTextScaling(50D).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D));
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p => p.Runs(new[] { run, PdfTextRun.Normal("X", fontSize: global::OfficeIMO.OfficeLength.Points(12D)) })).ToBytes());
         var page = pdf.GetPage(1);
         double start = page.Letters.First(letter => letter.Value == "A").StartBaseLine.X;
         double end = page.Letters.Single(letter => letter.Value == "X").StartBaseLine.X;
@@ -119,17 +119,17 @@ public sealed class PdfRunSpacingRegressionTests {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public void WordAcrossFormattingRuns_MovesTogetherWhenItFitsANewLine(bool scaled, bool table) {
-        PdfOptions options = Options();
-        options.PageWidth = 100D; options.MarginLeft = options.MarginRight = 20D;
-        var first = new PdfTextRun(scaled ? "XXXXXXXXXXX ALP" : "XXX ALP", fontSize: 12D);
-        var last = new PdfTextRun("HA", fontSize: 12D, color: PdfColor.FromRgb(0, 0, 255));
+        PdfCreateOptions options = Options();
+        options.PageWidth = global::OfficeIMO.OfficeLength.Points(100D); options.MarginLeft = options.MarginRight = global::OfficeIMO.OfficeLength.Points(20D);
+        var first = new PdfTextRun(scaled ? "XXXXXXXXXXX ALP" : "XXX ALP", fontSize: global::OfficeIMO.OfficeLength.Points(12D));
+        var last = new PdfTextRun("HA", fontSize: global::OfficeIMO.OfficeLength.Points(12D), color: global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255));
         if (scaled) {
             first = first.WithHorizontalTextScaling(50D);
-            last = last.WithHorizontalTextScaling(50D).WithCharacterSpacing(1D);
+            last = last.WithHorizontalTextScaling(50D).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D));
         }
         var document = PdfDocument.Create(options);
         if (table) document.Table(new[] { new[] { PdfTableCell.RichTextCell(new[] { first, last }) } },
-            style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = 0D, CellPaddingY = 0D });
+            style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D) });
         else document.Paragraph(p => p.Runs(new[] { first, last }));
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         var lines = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
@@ -138,8 +138,8 @@ public sealed class PdfRunSpacingRegressionTests {
         Assert.Equal(new[] { scaled ? "XXXXXXXXXXX" : "XXX", "ALPHA" }, lines);
     }
 
-    private static PdfOptions Options() => new PdfOptions {
-        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12D,
-        MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
+    private static PdfCreateOptions Options() => new PdfCreateOptions {
+        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
     };
 }

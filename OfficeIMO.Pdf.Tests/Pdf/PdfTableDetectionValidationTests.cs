@@ -8,17 +8,17 @@ public sealed class PdfTableDetectionValidationTests {
     [Fact]
     public void LogicalTables_DoNotTreatSparseTwoColumnParagraphsAsATable() {
         byte[] pdf = PdfDocument.Create(document => document.Content(content => content.Canvas(canvas => canvas
-            .Text("Left opening paragraph", 36D, 90D, 220D, 24D, fontSize: 11D)
-            .Text("Left indented paragraph", 66D, 140D, 190D, 24D, fontSize: 11D)
-            .Text("Left closing paragraph", 36D, 190D, 220D, 24D, fontSize: 11D)
-            .Text("Right opening paragraph", 326D, 90D, 220D, 24D, fontSize: 11D)
-            .Text("Right middle paragraph", 326D, 140D, 220D, 24D, fontSize: 11D)
-            .Text("Right closing paragraph", 326D, 190D, 220D, 24D, fontSize: 11D)
+            .Text("Left opening paragraph", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(90D), global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(11D))
+            .Text("Left indented paragraph", global::OfficeIMO.OfficeLength.Points(66D), global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(190D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(11D))
+            .Text("Left closing paragraph", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(190D), global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(11D))
+            .Text("Right opening paragraph", global::OfficeIMO.OfficeLength.Points(326D), global::OfficeIMO.OfficeLength.Points(90D), global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(11D))
+            .Text("Right middle paragraph", global::OfficeIMO.OfficeLength.Points(326D), global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(11D))
+            .Text("Right closing paragraph", global::OfficeIMO.OfficeLength.Points(326D), global::OfficeIMO.OfficeLength.Points(190D), global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(11D))
             .Table(new[] {
                 new[] { "TABLE-MARKER", "Owner", "Amount", "Status" },
                 new[] { "ACC-01", "Owner 01", "1037.25", "Approved" },
                 new[] { "ACC-02", "Owner 02", "1074.50", "Review" }
-            }, 36D, 300D, 510D, 150D, style: new PdfTableStyle { HeaderRowCount = 1 })))).ToBytes();
+            }, global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(300D), global::OfficeIMO.OfficeLength.Points(510D), global::OfficeIMO.OfficeLength.Points(150D), style: new PdfTableStyle { HeaderRowCount = 1 })))).ToBytes();
 
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
@@ -37,7 +37,7 @@ public sealed class PdfTableDetectionValidationTests {
             }, style: new PdfTableStyle {
                 HeaderBold = false,
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 220D, 220D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(220D) }
             })
             .ToBytes();
 
@@ -57,7 +57,7 @@ public sealed class PdfTableDetectionValidationTests {
             }, style: new PdfTableStyle {
                 HeaderBold = false,
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 220D, 220D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(220D) }
             })
             .ToBytes();
 
@@ -77,7 +77,7 @@ public sealed class PdfTableDetectionValidationTests {
             }, style: new PdfTableStyle {
                 HeaderBold = false,
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 220D, 220D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(220D) }
             })
             .ToBytes();
 
@@ -97,7 +97,7 @@ public sealed class PdfTableDetectionValidationTests {
             }, style: new PdfTableStyle {
                 HeaderBold = false,
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 140D, 140D, 140D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(140D) }
             })
             .ToBytes();
 
@@ -116,7 +116,7 @@ public sealed class PdfTableDetectionValidationTests {
             CreateLine(460D, ("Archive", 50D, 46D, "Helvetica"), ("Yes", 220D, 24D, "Helvetica"))
         };
 
-        StructuredTable table = Assert.Single(TableDetector.DetectPositionedCellTables(lines));
+        PdfStructuredTable table = Assert.Single(TableDetector.DetectPositionedCellTables(lines));
 
         Assert.Equal("positioned-cells-bounded", table.Kind);
         Assert.Equal(4, table.Rows.Count);
@@ -132,7 +132,7 @@ public sealed class PdfTableDetectionValidationTests {
             CreateLine(460D, ("α β γ δ ε", 50D, 55D, "Helvetica"), ("ζ η θ ι κ", 220D, 55D, "Helvetica"))
         };
 
-        StructuredTable table = Assert.Single(TableDetector.DetectPositionedCellTables(lines));
+        PdfStructuredTable table = Assert.Single(TableDetector.DetectPositionedCellTables(lines));
 
         Assert.Equal("positioned-cells-bounded", table.Kind);
         Assert.Equal(4, table.Rows.Count);
@@ -148,7 +148,7 @@ public sealed class PdfTableDetectionValidationTests {
             CreateLine(480D, ("Beta", 50D, 42D, "Helvetica"), ("𝟛𝟜", 220D, 24D, "Helvetica"))
         };
 
-        StructuredTable table = Assert.Single(TableDetector.DetectPositionedCellTables(lines));
+        PdfStructuredTable table = Assert.Single(TableDetector.DetectPositionedCellTables(lines));
 
         Assert.Contains("𝟙𝟚", table.Rows.SelectMany(static row => row));
         Assert.Contains("𝟛𝟜", table.Rows.SelectMany(static row => row));
@@ -191,7 +191,7 @@ public sealed class PdfTableDetectionValidationTests {
             CreateLine(416D, ("retention", 50D, 48D, "Helvetica"))
         };
 
-        StructuredTable table = Assert.Single(
+        PdfStructuredTable table = Assert.Single(
             TableDetector.DetectPositionedCellTables(lines),
             static candidate => candidate.Kind == "wrapped-positioned-cells-bounded");
 
@@ -234,7 +234,7 @@ public sealed class PdfTableDetectionValidationTests {
             CreateLine(458D, ("response", 50D, 52D, "Helvetica"))
         };
 
-        StructuredTable table = Assert.Single(
+        PdfStructuredTable table = Assert.Single(
             TableDetector.DetectPositionedCellTables(lines),
             static candidate => candidate.Kind == "wrapped-positioned-cells-bounded");
 
@@ -273,7 +273,7 @@ public sealed class PdfTableDetectionValidationTests {
             CreateLine(500D, ("Appendix", 50D, 56D, "Helvetica"), (".....", 140D, 50D, "Helvetica"), ("𝟛𝟜", 240D, 24D, "Helvetica"))
         };
 
-        StructuredTable table = Assert.IsType<StructuredTable>(TableDetector.DetectLeaderTable(lines));
+        PdfStructuredTable table = Assert.IsType<PdfStructuredTable>(TableDetector.DetectLeaderTable(lines));
 
         Assert.Equal(new[] { "Section", "𝟙𝟚" }, table.Rows[0]);
         Assert.Equal(new[] { "Appendix", "𝟛𝟜" }, table.Rows[1]);
@@ -286,7 +286,7 @@ public sealed class PdfTableDetectionValidationTests {
             CreateLine(500D, ("Wait... what?", 50D, 76D, "Helvetica"), (".....", 150D, 50D, "Helvetica"), ("0.0.0.1", 240D, 42D, "Helvetica"))
         };
 
-        StructuredTable table = Assert.IsType<StructuredTable>(TableDetector.DetectLeaderTable(lines));
+        PdfStructuredTable table = Assert.IsType<PdfStructuredTable>(TableDetector.DetectLeaderTable(lines));
 
         Assert.Equal(new[] { "Release 1.2.3.", "1.2.3.4" }, table.Rows[0]);
         Assert.Equal(new[] { "Wait... what?", "0.0.0.1" }, table.Rows[1]);
@@ -294,7 +294,7 @@ public sealed class PdfTableDetectionValidationTests {
 
     [Fact]
     public void DetectedTableNormalization_DoesNotRewriteCellPunctuation() {
-        var table = new StructuredTable();
+        var table = new PdfStructuredTable();
         table.Rows.Add(new[] { " Release  1.2.3.4 ", "Wait... what?", "3 . 14" });
 
         ContentStructureExtractor.NormalizeDetectedTable(table);
@@ -315,7 +315,7 @@ public sealed class PdfTableDetectionValidationTests {
             new() { CreateLine(480D, ("Client response", 50D, 116D, "Helvetica"), (" ", 300D, 0D, "Helvetica")) }
         };
 
-        StructuredTable table = Assert.Single(TableDetector.DetectTablesFromBands(bands));
+        PdfStructuredTable table = Assert.Single(TableDetector.DetectTablesFromBands(bands));
         Assert.Equal(2, table.Columns.Count);
         Assert.Contains(table.Rows.SelectMany(static row => row),
             cell => cell == "Delivery Worksheet");
@@ -352,7 +352,7 @@ public sealed class PdfTableDetectionValidationTests {
                 (" ", 450D, 40D, "Helvetica")) }
         };
 
-        StructuredTable table = Assert.Single(TableDetector.DetectTablesFromBands(bands));
+        PdfStructuredTable table = Assert.Single(TableDetector.DetectTablesFromBands(bands));
         Assert.Equal(5, table.Columns.Count);
         Assert.Contains("Lead auditor", table.Rows.SelectMany(static row => row));
         Assert.Contains("Client owner", table.Rows.SelectMany(static row => row));
@@ -375,7 +375,7 @@ public sealed class PdfTableDetectionValidationTests {
                 ("Client owner", 450D, 40D, "Helvetica")) }
         };
 
-        StructuredTable table = Assert.Single(TableDetector.DetectTablesFromBands(bands));
+        PdfStructuredTable table = Assert.Single(TableDetector.DetectTablesFromBands(bands));
         Assert.Equal(5, table.Columns.Count);
         Assert.Contains("Lead auditor", table.Rows.SelectMany(static row => row));
         Assert.Contains("Client owner", table.Rows.SelectMany(static row => row));
@@ -393,7 +393,7 @@ public sealed class PdfTableDetectionValidationTests {
             }, style: new PdfTableStyle {
                 HeaderRowCount = 1,
                 HeaderBold = false,
-                ColumnWidthPoints = new List<double?> { 220D, 220D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(220D) }
             })
             .Paragraph(paragraph => paragraph.Text(narrative))
             .Table(new[] {
@@ -403,7 +403,7 @@ public sealed class PdfTableDetectionValidationTests {
             }, style: new PdfTableStyle {
                 HeaderRowCount = 1,
                 HeaderBold = false,
-                ColumnWidthPoints = new List<double?> { 220D, 220D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(220D) }
             })
             .ToBytes();
 
@@ -479,7 +479,7 @@ public sealed class PdfTableDetectionValidationTests {
             }, style: new PdfTableStyle {
                 HeaderBold = false,
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 220D, 220D },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(220D) },
                 CellAlignments = cellAlignments
             })
             .ToBytes();
@@ -509,7 +509,7 @@ public sealed class PdfTableDetectionValidationTests {
             new() { CreateLine(460D, ("A-2", 50D, 24D, "Helvetica"), ("200", 220D, 24D, "Helvetica")) }
         };
 
-        List<StructuredTable> tables = TableDetector.DetectTablesFromBands(bands);
+        List<PdfStructuredTable> tables = TableDetector.DetectTablesFromBands(bands);
 
         Assert.DoesNotContain(tables.SelectMany(static table => table.Rows).SelectMany(static row => row),
             cell => cell.Contains("Management", StringComparison.Ordinal));
@@ -525,7 +525,7 @@ public sealed class PdfTableDetectionValidationTests {
             new() { CreateLine(440D, ("B-1", 50D, 24D, "Helvetica"), ("200", 220D, 24D, "Helvetica")) }
         };
 
-        List<StructuredTable> tables = TableDetector.DetectTablesFromBands(bands);
+        List<PdfStructuredTable> tables = TableDetector.DetectTablesFromBands(bands);
 
         Assert.Equal(2, tables.Count);
         Assert.DoesNotContain(
@@ -545,7 +545,7 @@ public sealed class PdfTableDetectionValidationTests {
             new() { CreateLine(440D, ("B-1", 50D, 55D, "Helvetica"), ("200", 220D, 48D, "Helvetica")) }
         };
 
-        List<StructuredTable> tables = TableDetector.DetectTablesFromBands(bands);
+        List<PdfStructuredTable> tables = TableDetector.DetectTablesFromBands(bands);
 
         Assert.Equal(2, tables.Count);
         Assert.DoesNotContain(
@@ -573,7 +573,7 @@ public sealed class PdfTableDetectionValidationTests {
             new() { CreateLine(460D, ("A-2", 50D, 24D, "Helvetica"), ("200", 220D, 24D, "Helvetica")) }
         };
 
-        StructuredTable table = Assert.Single(TableDetector.DetectTablesFromBands(bands));
+        PdfStructuredTable table = Assert.Single(TableDetector.DetectTablesFromBands(bands));
 
         Assert.Contains(table.Rows.SelectMany(static row => row),
             cell => cell.Contains("Amounts exclude tax.", StringComparison.Ordinal));
@@ -588,7 +588,7 @@ public sealed class PdfTableDetectionValidationTests {
             new() { CreateLine(460D, ("A-2", 50D, 24D, "Helvetica"), ("200", 220D, 24D, "Helvetica")) }
         };
 
-        IReadOnlyList<StructuredTable> tables = TableDetector.DetectTablesFromBands(bands);
+        IReadOnlyList<PdfStructuredTable> tables = TableDetector.DetectTablesFromBands(bands);
 
         Assert.DoesNotContain(
             tables.SelectMany(static table => table.Rows).SelectMany(static row => row),
@@ -597,9 +597,9 @@ public sealed class PdfTableDetectionValidationTests {
 
     [Fact]
     public void TableOwnership_RequiresHorizontalAsWellAsVerticalOverlap() {
-        var table = new StructuredTable { YTop = 500D, YBottom = 450D };
-        table.Columns.Add(new StructuredTableColumn { From = 50D, To = 150D });
-        table.Columns.Add(new StructuredTableColumn { From = 150D, To = 250D });
+        var table = new PdfStructuredTable { YTop = 500D, YBottom = 450D };
+        table.Columns.Add(new PdfStructuredTableColumn { From = 50D, To = 150D });
+        table.Columns.Add(new PdfStructuredTableColumn { From = 150D, To = 250D });
         TextLayoutEngine.TextLine adjacent = CreateLine(475D, ("Adjacent prose", 400D, 90D, "Helvetica"));
         TextLayoutEngine.TextLine overlapping = CreateLine(475D, ("Table prose", 100D, 90D, "Helvetica"));
 
@@ -609,11 +609,11 @@ public sealed class PdfTableDetectionValidationTests {
 
     [Fact]
     public void TableOwnership_ChargesTableAndColumnTraversal() {
-        StructuredTable[] tables = Enumerable.Range(0, 40)
+        PdfStructuredTable[] tables = Enumerable.Range(0, 40)
             .Select(index => {
-                var table = new StructuredTable { YTop = 500D, YBottom = 450D };
+                var table = new PdfStructuredTable { YTop = 500D, YBottom = 450D };
                 for (int column = 0; column < 8; column++) {
-                    table.Columns.Add(new StructuredTableColumn {
+                    table.Columns.Add(new PdfStructuredTableColumn {
                         From = 50D + column * 25D,
                         To = 75D + column * 25D
                     });
@@ -638,9 +638,9 @@ public sealed class PdfTableDetectionValidationTests {
 
     [Fact]
     public void TableOwnership_ObservesCancellationDuringTableTraversal() {
-        var table = new StructuredTable { YTop = 500D, YBottom = 450D };
+        var table = new PdfStructuredTable { YTop = 500D, YBottom = 450D };
         for (int column = 0; column < 100; column++) {
-            table.Columns.Add(new StructuredTableColumn { From = column, To = column + 1D });
+            table.Columns.Add(new PdfStructuredTableColumn { From = column, To = column + 1D });
         }
         TextLayoutEngine.TextLine line = CreateLine(475D, ("Outside table", 500D, 100D, "Helvetica"));
         using var cancellation = new CancellationTokenSource();

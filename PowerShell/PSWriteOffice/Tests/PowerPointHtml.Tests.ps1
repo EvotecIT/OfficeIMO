@@ -14,12 +14,12 @@ Describe 'PowerPoint HTML output controls' {
     ) {
         $deckPath = Join-Path $TestDrive ($Profile + '.pptx')
         $htmlPath = Join-Path $TestDrive ($Profile + '.html')
-        $presentation = New-OfficePowerPoint -Path $deckPath -NoSave -ErrorAction Stop
+        $presentation = New-OfficePowerPoint -Path $deckPath -ErrorAction Stop
         try {
-            $presentation.SlideSize.SetSizePoints(160, 100)
-            $slide = Add-OfficePowerPointSlide -Presentation $presentation -PassThru -ErrorAction Stop
+            $presentation.SlideSize.SetSize([OfficeIMO.OfficeLength]::Points(160), [OfficeIMO.OfficeLength]::Points(100))
+            $slide = $presentation.AddSlide()
             Add-OfficePowerPointTextBox -Slide $slide -Text 'Visible slide content' -X 10 -Y 10 -Width 140 -Height 50 -ErrorAction Stop
-            $slide.AddRectanglePoints(500, 500, 20, 20, 'Outside slide bounds') | Out-Null
+            $slide.AddRectangle([OfficeIMO.OfficeLength]::Points(500), [OfficeIMO.OfficeLength]::Points(500), [OfficeIMO.OfficeLength]::Points(20), [OfficeIMO.OfficeLength]::Points(20), 'Outside slide bounds') | Out-Null
 
             $defaults = ConvertTo-OfficePowerPointHtml -Presentation $presentation -Profile $Profile -ErrorAction Stop
             $defaults | Should -Match '<h1>PowerPoint'
@@ -41,7 +41,8 @@ Describe 'PowerPoint HTML output controls' {
                 ErrorAction = 'Stop'
             }
             $fromPresentation = ConvertTo-OfficePowerPointHtml -Presentation $presentation @outputChoices
-            Close-OfficePowerPoint -Presentation $presentation -Save -ErrorAction Stop
+            Save-OfficePowerPoint -Document $presentation -ErrorAction Stop
+            Close-OfficePowerPoint -Document $presentation -ErrorAction Stop
             $presentation = $null
 
             $saved = ConvertTo-OfficePowerPointHtml -Path $deckPath -OutputPath $htmlPath -PassThru @outputChoices
@@ -63,7 +64,7 @@ Describe 'PowerPoint HTML output controls' {
             }
         } finally {
             if ($presentation) {
-                Close-OfficePowerPoint -Presentation $presentation -ErrorAction SilentlyContinue
+                Close-OfficePowerPoint -Document $presentation -ErrorAction SilentlyContinue
             }
         }
     }

@@ -5,7 +5,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
         sb.AppendLine("using OfficeIMO.PowerPoint;");
         sb.AppendLine("using OfficeIMO.Drawing;");
         sb.AppendLine();
-        sb.AppendLine($"using PowerPointPresentation presentation = PowerPointPresentation.Create({options.FilePathVariable});");
+        sb.AppendLine($"using PowerPointDocument presentation = PowerPointDocument.Create({options.FilePathVariable});");
         var slideIndex = 0;
         var chartIndex = 0;
         string? activeSection = null;
@@ -105,7 +105,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
                     break;
                 case OfficeMarkupImageBlock image:
                     EmitPlacementComment(image.Placement, sb);
-                    sb.AppendLine($"{slideVariable}.AddPicture({CsString(image.Source)});");
+                    sb.AppendLine($"{slideVariable}.AddImage({CsString(image.Source)});");
                     break;
                 case OfficeMarkupTableBlock table:
                     var rows = Math.Max(1, table.Rows.Count + (table.Headers.Count > 0 ? 1 : 0));
@@ -115,7 +115,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
                     break;
                 case OfficeMarkupDiagramBlock diagram:
                     EmitPlacementComment(diagram.Placement, sb);
-                    sb.AppendLine($"// Render {diagram.Language} diagram to an image, then call {slideVariable}.AddPicture(...).");
+                    sb.AppendLine($"// Render {diagram.Language} diagram to an image, then call {slideVariable}.AddImage(...).");
                     break;
                 case OfficeMarkupChartBlock chart:
                     EmitPowerPointChart(chart, slideVariable, sb, ++chartIndex);

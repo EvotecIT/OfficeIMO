@@ -87,51 +87,27 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Sets cell padding in points for all cells.
+        ///     Sets cell padding for all cells.
         /// </summary>
-        public void SetCellPaddingPoints(double? left, double? top, double? right, double? bottom) {
+        public void SetCellPadding(global::OfficeIMO.OfficeLength? left, global::OfficeIMO.OfficeLength? top, global::OfficeIMO.OfficeLength? right, global::OfficeIMO.OfficeLength? bottom) {
             ApplyToCells(cell => {
-                cell.PaddingLeftPoints = left;
-                cell.PaddingTopPoints = top;
-                cell.PaddingRightPoints = right;
-                cell.PaddingBottomPoints = bottom;
+                cell.PaddingLeft = left;
+                cell.PaddingTop = top;
+                cell.PaddingRight = right;
+                cell.PaddingBottom = bottom;
             });
         }
 
         /// <summary>
-        ///     Sets cell padding in points for a range of cells.
+        ///     Sets cell padding for a range of cells.
         /// </summary>
-        public void SetCellPaddingPoints(double? left, double? top, double? right, double? bottom,
+        public void SetCellPadding(global::OfficeIMO.OfficeLength? left, global::OfficeIMO.OfficeLength? top, global::OfficeIMO.OfficeLength? right, global::OfficeIMO.OfficeLength? bottom,
             int startRow, int endRow, int startColumn, int endColumn) {
             ApplyToCells(startRow, endRow, startColumn, endColumn, cell => {
-                cell.PaddingLeftPoints = left;
-                cell.PaddingTopPoints = top;
-                cell.PaddingRightPoints = right;
-                cell.PaddingBottomPoints = bottom;
-            });
-        }
-
-        /// <summary>
-        ///     Sets cell padding in centimeters for all cells.
-        /// </summary>
-        public void SetCellPaddingCm(double? leftCm, double? topCm, double? rightCm, double? bottomCm) {
-            ApplyToCells(cell => {
-                cell.PaddingLeftCm = leftCm;
-                cell.PaddingTopCm = topCm;
-                cell.PaddingRightCm = rightCm;
-                cell.PaddingBottomCm = bottomCm;
-            });
-        }
-
-        /// <summary>
-        ///     Sets cell padding in inches for all cells.
-        /// </summary>
-        public void SetCellPaddingInches(double? leftInches, double? topInches, double? rightInches, double? bottomInches) {
-            ApplyToCells(cell => {
-                cell.PaddingLeftInches = leftInches;
-                cell.PaddingTopInches = topInches;
-                cell.PaddingRightInches = rightInches;
-                cell.PaddingBottomInches = bottomInches;
+                cell.PaddingLeft = left;
+                cell.PaddingTop = top;
+                cell.PaddingRight = right;
+                cell.PaddingBottom = bottom;
             });
         }
 
@@ -156,18 +132,12 @@ namespace OfficeIMO.PowerPoint {
             });
         }
 
-        /// <summary>
-        ///     Applies borders to all cells.
-        /// </summary>
-        public void SetCellBorders(PowerPointTableCellBorders borders, string color, double? widthPoints = null) {
-            ApplyToCells(cell => cell.SetBorders(borders, color, widthPoints));
-        }
-
-        /// <summary>
-        ///     Applies dashed borders to all cells.
-        /// </summary>
-        public void SetCellBorders(PowerPointTableCellBorders borders, string color, double? widthPoints, PowerPointLineDashStyle dash) {
-            ApplyToCells(cell => cell.SetBorders(borders, color, widthPoints, dash));
+        /// <summary>Applies borders to all cells, retaining the existing width or dash when omitted.</summary>
+        public void SetCellBorders(PowerPointTableCellBorders borders, string color, OfficeLength? width = null,
+            PowerPointLineDashStyle? dash = null) {
+            PowerPointTableCell.ValidateBorderStyle(borders, color, width);
+            if (dash.HasValue) _ = dash.Value.ToOpenXml();
+            ApplyToCells(cell => cell.SetBorders(borders, color, width, dash));
         }
 
         /// <summary>

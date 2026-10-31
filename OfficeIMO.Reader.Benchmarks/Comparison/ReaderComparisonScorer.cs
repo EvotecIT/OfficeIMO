@@ -59,7 +59,7 @@ internal static class ReaderComparisonScorer {
             ReaderComparisonProbeKind.ContainsText => Contains(markdown, probe.Marker),
             ReaderComparisonProbeKind.MarkdownHeading => Lines(markdown).Any(line =>
                 line.TrimStart().StartsWith("#", StringComparison.Ordinal) && Contains(line, probe.Marker)),
-            ReaderComparisonProbeKind.MarkdownListItem => Lines(markdown).Any(line =>
+            ReaderComparisonProbeKind.ListItem => Lines(markdown).Any(line =>
                 IsListItem(line.TrimStart()) && Contains(line, probe.Marker)),
             ReaderComparisonProbeKind.MarkdownTable => Lines(markdown).Any(line =>
                 line.Contains('|') && Contains(line, probe.Marker)),
@@ -72,7 +72,7 @@ internal static class ReaderComparisonScorer {
     private static bool IsMarkdownProbe(ReaderComparisonProbeKind kind) => kind is
         ReaderComparisonProbeKind.ContainsText or
         ReaderComparisonProbeKind.MarkdownHeading or
-        ReaderComparisonProbeKind.MarkdownListItem or
+        ReaderComparisonProbeKind.ListItem or
         ReaderComparisonProbeKind.MarkdownTable or
         ReaderComparisonProbeKind.MarkdownLink or
         ReaderComparisonProbeKind.MarkdownImage;

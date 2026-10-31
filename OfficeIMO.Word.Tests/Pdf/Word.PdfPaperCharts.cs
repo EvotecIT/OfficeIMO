@@ -30,8 +30,8 @@ public sealed class WordPdfPaperChartsTests {
         Assert.True((snapshot.Layout.VerticalAxisMaximum ?? snapshot.Layout.HorizontalAxisMaximum) > count);
         Assert.Equal(OfficeChartDataLabelPosition.OutsideEnd, snapshot.Layout.DataLabelPosition);
         Assert.Equal("202428", snapshot.Style.TitleColor.ToRgbHex());
-        byte[] bytes = document.ToPdfDocument(new WordToPdfOptions { IncludePageNumbers = false }).ToBytes();
-        Assert.Contains("Outcome counts", PdfReadDocument.Open(bytes).ExtractText());
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes();
+        Assert.Contains("Outcome counts", PdfDocument.Load(new System.IO.MemoryStream(bytes)).ExtractText());
     }
 
     [Theory]
@@ -47,8 +47,8 @@ public sealed class WordPdfPaperChartsTests {
         else chart.SetPaperStyle();
         Assert.True(WordPdfConverterExtensions.TryCreateNativeWordChartSnapshot(chart, out var snapshot, out string? warning), warning);
         Assert.Equal(2, Assert.Single(snapshot!.Data.Series).Values.Count);
-        byte[] bytes = document.ToPdfDocument(new WordToPdfOptions { IncludePageNumbers = false }).ToBytes();
-        Assert.Contains("Evidence counts", PdfReadDocument.Open(bytes).ExtractText());
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes();
+        Assert.Contains("Evidence counts", PdfDocument.Load(new System.IO.MemoryStream(bytes)).ExtractText());
     }
 
     [Theory]

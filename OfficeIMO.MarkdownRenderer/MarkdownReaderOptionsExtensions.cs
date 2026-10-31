@@ -12,12 +12,12 @@ public static class MarkdownReaderOptionsExtensions {
         public HashSet<string> FeaturePackIds { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    private static readonly ConditionalWeakTable<MarkdownReaderOptions, ReaderContractState> ReaderStates = new();
+    private static readonly ConditionalWeakTable<MarkdownLoadOptions, ReaderContractState> ReaderStates = new();
 
     /// <summary>
     /// Applies a renderer plugin's reader-side contract to markdown reader options.
     /// </summary>
-    public static void ApplyPlugin(this MarkdownReaderOptions options, MarkdownRendererPlugin plugin) {
+    public static void ApplyPlugin(this MarkdownLoadOptions options, MarkdownRendererPlugin plugin) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }
@@ -37,7 +37,7 @@ public static class MarkdownReaderOptionsExtensions {
     /// <summary>
     /// Returns <see langword="true"/> when a renderer plugin's reader-side contract has already been applied.
     /// </summary>
-    public static bool HasPlugin(this MarkdownReaderOptions options, MarkdownRendererPlugin plugin) {
+    public static bool HasPlugin(this MarkdownLoadOptions options, MarkdownRendererPlugin plugin) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }
@@ -53,7 +53,7 @@ public static class MarkdownReaderOptionsExtensions {
     /// <summary>
     /// Applies a renderer feature pack's reader-side contract to markdown reader options.
     /// </summary>
-    public static void ApplyFeaturePack(this MarkdownReaderOptions options, MarkdownRendererFeaturePack featurePack) {
+    public static void ApplyFeaturePack(this MarkdownLoadOptions options, MarkdownRendererFeaturePack featurePack) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }
@@ -73,7 +73,7 @@ public static class MarkdownReaderOptionsExtensions {
     /// <summary>
     /// Returns <see langword="true"/> when a renderer feature pack's reader-side contract has already been applied.
     /// </summary>
-    public static bool HasFeaturePack(this MarkdownReaderOptions options, MarkdownRendererFeaturePack featurePack) {
+    public static bool HasFeaturePack(this MarkdownLoadOptions options, MarkdownRendererFeaturePack featurePack) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }

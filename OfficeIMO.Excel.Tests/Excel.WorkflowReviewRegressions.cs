@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             using var destination = new MemoryStream();
 
             using (var document = ExcelDocument.Create(source)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Ready");
 
                 document.SetNamedRange("Anchor", "A1", sheet);
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCustomDocumentProperties.DirectCollection.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "Ready");
+                document.AddSheet("Data").CellValue(1, 1, "Ready");
                 document.CustomDocumentProperties["Direct"] = new ExcelCustomProperty("Tracked");
                 document.Save();
             }
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PageBreaks.ConvertAutomatic.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "Ready");
+                document.AddSheet("Data").CellValue(1, 1, "Ready");
                 document.Save();
             }
 
@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ConditionalTimePeriodFormula.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, new DateTime(2026, 6, 22));
                 sheet.AddConditionalTimePeriodRule("A1:A3", ExcelConditionalTimePeriod.Today);
                 document.Save();
@@ -106,9 +106,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "RowLayout.Bounds.xlsx");
 
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.SetRowLayout(A1.MaxRows + 1, new ExcelRowLayoutOptions { Height = 20 }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.SetRowLayout(ExcelA1.MaxRows + 1, new ExcelRowLayoutOptions { Height = ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20)) }));
         }
 
         [Fact]
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
             data.Rows.Add("EU");
 
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
 
             Assert.Throws<ArgumentException>(() => sheet.AddDashboard(data, new ExcelDashboardOptions {
                 Title = "Sales Dashboard",
@@ -134,7 +134,7 @@ namespace OfficeIMO.Tests {
             const string connectionXml = "<connection xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" id=\"1\" name=\"SalesConnection\" type=\"5\" refreshedVersion=\"7\"/>";
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Data");
+                document.AddSheet("Data");
                 document.AddWorkbookConnectionMetadata(connectionXml);
                 document.Save();
             }
@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests {
         public void Test_WorksheetMetadata_RejectsForeignWorksheet() {
             using var left = ExcelDocument.Create(new MemoryStream());
             using var right = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet foreignSheet = left.AddWorksheet("Foreign");
+            ExcelSheet foreignSheet = left.AddSheet("Foreign");
 
             Assert.Throws<ArgumentException>(() => right.AddWorksheetMetadataPart(
                 foreignSheet,
@@ -164,7 +164,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PrintLayoutPreset.ClearTitles.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 sheet.CellValue(1, 1, "Region");
                 document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: 1, lastCol: 1, save: false);
 
@@ -224,7 +224,7 @@ namespace OfficeIMO.Tests {
         public void Test_EnsureWorkbookTheme_SavesEnsuredPartsForStreamWorkbook() {
             using var source = new MemoryStream();
             using (var document = ExcelDocument.Create(source)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "Ready");
+                document.AddSheet("Data").CellValue(1, 1, "Ready");
                 document.Save(source);
             }
 
@@ -257,7 +257,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Inspection.RangeHyperlinks.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "One");
                 sheet.CellValue(2, 1, "Two");
                 sheet.CellValue(3, 1, "Three");
@@ -275,7 +275,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                ExcelWorksheetSnapshot sheet = Assert.Single(document.CreateInspectionSnapshot().Worksheets);
+                ExcelWorksheetInfo sheet = Assert.Single(document.Inspect().Worksheets);
                 Assert.All(sheet.Cells.Where(cell => cell.Row >= 1 && cell.Row <= 3), cell => Assert.NotNull(cell.Hyperlink));
                 Assert.Equal(3, sheet.Cells.Count(cell => cell.Hyperlink != null));
             }
@@ -287,7 +287,7 @@ namespace OfficeIMO.Tests {
             string rightPath = Path.Combine(_directoryWithFiles, "CompareComments.Right.xlsx");
 
             using (var document = ExcelDocument.Create(leftPath)) {
-                document.AddWorksheet("Data");
+                document.AddSheet("Data");
                 document.Save();
             }
 
@@ -326,8 +326,13 @@ namespace OfficeIMO.Tests {
             byte[] image = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
-                sheet.AddImage(1, 1, image, "image/png", widthPixels: 16, heightPixels: 16, name: "Absolute image");
+                ExcelSheet sheet = document.AddSheet("Images");
+                sheet.AddImage(1, 1, image, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(16),
+                    Height = OfficeIMO.OfficeLength.Pixels(16),
+                    Name = "Absolute image"
+                });
                 document.Save();
             }
 
@@ -357,11 +362,15 @@ namespace OfficeIMO.Tests {
             byte[] image = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
 
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Images");
-            ExcelImage imageRecord = sheet.AddImage(1, 1, image, "image/png", widthPixels: 16, heightPixels: 16);
+            ExcelSheet sheet = document.AddSheet("Images");
+            ExcelImage imageRecord = sheet.AddImage(1, 1, image, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(16),
+                Height = OfficeIMO.OfficeLength.Pixels(16)
+            });
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => imageRecord.MoveTo(A1.MaxRows + 1, 1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => imageRecord.MoveTo(1, A1.MaxColumns + 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => imageRecord.MoveTo(ExcelA1.MaxRows + 1, 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => imageRecord.MoveTo(1, ExcelA1.MaxColumns + 1));
         }
 
         [Fact]
@@ -370,8 +379,13 @@ namespace OfficeIMO.Tests {
             byte[] image = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
-                sheet.AddImage(1, 1, image, "image/png", widthPixels: 16, heightPixels: 16, name: "Resizable image");
+                ExcelSheet sheet = document.AddSheet("Images");
+                sheet.AddImage(1, 1, image, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(16),
+                    Height = OfficeIMO.OfficeLength.Pixels(16),
+                    Name = "Resizable image"
+                });
                 document.Save();
             }
 
@@ -400,7 +414,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath)) {
                 ExcelImage imageRecord = Assert.Single(document["Images"].Images);
-                imageRecord.MoveTo(3, 4, offsetXPixels: 5, offsetYPixels: 7);
+                imageRecord.MoveTo(3, 4, offsetX: OfficeLength.Pixels(5), offsetY: OfficeLength.Pixels(7));
                 document.Save();
             }
 
@@ -421,16 +435,16 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_DashboardChart_RejectsOutOfBoundsAnchorsAndDimensions() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Sales");
             sheet.CellValue(2, 1, "EU");
             sheet.CellValue(2, 2, 10);
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", Row = A1.MaxRows + 1, Column = 1 }));
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", Row = 1, Column = A1.MaxColumns + 1 }));
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", WidthPixels = 0 }));
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", HeightPixels = -1 }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", Row = ExcelA1.MaxRows + 1, Column = 1 }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", Row = 1, Column = ExcelA1.MaxColumns + 1 }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", Width = OfficeLength.Pixels(0)}));
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", Height = OfficeLength.Pixels(-1)}));
         }
 
         private static string PixelsToEmuText(int pixels)
@@ -440,7 +454,7 @@ namespace OfficeIMO.Tests {
         public void Test_PrintAreaAndTitles_MarkStreamWorkbookDirty() {
             using var source = new MemoryStream();
             using (var document = ExcelDocument.Create(source)) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 sheet.CellValue(1, 1, "Region");
                 document.Save(source);
             }
@@ -471,7 +485,7 @@ namespace OfficeIMO.Tests {
             const string queryTableXml = "<queryTable xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" name=\"SalesQuery\" connectionId=\"1\"/>";
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Data");
+                document.AddSheet("Data");
                 document.AddWorksheetQueryTableMetadata("Data", queryTableXml);
                 document.Save();
             }
@@ -494,7 +508,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_PrintLayout_RejectsScaleOutsideExcelBounds() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
 
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {
                 Preset = ExcelPrintLayoutPreset.Worksheet,

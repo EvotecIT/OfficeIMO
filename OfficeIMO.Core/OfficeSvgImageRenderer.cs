@@ -8,7 +8,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Shared dependency-free SVG renderer for projected bitmap/vector images.
 /// </summary>
-public static partial class OfficeSvgImageRenderer {
+internal static partial class OfficeSvgImageRenderer {
     /// <summary>
     /// Appends an SVG image using normalized source cropping, optional clipping, rotation, and flips.
     /// </summary>

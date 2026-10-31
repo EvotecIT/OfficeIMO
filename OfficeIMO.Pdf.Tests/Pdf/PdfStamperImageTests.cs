@@ -16,10 +16,10 @@ public partial class PdfStamperTests {
 
         byte[] stamped = PdfStamper.StampImage(source, image, new PdfImageStampOptions {
             PageNumbers = new[] { 2 },
-            X = 72,
-            Y = 650,
-            Width = 24,
-            Height = 24
+            X = global::OfficeIMO.OfficeLength.Points(72),
+            Y = global::OfficeIMO.OfficeLength.Points(650),
+            Width = global::OfficeIMO.OfficeLength.Points(24),
+            Height = global::OfficeIMO.OfficeLength.Points(24)
         });
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(stamped));
@@ -41,10 +41,10 @@ public partial class PdfStamperTests {
         byte[] image = CreateMinimalRgbPng();
 
         byte[] stamped = PdfStamper.StampImage(source, image, new PdfImageStampOptions {
-                X = 24,
-                Y = 24,
-                Width = 8,
-                Height = 8
+                X = global::OfficeIMO.OfficeLength.Points(24),
+                Y = global::OfficeIMO.OfficeLength.Points(24),
+                Width = global::OfficeIMO.OfficeLength.Points(8),
+                Height = global::OfficeIMO.OfficeLength.Points(8)
             }
             .UsePageRange(2, 2));
 
@@ -58,8 +58,8 @@ public partial class PdfStamperTests {
         byte[] image = CreateMinimalRgbPng();
 
         byte[] stamped = PdfStamper.StampImage(source, image, new PdfImageStampOptions {
-            Width = 12,
-            Height = 12
+            Width = global::OfficeIMO.OfficeLength.Points(12),
+            Height = global::OfficeIMO.OfficeLength.Points(12)
         }.UsePageRanges(PdfPageRange.ParseMany("1-2,2")));
 
         string firstPageStreams = string.Join("\n", GetPageContentStreams(stamped, 1));
@@ -74,10 +74,10 @@ public partial class PdfStamperTests {
 
         byte[] stamped = PdfStamper.StampImage(source, CreateMinimalRgbaPng(), new PdfImageStampOptions {
             PageNumbers = new[] { 1 },
-            X = 72,
-            Y = 650,
-            Width = 24,
-            Height = 24
+            X = global::OfficeIMO.OfficeLength.Points(72),
+            Y = global::OfficeIMO.OfficeLength.Points(650),
+            Width = global::OfficeIMO.OfficeLength.Points(24),
+            Height = global::OfficeIMO.OfficeLength.Points(24)
         });
 
         string pdfContent = Encoding.ASCII.GetString(stamped);
@@ -94,10 +94,10 @@ public partial class PdfStamperTests {
 
         byte[] stamped = PdfStamper.StampImage(source, CreateMinimalIndexedColorPng(), new PdfImageStampOptions {
             PageNumbers = new[] { 1 },
-            X = 72,
-            Y = 650,
-            Width = 24,
-            Height = 12
+            X = global::OfficeIMO.OfficeLength.Points(72),
+            Y = global::OfficeIMO.OfficeLength.Points(650),
+            Width = global::OfficeIMO.OfficeLength.Points(24),
+            Height = global::OfficeIMO.OfficeLength.Points(12)
         });
 
         string pdfContent = Encoding.ASCII.GetString(stamped);
@@ -114,10 +114,10 @@ public partial class PdfStamperTests {
 
         byte[] stamped = PdfStamper.StampImage(source, CreateMinimalRgbTransparencyPng(), new PdfImageStampOptions {
             PageNumbers = new[] { 1 },
-            X = 72,
-            Y = 650,
-            Width = 24,
-            Height = 24
+            X = global::OfficeIMO.OfficeLength.Points(72),
+            Y = global::OfficeIMO.OfficeLength.Points(650),
+            Width = global::OfficeIMO.OfficeLength.Points(24),
+            Height = global::OfficeIMO.OfficeLength.Points(24)
         });
 
         string pdfContent = Encoding.ASCII.GetString(stamped);
@@ -134,10 +134,10 @@ public partial class PdfStamperTests {
 
         byte[] stamped = PdfStamper.StampImage(source, CreateMinimalPackedGrayscalePng(), new PdfImageStampOptions {
             PageNumbers = new[] { 1 },
-            X = 72,
-            Y = 650,
-            Width = 24,
-            Height = 12
+            X = global::OfficeIMO.OfficeLength.Points(72),
+            Y = global::OfficeIMO.OfficeLength.Points(650),
+            Width = global::OfficeIMO.OfficeLength.Points(24),
+            Height = global::OfficeIMO.OfficeLength.Points(12)
         });
 
         string pdfContent = Encoding.ASCII.GetString(stamped);

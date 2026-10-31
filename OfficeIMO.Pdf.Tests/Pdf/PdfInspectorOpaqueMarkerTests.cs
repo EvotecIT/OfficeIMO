@@ -10,8 +10,8 @@ public partial class PdfInspectorTests {
     [InlineData(PdfStandardEncryptionAlgorithm.Aes256)]
     [InlineData(PdfStandardEncryptionAlgorithm.LegacyRc4)]
     public void GeneratedEncryptedFormRetainsCompleteSyntaxCoverage(PdfStandardEncryptionAlgorithm algorithm) {
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption(new("open") { OwnerPassword = "owner", Algorithm = algorithm }))
-            .TextField("Name", width: 180, height: 24, value: "Ada").ToBytes();
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption(new("open") { OwnerPassword = "owner", Algorithm = algorithm }))
+            .TextField("Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: "Ada").ToBytes();
         PdfSyntax.ParseObjects(pdf, new PdfLoadOptions { Password = "owner" }, out var repair);
         Assert.False(repair.HasUnreadableObjects, string.Join("; ", repair.Diagnostics.Select(item => item.ObjectNumber + ": " + item.Message)));
         using var independent = UglyToad.PdfPig.PdfDocument.Open(pdf, new UglyToad.PdfPig.ParsingOptions { Password = "owner" });

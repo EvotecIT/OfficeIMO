@@ -39,13 +39,13 @@ New-OfficeWord -Path $path {
         WordPageSetup -PageSize A4 -Top 1134 -Bottom 1134 -Left 1134 -Right 1134
         WordHeader {
             WordParagraph {
-                WordBold 'PSWriteOffice Showcase'
+                WordText -Bold 'PSWriteOffice Showcase'
                 WordText ' | Executive service health'
             }
         }
         WordFooter {
             WordParagraph {
-                WordText 'Synthetic service data | Page ' -FontSize 9
+                WordText 'Synthetic service data | Page ' -Size 9
                 WordField -Type Page
             }
         }
@@ -57,16 +57,16 @@ New-OfficeWord -Path $path {
 
         WordParagraph {
             WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true
-            WordText 'Executive Service Health Report' -FontSize 24 -Bold -Color '#17365D'
+            WordText 'Executive Service Health Report' -Size 24 -Bold -Color '#17365D'
         }
         WordParagraph 'Generated from PowerShell objects with PSWriteOffice and OfficeIMO.'
         WordParagraph {
-            WordBold 'Audience: '
+            WordText -Bold 'Audience: '
             WordText 'technology leadership, service owners, and operational reviewers.'
             WordFootnote 'This sample uses synthetic service-health data generated entirely in PowerShell.'
         }
         WordParagraph {
-            WordBold 'Decision needed: '
+            WordText -Bold 'Decision needed: '
             WordText 'approve the focused remediation plan for high-friction services and keep monthly trend review cadence.'
             WordBookmark -Name 'ExecutiveSummary'
         }
@@ -99,7 +99,7 @@ New-OfficeWord -Path $path {
         WordParagraph 'Recorded incidents fell from eight in January to three in June. June availability is 99.82%; percentages and incident counts use different units and are reported separately.'
         WordParagraph {
             WordParagraphStyle -SpacingBeforePoints 12 -SpacingAfterPoints 12
-            WordChart -Type Line -Data $trend -CategoryProperty Month -SeriesProperty Incidents -Title 'Incidents by month' -XAxisTitle 'Month' -YAxisTitle 'Incidents' -FitToPageWidth -WidthFraction 1 -HeightPixels 240
+            WordChart -Type Line -Data $trend -Category Month -Value Incidents -Title 'Incidents by month' -XAxisTitle 'Month' -YAxisTitle 'Incidents' -FitToPageWidth -WidthFraction 1 -HeightPixels 240
         }
 
         WordParagraph -Text 'Action Plan' -Style Heading1
@@ -107,7 +107,7 @@ New-OfficeWord -Path $path {
         $actionTable | Get-OfficeWordTableCell | Set-OfficeWordTableCell -MarginTopCentimeters 0.12 -MarginBottomCentimeters 0.12 -MarginLeftCentimeters 0.16 -MarginRightCentimeters 0.16
         WordParagraph {
             WordText 'Jump back to '
-            WordHyperlink -Text 'Executive Summary' -Anchor 'ExecutiveSummary' -Styled
+            WordText -Text 'Executive Summary' -Anchor 'ExecutiveSummary'
             WordText ' when reviewing the action plan.'
         }
 
@@ -129,7 +129,7 @@ New-OfficeWord -Path $path {
     }
 }
 
-$document = Get-OfficeWord -Path $path -ReadOnly
+$document = Open-OfficeWord -Path $path -ReadOnly
 try {
     [pscustomobject]@{
         Path            = $path

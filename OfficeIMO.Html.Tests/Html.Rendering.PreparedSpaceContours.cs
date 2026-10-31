@@ -28,7 +28,7 @@ public sealed partial class HtmlRenderingTests {
             + "a{text-decoration:none}</style><p dir='rtl'>"
             + (linked ? "<a href='" + uri + "'>" + text + "</a>" : text) + "</p>");
 
-        PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
         byte[] bytes = pdf.ToBytes();
         pdf.RequireNoLoss();
         Assert.Equal(text, PdfCore.PdfReadDocument.Open(bytes).ExtractText().Trim());
@@ -56,7 +56,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(space.PreparedShaping!.GetContours(0D, 0D, 20D, 1000, default));
         rendered.RequireNoLoss();
 
-        PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
         byte[] bytes = pdf.ToBytes();
         pdf.RequireNoLoss();
         Assert.Equal("אבג 123", PdfCore.PdfReadDocument.Open(bytes).ExtractText().Trim());

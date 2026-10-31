@@ -54,8 +54,9 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         [Benchmark]
         public long OfficeIMOUtf8() {
             _output.SetLength(0);
-            ExcelDocument.WriteRows(_output, Enumerable.Range(0, Rows), ["c0", "c1", "c2", "c3"], WriteOfficeIMORow,
-                new ExcelTabularWriteOptions { IncludeHeaders = false, IncludeCellReferences = false, UseSharedStrings = false });
+            using (var writer = ExcelDocument.CreateWriter(_output, new ExcelWriterOptions { IncludeHeaders = false, IncludeCellReferences = false }, leaveOpen: true)) {
+                writer.WriteTable("Data", Enumerable.Range(0, Rows), ["c0", "c1", "c2", "c3"], WriteOfficeIMORow);
+            }
             return _output.Length;
         }
 

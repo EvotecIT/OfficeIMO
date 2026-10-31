@@ -15,7 +15,7 @@ internal sealed class InvoiceArguments {
     internal InvoiceXmlOptions? Target;
     internal InvoiceSpecificationRelease? StandardsRelease;
     internal InvoicePdfLayoutOptions Layout = new();
-    internal PdfOptions? Pdf;
+    internal PdfCreateOptions? Pdf;
     internal InvoiceSourceEdits? SourceEdits;
 
     internal static InvoiceArguments Parse(string[] args) {
@@ -86,7 +86,7 @@ internal sealed class InvoiceArguments {
             using var fontFile = File.OpenRead(fontPath);
             if (fontFile.Length is <= 0 or > 16 * 1024 * 1024) throw new ArgumentException("Embedded font must contain between 1 byte and 16 MiB.");
             byte[] font = new byte[(int)fontFile.Length]; fontFile.ReadExactly(font);
-            result.Pdf = new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, font, "Invoice font")
+            result.Pdf = new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, font, "Invoice font")
                 .EmbedStandardFont(PdfStandardFont.HelveticaBold, font, "Invoice font");
         }
         if (result.Options.TryGetValue("--max-items", out string? items)) result.Limits.MaximumRequests = PositiveInt(items, 10000);

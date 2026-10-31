@@ -1,46 +1,28 @@
 namespace OfficeIMO.Pdf;
 
-/// <summary>Represents a page size in points.</summary>
-public readonly struct PageSize {
-    /// <summary>Width in points.</summary>
-    public double Width { get; }
-    /// <summary>Height in points.</summary>
-    public double Height { get; }
-    /// <summary>Creates a new page size.</summary>
-    public PageSize(double width, double height) {
-        Guard.Positive(width, nameof(width));
-        Guard.Positive(height, nameof(height));
+/// <summary>Represents a physical PDF page size.</summary>
+public readonly struct PdfPageSize {
+    /// <summary>Page width.</summary>
+    public OfficeLength Width { get; }
+    /// <summary>Page height.</summary>
+    public OfficeLength Height { get; }
+    /// <summary>Creates a page size with explicit units.</summary>
+    public PdfPageSize(OfficeLength width, OfficeLength height) {
+        if (width.ToEmus() <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+        if (height.ToEmus() <= 0) throw new ArgumentOutOfRangeException(nameof(height));
         Width = width;
         Height = height;
     }
 
-    /// <summary>Creates a page size from dimensions in inches.</summary>
-    public static PageSize FromInches(double width, double height) =>
-        new PageSize(ToPointsFromInches(width, nameof(width)), ToPointsFromInches(height, nameof(height)));
-
-    /// <summary>Creates a page size from dimensions in centimeters.</summary>
-    public static PageSize FromCentimeters(double width, double height) =>
-        new PageSize(ToPointsFromCentimeters(width, nameof(width)), ToPointsFromCentimeters(height, nameof(height)));
-
     /// <summary>Returns this size in portrait orientation.</summary>
-    public PageSize Portrait() => Width <= Height ? this : new PageSize(Height, Width);
+    public PdfPageSize Portrait() => Width.CompareTo(Height) <= 0 ? this : new PdfPageSize(Height, Width);
 
     /// <summary>Returns this size in landscape orientation.</summary>
-    public PageSize Landscape() => Width >= Height ? this : new PageSize(Height, Width);
+    public PdfPageSize Landscape() => Width.CompareTo(Height) >= 0 ? this : new PdfPageSize(Height, Width);
 
     /// <summary>Returns this size in the requested orientation.</summary>
-    public PageSize WithOrientation(OfficePageOrientation orientation) {
+    public PdfPageSize WithOrientation(OfficePageOrientation orientation) {
         Guard.PageOrientation(orientation, nameof(orientation));
         return orientation == OfficePageOrientation.Landscape ? Landscape() : Portrait();
-    }
-
-    private static double ToPointsFromInches(double inches, string paramName) {
-        Guard.Positive(inches, paramName);
-        return inches * 72D;
-    }
-
-    private static double ToPointsFromCentimeters(double centimeters, string paramName) {
-        Guard.Positive(centimeters, paramName);
-        return centimeters * 72D / 2.54D;
     }
 }

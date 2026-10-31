@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BinaryCorpus_DecodesAndProjectsHeaderFooterScopes() {
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(FixturePath);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(FixturePath);
             LegacyPptHeaderFooterSettings slideDefaults = Assert.IsType<LegacyPptHeaderFooterSettings>(
                 legacy.SlideHeaderFooterDefaults);
             LegacyPptHeaderFooterSettings notesDefaults = Assert.IsType<LegacyPptHeaderFooterSettings>(
@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
             LegacyPptMaster mainMaster = legacy.Masters.First(master => master.IsMainMaster);
             LegacyPptHeaderFooterSettings effective = mainMaster.HeaderFooter
                 ?? slideDefaults;
-            using PowerPointPresentation projected = PowerPointPresentation.Load(FixturePath);
+            using PowerPointDocument projected = PowerPointDocument.Load(FixturePath);
             SlideMaster projectedMaster = projected.OpenXmlDocument.PresentationPart!
                 .SlideMasterParts.First().SlideMaster!;
             HeaderFooter masterHeaderFooter = Assert.IsType<HeaderFooter>(
@@ -46,17 +46,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_AuthorsPerSlideFooterDateAndNumberSettings() {
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 source.AddSlide();
                 source.EnsureLayoutFooterPlaceholderTextBox(text: "Confidential");
                 source.EnsureLayoutDateTimePlaceholderTextBox(text: "15 July 2026");
                 source.EnsureLayoutSlideNumberPlaceholderTextBox(text: "1");
 
                 Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             LegacyPptHeaderFooterSettings settings = Assert.IsType<LegacyPptHeaderFooterSettings>(
                 Assert.Single(legacy.Slides).HeaderFooter);
             Assert.True(settings.ShowDate);
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Confidential", settings.FooterText);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation.Load(input);
+            using PowerPointDocument projected = PowerPointDocument.Load(input);
             SlideLayout layout = projected.Slides[0].SlidePart.SlideLayoutPart!.SlideLayout!;
             HeaderFooter headerFooter = Assert.IsType<HeaderFooter>(
                 layout.GetFirstChild<HeaderFooter>());
@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_AuthorsDocumentAndNotesHeaderFooterDefaults() {
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide();
                 slide.Notes.Text = "Speaker note";
                 SlideMaster slideMaster = source.OpenXmlDocument.PresentationPart!
@@ -106,10 +106,10 @@ namespace OfficeIMO.Tests {
                     SlideNumber = true
                 });
 
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             LegacyPptHeaderFooterSettings slideDefaults = Assert.IsType<LegacyPptHeaderFooterSettings>(
                 legacy.SlideHeaderFooterDefaults);
             Assert.True(slideDefaults.ShowDate);
@@ -127,17 +127,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedPerSlideHeaderFooterEdit_AppendsPreservingRecord() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 source.AddSlide();
                 source.EnsureLayoutFooterPlaceholderTextBox(text: "Original footer");
                 source.EnsureLayoutSlideNumberPlaceholderTextBox(text: "1");
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 SlideLayout layout = imported.Slides[0].SlidePart.SlideLayoutPart!.SlideLayout!;
                 HeaderFooter headerFooter = layout.GetFirstChild<HeaderFooter>()!;
                 headerFooter.Footer = true;
@@ -150,10 +150,10 @@ namespace OfficeIMO.Tests {
                 text.Text = "Updated footer with more text";
 
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
             LegacyPptHeaderFooterSettings settings = Assert.IsType<LegacyPptHeaderFooterSettings>(
                 Assert.Single(saved.Slides).HeaderFooter);
             Assert.True(settings.ShowFooter);

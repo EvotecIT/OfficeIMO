@@ -63,7 +63,7 @@ public sealed class LaterSpreadsheetContractTests {
             using var result = Import(source);
             Assert.Equal(new[] { "Sheet2", "Other" }, result.Value.Sheets.Select(sheet => sheet.Name));
             Assert.Equal("'Other'!$A$1", Assert.Single(result.Cells).Formula);
-            Assert.DoesNotContain(result.Report.Findings, finding => finding.Code == "LATER_SHEET_NAME");
+            Assert.DoesNotContain(result.Report.Findings, finding => finding.Code == "later-sheet-name");
             using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
             using var loaded = ExcelDocument.Load(output);
             Assert.Equal(new[] { "Sheet2", "Other" }, loaded.Sheets.Select(sheet => sheet.Name));

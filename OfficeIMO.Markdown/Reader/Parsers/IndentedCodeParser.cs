@@ -2,7 +2,7 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     /// <summary>
     /// Parses indented code blocks (4-space indented). This is a pragmatic subset intended to improve
     /// compatibility with common Markdown sources; output is represented as a fenced <see cref="CodeBlock"/>.
@@ -10,7 +10,7 @@ public static partial class MarkdownReader {
     internal sealed class IndentedCodeParser : IMarkdownBlockParser {
         private const int IndentedCodeMinimumSpaces = 4;
 
-        public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
+        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.IndentedCodeBlocks) return false;
             if (lines == null || i < 0 || i >= lines.Length) return false;
 

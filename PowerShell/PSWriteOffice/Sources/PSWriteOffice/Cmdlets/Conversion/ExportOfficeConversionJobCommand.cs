@@ -1,16 +1,15 @@
+using OfficeIMO;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Management.Automation;
 using PSWriteOffice.Services;
-#if !FRAMEWORK
 using OfficeIMO.Workflows;
-#endif
 
 namespace PSWriteOffice.Cmdlets.Conversion;
 
 /// <summary>Saves a portable conversion job for Studio, the command-line tool and PowerShell.</summary>
-/// <para>Requires PowerShell 7.4 or newer. Saving records intent and never converts documents. Relative paths are based on the saved job's folder. Native renderer callbacks and settings outside the portable contract are rejected instead of omitted.</para>
+/// <para>Saving records intent and never converts documents. Relative paths are based on the saved job's folder. Native renderer callbacks and settings outside the portable contract are rejected instead of omitted.</para>
 /// <example>
 ///   <summary>Save a resumable conversion job, inspect its plan, then run it.</summary>
 ///   <code>Export-OfficeConversionJob -InputDirectory ./source -OutputDirectory ./pdf -CheckpointDirectory ./state -Path ./monthly.officejob.json
@@ -72,11 +71,7 @@ public sealed class ExportOfficeConversionJobCommand : PSCmdlet {
 
     /// <summary>Portable scalar reconstruction and plain-text settings from New-OfficeConversionOptions. Unsupported native settings are rejected.</summary>
     [Parameter]
-#if FRAMEWORK
-    public object? ConversionOptions { get; set; }
-#else
-    public OfficeWorkflowConversionOptions? ConversionOptions { get; set; }
-#endif
+    public OfficeConversionOptions? ConversionOptions { get; set; }
 
     /// <summary>Runtime environment variable supplying an encrypted Office input password. Only the name is saved.</summary>
     [Parameter]
@@ -137,36 +132,32 @@ public sealed class ExportOfficeConversionJobCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void EndProcessing() {
-#if FRAMEWORK
-        throw new PlatformNotSupportedException("Saved conversion jobs require PowerShell 7.4 or newer.");
-#else
         string destination = OfficeFileCommandUtilities.ResolvePath(this, Path);
         string baseDirectory = System.IO.Path.GetDirectoryName(destination)!;
-        var request = new OfficeConversionBatchRequest {
+        var request = new OfficeBatchOptions {
             InputDirectory = ParameterSetName == "Directory" ? OfficeFileCommandUtilities.ResolvePath(this, InputDirectory) : null,
             InputPaths = ParameterSetName == "Files" ? _inputs.ToArray() : null,
             OutputDirectory = OfficeFileCommandUtilities.ResolvePath(this, OutputDirectory),
-            CheckpointDirectory = CheckpointDirectory == null ? null : OfficeFileCommandUtilities.ResolvePath(this, CheckpointDirectory),
+            ResumeFrom = CheckpointDirectory == null ? null : System.IO.Path.Combine(OfficeFileCommandUtilities.ResolvePath(this, CheckpointDirectory), "plan.json"),
             TargetExtension = TargetExtension,
             ConversionRouteId = ConversionRouteId,
-            ConversionOptions = ConversionOptions?.Clone() ?? new OfficeWorkflowConversionOptions(),
-            OutputProfile = (OfficeWorkflowOutputProfile)Enum.Parse(typeof(OfficeWorkflowOutputProfile), OutputProfile, true),
-            ConflictPolicy = (OfficeWorkflowConflictPolicy)Enum.Parse(typeof(OfficeWorkflowConflictPolicy), ConflictPolicy, true),
+            ConversionOptions = ConversionOptions?.Clone() ?? new OfficeConversionOptions { WordLoad = new OfficeIMO.Word.WordLoadOptions { FailOnLoss = true } },
+            OutputProfile = (OfficeConversionProfile)Enum.Parse(typeof(OfficeConversionProfile), OutputProfile, true),
+            ConflictPolicy = (OfficePublicationPolicy)Enum.Parse(typeof(OfficePublicationPolicy), ConflictPolicy, true),
             Recursive = !NoRecurse.IsPresent,
-            SourceExtensions = SourceExtension,
+            Extensions = SourceExtension,
             MaximumFiles = MaximumFiles,
-            MaximumConcurrency = MaximumConcurrency,
+            MaxParallelism = MaximumConcurrency,
             MaximumInputBytes = MaximumInputBytes,
             MaximumOutputBytes = MaximumOutputBytes,
             MaximumXmlCharactersInPart = MaximumXmlCharactersInPart
         };
-        OfficeConversionJob job = OfficeConversionJob.FromRequest(request, baseDirectory);
+        OfficeBatchOptions job = request;
         job.Name = Name;
-        job.Secrets.SourcePasswordEnvironmentVariable = SourcePasswordEnvironmentVariable;
-        job.Secrets.PdfPasswordEnvironmentVariable = PdfPasswordEnvironmentVariable;
+        job.SourcePasswordEnvironmentVariable = SourcePasswordEnvironmentVariable;
+        job.PdfPasswordEnvironmentVariable = PdfPasswordEnvironmentVariable;
         if (!ShouldProcess(destination, "Save conversion job without executing it")) return;
-        OfficeConversionJobSerializer.SaveFile(job, destination, Force.IsPresent);
+        job.Save(destination, Force.IsPresent);
         WriteObject(new FileInfo(destination));
-#endif
     }
 }

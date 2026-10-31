@@ -14,7 +14,7 @@ public sealed class PowerPointDataProjectionContractsTests {
     public void ObjectTableUsesConfiguredCollectionHeaderPrefix(string? prefix, string expected) {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
         try {
-            using var presentation = PowerPointPresentation.Create(path);
+            using var presentation = PowerPointDocument.Create(path);
             var table = presentation.AddSlide().AddTable(new[] { new Row() }, options => {
                 options.Columns = new[] { "Metrics.Score" };
                 options.CollectionMapColumns["Metrics"] = new CollectionColumnMapping { HeaderPrefix = prefix };

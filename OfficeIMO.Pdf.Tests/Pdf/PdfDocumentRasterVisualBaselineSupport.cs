@@ -8,11 +8,11 @@ using OfficeIMO.Tests;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentRasterVisualBaselineTests {
-    private static PdfDocument CreateVisualBaselineDocument(PdfOptions options) {
+    private static PdfDocument CreateVisualBaselineDocument(PdfCreateOptions options) {
         return PdfDocument.Create(options);
     }
 
-    private static void WriteReviewPdfArtifact(string scenarioName, byte[] pdfBytes) {
+    internal static void WriteReviewPdfArtifact(string scenarioName, byte[] pdfBytes) {
         WriteReviewArtifact(scenarioName + ".pdf", pdfBytes);
     }
 

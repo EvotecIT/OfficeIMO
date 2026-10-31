@@ -20,7 +20,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPageMarginContainerUnits_PreserveValidDeclarationsAndTheirCascade(
         string declarations, string expected) {
         var options = PageMarginTypographyOptions();
-        options.PageSize = new OfficePageSize(360D / 96D, 480D / 96D);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(360D / 96D), global::OfficeIMO.OfficeLength.Inches(480D / 96D));
         HtmlRenderPage page = Assert.Single(HtmlRenderEngine.Render(
             HtmlConversionDocument.Parse(PageMarginTypographySource(declarations)), options).Pages);
         HtmlRenderText margin = PageMarginTypographyText(page);
@@ -42,7 +42,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPageMarginContainerUnits_UseThePrintPaperInsteadOfTheLastBodyContainer(
         string leading, double expected) {
         var options = PageMarginTypographyOptions();
-        options.PageSize = new OfficePageSize(360D / 96D, 480D / 96D);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(360D / 96D), global::OfficeIMO.OfficeLength.Inches(480D / 96D));
         string html = PageMarginTypographySource("font:16px/" + leading + " Pinned", "Hgyp")
             + "<div style='container-type:size;width:100px;height:50px;font-size:32px'>Body container</div>";
 
@@ -55,7 +55,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPageMarginContainerUnits_ShorthandPreservesSizeFaceAndLeadingTogether() {
         var options = PageMarginTypographyOptions();
-        options.PageSize = new OfficePageSize(600D / 96D, 480D / 96D);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(600D / 96D), global::OfficeIMO.OfficeLength.Inches(480D / 96D));
         string html = PageMarginTypographySource("font:italic bold 2cqw/4cqw Pinned", "Hgyp");
 
         HtmlRenderPage page = Assert.Single(HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), options).Pages);
@@ -77,7 +77,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPageMarginContainerUnits_EscapedLineBreakRetainsTheAuthoredLineAdvance() {
         var options = PageMarginTypographyOptions();
-        options.PageSize = new OfficePageSize(360D / 96D, 480D / 96D);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(360D / 96D), global::OfficeIMO.OfficeLength.Inches(480D / 96D));
         string html = PageMarginTypographySource("font:16px/10cqw Pinned", "ALPHA\\A BETA");
         HtmlRenderPage page = Assert.Single(HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), options).Pages);
 

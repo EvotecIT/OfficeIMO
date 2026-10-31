@@ -50,10 +50,12 @@ namespace OfficeIMO.Excel {
             int column,
             ExcelModernChartType chartType,
             string? title = null,
-            int widthPixels = 640,
-            int heightPixels = 360) {
+            OfficeLength? width = null,
+            OfficeLength? height = null) {
+            width ??= OfficeLength.Pixels(640);
+            height ??= OfficeLength.Pixels(360);
             if (data == null) throw new ArgumentNullException(nameof(data));
-            ValidateModernChartPlacement(row, column, widthPixels, heightPixels);
+            ValidateModernChartPlacement(row, column, width.Value, height.Value);
             string layout = GetModernChartLayout(chartType);
             ValidateModernChartData(data);
             ValidateModernChartText(title, nameof(title));
@@ -93,8 +95,8 @@ namespace OfficeIMO.Excel {
                 chartPart.ChartSpace = BuildModernChartSpace(data, range!, layout, title);
                 chartPart.ChartSpace.Save();
                 string relationshipId = drawingsPart.GetIdOfPart(chartPart);
-                long width = PxToEmu(widthPixels);
-                long height = PxToEmu(heightPixels);
+                long widthEmu = width.Value.ToEmus();
+                long heightEmu = height.Value.ToEmus();
                 UInt32Value id = NextDrawingId(drawingsPart);
                 string name = "Modern Chart " + id.Value.ToString(CultureInfo.InvariantCulture);
                 frame = new Xdr.GraphicFrame(
@@ -103,7 +105,7 @@ namespace OfficeIMO.Excel {
                         new Xdr.NonVisualGraphicFrameDrawingProperties(new GraphicFrameLocks { NoChangeAspect = true })),
                     new Xdr.Transform(
                         new Offset { X = 0, Y = 0 },
-                        new Extents { Cx = width, Cy = height }),
+                        new Extents { Cx = widthEmu, Cy = heightEmu }),
                     new Graphic(
                         new GraphicData(
                             new Cx.RelId { Id = relationshipId }) { Uri = ChartExGraphicDataUri }));
@@ -113,7 +115,7 @@ namespace OfficeIMO.Excel {
                         new Xdr.ColumnOffset("0"),
                         new Xdr.RowId((row - 1).ToString(CultureInfo.InvariantCulture)),
                         new Xdr.RowOffset("0")),
-                    new Xdr.Extent { Cx = width, Cy = height },
+                    new Xdr.Extent { Cx = widthEmu, Cy = heightEmu },
                     frame,
                     new Xdr.ClientData()));
                 drawingsPart.WorksheetDrawing.Save();
@@ -122,18 +124,18 @@ namespace OfficeIMO.Excel {
             return new ExcelModernChart(frame!, drawingsPart!, this, range!);
         }
 
-        internal static void ValidateModernChartPlacement(int row, int column, int widthPixels, int heightPixels) {
-            if (row < 1 || row > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(row));
-            if (column < 1 || column > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column));
-            if (widthPixels < 1) throw new ArgumentOutOfRangeException(nameof(widthPixels));
-            if (heightPixels < 1) throw new ArgumentOutOfRangeException(nameof(heightPixels));
+        internal static void ValidateModernChartPlacement(int row, int column, OfficeLength width, OfficeLength height) {
+            if (row < 1 || row > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(row));
+            if (column < 1 || column > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column));
+            if (width <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(width));
+            if (height <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(height));
         }
 
         internal static void ValidateModernChartData(ExcelChartData data) {
             if (data.Series.Count == 0 || data.Categories.Count == 0) {
                 throw new ArgumentException("Modern charts require at least one category and one series.", nameof(data));
             }
-            if (data.Series.Count >= A1.MaxColumns) {
+            if (data.Series.Count >= ExcelA1.MaxColumns) {
                 throw new ArgumentException(
                     "Modern chart data must fit one category column and all series within the worksheet column limit.",
                     nameof(data));
@@ -218,7 +220,7 @@ namespace OfficeIMO.Excel {
                 .InnerText;
             if (!ExcelChartUtils.TryParseSheetQualifiedRange(categoryFormula, out string sheetName, out string categoryRange)
                 || !_excelDocument.IsOwnedChartDataSheet(sheetName)
-                || !A1.TryParseRange(categoryRange, out int firstRow, out int categoryColumn, out int lastRow, out int lastCategoryColumn)
+                || !ExcelA1.TryParseRange(categoryRange, out int firstRow, out int categoryColumn, out int lastRow, out int lastCategoryColumn)
                 || categoryColumn != lastCategoryColumn) return null;
 
             for (int index = 0; index < data.Length; index++) {
@@ -230,7 +232,7 @@ namespace OfficeIMO.Excel {
                     .InnerText;
                 if (!ExcelChartUtils.TryParseSheetQualifiedRange(valueFormula, out string valueSheet, out string valueRange)
                     || !string.Equals(sheetName, valueSheet, StringComparison.OrdinalIgnoreCase)
-                    || !A1.TryParseRange(valueRange, out int valueFirstRow, out int valueColumn, out int valueLastRow, out int valueLastColumn)
+                    || !ExcelA1.TryParseRange(valueRange, out int valueFirstRow, out int valueColumn, out int valueLastRow, out int valueLastColumn)
                     || valueFirstRow != firstRow
                     || valueLastRow != lastRow
                     || valueColumn != categoryColumn + index + 1

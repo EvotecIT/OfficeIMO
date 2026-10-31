@@ -98,8 +98,8 @@ public class RtfPaginationHeaderNativeRegressionTests {
         // Word source alive until serialization and its evidence are complete.
         using WordDocument? reopened = throughWord ? WordDocument.Load(new MemoryStream(mappedDocx!)) : null;
         PdfCore.PdfDocumentConversionResult result = throughWord
-            ? reopened!.ToPdfDocumentResult().WithSourceConversionReport(mappedReport!)
-            : read.Document.ToPdfDocumentResult().WithSourceConversionReport(parse);
+            ? reopened!.ConvertToPdfWithEvidence().WithSourceConversionReport(mappedReport!)
+            : read.Document.ConvertToPdfWithEvidence().WithSourceConversionReport(parse);
         using var output = new MemoryStream();
         PdfCore.PdfSaveResult saved = result.Save(output);
         byte[] bytes = output.ToArray();

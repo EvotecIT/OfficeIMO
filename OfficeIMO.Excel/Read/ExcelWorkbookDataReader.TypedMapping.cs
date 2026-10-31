@@ -4,11 +4,11 @@ namespace OfficeIMO.Excel {
         bool IDataReaderFastMappingValues.HasOnlyNonNullFastValues => false;
 
         bool IDataReaderTypedMappingCompatibility.CanUseTypedGetter(int ordinal, Type targetType) =>
-            _current is IDataReaderTypedMappingCompatibility compatibility &&
+            CurrentReader is IDataReaderTypedMappingCompatibility compatibility &&
             compatibility.CanUseTypedGetter(ordinal, targetType);
 
         bool IDataReaderTypedMappingCompatibility.CanUseNonNullTypedGetter(int ordinal, Type targetType) =>
-            _current is IDataReaderTypedMappingCompatibility compatibility &&
+            CurrentReader is IDataReaderTypedMappingCompatibility compatibility &&
             compatibility.CanUseNonNullTypedGetter(ordinal, targetType);
     }
 }

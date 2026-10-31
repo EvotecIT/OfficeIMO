@@ -26,7 +26,7 @@ public partial class Excel {
             + "<row><c/><c s=\"1\"><v>1E100</v></c><c><v>7</v></c></row>";
         string path = CreateIndexedNumericAccessWorkbook(cells, date1904, elapsed);
         try {
-            using var reader = ExcelDocument.OpenDataReader(path);
+            using var reader = ExcelDocument.OpenReader(path);
             foreach (var row in rows) {
                 Assert.True(reader.Read());
                 if (numericFirst) {
@@ -67,24 +67,24 @@ public partial class Excel {
             "<row><c><f>1+0.25</f><v>1.25</v></c><c s=\"1\"><f>45351+0.25</f><v>45351.25</v></c><c/></row>",
             date1904: false, elapsed: false);
         try {
-            using (var reader = ExcelDocument.OpenDataReader(path)) {
+            using (var reader = ExcelDocument.OpenReader(path)) {
                 Assert.True(reader.Read());
                 Assert.Equal(1.25d, reader.GetDouble(0));
                 Assert.Equal(new DateTime(2024, 2, 29, 6, 0, 0), reader.GetDateTime(1));
                 Assert.Equal(45351.25d, reader.GetDouble(1));
             }
-            using (var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { UseCachedFormulaResult = false })) {
+            using (var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { UseCachedFormulaResult = false })) {
                 Assert.True(reader.Read());
                 Assert.Equal("1+0.25", reader.GetValue(0));
                 Assert.Throws<FormatException>(() => reader.GetDouble(0));
                 Assert.Equal("45351+0.25", reader.GetValue(1));
             }
-            using (var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { NumericAsDecimal = true })) {
+            using (var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { NumericAsDecimal = true })) {
                 Assert.True(reader.Read());
                 Assert.Equal(1.25m, reader.GetDecimal(0));
                 Assert.Equal(1.25m, Assert.IsType<decimal>(reader.GetValue(0)));
             }
-            using (var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions {
+            using (var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
                 CellValueConverter = context => context.RawText == "1.25" ? new ExcelCellValue(9.75d) : ExcelCellValue.NotHandled
             })) {
                 Assert.True(reader.Read());
@@ -104,7 +104,7 @@ public partial class Excel {
             "<row><c><v>1.25</v></c><c s=\"1\"><v>45351.25</v></c><c/></row>",
             date1904: true, elapsed: false);
         try {
-            using var reader = ExcelDocument.OpenDataReader(path);
+            using var reader = ExcelDocument.OpenReader(path);
             var mapped = Assert.Single(reader.RowsAs<IndexedNumericMappingRecord>(mapper => {
                 void Serial() => mapper.FromColumn<double>("Date", (row, value) => { row.Serial = value; return row; });
                 void Date() => mapper.FromColumn<DateTime>("Date", (row, value) => { row.Date = value; return row; });

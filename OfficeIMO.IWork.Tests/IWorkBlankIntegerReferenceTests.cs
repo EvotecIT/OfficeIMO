@@ -26,7 +26,7 @@ public sealed partial class IWorkBoundaryTests {
             string reference = scalar ? "$A$1" : "$A$1:$A$1";
             Assert.Equal("=" + (function == 58 ? "GCD" : "LCM") + "(" + reference + ",6)", result.Text);
             using var destination = ExcelDocument.Create();
-            var sheet = destination.AddWorksheet("Inputs");
+            var sheet = destination.AddSheet("Inputs");
             sheet.CellFormula(1, 2, result.Text);
             using var bytes = new MemoryStream(); destination.Save(bytes); bytes.Position = 0;
             using var reopened = ExcelDocument.Load(bytes);

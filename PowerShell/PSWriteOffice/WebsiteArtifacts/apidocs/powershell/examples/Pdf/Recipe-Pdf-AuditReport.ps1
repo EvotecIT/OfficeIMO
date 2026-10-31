@@ -5,7 +5,7 @@ $findings = @(
     [pscustomobject]@{ Id = 'A-03'; Severity = 'Low'; Finding = 'Inconsistent evidence naming'; Owner = 'Operations'; Due = '2026-09-11' }
 )
 
-PdfNew -Path $path {
+New-OfficePdf -Path $path {
     PdfTheme Report
     PdfMetadata -Title 'Quarterly access audit' -Author 'Internal Audit' -Subject 'Synthetic access review example'
     PdfPageSetup -PageSize A4 -Margin 40

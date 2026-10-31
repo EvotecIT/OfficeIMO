@@ -179,31 +179,31 @@ public sealed class SetOfficeWordPageSetupCommand : PSCmdlet
         }
         if (Left.HasValue)
         {
-            section.Margins.Left = (uint)Left.Value;
+            section.Margins.Left = global::OfficeIMO.OfficeLength.Points(((uint)Left.Value) / 20D);
         }
         if (Right.HasValue)
         {
-            section.Margins.Right = (uint)Right.Value;
+            section.Margins.Right = global::OfficeIMO.OfficeLength.Points(((uint)Right.Value) / 20D);
         }
         if (Top.HasValue)
         {
-            section.Margins.Top = Top.Value;
+            section.Margins.Top = global::OfficeIMO.OfficeLength.Points((Top.Value) / 20D);
         }
         if (Bottom.HasValue)
         {
-            section.Margins.Bottom = Bottom.Value;
+            section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((Bottom.Value) / 20D);
         }
         if (Header.HasValue)
         {
-            section.Margins.HeaderDistance = (uint)Header.Value;
+            section.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(((uint)Header.Value) / 20D);
         }
         if (Footer.HasValue)
         {
-            section.Margins.FooterDistance = (uint)Footer.Value;
+            section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(((uint)Footer.Value) / 20D);
         }
         if (Gutter.HasValue)
         {
-            section.Margins.Gutter = (uint)Gutter.Value;
+            section.Margins.Gutter = global::OfficeIMO.OfficeLength.Points(((uint)Gutter.Value) / 20D);
         }
         if (Columns.HasValue)
         {
@@ -211,7 +211,7 @@ public sealed class SetOfficeWordPageSetupCommand : PSCmdlet
         }
         if (ColumnSpacing.HasValue)
         {
-            section.ColumnsSpace = ColumnSpacing.Value;
+            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(ColumnSpacing.Value / 20D);
         }
         if (ColumnSeparator.HasValue)
         {

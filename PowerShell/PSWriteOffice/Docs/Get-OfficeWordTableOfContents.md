@@ -26,7 +26,7 @@ Gets the table of contents from a Word document.
 
 ### EXAMPLE 1
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Report.docx
+PS> $doc = Open-OfficeWord -Path .\Report.docx
 $toc = $doc | Get-OfficeWordTableOfContents
 if ($toc) {
     $toc | Set-OfficeWordTableOfContents -Text 'Contents' -TextNoContent 'No entries' -PassThru

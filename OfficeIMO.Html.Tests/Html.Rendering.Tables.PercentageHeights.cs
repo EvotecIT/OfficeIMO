@@ -15,7 +15,7 @@ public sealed partial class HtmlRenderingTests {
             + "<table style='height:200px;width:240px;margin:0;border-spacing:0'><tr><td id='summary' style='padding:0;background:lime'>Summary</td></tr>"
             + "<tr><td id='detail' style='padding:0;background:lime'>Detail</td></tr></table><div id='next' style='height:20px;background:red'>Next</div>");
         var options = TableGeometryOptions();
-        options.PageSize = new OfficePageSize(600D / 96D, 300D / 96D);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(600D / 96D), global::OfficeIMO.OfficeLength.Inches(300D / 96D));
         options.HonorCssPageRules = false;
         HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
             HtmlRenderRequest.Create(profile, options: options)).Document;
@@ -267,7 +267,7 @@ public sealed partial class HtmlRenderingTests {
             .Replace("height:30%", "height:120px").Replace("height:40%", "height:160px");
         var options = TableGeometryOptions();
         options.Mode = HtmlRenderMode.Paged;
-        options.PageSize = new OfficePageSize(200D / 96D, 250D / 96D);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(200D / 96D), global::OfficeIMO.OfficeLength.Inches(250D / 96D));
         options.HonorCssPageRules = false;
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
 
@@ -296,7 +296,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='next' style='height:20px;background:red'>Next</div>");
         var options = TableGeometryOptions();
         options.Mode = HtmlRenderMode.Paged;
-        options.PageSize = new OfficePageSize(200D / 96D, 250D / 96D);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(200D / 96D), global::OfficeIMO.OfficeLength.Inches(250D / 96D));
         options.HonorCssPageRules = false;
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
 

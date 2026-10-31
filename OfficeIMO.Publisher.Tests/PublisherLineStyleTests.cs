@@ -97,7 +97,7 @@ public sealed class PublisherLineStyleTests {
         Assert.Contains(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_LINE_MARKER_APPROXIMATED"
             && item.LossKind == OfficeConversionLossKind.Approximation && item.Location == "Contents/object/293");
         var result = publication.ToPdfDocumentResult();
-        OfficeShape[] painted = PublisherNativeTests.Elements(PdfReadDocument.Open(result.ToBytes()).Pages[0].ToDrawing())
+        OfficeShape[] painted = PublisherNativeTests.Elements(PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).Pages[0].ToDrawing())
             .OfType<OfficeDrawingShape>().Select(item => item.Shape).ToArray();
         if (kind == OfficeLineMarkerKind.Arrow) {
             Assert.Equal(3, painted.Count(item => item.StrokeColor == Ink));

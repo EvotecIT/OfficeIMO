@@ -50,7 +50,7 @@ public sealed class HtmlEditableLayoutReviewWave18Tests {
             + "<img alt='Nested marker' src='" + image
             + "' style='position:absolute;left:28px;top:18px;width:24px;height:18px'></div>";
 
-        HtmlToWordResult wordResult = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult wordResult = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument word = wordResult.Value;
         HtmlToRtfResult rtfResult = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
         string rtf = rtfResult.Value.ToRtf();
@@ -69,8 +69,8 @@ public sealed class HtmlEditableLayoutReviewWave18Tests {
             + "background-image:linear-gradient(red,blue)'>Gradient</div>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
-        using PowerPointPresentation presentation = result.Value;
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointDocument presentation = result.Value;
 
         Assert.Single(Assert.Single(presentation.Slides).TextBoxes, box => box.Text == "Gradient");
         Assert.Contains(result.Report.Diagnostics, diagnostic =>

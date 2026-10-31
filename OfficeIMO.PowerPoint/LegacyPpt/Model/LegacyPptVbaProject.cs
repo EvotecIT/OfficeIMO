@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents the complete VBA compound storage referenced by a binary presentation.</summary>
-    public sealed class LegacyPptVbaProject {
+    internal sealed class LegacyPptVbaProject {
         private readonly byte[] _projectBytes;
 
         internal LegacyPptVbaProject(uint persistId, bool wasCompressed,

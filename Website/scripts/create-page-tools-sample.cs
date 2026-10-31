@@ -42,7 +42,7 @@ static void Write(string path, (string Title, string Body)[] pages) {
         .Content(content => {
             for (int index = 0; index < pages.Length; index++) {
                 if (index > 0) content.PageBreak();
-                content.H1($"{index + 1}", PdfAlign.Left, PdfColor.FromRgb(20, 93, 245));
+                content.H1($"{index + 1}", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(20, 93, 245));
                 content.H2(pages[index].Title);
                 content.Paragraph(paragraph => paragraph.Text(pages[index].Body));
             }

@@ -31,10 +31,10 @@ public static partial class WordRtfConverterExtensions {
         CopyParagraphBorder(source.Borders.RightStyle.ToOpenXml(), source.Borders.RightSize, source.Borders.RightColorHex, destination.RightBorder, document);
     }
 
-    private static void CopyParagraphBorder(BorderValues? style, uint? width, string? colorHex, RtfParagraphBorder destination, RtfDocument document) {
+    private static void CopyParagraphBorder(BorderValues? style, OfficeLength? width, string? colorHex, RtfParagraphBorder destination, RtfDocument document) {
         destination.DirectStyle = style.HasValue ? ToRtfParagraphBorderStyle(style) : null;
         if (width.HasValue) {
-            destination.Width = checked((int)width.Value);
+            destination.Width = checked((int)Math.Round(width.Value.ToPoints() * 8D, MidpointRounding.AwayFromZero));
         }
 
         if (!string.IsNullOrWhiteSpace(colorHex) &&
@@ -75,10 +75,10 @@ public static partial class WordRtfConverterExtensions {
             shading.Val = pattern.Value;
         }
 
-        ApplyParagraphBorder(source.TopBorder, style => destination.Borders.TopStyle = style.ToOfficeEnum(), width => destination.Borders.TopSize = width, color => destination.Borders.TopColorHex = color, document);
-        ApplyParagraphBorder(source.LeftBorder, style => destination.Borders.LeftStyle = style.ToOfficeEnum(), width => destination.Borders.LeftSize = width, color => destination.Borders.LeftColorHex = color, document);
-        ApplyParagraphBorder(source.BottomBorder, style => destination.Borders.BottomStyle = style.ToOfficeEnum(), width => destination.Borders.BottomSize = width, color => destination.Borders.BottomColorHex = color, document);
-        ApplyParagraphBorder(source.RightBorder, style => destination.Borders.RightStyle = style.ToOfficeEnum(), width => destination.Borders.RightSize = width, color => destination.Borders.RightColorHex = color, document);
+        ApplyParagraphBorder(source.TopBorder, style => destination.Borders.TopStyle = style.ToOfficeEnum(), width => destination.Borders.TopSize = width.HasValue ? OfficeLength.Points(width.Value / 8D) : null, color => destination.Borders.TopColorHex = color, document);
+        ApplyParagraphBorder(source.LeftBorder, style => destination.Borders.LeftStyle = style.ToOfficeEnum(), width => destination.Borders.LeftSize = width.HasValue ? OfficeLength.Points(width.Value / 8D) : null, color => destination.Borders.LeftColorHex = color, document);
+        ApplyParagraphBorder(source.BottomBorder, style => destination.Borders.BottomStyle = style.ToOfficeEnum(), width => destination.Borders.BottomSize = width.HasValue ? OfficeLength.Points(width.Value / 8D) : null, color => destination.Borders.BottomColorHex = color, document);
+        ApplyParagraphBorder(source.RightBorder, style => destination.Borders.RightStyle = style.ToOfficeEnum(), width => destination.Borders.RightSize = width.HasValue ? OfficeLength.Points(width.Value / 8D) : null, color => destination.Borders.RightColorHex = color, document);
     }
 
     private static void CopyParagraphShadingPattern(ShadingPatternValues? source, RtfParagraph destination) {

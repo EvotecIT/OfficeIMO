@@ -18,7 +18,7 @@ public sealed class StudioNativeSafetyRevisionTests : IDisposable {
         string path = Path.Combine(_root, "source.pdf");
         PdfDocument.Create(document => {
             foreach (string text in new[] { "First secret account", "Second secret account" })
-                document.Page(page => page.Size(400, 300).Content(content => content.Paragraph(p => p.Text(text))));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Paragraph(p => p.Text(text))));
         }).Save(path);
         return path;
     }

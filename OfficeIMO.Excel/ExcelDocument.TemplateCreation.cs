@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Creates an editable detached workbook from a template without writing or associating the source.</summary>
         /// <param name="templatePath">Existing workbook or template package.</param>
         /// <returns>A workbook that requires an explicit destination when saved.</returns>
-        public static ExcelDocument CreateFromTemplate(string templatePath) {
+        internal static ExcelDocument CreateFromTemplate(string templatePath) {
             if (string.IsNullOrWhiteSpace(templatePath)) throw new ArgumentException("Template path cannot be empty.", nameof(templatePath));
             using var source = File.OpenRead(templatePath);
             return Load(source, new ExcelLoadOptions {
@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel {
         /// <param name="filePath">Destination workbook path.</param>
         /// <param name="options">Template creation, persistence, and package options.</param>
         /// <returns>The loaded destination workbook.</returns>
-        public static ExcelDocument CreateFromTemplate(
+        internal static ExcelDocument CreateFromTemplate(
             string templatePath,
             string filePath,
             ExcelTemplateCreateOptions? options = null) {
@@ -51,7 +51,7 @@ namespace OfficeIMO.Excel {
         /// <param name="filePath">Destination workbook path.</param>
         /// <param name="options">Template creation, persistence, and package options.</param>
         /// <returns>The loaded destination workbook.</returns>
-        public static ExcelDocument CreateFromTemplate(
+        internal static ExcelDocument CreateFromTemplate(
             Stream templateStream,
             string filePath,
             ExcelTemplateCreateOptions? options = null) {
@@ -71,7 +71,7 @@ namespace OfficeIMO.Excel {
         /// <param name="sourcePath">Path to the source workbook or template package.</param>
         /// <param name="destinationPath">Destination workbook path.</param>
         /// <param name="overwrite">When true, replaces an existing destination file.</param>
-        public static void CopyPackage(string sourcePath, string destinationPath, bool overwrite = true) {
+        internal static void CopyPackage(string sourcePath, string destinationPath, bool overwrite = true) {
             if (string.IsNullOrWhiteSpace(sourcePath)) throw new ArgumentNullException(nameof(sourcePath));
             if (string.IsNullOrWhiteSpace(destinationPath)) throw new ArgumentNullException(nameof(destinationPath));
 
@@ -94,7 +94,7 @@ namespace OfficeIMO.Excel {
         /// <param name="sourceStream">Readable workbook package stream.</param>
         /// <param name="destinationPath">Destination workbook path.</param>
         /// <param name="overwrite">When true, replaces an existing destination file.</param>
-        public static void CopyPackage(Stream sourceStream, string destinationPath, bool overwrite = true) {
+        internal static void CopyPackage(Stream sourceStream, string destinationPath, bool overwrite = true) {
             if (sourceStream == null) throw new ArgumentNullException(nameof(sourceStream));
             if (!sourceStream.CanRead) throw new ArgumentException("Workbook package stream must be readable.", nameof(sourceStream));
             if (string.IsNullOrWhiteSpace(destinationPath)) throw new ArgumentNullException(nameof(destinationPath));

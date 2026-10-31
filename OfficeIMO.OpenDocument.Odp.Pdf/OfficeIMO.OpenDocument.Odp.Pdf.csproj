@@ -35,4 +35,7 @@
     <Using Include="System.Threading" />
     <Using Include="System.Threading.Tasks" />
   </ItemGroup>
+  <ItemGroup><ProjectReference Include="..\OfficeIMO.Pdf.PowerPoint\OfficeIMO.Pdf.PowerPoint.csproj" /></ItemGroup>
+  <ItemGroup><Using Include="OfficeIMO.PowerPoint.Pdf" /></ItemGroup>
+  <ItemGroup><Using Include="OfficeIMO.Pdf.PowerPoint" /></ItemGroup>
 </Project>

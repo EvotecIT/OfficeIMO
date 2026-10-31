@@ -21,37 +21,37 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
     private static byte[] CreateNativePowerPointSlide() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(320, 180);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(180));
         PowerPointSlide slide = presentation.AddSlide();
 
-        PowerPointAutoShape background = slide.AddRectanglePoints(0, 0, 320, 180);
+        PowerPointAutoShape background = slide.AddRectangle(OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(320), OfficeIMO.OfficeLength.Points(180));
         background.FillColor = "F6FAFC";
         background.OutlineColor = "F6FAFC";
 
-        PowerPointAutoShape panel = slide.AddShapePoints(OfficePresetShapeType.RoundRectangle, 14, 14, 132, 72);
+        PowerPointAutoShape panel = slide.AddShape(OfficePresetShapeType.RoundRectangle, OfficeIMO.OfficeLength.Points(14), OfficeIMO.OfficeLength.Points(14), OfficeIMO.OfficeLength.Points(132), OfficeIMO.OfficeLength.Points(72));
         panel.FillColor = "FFFFFF";
         panel.OutlineColor = "B9D7EA";
-        panel.OutlineWidthPoints = 1.2D;
+        panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.2D);
 
-        PowerPointTextBox title = slide.AddTextBoxPoints("PowerPoint PDF Visual Gate", 22, 20, 122, 32);
+        PowerPointTextBox title = slide.AddTextBox("PowerPoint PDF Visual Gate",global::OfficeIMO.OfficeLength.Points(22),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(122),global::OfficeIMO.OfficeLength.Points(32));
         title.FontName = "Georgia";
-        title.FontSize = 12;
+        title.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         title.Color = "123456";
         title.FillTransparency = 100;
 
-        PowerPointTextBox body = slide.AddTextBoxPoints(string.Empty, 22, 52, 118, 30);
-        body.FontSize = 8;
+        PowerPointTextBox body = slide.AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(22),global::OfficeIMO.OfficeLength.Points(52),global::OfficeIMO.OfficeLength.Points(118),global::OfficeIMO.OfficeLength.Points(30));
+        body.FontSize = global::OfficeIMO.OfficeLength.Points(8);
         body.Color = "334155";
         body.FillTransparency = 100;
         body.SetBullets(new[] { "Text placement", "Tables and charts" });
 
-        slide.AddPicture(new MemoryStream(CreatePowerPointVisualGatePng()), OfficeImageFormat.Png, PowerPointUnits.FromPoints(250), PowerPointUnits.FromPoints(22), PowerPointUnits.FromPoints(42), PowerPointUnits.FromPoints(30));
+        slide.AddImage(new MemoryStream(CreatePowerPointVisualGatePng()), OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(250)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(22)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(42)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30)));
 
-        PowerPointTable table = slide.AddTablePoints(2, 2, 20, 98, 120, 48);
-        table.ApplyToCells(cell => cell.FontSize = 8);
-        table.SetColumnWidthsPoints(70, 50);
-        table.SetRowHeightsPoints(20, 28);
+        PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(98),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(48));
+        table.ApplyToCells(cell => cell.FontSize = global::OfficeIMO.OfficeLength.Points(8));
+        table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(70),global::OfficeIMO.OfficeLength.Points(50));
+        table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(28));
         PowerPointTableCell metric = table.GetCell(0, 0);
         metric.Text = "Metric";
         metric.Bold = true;
@@ -74,11 +74,11 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         PowerPointChart chart = slide.AddChartPoints(chartData, 166, 78, 132, 86);
         chart.SetTitle("Revenue");
 
-        PowerPointAutoShape rule = slide.AddShapePoints(OfficePresetShapeType.Line, 154, 20, 80, 0);
+        PowerPointAutoShape rule = slide.AddShape(OfficePresetShapeType.Line, OfficeIMO.OfficeLength.Points(154), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(0));
         rule.OutlineColor = "1E5A96";
-        rule.OutlineWidthPoints = 1.5D;
+        rule.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.5D);
 
-        var options = new PowerPointToPdfOptions {
+        var options = new PowerPointPdfExportOptions {
             ChartStyle = new OfficeChartStyle(
                 palette: new[] {
                     OfficeColor.FromRgb(30, 90, 150),
@@ -91,40 +91,40 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
         presentation.Save();
         WriteReviewArtifact("native-powerpoint-slide.pptx", stream.ToArray());
-        return presentation.ToPdfBytes(options);
+        return (presentation.ToPdf(options)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 
     private static byte[] CreateNativePowerPointDenseLayout() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(320, 180);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(180));
         PowerPointSlide slide = presentation.AddSlide();
 
-        PowerPointAutoShape background = slide.AddRectanglePoints(0, 0, 320, 180);
+        PowerPointAutoShape background = slide.AddRectangle(OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(320), OfficeIMO.OfficeLength.Points(180));
         background.FillColor = "FFFDF7";
         background.OutlineColor = "FFFDF7";
 
-        PowerPointTextBox title = slide.AddTextBoxPoints("Dense Layout Gate", 18, 16, 170, 22);
+        PowerPointTextBox title = slide.AddTextBox("Dense Layout Gate",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(16),global::OfficeIMO.OfficeLength.Points(170),global::OfficeIMO.OfficeLength.Points(22));
         title.FontName = "Arial";
-        title.FontSize = 14;
+        title.FontSize = global::OfficeIMO.OfficeLength.Points(14);
         title.Color = "1A1F2B";
         title.Bold = true;
         title.FillTransparency = 100;
 
-        PowerPointTextBox list = slide.AddTextBoxPoints(string.Empty, 20, 44, 128, 62);
-        list.FontSize = 8;
+        PowerPointTextBox list = slide.AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(44),global::OfficeIMO.OfficeLength.Points(128),global::OfficeIMO.OfficeLength.Points(62));
+        list.FontSize = global::OfficeIMO.OfficeLength.Points(8);
         list.Color = "334155";
         list.FillTransparency = 100;
         list.SetBullets(
             new[] { "Explicit hanging indent", "Tight but readable prefix" },
             configure: paragraph => {
-                paragraph.SetLeftMarginPoints(22);
-                paragraph.SetHangingPoints(10);
+                paragraph.SetLeftMargin(global::OfficeIMO.OfficeLength.Points(22));
+                paragraph.SetHanging(global::OfficeIMO.OfficeLength.Points(10));
             });
 
-        PowerPointTable table = slide.AddTablePoints(2, 2, 20, 118, 132, 40);
-        table.SetColumnWidthsPoints(76, 56);
-        table.SetRowHeightsPoints(18, 22);
+        PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(118),global::OfficeIMO.OfficeLength.Points(132),global::OfficeIMO.OfficeLength.Points(40));
+        table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(76),global::OfficeIMO.OfficeLength.Points(56));
+        table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(22));
         table.GetCell(0, 0).Text = "Section";
         table.GetCell(0, 1).Text = "Status";
         table.GetCell(0, 0).Bold = true;
@@ -134,7 +134,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         table.GetCell(1, 1).HorizontalAlignment = OfficeIMO.PowerPoint.PowerPointTextAlignment.Center;
 
         byte[] logoBytes = File.ReadAllBytes(System.IO.Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png"));
-        PowerPointPicture picture = slide.AddPicture(new MemoryStream(logoBytes), OfficeImageFormat.Png, PowerPointUnits.FromPoints(220), PowerPointUnits.FromPoints(18), PowerPointUnits.FromPoints(64), PowerPointUnits.FromPoints(30));
+        PowerPointPicture picture = slide.AddImage(new MemoryStream(logoBytes), OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(220)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(18)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(64)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30)));
         picture.AltText = "OfficeIMO visual gate logo";
 
         var chartData = new PowerPointChartData(
@@ -145,7 +145,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         PowerPointChart chart = slide.AddChartPoints(chartData, 166, 82, 126, 74);
         chart.SetTitle("Flow");
 
-        var options = new PowerPointToPdfOptions {
+        var options = new PowerPointPdfExportOptions {
             ChartStyle = new OfficeChartStyle(
                 palette: new[] {
                     OfficeColor.FromRgb(34, 126, 102)
@@ -157,7 +157,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
         presentation.Save();
         WriteReviewArtifact("native-powerpoint-dense-layout.pptx", stream.ToArray());
-        return presentation.ToPdfBytes(options);
+        return (presentation.ToPdf(options)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 
     private static byte[] CreatePowerPointVisualGatePng() {

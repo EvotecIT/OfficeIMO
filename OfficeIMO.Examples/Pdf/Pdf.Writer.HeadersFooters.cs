@@ -5,38 +5,30 @@ namespace OfficeIMO.Examples.Pdf {
     internal static class WriterHeadersFooters {
         public static void Example_Pdf_PageNumbers(string folderPath, bool open = false) {
             string path = Path.Combine(folderPath, "Pdf.WithPageNumbers.pdf");
-            var options = new PdfOptions {
-                DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10,
-                DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = 8,
-                HeaderFormat = "OfficeIMO.Pdf header/footer gate",
+            var options = new PdfCreateOptions {
+                HeaderFormat = "OfficeIMO.Pdf headers and footers",
                 HeaderAlign = PdfAlign.Left,
-                HeaderOffsetY = 18,
+                HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(18),
                 ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = 8,
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
                 FooterAlign = PdfAlign.Center,
                 ShowPageNumbers = true
             };
 
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Header and Footer Baseline", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
-                .Paragraph(p => p.Text("Page one protects header placement, footer placement, and page number rendering on the first page."))
+                .H1("Headers and page numbers", PdfAlign.Left)
+                .Paragraph(p => p.Text("The first page includes a header and the total page count."))
                 .PanelParagraph(
-                    p => p.Text("The same options should continue to render consistently after an explicit page break."),
+                    p => p.Text("A page break starts a new section while retaining the document header and footer."),
                     new PdfPanelStyle {
-                        Background = PdfColor.FromRgb(248, 250, 252),
-                        BorderColor = PdfColor.FromRgb(183, 194, 207),
-                        PaddingX = 9,
-                        PaddingY = 7
+                        Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                        BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
+                        PaddingX = global::OfficeIMO.OfficeLength.Points(9),
+                        PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                     })
                 .PageBreak()
-                .H2("Continuation Page", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
-                .Paragraph(p => p.Text("Page two proves the raster harness compares more than the first page and guards the {page}/{pages} footer tokens."))
-                .Paragraph(p => p.Text("Right-aligned continuation note."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80))), options)
+                .H2("Continuation Page", PdfAlign.Left)
+                .Paragraph(p => p.Text("Page numbers stay correct after an explicit page break."))
+                .Paragraph(p => p.Text("Right-aligned continuation note."), PdfAlign.Right, OfficeColor.FromRgb(80, 80, 80))), options)
                 .Meta(title: "OfficeIMO.Pdf Headers and Footers", author: "OfficeIMO")
                 .Save(path);
             if (open) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });

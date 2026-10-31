@@ -31,28 +31,28 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine($"✓ Saved as Word: {docPath}");
                 
                 string pdfPath = Path.Combine(folderPath, "UnifiedExample.pdf");
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     Orientation = OfficePageOrientation.Portrait
                 });
                 Console.WriteLine($"✓ Saved as PDF: {pdfPath}");
                 
                 string markdownPath = Path.Combine(folderPath, "UnifiedExample.md");
-                document.SaveAsMarkdown(markdownPath, new WordToMarkdownOptions());
+                document.SaveAsMarkdown(markdownPath, new WordMarkdownExportOptions());
                 Console.WriteLine($"✓ Saved as Markdown: {markdownPath}");
                 
                 string htmlPath = Path.Combine(folderPath, "UnifiedExample.html");
-                document.SaveAsHtml(htmlPath, new WordToHtmlOptions { 
+                document.SaveAsHtml(htmlPath, new WordHtmlExportOptions {
                     IncludeFontStyles = true,
                     IncludeListStyles = true,
                     IncludeDefaultCss = true
                 });
                 Console.WriteLine($"✓ Saved as HTML: {htmlPath}");
                 
-                string markdown = document.ToMarkdown();
+                string markdown = (document.ToMarkdown()).ToMarkdown();
                 Console.WriteLine("\nMarkdown output:");
                 Console.WriteLine(markdown);
                 
-                string html = document.ToHtml(new WordToHtmlOptions { IncludeDefaultCss = true });
+                string html = document.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = true });
                 Console.WriteLine("\nHTML output (first 200 chars):");
                 Console.WriteLine(html.Substring(0, Math.Min(200, html.Length)) + "...");
             }
@@ -79,12 +79,12 @@ This is a paragraph with **bold** and *italic* text.
             Console.WriteLine(markdown);
             Console.WriteLine();
             
-            using (WordDocument fromMarkdown = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument()) {
+            using (WordDocument fromMarkdown = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord()) {
                 string docPath = Path.Combine(folderPath, "FromMarkdown.docx");
                 fromMarkdown.Save(docPath);
                 Console.WriteLine($"✓ Markdown → Word: {docPath}");
                 
-                string backToMarkdown = fromMarkdown.ToMarkdown();
+                string backToMarkdown = (fromMarkdown.ToMarkdown()).ToMarkdown();
                 Console.WriteLine("\nRound-trip Markdown:");
                 Console.WriteLine(backToMarkdown);
             }
@@ -107,12 +107,12 @@ This is a paragraph with **bold** and *italic* text.
             Console.WriteLine(html);
             Console.WriteLine();
             
-            using (WordDocument fromHtml = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument()) {
+            using (WordDocument fromHtml = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord()) {
                 string docPath = Path.Combine(folderPath, "FromHtml.docx");
                 fromHtml.Save(docPath);
                 Console.WriteLine($"✓ HTML → Word: {docPath}");
                 
-                string backToHtml = fromHtml.ToHtml(new WordToHtmlOptions { IncludeDefaultCss = true });
+                string backToHtml = fromHtml.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = true });
                 Console.WriteLine("\nRound-trip HTML (first 200 chars):");
                 Console.WriteLine(backToHtml.Substring(0, Math.Min(200, backToHtml.Length)) + "...");
             }
@@ -143,7 +143,7 @@ This is a paragraph with **bold** and *italic* text.
                 }
                 
                 using (MemoryStream htmlStream = new MemoryStream()) {
-                    document.SaveAsHtml(htmlStream, new WordToHtmlOptions { IncludeDefaultCss = true });
+                    document.SaveAsHtml(htmlStream, new WordHtmlExportOptions { IncludeDefaultCss = true });
                     htmlStream.Position = 0;
                     using (StreamReader reader = new StreamReader(htmlStream)) {
                         string html = reader.ReadToEnd();

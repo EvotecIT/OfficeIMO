@@ -70,8 +70,8 @@ public sealed class IWorkPagesNumberedListNativeExportTests {
         using var manifest = Manifest();
         foreach (JsonElement scenario in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
             foreach (string producer in new[] { "nativePdf", "officeimoPdf" }) {
-                PdfReadDocument pdf = PdfReadDocument.Open(File.ReadAllBytes(Artifact(manifest.RootElement,
-                    scenario.GetProperty(producer).GetString()!)));
+                PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(Artifact(manifest.RootElement,
+                    scenario.GetProperty(producer).GetString()!))));
                 Assert.Single(pdf.Pages);
                 string text = Regex.Replace(pdf.ExtractText(), @"\s+", string.Empty); int previous = -1;
                 foreach (JsonElement item in scenario.GetProperty("expectedItems").EnumerateArray()) {

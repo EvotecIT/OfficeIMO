@@ -16,10 +16,10 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
         WordTable table = story.AddTable(1, 2, WordTableStyle.TableGrid);
-        if (image) table.Rows[0].Cells[0].Paragraphs[0].AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 32, 32);
+        if (image) table.Rows[0].Cells[0].Paragraphs[0].AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
         document.AddParagraph("BODY");
         string before = string.Concat(story.ChildElements.Select(element => element.OuterXml));
-        byte[] bytes = document.ToPdfBytes(EmptyRunningOptions());
+        byte[] bytes = document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Single(pdf.GetPages());
         Assert.Contains("BODY", pdf.GetPage(1).Text);
@@ -44,16 +44,16 @@ public partial class Word {
         document.Sections[0].DifferentFirstPage = variant == "first";
         document.Sections[0].DifferentOddAndEvenPages = variant == "even";
         WordTable table = story.AddTable(1, 2, WordTableStyle.TableGrid);
-        if (image) table.Rows[0].Cells[0].Paragraphs[0].AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 32, 32);
+        if (image) table.Rows[0].Cells[0].Paragraphs[0].AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
         SetInheritedRunningControlStyle(document.AddParagraph("BODY"));
         WordParagraph second = document.AddParagraph("SECOND");
         SetInheritedRunningControlStyle(second);
         second._paragraph.ParagraphProperties!.AddChild(new W.PageBreakBefore(), true);
         string before = string.Concat(story.ChildElements.Select(element => element.OuterXml));
-        WordToPdfOptions options = EmptyRunningOptions();
+        WordPdfExportOptions options = EmptyRunningOptions();
         options.IncludePageNumbers = true;
         options.PageNumberFormat = "NUMBER {page}/{pages}";
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         for (int page = 1; page <= 2; page++) {
             bool tablePage = variant == "default" || variant == "first" && page == 1 || variant == "even" && page == 2;

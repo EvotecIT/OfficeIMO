@@ -13,7 +13,7 @@ public partial class PdfFontFamilyTests {
     public void CoverageStableFallbackPreservesMissingPhysicalItalic(bool bold) {
         byte[] regular = File.ReadAllBytes(Assert.IsType<string>(PdfComplianceTestFonts.FindBundledTrueTypeFont()));
         var family = new PdfEmbeddedFontFamily("Coverage Proof", regular).CreateCoverageStableFallbackSnapshot();
-        var options = new PdfOptions { CompressContentStreams = false }.RegisterNamedFontFamily(family);
+        var options = new PdfCreateOptions { CompressContentStreams = false }.RegisterNamedFontFamily(family);
         byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.FontFamily(family.FamilyName)
             .Bold(bold).Italic(true).Text("Coverage italic")).ToBytes();
         Assert.Contains("1 0 0.333 1", Encoding.ASCII.GetString(bytes));
@@ -30,7 +30,7 @@ public partial class PdfFontFamilyTests {
         var descriptor = new OfficeFontFaceDescriptor(450, 100, slant);
         var faces = new OfficeFontFaceCollection().Add("Numeric Proof", bytes, descriptor);
         Assert.True(PdfEmbeddedFontFamily.TrySelectSystemFace(faces, "Numeric Proof", descriptor, "Italic proof", out var selected));
-        var options = new PdfOptions { CompressContentStreams = false }.RegisterNamedFontFamily(selected!);
+        var options = new PdfCreateOptions { CompressContentStreams = false }.RegisterNamedFontFamily(selected!);
         byte[] pdf = PdfDocument.Create(options).Paragraph(p => p.FontFamily(selected!.FamilyName)
             .Italic(true).Text("Italic proof")).ToBytes();
         string raw = Encoding.ASCII.GetString(pdf);

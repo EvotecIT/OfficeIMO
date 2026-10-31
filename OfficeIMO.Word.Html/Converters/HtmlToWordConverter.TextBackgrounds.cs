@@ -1,7 +1,7 @@
 using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -16,7 +16,7 @@ namespace OfficeIMO.Word.Html {
         private void ApplyTextBackground(
             WordParagraph run,
             TextFormatting formatting,
-            HtmlToWordOptions options) {
+            WordHtmlImportOptions options) {
             if (string.IsNullOrEmpty(formatting.BackgroundColorHex)) {
                 return;
             }
@@ -25,7 +25,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            if (options.TextBackgroundMode == HtmlTextBackgroundMode.ExactShading) {
+            if (options.TextBackgroundMode == WordHtmlTextBackgroundMode.ExactShading) {
                 run.Highlight = null;
                 run.SetRunShadingFillColorHex(formatting.BackgroundColorHex!);
                 return;
@@ -40,7 +40,7 @@ namespace OfficeIMO.Word.Html {
             if (!exact) {
                 AddDiagnostic(
                     options,
-                    "TextBackgroundColorApproximated",
+                    "text-background-color-approximated",
                     "CSS text background color was approximated to the nearest Word highlight color.",
                     "background-color",
                     lossKind: OfficeConversionLossKind.Approximation);

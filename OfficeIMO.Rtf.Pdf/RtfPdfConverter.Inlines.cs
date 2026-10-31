@@ -103,20 +103,20 @@ internal static partial class RtfPdfConverter {
                 UseDefaultCharacterFormatting = source.UseParsedParagraphDefaults
             });
             strut = new PdfCore.PdfTextRun(string.Empty, bold: inherited.Bold, italic: inherited.Italic,
-                fontSize: inherited.FontSize, font: state.ResolveFont(inherited.FontId, inherited.Bold, inherited.Italic),
+                fontSize: inherited.FontSize.HasValue ? OfficeLength.Points(inherited.FontSize.Value) : null, font: state.ResolveFont(inherited.FontId, inherited.Bold, inherited.Italic),
                 fontFamily: state.ResolveFontFamily(inherited.FontId));
         }
         strut.IsLineBoxStrut = true;
-        if (strut.FontSize is double sourceSize && sourceSize > 0D &&
+        if ((strut.FontSize?.ToPoints()) is double sourceSize && sourceSize > 0D &&
             !double.IsNaN(sourceSize) && !double.IsInfinity(sourceSize)) {
             for (int index = bodyStartIndex; index < runs.Count; index++) {
                 PdfCore.PdfTextRun control = runs[index];
-                if (control.FontSize.HasValue || control.Text.Length == 0) continue;
+                if ((control.FontSize?.ToPoints()).HasValue || control.Text.Length == 0) continue;
                 // Every blank source line needs its own known font box. A note
                 // label before the body must not become a break's fallback size.
                 runs[index] = new PdfCore.PdfTextRun(control.Text, bold: strut.Bold,
                     underline: control.Underline, color: control.Color, italic: strut.Italic,
-                    strike: control.Strike, fontSize: sourceSize, font: strut.Font,
+                    strike: control.Strike, fontSize: global::OfficeIMO.OfficeLength.Points(sourceSize), font: strut.Font,
                     linkUri: control.LinkUri, linkContents: control.LinkContents,
                     baseline: strut.Baseline, linkDestinationName: control.LinkDestinationName,
                     tabLeader: control.TabLeader, tabAlignment: control.TabAlignment,
@@ -136,7 +136,7 @@ internal static partial class RtfPdfConverter {
             PdfCore.PdfTextRun run = runs[index];
             if (run.IsLineBoxStrut || run.InlineElement != null ||
                 run.Text.Any(character => character is not ('\r' or '\n' or '\t'))) return false;
-            if (run.Text.Length > 0 && run.FontSize is double size && size > 0D &&
+            if (run.Text.Length > 0 && run.FontSize?.ToPoints() is double size && size > 0D &&
                 !double.IsNaN(size) && !double.IsInfinity(size)) controlStyle = run;
         }
         return true;
@@ -214,8 +214,8 @@ internal static partial class RtfPdfConverter {
             return;
         }
 
-        PdfCore.PdfColor? foreground = RtfPdfMapping.ToPdfColor(document, run.ForegroundColorIndex);
-        PdfCore.PdfColor? background = RtfPdfMapping.ToPdfColor(document, run.HighlightColorIndex)
+        global::OfficeIMO.OfficeColor? foreground = RtfPdfMapping.ToPdfColor(document, run.ForegroundColorIndex);
+        global::OfficeIMO.OfficeColor? background = RtfPdfMapping.ToPdfColor(document, run.HighlightColorIndex)
             ?? RtfPdfMapping.ToPdfColor(document, run.CharacterBackgroundColorIndex);
         PdfCore.PdfStandardFont? font = state.ResolveFont(run.FontId, run.Bold, run.Italic);
         string? linkUri = run.Hyperlink?.ToString() ?? inheritedLinkUri;
@@ -229,7 +229,7 @@ internal static partial class RtfPdfConverter {
             color: foreground,
             italic: run.Italic,
             strike: run.Strike || run.DoubleStrike,
-            fontSize: run.FontSize,
+            fontSize: ((double?)(run.FontSize) is double physicalLength3 ? global::OfficeIMO.OfficeLength.Points(physicalLength3) : (global::OfficeIMO.OfficeLength?)null),
             font: font,
             fontFamily: state.ResolveFontFamily(run.FontId),
             linkUri: linkUri,
@@ -238,7 +238,7 @@ internal static partial class RtfPdfConverter {
             linkDestinationName: linkDestinationName,
             backgroundColor: background);
         if (run.KerningHalfPoints is > 0) {
-            double fontSize = run.FontSize ?? state.FontOptions.DefaultFontSize;
+            double fontSize = run.FontSize ?? state.FontOptions.DefaultFontSize.ToPoints();
             pdfRun = pdfRun.WithFeatureSettings(state.FontOptions.DefaultTextFeatureSettings.With("kern",
                 fontSize >= run.KerningHalfPoints.Value / 2D ? 1 : 0));
         }

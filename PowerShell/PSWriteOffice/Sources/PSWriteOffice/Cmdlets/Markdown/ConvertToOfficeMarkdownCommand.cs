@@ -7,7 +7,7 @@ using PSWriteOffice.Services;
 namespace PSWriteOffice.Cmdlets.Markdown;
 
 /// <summary>Converts objects into a Markdown table.</summary>
-/// <para>Returns Markdown text by default; use <c>-PassThru</c> to emit a <see cref="MarkdownDoc"/>.</para>
+/// <para>Returns Markdown text by default; use <c>-PassThru</c> to emit a <see cref="MarkdownDocument"/>.</para>
 /// <example>
 ///   <summary>Convert objects to Markdown table.</summary>
 ///   <prefix>PS&gt; </prefix>
@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <prefix>PS&gt; </prefix>
 ///   <code>$doc = $data | ConvertTo-OfficeMarkdown -PassThru
 ///   $doc.P('Totals above'); $doc.ToMarkdown()</code>
-///   <para>Builds a table and appends more content using the MarkdownDoc API.</para>
+///   <para>Builds a table and appends more content using the MarkdownDocument API.</para>
 /// </example>
 /// <example>
 ///   <summary>Disable auto alignment.</summary>
@@ -28,7 +28,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <para>Forces left-aligned columns instead of auto-aligned output.</para>
 /// </example>
 [Cmdlet(VerbsData.ConvertTo, "OfficeMarkdown")]
-[OutputType(typeof(string), typeof(MarkdownDoc))]
+[OutputType(typeof(string), typeof(MarkdownDocument))]
 public sealed class ConvertToOfficeMarkdownCommand : PSCmdlet
 {
     private readonly List<object?> _items = new();
@@ -91,14 +91,14 @@ public sealed class ConvertToOfficeMarkdownCommand : PSCmdlet
             MaxCollectionItems,
             MaxNestingDepth);
         var normalizedItems = PowerShellObjectNormalizer.NormalizeItems(_items, options);
-        var doc = MarkdownDoc.Create();
+        var doc = MarkdownDocument.Create();
         if (DisableAutoAlign.IsPresent)
         {
-            doc.TableFrom(normalizedItems);
+            doc.AddTable((object)normalizedItems);
         }
         else
         {
-            doc.TableFromAuto(normalizedItems);
+            doc.AddTable((object)normalizedItems, new MarkdownTableOptions());
         }
 
         if (PassThru.IsPresent)

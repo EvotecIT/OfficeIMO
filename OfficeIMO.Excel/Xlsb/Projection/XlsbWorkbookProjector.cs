@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                         relatedParts.ProjectChartSheet(sourceSheet);
                         continue;
                     }
-                    ExcelSheet targetSheet = document.AddWorksheet(sourceSheet.Name);
+                    ExcelSheet targetSheet = document.AddSheet(sourceSheet.Name);
                     targetSheet.Batch(sheet => {
                         foreach (XlsbCell cell in sourceSheet.Cells) {
                             cancellationToken.ThrowIfCancellationRequested();
@@ -80,6 +80,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                     }
                 }
 
+                relatedParts.ProjectTheme();
                 relatedParts.ProjectVba();
                 XlsbDefinedNameProjector.Apply(document, workbook.DefinedNames);
 

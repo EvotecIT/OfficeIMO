@@ -35,7 +35,7 @@ internal sealed class WorkflowConversionCancellationException : OperationCancele
 /// Throw <see cref="OfficeConversionException"/> with the available report to retain evidence when output serialization fails.
 /// An <see cref="OfficeWorkflowConversionEvidence"/> report also retains its compact facts; an inner cancellation exception preserves cancellation classification.</remarks>
 public delegate OfficeWorkflowConversionEvidence OfficeWorkflowConverter(
-    Stream input, Stream output, OfficeWorkflowLimits limits, CancellationToken cancellationToken);
+    Stream input, Stream output, OfficeOperationLimits limits, CancellationToken cancellationToken);
 
 /// <summary>An opt-in implementation of an existing canonical conversion route.</summary>
 public sealed class OfficeWorkflowConversionRegistration {
@@ -44,9 +44,9 @@ public sealed class OfficeWorkflowConversionRegistration {
         : this(routeId, Adapt(converter), null) { }
 
     private OfficeWorkflowConversionRegistration(string routeId,
-        Func<Stream, Stream, OfficeWorkflowLimits, IOfficeWorkflowConversionSettings?, CancellationToken, OfficeWorkflowConversionEvidence> converter,
-        Func<IOfficeWorkflowConversionSettings, bool>? acceptsSettings,
-        Func<string, OfficeWorkflowLimits, IOfficeWorkflowConversionSettings?, OfficeWorkflowStreamInput>? directoryPackageInput = null) {
+        Func<Stream, Stream, OfficeOperationLimits, IOfficeConversionSettings?, CancellationToken, OfficeWorkflowConversionEvidence> converter,
+        Func<IOfficeConversionSettings, bool>? acceptsSettings,
+        Func<string, OfficeOperationLimits, IOfficeConversionSettings?, OfficeWorkflowStreamInput>? directoryPackageInput = null) {
         OfficeWorkflowRoute route = OfficeWorkflowCatalog.Find(routeId)
             ?? throw new ArgumentException("Choose an existing canonical conversion route.", nameof(routeId));
         if (route.CanExecute) throw new ArgumentException("Built-in conversion routes cannot be replaced.", nameof(routeId));
@@ -60,13 +60,13 @@ public sealed class OfficeWorkflowConversionRegistration {
 
     /// <summary>Canonical capability identifier.</summary>
     public string RouteId { get; }
-    internal Func<Stream, Stream, OfficeWorkflowLimits, IOfficeWorkflowConversionSettings?, CancellationToken, OfficeWorkflowConversionEvidence> Converter { get; }
-    private readonly Func<IOfficeWorkflowConversionSettings, bool>? _acceptsSettings;
-    internal Func<string, OfficeWorkflowLimits, IOfficeWorkflowConversionSettings?, OfficeWorkflowStreamInput>? DirectoryPackageInput { get; }
+    internal Func<Stream, Stream, OfficeOperationLimits, IOfficeConversionSettings?, CancellationToken, OfficeWorkflowConversionEvidence> Converter { get; }
+    private readonly Func<IOfficeConversionSettings, bool>? _acceptsSettings;
+    internal Func<string, OfficeOperationLimits, IOfficeConversionSettings?, OfficeWorkflowStreamInput>? DirectoryPackageInput { get; }
 
     /// <summary>Registers a canonical route with an explicit adapter-owned settings contract.</summary>
     public static OfficeWorkflowConversionRegistration Create<TSettings>(string routeId,
-        OfficeWorkflowConfiguredConverter<TSettings> converter) where TSettings : class, IOfficeWorkflowConversionSettings =>
+        OfficeWorkflowConfiguredConverter<TSettings> converter) where TSettings : class, IOfficeConversionSettings =>
         Create(routeId, converter, null);
 
     /// <summary>Registers a canonical route with an explicit adapter-owned settings contract.</summary>
@@ -75,26 +75,26 @@ public sealed class OfficeWorkflowConversionRegistration {
     /// <param name="directoryPackageInput">Optional local directory-package owner. It must create a bounded, repeatable snapshot stream, verify membership/content on every reopen, and preserve source identity. Called after request settings are validated.</param>
     public static OfficeWorkflowConversionRegistration Create<TSettings>(string routeId,
         OfficeWorkflowConfiguredConverter<TSettings> converter,
-        Func<string, OfficeWorkflowLimits, TSettings?, OfficeWorkflowStreamInput>? directoryPackageInput) where TSettings : class, IOfficeWorkflowConversionSettings {
-        ArgumentNullException.ThrowIfNull(converter);
+        Func<string, OfficeOperationLimits, TSettings?, OfficeWorkflowStreamInput>? directoryPackageInput) where TSettings : class, IOfficeConversionSettings {
+        if (converter == null) throw new ArgumentNullException(nameof(converter));
         return new(routeId, (input, output, limits, settings, token) => converter(input, output, limits, (TSettings?)settings, token),
             settings => settings is TSettings, directoryPackageInput is null ? null
                 : (path, limits, settings) => directoryPackageInput(path, limits, (TSettings?)settings));
     }
 
-    internal IOfficeWorkflowConversionSettings? SnapshotSettings(IOfficeWorkflowConversionSettings? settings) {
+    internal IOfficeConversionSettings? SnapshotSettings(IOfficeConversionSettings? settings) {
         if (settings is null) return null;
         if (_acceptsSettings?.Invoke(settings) != true)
             throw new ArgumentException("The registered conversion route does not accept these settings.");
-        IOfficeWorkflowConversionSettings snapshot = settings.Snapshot()
+        IOfficeConversionSettings snapshot = settings.Snapshot()
             ?? throw new ArgumentException("The conversion settings returned no snapshot.");
         if (!_acceptsSettings(snapshot)) throw new ArgumentException("The conversion settings snapshot changed its contract type.");
         return snapshot;
     }
 
-    private static Func<Stream, Stream, OfficeWorkflowLimits, IOfficeWorkflowConversionSettings?, CancellationToken, OfficeWorkflowConversionEvidence>
+    private static Func<Stream, Stream, OfficeOperationLimits, IOfficeConversionSettings?, CancellationToken, OfficeWorkflowConversionEvidence>
         Adapt(OfficeWorkflowConverter converter) {
-        ArgumentNullException.ThrowIfNull(converter);
+        if (converter == null) throw new ArgumentNullException(nameof(converter));
         return (input, output, limits, _, token) => converter(input, output, limits, token);
     }
 }
@@ -103,17 +103,17 @@ public sealed class OfficeWorkflowConversionRegistration {
 public sealed class OfficeWorkflowConversionEvidence : IOfficeConversionReport {
     /// <summary>Copies typed fidelity diagnostics and compact source/projection facts from the owning converter.</summary>
     public OfficeWorkflowConversionEvidence(IOfficeConversionReport report, IReadOnlyDictionary<string, string>? facts = null) {
-        ArgumentNullException.ThrowIfNull(report);
+        if (report == null) throw new ArgumentNullException(nameof(report));
         FidelityDiagnostics = OfficeConversionFidelityDiagnostics.Flatten([report]);
-        Facts = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(facts ?? new Dictionary<string, string>(), StringComparer.Ordinal));
+        Facts = new ReadOnlyDictionary<string, string>((facts ?? new Dictionary<string, string>()).ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal));
     }
 
     /// <summary>Copies evidence from ordered conversion stages after their output operations have completed.</summary>
     public OfficeWorkflowConversionEvidence(IReadOnlyList<IOfficeConversionReport> reports, IReadOnlyDictionary<string, string> facts) {
-        ArgumentNullException.ThrowIfNull(reports);
-        ArgumentNullException.ThrowIfNull(facts);
+        if (reports == null) throw new ArgumentNullException(nameof(reports));
+        if (facts == null) throw new ArgumentNullException(nameof(facts));
         FidelityDiagnostics = OfficeConversionFidelityDiagnostics.Flatten(reports);
-        Facts = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(facts, StringComparer.Ordinal));
+        Facts = new ReadOnlyDictionary<string, string>(facts.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal));
     }
 
     /// <inheritdoc />

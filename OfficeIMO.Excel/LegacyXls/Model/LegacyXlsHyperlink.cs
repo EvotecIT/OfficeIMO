@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents a hyperlink parsed from a legacy XLS worksheet.
     /// </summary>
-    public sealed class LegacyXlsHyperlink {
+    internal sealed class LegacyXlsHyperlink {
         /// <summary>
         /// Creates a parsed legacy XLS hyperlink.
         /// </summary>

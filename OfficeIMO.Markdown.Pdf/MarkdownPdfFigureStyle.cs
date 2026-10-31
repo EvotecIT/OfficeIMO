@@ -9,9 +9,9 @@ public sealed class MarkdownPdfFigureStyle {
     private PdfCore.PdfPanelStyle? _panelStyle;
     private PdfCore.PdfImageStyle? _imageStyle;
     private PdfCore.PdfDrawingStyle? _drawingStyle;
-    private PdfCore.PdfColor? _captionColor;
-    private PdfCore.PdfColor? _placeholderColor;
-    private double? _captionFontSize;
+    private global::OfficeIMO.OfficeColor? _captionColor;
+    private global::OfficeIMO.OfficeColor? _placeholderColor;
+    private global::OfficeIMO.OfficeLength? _captionFontSize;
     private PdfCore.PdfAlign _captionAlign = PdfCore.PdfAlign.Center;
 
     /// <summary>Optional panel chrome used for unresolved visual placeholders. Media figures render directly in document flow.</summary>
@@ -33,13 +33,13 @@ public sealed class MarkdownPdfFigureStyle {
     }
 
     /// <summary>Caption text color.</summary>
-    public PdfCore.PdfColor? CaptionColor {
+    public global::OfficeIMO.OfficeColor? CaptionColor {
         get => _captionColor;
         set => _captionColor = value;
     }
 
     /// <summary>Caption font size.</summary>
-    public double? CaptionFontSize {
+    public global::OfficeIMO.OfficeLength? CaptionFontSize {
         get => _captionFontSize;
         set => _captionFontSize = ValidateOptionalPositive(value, nameof(CaptionFontSize));
     }
@@ -57,7 +57,7 @@ public sealed class MarkdownPdfFigureStyle {
     }
 
     /// <summary>Text color used by unresolved image and visual placeholders.</summary>
-    public PdfCore.PdfColor? PlaceholderColor {
+    public global::OfficeIMO.OfficeColor? PlaceholderColor {
         get => _placeholderColor;
         set => _placeholderColor = value;
     }
@@ -76,61 +76,61 @@ public sealed class MarkdownPdfFigureStyle {
     internal PdfCore.PdfPanelStyle? PanelStyleSnapshot => _panelStyle?.Clone();
     internal PdfCore.PdfImageStyle ImageStyleSnapshot => (_imageStyle ?? CreateDefaultImageStyle()).Clone();
     internal PdfCore.PdfDrawingStyle DrawingStyleSnapshot => (_drawingStyle ?? CreateDefaultDrawingStyle()).Clone();
-    internal PdfCore.PdfColor CaptionColorSnapshot => _captionColor ?? PdfCore.PdfColor.FromRgb(71, 85, 105);
-    internal double CaptionFontSizeSnapshot => _captionFontSize ?? 9D;
+    internal global::OfficeIMO.OfficeColor CaptionColorSnapshot => _captionColor ?? global::OfficeIMO.OfficeColor.FromRgb(71, 85, 105);
+    internal global::OfficeIMO.OfficeLength CaptionFontSizeSnapshot => _captionFontSize ?? global::OfficeIMO.OfficeLength.Points(9D);
     internal PdfCore.PdfAlign CaptionAlignSnapshot => _captionAlign;
-    internal PdfCore.PdfColor PlaceholderColorSnapshot => _placeholderColor ?? PdfCore.PdfColor.FromRgb(100, 116, 139);
+    internal global::OfficeIMO.OfficeColor PlaceholderColorSnapshot => _placeholderColor ?? global::OfficeIMO.OfficeColor.FromRgb(100, 116, 139);
 
     internal static MarkdownPdfFigureStyle Plain() => new MarkdownPdfFigureStyle {
         ImageStyle = CreateDefaultImageStyle(),
         DrawingStyle = CreateDefaultDrawingStyle(),
-        CaptionColor = PdfCore.PdfColor.FromRgb(71, 85, 105),
-        PlaceholderColor = PdfCore.PdfColor.FromRgb(100, 116, 139),
-        CaptionFontSize = 9D,
+        CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(71, 85, 105),
+        PlaceholderColor = global::OfficeIMO.OfficeColor.FromRgb(100, 116, 139),
+        CaptionFontSize = global::OfficeIMO.OfficeLength.Points(9D),
         CaptionAlign = PdfCore.PdfAlign.Center
     };
 
     internal static MarkdownPdfFigureStyle Framed(
-        PdfCore.PdfColor background,
-        PdfCore.PdfColor border,
-        PdfCore.PdfColor caption,
-        PdfCore.PdfColor placeholder,
+        global::OfficeIMO.OfficeColor background,
+        global::OfficeIMO.OfficeColor border,
+        global::OfficeIMO.OfficeColor caption,
+        global::OfficeIMO.OfficeColor placeholder,
         double borderWidth = 0.5D) => new MarkdownPdfFigureStyle {
             PdfPanelStyle = new PdfCore.PdfPanelStyle {
                 Background = background,
                 BorderColor = border,
-                BorderWidth = borderWidth,
-                PaddingX = 10,
-                PaddingY = 8,
-                SpacingBefore = 5,
-                SpacingAfter = 10,
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(borderWidth),
+                PaddingX = global::OfficeIMO.OfficeLength.Points(10),
+                PaddingY = global::OfficeIMO.OfficeLength.Points(8),
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(5),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(10),
                 KeepTogether = true
             },
             ImageStyle = CreateDefaultImageStyle(),
             DrawingStyle = CreateDefaultDrawingStyle(),
             CaptionColor = caption,
             PlaceholderColor = placeholder,
-            CaptionFontSize = 9D,
+            CaptionFontSize = global::OfficeIMO.OfficeLength.Points(9D),
             CaptionAlign = PdfCore.PdfAlign.Center
         };
 
     private static PdfCore.PdfImageStyle CreateDefaultImageStyle() => new PdfCore.PdfImageStyle {
         Align = PdfCore.PdfAlign.Center,
-        SpacingBefore = 2,
-        SpacingAfter = 4,
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(2),
+        SpacingAfter = global::OfficeIMO.OfficeLength.Points(4),
         ScaleDownToFit = true,
         KeepWithNext = true
     };
 
     private static PdfCore.PdfDrawingStyle CreateDefaultDrawingStyle() => new PdfCore.PdfDrawingStyle {
         Align = PdfCore.PdfAlign.Center,
-        SpacingBefore = 2,
-        SpacingAfter = 4,
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(2),
+        SpacingAfter = global::OfficeIMO.OfficeLength.Points(4),
         KeepWithNext = true
     };
 
-    private static double? ValidateOptionalPositive(double? value, string propertyName) {
-        if (value.HasValue && (double.IsNaN(value.Value) || double.IsInfinity(value.Value) || value.Value <= 0)) {
+    private static global::OfficeIMO.OfficeLength? ValidateOptionalPositive(global::OfficeIMO.OfficeLength? value, string propertyName) {
+        if (value.HasValue && value.Value <= global::OfficeIMO.OfficeLength.Zero) {
             throw new ArgumentOutOfRangeException(propertyName, "Markdown PDF figure style sizes must be positive finite values.");
         }
 

@@ -119,7 +119,7 @@ public static class ExcelDocumentCsvExtensions {
             throw new ArgumentException("SheetName cannot be empty.", nameof(options));
         }
 
-        ExcelSheet sheet = document.AddWorksheet(options.SheetName.Trim());
+        ExcelSheet sheet = document.AddSheet(options.SheetName.Trim());
         return ExcelSheetCsvExtensions.ImportCsvCore(sheet, reader, options, cancellationToken);
     }
 

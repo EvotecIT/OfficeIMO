@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents parsed legacy AutoFilter criteria for one filtered column.
     /// </summary>
-    public sealed class LegacyXlsAutoFilterCriteria {
+    internal sealed class LegacyXlsAutoFilterCriteria {
         /// <summary>
         /// Creates parsed legacy AutoFilter criteria.
         /// </summary>
@@ -125,7 +125,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies how multiple AutoFilter comparison conditions are joined.
     /// </summary>
-    public enum LegacyXlsAutoFilterJoinOperator {
+    internal enum LegacyXlsAutoFilterJoinOperator {
         /// <summary>The criteria shape does not use comparison conditions.</summary>
         None,
         /// <summary>The criteria has one comparison condition.</summary>
@@ -139,7 +139,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies the shape of parsed legacy AutoFilter criteria.
     /// </summary>
-    public enum LegacyXlsAutoFilterKind {
+    internal enum LegacyXlsAutoFilterKind {
         /// <summary>Comparison or equality-list criteria.</summary>
         Custom,
         /// <summary>Top or bottom item/percentage criteria.</summary>
@@ -153,7 +153,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents one parsed legacy AutoFilter condition.
     /// </summary>
-    public sealed class LegacyXlsAutoFilterCondition {
+    internal sealed class LegacyXlsAutoFilterCondition {
         /// <summary>
         /// Creates a parsed legacy AutoFilter condition.
         /// </summary>
@@ -265,7 +265,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies the BIFF operand kind used by a legacy AutoFilter condition.
     /// </summary>
-    public enum LegacyXlsAutoFilterValueKind {
+    internal enum LegacyXlsAutoFilterValueKind {
         /// <summary>The operand kind was not specified by the caller.</summary>
         Unknown,
         /// <summary>The operand was stored as an RK number.</summary>
@@ -285,7 +285,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies the text-pattern shape represented by a legacy AutoFilter text operand.
     /// </summary>
-    public enum LegacyXlsAutoFilterTextPatternKind {
+    internal enum LegacyXlsAutoFilterTextPatternKind {
         /// <summary>The condition is not a text operand.</summary>
         None,
         /// <summary>The text operand does not contain BIFF wildcard characters.</summary>
@@ -303,7 +303,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies a legacy AutoFilter comparison operator.
     /// </summary>
-    public enum LegacyXlsAutoFilterOperator {
+    internal enum LegacyXlsAutoFilterOperator {
         /// <summary>Less than.</summary>
         LessThan,
         /// <summary>Equal to.</summary>

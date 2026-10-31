@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents the used-range bounds declared by a legacy BIFF worksheet DIMENSIONS record.
     /// </summary>
-    public sealed class LegacyXlsWorksheetDimension {
+    internal sealed class LegacyXlsWorksheetDimension {
         private LegacyXlsWorksheetDimension(int? firstRow, int? firstColumn, int? lastRow, int? lastColumn) {
             FirstRow = firstRow;
             FirstColumn = firstColumn;
@@ -49,8 +49,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                     return "A1:A1";
                 }
 
-                string start = A1.CellReference(FirstRow!.Value, FirstColumn!.Value);
-                string end = A1.CellReference(LastRow!.Value, LastColumn!.Value);
+                string start = ExcelA1.CellReference(FirstRow!.Value, FirstColumn!.Value);
+                string end = ExcelA1.CellReference(LastRow!.Value, LastColumn!.Value);
                 return start == end ? start + ":" + start : start + ":" + end;
             }
         }

@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "HeaderFooterVmlDtd.xlsx");
             byte[] pngBytes = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Sheet1");
+                ExcelSheet sheet = document.AddSheet("Sheet1");
                 sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, pngBytes, "image/png");
                 document.Save();
             }
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                 """);
 
             using ExcelDocument loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
-            ExcelSheet.ExcelHeaderFooterSnapshot snapshot = loaded.Sheets.Single().GetHeaderFooter();
+            ExcelSheet.ExcelHeaderFooterInfo snapshot = loaded.Sheets.Single().GetHeaderFooter();
 
             Assert.True(snapshot.HeaderHasPicturePlaceholder);
             Assert.Null(snapshot.HeaderCenterImage);
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
         public void CommentVmlRejectsDtdBeforeUpdatingShapes() {
             string filePath = Path.Combine(_directoryWithFiles, "CommentVmlDtd.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Sheet1");
+                ExcelSheet sheet = document.AddSheet("Sheet1");
                 sheet.SetComment(1, 1, "Original");
                 document.Save();
             }

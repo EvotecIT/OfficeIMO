@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_DefinitionListLine_RendersStrongDefinitionWithoutLiteralMarkers() {
             const string markdown = "Short answer: **no — nothing is failed** ✅";
 
-            using var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
+            using var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new WordMarkdownImportOptions());
             var paragraph = document.Paragraphs.First(p => p.Text.Contains("Short answer", StringComparison.Ordinal));
             var runs = paragraph.GetRuns();
             var combinedRunText = string.Concat(runs.Select(run => run.Text));
@@ -25,8 +25,8 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_PreferNarrativeSingleLineDefinitions_KeepsPlainNarrativeLineReadable() {
             const string markdown = "Interpretation: topology looks clean in this sample.";
 
-            var options = new MarkdownToWordOptions { PreferNarrativeSingleLineDefinitions = true };
-            using var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options.CreateReaderOptions()).ToWordDocument(options);
+            var options = new WordMarkdownImportOptions { PreferNarrativeSingleLineDefinitions = true };
+            using var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options.CreateReaderOptions()).ToWord(options);
             var bodyText = string.Join("\n", document.Paragraphs.Select(p => p.Text));
 
             Assert.Contains("Interpretation: topology looks clean in this sample.", bodyText, StringComparison.Ordinal);
@@ -37,8 +37,8 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_PreferNarrativeSingleLineDefinitions_PreservesFormattedDefinitionRuns() {
             const string markdown = "Short answer: **no — nothing is failed** ✅";
 
-            var options = new MarkdownToWordOptions { PreferNarrativeSingleLineDefinitions = true };
-            using var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options.CreateReaderOptions()).ToWordDocument(options);
+            var options = new WordMarkdownImportOptions { PreferNarrativeSingleLineDefinitions = true };
+            using var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options.CreateReaderOptions()).ToWord(options);
             var paragraph = document.Paragraphs.First(p => p.Text.Contains("Short answer", StringComparison.Ordinal));
             var runs = paragraph.GetRuns();
             var combinedRunText = string.Concat(runs.Select(run => run.Text));
@@ -55,8 +55,8 @@ namespace OfficeIMO.Tests {
                 Impact: none
                 """;
 
-            var options = new MarkdownToWordOptions { PreferNarrativeSingleLineDefinitions = true };
-            using var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options.CreateReaderOptions()).ToWordDocument(options);
+            var options = new WordMarkdownImportOptions { PreferNarrativeSingleLineDefinitions = true };
+            using var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options.CreateReaderOptions()).ToWord(options);
             var paragraphRunText = document.Paragraphs
                 .Select(p => string.Concat(p.GetRuns().Select(run => run.Text)))
                 .ToList();
@@ -72,16 +72,16 @@ namespace OfficeIMO.Tests {
                 > Still ordinary quoted text.
                 """;
 
-            using var officeDocument = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
+            using var officeDocument = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new WordMarkdownImportOptions());
             var officeText = string.Join("\n", officeDocument.Paragraphs.Select(p => p.Text));
 
             Assert.Contains("Portable title", officeText, StringComparison.Ordinal);
             Assert.DoesNotContain("[!NOTE]", officeText, StringComparison.Ordinal);
 
-            var commonMarkOptions = new MarkdownToWordOptions {
-                ReaderOptions = OfficeIMO.Markdown.MarkdownReaderOptions.CreateCommonMarkProfile()
+            var commonMarkOptions = new WordMarkdownImportOptions {
+                ReaderOptions = OfficeIMO.Markdown.MarkdownLoadOptions.CreateCommonMarkProfile()
             };
-            using var commonMarkDocument = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, commonMarkOptions.CreateReaderOptions()).ToWordDocument(commonMarkOptions);
+            using var commonMarkDocument = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, commonMarkOptions.CreateReaderOptions()).ToWord(commonMarkOptions);
             var commonMarkText = string.Join("\n", commonMarkDocument.Paragraphs.Select(p => p.Text));
 
             Assert.Contains("[!NOTE]", commonMarkText, StringComparison.Ordinal);
@@ -91,9 +91,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void MarkdownToWordPreset_IntelligenceXTranscript_ConfiguresTypedTranscriptDefaults() {
-            var options = MarkdownToWordPresets.CreateIntelligenceXTranscript(
+            var options = WordMarkdownImportOptions.CreateIntelligenceXTranscript(
                 ["C:\\allowed-a", "", "C:\\allowed-a", "C:\\allowed-b"],
-                2500);
+                OfficeLength.Pixels(2500));
             var expected = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
                 preservesGroupedDefinitionLikeParagraphs: false,
                 visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
@@ -104,12 +104,12 @@ namespace OfficeIMO.Tests {
             Assert.True(options.FitImagesToPageContentWidth);
             Assert.False(options.FitImagesToContextWidth);
             Assert.Equal(100d, options.MaxImageWidthPercentOfContent);
-            Assert.Equal(2000, options.MaxImageWidthPixels);
+            Assert.Equal(2000, options.MaxImageWidth?.ToPixels());
             Assert.Equal(2, options.AllowedImageDirectories.Count);
             Assert.Contains("C:\\allowed-a", options.AllowedImageDirectories);
             Assert.Contains("C:\\allowed-b", options.AllowedImageDirectories);
             Assert.NotNull(options.ReaderOptions);
-            Assert.IsType<MarkdownReaderOptions>(options.ReaderOptions);
+            Assert.IsType<MarkdownLoadOptions>(options.ReaderOptions);
             Assert.True(options.ReaderOptions!.PreferNarrativeSingleLineDefinitions);
             Assert.True(options.ReaderOptions.Callouts);
             Assert.True(options.ReaderOptions.DefinitionLists);
@@ -133,8 +133,8 @@ namespace OfficeIMO.Tests {
                 Impact: none
                 """;
 
-            var options = MarkdownToWordPresets.CreateIntelligenceXTranscript();
-            var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options.ReaderOptions);
+            var options = WordMarkdownImportOptions.CreateIntelligenceXTranscript();
+            var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options.ReaderOptions);
 
             Assert.Collection(document.Blocks,
                 block => {

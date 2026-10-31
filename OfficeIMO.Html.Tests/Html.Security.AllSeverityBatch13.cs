@@ -16,11 +16,11 @@ public sealed class HtmlAllSeverityBatch13SecurityTests {
         Directory.CreateDirectory(basePath);
         File.Copy(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), outside);
         try {
-            var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
+            var options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
             options.BasePath = basePath;
             using WordDocument document = OfficeIMO.Html.HtmlConversionDocument
                 .Parse("<img src='../outside.png' alt='blocked'>")
-                .ToWordDocument(options);
+                .ToWord(options);
 
             Assert.Empty(document.Images);
         } finally {
@@ -45,7 +45,8 @@ public sealed class HtmlAllSeverityBatch13SecurityTests {
         document.AddParagraph("safe").SetStyleId(hostileStyle);
         document.AddParagraph().AddText("run-safe").SetCharacterStyleId(hostileStyle);
 
-        string html = document.ToHtml(new WordToHtmlOptions {
+        string html = document.ToHtml(new WordHtmlExportOptions {
+            IncludeDefaultCss = false,
             IncludeParagraphClasses = true,
             IncludeRunClasses = true
         });
@@ -68,7 +69,7 @@ public sealed class HtmlAllSeverityBatch13SecurityTests {
         string html = document.ToHtml();
         Assert.Equal(3, CountOccurrences(html, "<table"));
         Assert.Throws<InvalidDataException>(() =>
-            document.ToHtml(new WordToHtmlOptions { MaxTableNestingDepth = 2 }));
+            document.ToHtml(new WordHtmlExportOptions { MaxTableNestingDepth = 2 }));
     }
 
     [Fact]
@@ -80,12 +81,12 @@ public sealed class HtmlAllSeverityBatch13SecurityTests {
         paragraph.ListItemLevel = int.MaxValue;
 
         Assert.Throws<InvalidDataException>(() =>
-            document.ToHtml(new WordToHtmlOptions { MaxListNestingDepth = 8 }));
+            document.ToHtml(new WordHtmlExportOptions { MaxListNestingDepth = 8 }));
     }
 
     [Fact]
     public void HtmlStylesheetCacheIsScopedToOneConverterInstance() {
-        Type converter = typeof(HtmlToWordOptions).Assembly.GetType("OfficeIMO.Word.Html.HtmlToWordConverter", throwOnError: true)!;
+        Type converter = typeof(WordHtmlImportOptions).Assembly.GetType("OfficeIMO.Word.Html.HtmlToWordConverter", throwOnError: true)!;
         FieldInfo cache = converter.GetField("_stylesheetCache", BindingFlags.Instance | BindingFlags.NonPublic)!;
 
         Assert.False(cache.IsStatic);

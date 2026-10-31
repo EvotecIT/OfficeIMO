@@ -16,17 +16,17 @@ public sealed partial class OfficeWorkflowRunner {
     }
 
     private ValidatedRequest ValidateRequest(OfficeWorkflowRequest request) {
-        if (string.IsNullOrWhiteSpace(request.Id)) throw new ArgumentException("Request id cannot be empty.", nameof(request));
+        if ((request.Id == null || string.IsNullOrWhiteSpace(request.Id))) throw new ArgumentException("Request id cannot be empty.", nameof(request));
         if (!Enum.IsDefined(typeof(OfficeWorkflowOperation), request.Operation)) {
             throw new ArgumentOutOfRangeException(nameof(request), request.Operation, "Choose a supported workflow operation.");
         }
-        if (!Enum.IsDefined(typeof(OfficeWorkflowConflictPolicy), request.ConflictPolicy)) {
+        if (!Enum.IsDefined(typeof(OfficePublicationPolicy), request.ConflictPolicy)) {
             throw new ArgumentOutOfRangeException(nameof(request), request.ConflictPolicy, "Choose a supported output conflict policy.");
         }
-        if (!Enum.IsDefined(typeof(OfficeWorkflowOutputProfile), request.OutputProfile)) {
+        if (!Enum.IsDefined(typeof(OfficeConversionProfile), request.OutputProfile)) {
             throw new ArgumentOutOfRangeException(nameof(request), request.OutputProfile, "Choose a supported workflow output profile.");
         }
-        if (string.IsNullOrWhiteSpace(request.InputPath)) throw new ArgumentException("Input path cannot be empty.", nameof(request));
+        if ((request.InputPath == null || string.IsNullOrWhiteSpace(request.InputPath))) throw new ArgumentException("Input path cannot be empty.", nameof(request));
         _conversions.TryGetValue(request.Operation == OfficeWorkflowOperation.Convert ? request.ConversionRouteId ?? string.Empty : string.Empty,
             out OfficeWorkflowConversionRegistration? registration);
         var providerPackage = request.InputDirectoryPackage;
@@ -37,13 +37,13 @@ public sealed partial class OfficeWorkflowRunner {
         string inputPath = providerPackage is not null ? OfficeStorageIdentity.Normalize(request.InputPath)
             : ValidateInputLocation(request.InputPath, request.InputStream, localDirectoryPackage);
         string inputName = providerPackage?.Name ?? request.InputStream?.Name ?? inputPath;
-        OfficeWorkflowLimits limits = (request.Limits ?? throw new ArgumentException("Workflow limits cannot be null.", nameof(request))).CloneAndValidate();
+        OfficeOperationLimits limits = (request.Limits ?? throw new ArgumentException("Workflow limits cannot be null.", nameof(request))).CloneAndValidate();
         OfficeWorkflowRoute? route = null;
         string? comparisonPath = null;
-        string? outputPath = string.IsNullOrWhiteSpace(request.OutputPath) ? null
+        string? outputPath = (request.OutputPath == null || string.IsNullOrWhiteSpace(request.OutputPath)) ? null
             : request.OutputStream is null ? ValidateLocalOutput(request.OutputPath) : OfficeStorageIdentity.Normalize(request.OutputPath);
         string? outputName = request.OutputStream?.Name ?? outputPath;
-        if (request.OutputStream is not null && (outputPath is null || request.ConflictPolicy != OfficeWorkflowConflictPolicy.Replace)) {
+        if (request.OutputStream is not null && (outputPath is null || request.ConflictPolicy != OfficePublicationPolicy.Replace)) {
             throw new ArgumentException("A provider output requires an explicit destination and the Replace policy after direct-write confirmation.", nameof(request));
         }
 
@@ -78,7 +78,7 @@ public sealed partial class OfficeWorkflowRunner {
             string extension = Path.GetExtension(inputName).ToLowerInvariant();
             if (extension is not (".docx" or ".doc"))
                 throw new ArgumentException("Word image optimization accepts DOCX or supported legacy DOC input.", nameof(request));
-            if (request.OutputProfile != OfficeWorkflowOutputProfile.Faithful)
+            if (request.OutputProfile != OfficeConversionProfile.Faithful)
                 throw new ArgumentException("Word image optimization uses explicit image settings with the Faithful output profile.", nameof(request));
             if (request.Operation == OfficeWorkflowOperation.AnalyzeWordImages) {
                 if (outputPath != null) throw new ArgumentException("Image analysis does not publish an artifact.", nameof(request));
@@ -89,7 +89,7 @@ public sealed partial class OfficeWorkflowRunner {
                     throw new ArgumentException("Choose a DOCX, supported legacy DOC, or PDF output.", nameof(request));
             }
         } else if (request.Operation == OfficeWorkflowOperation.Compare) {
-            if (string.IsNullOrWhiteSpace(request.ComparisonPath)) throw new ArgumentException("PDF comparison requires a second input path.", nameof(request));
+            if ((request.ComparisonPath == null || string.IsNullOrWhiteSpace(request.ComparisonPath))) throw new ArgumentException("PDF comparison requires a second input path.", nameof(request));
             comparisonPath = ValidateInputLocation(request.ComparisonPath, request.ComparisonStream);
             EnsurePdfExtension(inputName);
             EnsurePdfExtension(request.ComparisonStream?.Name ?? comparisonPath);
@@ -99,7 +99,7 @@ public sealed partial class OfficeWorkflowRunner {
         } else {
             EnsurePdfExtension(inputName);
             if (request.Operation == OfficeWorkflowOperation.Optimize &&
-                request.OutputProfile == OfficeWorkflowOutputProfile.TextOnly) {
+                request.OutputProfile == OfficeConversionProfile.TextOnly) {
                 throw new ArgumentException(
                     "Lossless PDF optimization does not support the TextOnly output profile.",
                     nameof(request));
@@ -119,8 +119,10 @@ public sealed partial class OfficeWorkflowRunner {
 
         if (request.RegisteredConversionSettings is not null && registration is null)
             throw new ArgumentException("Adapter conversion settings require a registered conversion route.", nameof(request));
-        IOfficeWorkflowConversionSettings? registeredSettings = registration?.SnapshotSettings(request.RegisteredConversionSettings);
-        OfficeWorkflowConversionOptions? conversionOptions = request.ConversionOptions?.Snapshot(route!);
+        IOfficeConversionSettings? registeredSettings = registration?.SnapshotSettings(request.RegisteredConversionSettings);
+        OfficeConversionOptions? unifiedOptions = request.ConversionOptions?.Clone();
+        OfficeWorkflowRenderingOptions? conversionOptions = unifiedOptions == null ? null
+            : OfficeWorkflowRenderingOptions.Capture(unifiedOptions).ForRoute(route!).Snapshot(route!);
         bool wordImages = request.Operation is OfficeWorkflowOperation.AnalyzeWordImages or OfficeWorkflowOperation.OptimizeWordImages;
         if (!wordImages && request.WordImageOptimization != null)
             throw new ArgumentException("Word image settings are valid only for Word image operations.", nameof(request));
@@ -128,7 +130,7 @@ public sealed partial class OfficeWorkflowRunner {
         OfficeScanCleanupOptions? scanCleanup = request.ScanCleanup?.Snapshot();
         if ((request.Operation == OfficeWorkflowOperation.ScanCleanup) != (scanCleanup != null))
             throw new ArgumentException("ScanCleanup requires scan settings; other operations cannot accept them.", nameof(request));
-        if (scanCleanup != null && request.OutputProfile != OfficeWorkflowOutputProfile.Faithful)
+        if (scanCleanup != null && request.OutputProfile != OfficeConversionProfile.Faithful)
             throw new ArgumentException("Scan preparation does not support conversion output profiles.", nameof(request));
 
         if (request.PageNumbers is { Length: > 100000 })
@@ -141,7 +143,7 @@ public sealed partial class OfficeWorkflowRunner {
                 throw new ArgumentException("Choose a page selector or page numbers, not both.", nameof(request));
             if (request.PageSelector is null && (pages is not { Length: > 0 } || pages.Length > request.MaximumExtractedPages || pages.Any(page => page <= 0)))
                 throw new ArgumentException("Extraction requires positive one-based pages within the selected page limit.", nameof(request));
-            if (request.OutputProfile != OfficeWorkflowOutputProfile.Faithful)
+            if (request.OutputProfile != OfficeConversionProfile.Faithful)
                 throw new ArgumentException("Page extraction supports only the Faithful output profile.", nameof(request));
         } else if (pages is not null || request.PageSelector is not null) {
             throw new ArgumentException("Page numbers are valid only for page extraction.", nameof(request));
@@ -153,18 +155,18 @@ public sealed partial class OfficeWorkflowRunner {
         if (signing) {
             if (request.OutputSigner is null || request.OutputSignatureValidator is null || signatureOptions is null)
                 throw new ArgumentException("Signing requires a signer, signature settings, and a cryptographic verifier.", nameof(request));
-            if (request.OutputProfile != OfficeWorkflowOutputProfile.Faithful)
+            if (request.OutputProfile != OfficeConversionProfile.Faithful)
                 throw new ArgumentException("Signing supports only the Faithful output profile.", nameof(request));
         } else if (request.OutputSigner is not null || signatureOptions is not null || request.OutputSignatureValidator is not null)
             throw new ArgumentException("Signature settings are valid only for SignPdf.", nameof(request));
         bool securityOutput = request.Operation is OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection;
         if (request.Operation == OfficeWorkflowOperation.ProtectPdf) {
-            if (encryption is null || !Enum.IsDefined(encryption.Algorithm))
+            if (encryption is null || !OfficeRuntimeCompatibility.IsDefined(encryption.Algorithm))
                 throw new ArgumentException("Choose valid PDF output encryption settings.", nameof(request));
         } else if (encryption is not null) throw new ArgumentException("Output encryption is valid only for ProtectPdf.", nameof(request));
         if (!securityOutput && request.PdfOwnerPassword is not null)
             throw new ArgumentException("The owner password is valid only for protection workflows.", nameof(request));
-        if (securityOutput && request.OutputProfile != OfficeWorkflowOutputProfile.Faithful)
+        if (securityOutput && request.OutputProfile != OfficeConversionProfile.Faithful)
             throw new ArgumentException("Protection workflows support only the Faithful output profile.", nameof(request));
         var conversionEncryption = request.Operation == OfficeWorkflowOperation.Convert && route?.TargetExtension == ".pdf"
             ? conversionOptions?.GetOutputPdfOptions()?.Encryption : null;
@@ -211,7 +213,7 @@ public sealed partial class OfficeWorkflowRunner {
             request.PublicationGuard,
             inputStream, request.ComparisonStream, request.OutputStream, pages, encryption, request.PdfOwnerPassword ?? request.PdfPassword,
             request.OutputSigner, signatureOptions, request.OutputSignatureValidator, conversionOptions, scanCleanup, registration, registeredSettings, wordImageOptimization, providerPackage,
-            request.PageSelector, request.MaximumExtractedPages, request.ComparisonExpectedPages, request.ComparisonActualPages);
+            request.PageSelector, request.MaximumExtractedPages, request.ComparisonExpectedPages, request.ComparisonActualPages, unifiedOptions);
     }
 
     private static string ValidateInputLocation(string location, OfficeWorkflowStreamInput? stream, bool directoryPackage = false) {
@@ -219,7 +221,7 @@ public sealed partial class OfficeWorkflowRunner {
         string path = OfficeStorageIdentity.GetLocalPath(location)
             ?? throw new ArgumentException("A provider input requires a stream access contract.", nameof(location));
         if (!(directoryPackage ? Directory.Exists(path) : File.Exists(path))) throw new FileNotFoundException("The workflow input file does not exist.", path);
-        return directoryPackage ? Path.TrimEndingDirectorySeparator(path) : path;
+        return directoryPackage ? OfficeRuntimeCompatibility.TrimEndingDirectorySeparator(path) : path;
     }
 
     private static string ValidateLocalOutput(string location) => OfficeStorageIdentity.GetLocalPath(location)
@@ -275,7 +277,7 @@ public sealed partial class OfficeWorkflowRunner {
                 if (source is not null && remainingBytes <= 0) throw new InvalidDataException("The provider inputs exceed the workflow input limit.");
                 string path = await CaptureOneAsync(location, source, remainingBytes, token).ConfigureAwait(false);
                 if (source is not null) {
-                    remainingBytes -= _snapshots[^1].Snapshot.Length;
+                    remainingBytes -= _snapshots[_snapshots.Count - 1].Snapshot.Length;
                     stagedStreams[path] = source;
                     sourceLocations[path] = location;
                 }
@@ -291,7 +293,7 @@ public sealed partial class OfficeWorkflowRunner {
             };
         }
 
-        internal IOfficeWorkflowPublicationGuard? Guard(IOfficeWorkflowPublicationGuard? host, long maximumBytes,
+        internal IOfficePublicationGuard? Guard(IOfficePublicationGuard? host, long maximumBytes,
             string[]? protectedSources = null, OfficeWorkflowStreamOutput? output = null) {
             if (_directoryManifests.Count > 0) host = new DirectoryMembershipPublicationGuard(host, _directoryManifests.ToArray());
             if (protectedSources is not null) host = new WorkflowScopedSourcePublicationGuard(host, protectedSources,
@@ -348,9 +350,9 @@ public sealed partial class OfficeWorkflowRunner {
         }
     }
 
-    private sealed class VerifiedProviderPublicationGuard(IOfficeWorkflowPublicationGuard? host,
-        (OfficeWorkflowStreamInput Source, string Fingerprint)[] inputs, long maximumBytes) : IOfficeWorkflowPublicationGuard {
-        public async ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
+    private sealed class VerifiedProviderPublicationGuard(IOfficePublicationGuard? host,
+        (OfficeWorkflowStreamInput Source, string Fingerprint)[] inputs, long maximumBytes) : IOfficePublicationGuard {
+        public async Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
             if (host is not null && !await host.CanPublishAsync(path, isDirectory, token).ConfigureAwait(false)) return false;
             foreach (var input in inputs) {
                 await OfficeStreamPublication.VerifyFingerprintAsync(input.Source.OpenRead, input.Fingerprint, maximumBytes, token).ConfigureAwait(false);

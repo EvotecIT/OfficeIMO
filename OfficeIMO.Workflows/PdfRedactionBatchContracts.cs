@@ -46,7 +46,7 @@ public sealed class PdfRedactionBatchRequest {
     /// <summary>Publication behavior for item failures.</summary>
     public PdfRedactionBatchPublicationPolicy PublicationPolicy { get; set; } = PdfRedactionBatchPublicationPolicy.AtomicAll;
     /// <summary>Output conflict behavior shared by the batch.</summary>
-    public OfficeWorkflowConflictPolicy ConflictPolicy { get; set; } = OfficeWorkflowConflictPolicy.Fail;
+    public OfficePublicationPolicy ConflictPolicy { get; set; } = OfficePublicationPolicy.Fail;
     /// <summary>Named redaction recipe shared by the batch.</summary>
     public required PdfRedactionRecipe Recipe { get; set; }
     /// <summary>Shared resource limits.</summary>

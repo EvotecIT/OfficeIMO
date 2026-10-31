@@ -41,7 +41,7 @@ public sealed class XpsJpegXrMultichannelTests {
                 Assert.True(OfficeRasterImageDecoder.TryDecode(Convert.FromBase64String(data.Substring(data.IndexOf(',') + 1)), out var normalized));
                 Assert.Equal(expected, normalized!.GetPixels());
                 if (!embedded && width == 35 && fields[0].Contains("frequency", StringComparison.Ordinal)) {
-                    var pdfPage = Assert.Single(PdfReadDocument.Open(document.ToPdf()).Pages);
+                    var pdfPage = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf())).Pages);
                     var raster = OfficeDrawingRasterRenderer.Render(pdfPage.ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
                     for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
                         int offset = (y * width + x) * 4;

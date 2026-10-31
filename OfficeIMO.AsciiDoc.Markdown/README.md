@@ -1,6 +1,6 @@
 # OfficeIMO.AsciiDoc.Markdown
 
-`OfficeIMO.AsciiDoc.Markdown` is the thin, loss-aware conversion bridge between the native `OfficeIMO.AsciiDoc` model and `MarkdownDoc`.
+`OfficeIMO.AsciiDoc.Markdown` is the thin, loss-aware conversion bridge between the native `OfficeIMO.AsciiDoc` model and `MarkdownDocument`.
 
 ```csharp
 using OfficeIMO.AsciiDoc;

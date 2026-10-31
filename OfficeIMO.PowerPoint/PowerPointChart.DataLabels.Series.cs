@@ -68,7 +68,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Enables callout-style labels for a series by index.
         /// </summary>
         public PowerPointChart SetSeriesDataLabelCallouts(int seriesIndex, bool enabled = true,
-            OfficeChartDataLabelPosition? position = null, string? lineColor = null, double? lineWidthPoints = null) {
+            OfficeChartDataLabelPosition? position = null, string? lineColor = null, OfficeLength? lineWidth = null) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
@@ -76,14 +76,14 @@ namespace OfficeIMO.PowerPoint {
             OfficeChartDataLabelPosition? resolvedPosition = enabled ? position ?? OfficeChartDataLabelPosition.OutsideEnd : position;
             SetSeriesDataLabels(seriesIndex, showValue: enabled, showCategoryName: false, showSeriesName: false,
                 showLegendKey: false, showPercent: false, position: resolvedPosition, numberFormat: null, sourceLinked: false);
-            return SetSeriesDataLabelLeaderLines(seriesIndex, enabled, lineColor, lineWidthPoints);
+            return SetSeriesDataLabelLeaderLines(seriesIndex, enabled, lineColor, lineWidth);
         }
 
         /// <summary>
         ///     Enables callout-style labels for a series by name.
         /// </summary>
         public PowerPointChart SetSeriesDataLabelCallouts(string seriesName, bool enabled = true,
-            OfficeChartDataLabelPosition? position = null, string? lineColor = null, double? lineWidthPoints = null,
+            OfficeChartDataLabelPosition? position = null, string? lineColor = null, OfficeLength? lineWidth = null,
             bool ignoreCase = true) {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
@@ -93,21 +93,21 @@ namespace OfficeIMO.PowerPoint {
             SetSeriesDataLabels(seriesName, showValue: enabled, showCategoryName: false, showSeriesName: false,
                 showLegendKey: false, showPercent: false, position: resolvedPosition, numberFormat: null, sourceLinked: false,
                 ignoreCase: ignoreCase);
-            return SetSeriesDataLabelLeaderLines(seriesName, enabled, lineColor, lineWidthPoints, ignoreCase);
+            return SetSeriesDataLabelLeaderLines(seriesName, enabled, lineColor, lineWidth, ignoreCase);
         }
 
         /// <summary>
         ///     Sets data label text style for a series by index.
         /// </summary>
-        public PowerPointChart SetSeriesDataLabelTextStyle(int seriesIndex, double? fontSizePoints = null, bool? bold = null,
+        public PowerPointChart SetSeriesDataLabelTextStyle(int seriesIndex, OfficeLength? fontSize = null, bool? bold = null,
             bool? italic = null, string? color = null, string? fontName = null) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
-            ValidateTextStyle(fontSizePoints, color, fontName);
+            ValidateTextStyle(fontSize, color, fontName);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                ApplyDataLabelTextStyle(EnsureDataLabels(series), fontSizePoints, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(series), fontSize, bold, italic, color, fontName);
             });
 
             if (!applied) {
@@ -121,15 +121,15 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets data label text style for a series by name.
         /// </summary>
-        public PowerPointChart SetSeriesDataLabelTextStyle(string seriesName, double? fontSizePoints = null, bool? bold = null,
+        public PowerPointChart SetSeriesDataLabelTextStyle(string seriesName, OfficeLength? fontSize = null, bool? bold = null,
             bool? italic = null, string? color = null, string? fontName = null, bool ignoreCase = true) {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
             }
-            ValidateTextStyle(fontSizePoints, color, fontName);
+            ValidateTextStyle(fontSize, color, fontName);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                ApplyDataLabelTextStyle(EnsureDataLabels(series), fontSizePoints, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(series), fontSize, bold, italic, color, fontName);
             });
 
             if (!applied) {
@@ -144,14 +144,14 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets data label shape styling for a series by index.
         /// </summary>
         public PowerPointChart SetSeriesDataLabelShapeStyle(int seriesIndex, string? fillColor = null, string? lineColor = null,
-            double? lineWidthPoints = null, bool noFill = false, bool noLine = false) {
+            OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
-            ValidateAreaStyle(fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            ValidateAreaStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                ApplyDataLabelShapeStyle(EnsureDataLabels(series), fillColor, lineColor, lineWidthPoints, noFill, noLine);
+                ApplyDataLabelShapeStyle(EnsureDataLabels(series), fillColor, lineColor, lineWidth, noFill, noLine);
             });
 
             if (!applied) {
@@ -166,14 +166,14 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets data label shape styling for a series by name.
         /// </summary>
         public PowerPointChart SetSeriesDataLabelShapeStyle(string seriesName, string? fillColor = null, string? lineColor = null,
-            double? lineWidthPoints = null, bool noFill = false, bool noLine = false, bool ignoreCase = true) {
+            OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false, bool ignoreCase = true) {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
             }
-            ValidateAreaStyle(fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            ValidateAreaStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                ApplyDataLabelShapeStyle(EnsureDataLabels(series), fillColor, lineColor, lineWidthPoints, noFill, noLine);
+                ApplyDataLabelShapeStyle(EnsureDataLabels(series), fillColor, lineColor, lineWidth, noFill, noLine);
             });
 
             if (!applied) {
@@ -188,14 +188,14 @@ namespace OfficeIMO.PowerPoint {
         ///     Configures data label leader lines for a series by index.
         /// </summary>
         public PowerPointChart SetSeriesDataLabelLeaderLines(int seriesIndex, bool showLeaderLines = true, string? lineColor = null,
-            double? lineWidthPoints = null) {
+            OfficeLength? lineWidth = null) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
-            ValidateDataLabelLeaderLines(lineColor, lineWidthPoints);
+            ValidateDataLabelLeaderLines(lineColor, lineWidth);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                ApplyDataLabelLeaderLines(EnsureDataLabels(series), showLeaderLines, lineColor, lineWidthPoints);
+                ApplyDataLabelLeaderLines(EnsureDataLabels(series), showLeaderLines, lineColor, lineWidth);
             });
 
             if (!applied) {
@@ -210,14 +210,14 @@ namespace OfficeIMO.PowerPoint {
         ///     Configures data label leader lines for a series by name.
         /// </summary>
         public PowerPointChart SetSeriesDataLabelLeaderLines(string seriesName, bool showLeaderLines = true, string? lineColor = null,
-            double? lineWidthPoints = null, bool ignoreCase = true) {
+            OfficeLength? lineWidth = null, bool ignoreCase = true) {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
             }
-            ValidateDataLabelLeaderLines(lineColor, lineWidthPoints);
+            ValidateDataLabelLeaderLines(lineColor, lineWidth);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                ApplyDataLabelLeaderLines(EnsureDataLabels(series), showLeaderLines, lineColor, lineWidthPoints);
+                ApplyDataLabelLeaderLines(EnsureDataLabels(series), showLeaderLines, lineColor, lineWidth);
             });
 
             if (!applied) {

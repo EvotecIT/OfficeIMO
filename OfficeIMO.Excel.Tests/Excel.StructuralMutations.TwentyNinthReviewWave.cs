@@ -4,8 +4,10 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Test_ReferenceAlgebra_NormalizesEquivalentQuotedThreeDimensionalQualifiers() {
             ExcelReference combined = ExcelReference.Parse("'First Sheet:Last Sheet'!A1:B2");
@@ -30,33 +32,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_RemoveWorksheet_PreflightsRelationshipBeforePivotInteractionCleanup() {
+        public void Test_RemoveWorksheet_PreflightsRelationshipBeforePivotInteractionCleanup()
+        {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sales = document.AddWorksheet("Sales");
+            ExcelSheet sales = document.AddSheet("Sales");
             sales.CellValue(1, 1, "Region");
             sales.CellValue(1, 2, "Sales");
             sales.CellValue(2, 1, "East");
             sales.CellValue(2, 2, 10d);
-            sales.AddPivotTable(
-                sourceRange: "A1:B2",
-                destinationCell: "D2",
-                name: "SalesPivot",
-                rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
-            document.AddPivotSlicer(
-                "SalesPivot",
-                "Region",
-                "Sales",
-                new ExcelSlicerViewOptions { Name = "RegionFilter" });
+            sales.AddPivotTable("A1:B2", "D2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
+            document.AddPivotSlicer("SalesPivot", "Region", "Sales", new ExcelSlicerViewOptions { Name = "RegionFilter" });
             Assert.Single(document.GetPivotInteractions());
-
             string relationshipId = sales.SheetElement.Id!.Value!;
             sales.SheetElement.Id = "missingRelationship";
-            try {
+            try
+            {
                 Assert.Throws<InvalidDataException>(() => document.RemoveWorksheet("Sales"));
                 Assert.Single(document.GetPivotInteractions());
                 Assert.Contains(document.Sheets, sheet => sheet.Name == "Sales");
-            } finally {
+            }
+            finally
+            {
                 sales.SheetElement.Id = relationshipId;
             }
 

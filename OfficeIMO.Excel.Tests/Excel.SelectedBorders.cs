@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests;
 public partial class Excel {
     [Fact]
     public void Selected_borders_preserve_other_edges_and_font_fill_and_format_after_save() {
-        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Borders");
+        using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Borders");
         sheet.CellAt(1, 1).SetValue(42).SetBold().SetFillColor("ABCDEF");
         sheet.FormatCell(1, 1, "0.00");
         sheet.CellBorder(1, 1, ExcelBorderStyle.Thin, "123456");

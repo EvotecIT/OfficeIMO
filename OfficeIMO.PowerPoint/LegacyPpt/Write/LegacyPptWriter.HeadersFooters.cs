@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordCString = 0x0FBA;
 
         private static byte[] BuildDocumentHeaderFooterRecord(
-            PowerPointPresentation presentation, ushort instance) {
+            PowerPointDocument presentation, ushort instance) {
             LegacyPptWriterHeaderFooter settings = instance == 4
                 ? ReadNotesHeaderFooter(presentation)
                 : ReadSlideHeaderFooterDefaults(presentation);
@@ -26,7 +26,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static LegacyPptWriterHeaderFooter ReadSlideHeaderFooterDefaults(
-            PowerPointPresentation presentation) {
+            PowerPointDocument presentation) {
             P.SlideMaster? master = presentation.OpenXmlDocument.PresentationPart?
                 .SlideMasterParts.FirstOrDefault()?.SlideMaster;
             P.HeaderFooter? headerFooter = master?.GetFirstChild<P.HeaderFooter>();
@@ -37,7 +37,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static LegacyPptWriterHeaderFooter ReadNotesHeaderFooter(
-            PowerPointPresentation presentation) {
+            PowerPointDocument presentation) {
             P.NotesMaster? notesMaster = presentation.OpenXmlDocument.PresentationPart?
                 .NotesMasterPart?.NotesMaster;
             P.HeaderFooter? notesHeaderFooter = notesMaster?

@@ -39,10 +39,10 @@ public static partial class HtmlResourcePipeline {
             MediaFeatures = options.MediaFeatures.Clone()
         };
         if (options.MediaWidth.HasValue && options.MediaHeight.HasValue) {
-            renderOptions.PageSize = new OfficePageSize(options.MediaWidth.Value / HtmlRenderOptions.CssPixelsPerInch,
-                options.MediaHeight.Value / HtmlRenderOptions.CssPixelsPerInch);
+            renderOptions.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(options.MediaWidth.Value / HtmlRenderOptions.CssPixelsPerInch),
+                global::OfficeIMO.OfficeLength.Inches(options.MediaHeight.Value / HtmlRenderOptions.CssPixelsPerInch));
         } else if (options.MediaContext == HtmlCssMediaContext.Screen) {
-            renderOptions.PageSize = new OfficePageSize(816D / HtmlRenderOptions.CssPixelsPerInch, 1056D / HtmlRenderOptions.CssPixelsPerInch);
+            renderOptions.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(816D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(1056D / HtmlRenderOptions.CssPixelsPerInch));
         }
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, renderOptions, new HtmlDiagnosticReport(), options.Limits);
         HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForProvenance(document, options);

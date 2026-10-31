@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents parsed legacy XLS border formatting from an XF record.
     /// </summary>
-    public sealed class LegacyXlsBorder {
+    internal sealed class LegacyXlsBorder {
         /// <summary>
         /// Creates parsed legacy XLS border formatting.
         /// </summary>

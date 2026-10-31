@@ -19,26 +19,26 @@ namespace OfficeIMO.Tests {
                 WordTable table = document.AddTable(2, 2);
 
                 // Set a default right margin for the table
-                table.StyleDetails!.MarginDefaultRightWidth = 100;
+                table.StyleDetails!.MarginDefaultRight = global::OfficeIMO.OfficeLength.Points(5);
 
                 // Override margins for a specific cell
                 var cell = table.Rows[0].Cells[1];
-                cell.MarginRightWidth = 200;
-                cell.MarginTopCentimeters = 0.3;
+                cell.MarginRight = global::OfficeIMO.OfficeLength.Points(10D);
+                cell.MarginTop = global::OfficeIMO.OfficeLength.Centimeters(0.3D);
 
                 // Verify values before saving
-                Assert.True(cell.MarginRightWidth == 200);
-                Assert.True(Math.Abs(cell.MarginTopCentimeters.GetValueOrDefault() - 0.3) < 0.01);
-                Assert.True(table.Rows[0].Cells[0].MarginRightWidth == null);
+                Assert.True(checked((short?)(cell.MarginRight?.ToTwips())) == 200);
+                Assert.True(Math.Abs((cell.MarginTop?.ToCentimeters()).GetValueOrDefault() - 0.3) < 0.01);
+                Assert.True(checked((short?)(table.Rows[0].Cells[0].MarginRight?.ToTwips())) == null);
 
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithCellMargins.docx"))) {
                 var cell = document.Tables[0].Rows[0].Cells[1];
-                Assert.True(cell.MarginRightWidth == 200);
-                Assert.True(Math.Abs(cell.MarginTopCentimeters.GetValueOrDefault() - 0.3) < 0.01);
-                Assert.True(document.Tables[0].Rows[0].Cells[0].MarginRightWidth == null);
+                Assert.True(checked((short?)(cell.MarginRight?.ToTwips())) == 200);
+                Assert.True(Math.Abs((cell.MarginTop?.ToCentimeters()).GetValueOrDefault() - 0.3) < 0.01);
+                Assert.True(checked((short?)(document.Tables[0].Rows[0].Cells[0].MarginRight?.ToTwips())) == null);
                 document.Save();
             }
         }

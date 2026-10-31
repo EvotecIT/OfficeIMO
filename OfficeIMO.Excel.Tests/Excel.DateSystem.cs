@@ -23,14 +23,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(date, ExcelDateSystemConverter.FromSerial(expectedSerial + 0.5d, ExcelDateSystem.NineteenHundred));
             string path = Path.Combine(_directoryWithFiles, $"EarlyDate{year}{month}{day}.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                document.AddWorksheet("Dates").CellValue(1, 1, date);
+                document.AddSheet("Dates").CellValue(1, 1, date);
                 document.Save();
             }
             using (var package = SpreadsheetDocument.Open(path, false)) {
                 Assert.Equal((expectedSerial + 0.5d).ToString(CultureInfo.InvariantCulture),
                     GetCellValueText(package.WorkbookPart!.WorksheetParts.First(), "A1"));
             }
-            using var reader = ExcelDocumentReader.Open(path, new ExcelReadOptions { TreatDatesUsingNumberFormat = true });
+            using var reader = ExcelDocumentReader.Open(path, new ExcelReaderOptions { TreatDatesUsingNumberFormat = true });
             Assert.Equal(date, Assert.IsType<DateTime>(reader.GetSheet("Dates").ReadRange("A1:A1")[0, 0]));
         }
 
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     document.DateSystem = ExcelDateSystem.NineteenFour;
-                    var sheet = document.AddWorksheet("Data");
+                    var sheet = document.AddSheet("Data");
                     sheet.CellValue(1, 1, date);
                     sheet.ValidationDate("A1:A10", ExcelDataValidationOperator.Between, minimum, maximum);
                     document.Save();
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(Expected1904Serial(maximum), double.Parse(validation.GetFirstChild<Formula2>()!.Text, CultureInfo.InvariantCulture), 6);
                 }
 
-                using (var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions { TreatDatesUsingNumberFormat = true })) {
+                using (var reader = ExcelDocumentReader.Open(filePath, new ExcelReaderOptions { TreatDatesUsingNumberFormat = true })) {
                     var cell = reader.GetSheet("Data").EnumerateCells().Single(item => item.Row == 1 && item.Column == 1);
                     DateTime readDate = Assert.IsType<DateTime>(cell.Value);
                     Assert.Equal(date, readDate);
@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
 
                 using (ExcelDocument loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                     Assert.Equal(ExcelDateSystem.NineteenFour, loaded.DateSystem);
-                    Assert.Equal(ExcelDateSystem.NineteenFour, loaded.CreateInspectionSnapshot().DateSystem);
+                    Assert.Equal(ExcelDateSystem.NineteenFour, loaded.Inspect().DateSystem);
                 }
             } finally {
                 if (File.Exists(filePath)) {
@@ -105,7 +105,10 @@ namespace OfficeIMO.Tests {
             var dataSet = new DataSet();
             dataSet.Tables.Add(table);
 
-            ExcelDocument.WriteDataSet(stream, dataSet, dateSystem: ExcelDateSystem.NineteenFour);
+            using (var writer = ExcelDocument.CreateWriter(stream,
+                new ExcelWriterOptions { DateSystem = ExcelDateSystem.NineteenFour, CreateTable = true, UseSharedStrings = false }, leaveOpen: true)) {
+                foreach (DataTable source in dataSet.Tables) writer.WriteTable(source.TableName, source);
+            }
             stream.Position = 0;
 
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(stream, false);
@@ -123,7 +126,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Data");
+                    ExcelSheet sheet = document.AddSheet("Data");
                     sheet.CellValue(1, 1, date);
                     document.Save();
                 }
@@ -140,7 +143,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(Expected1904Serial(date), double.Parse(serialText, CultureInfo.InvariantCulture), 6);
                 }
 
-                using (var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions { TreatDatesUsingNumberFormat = true })) {
+                using (var reader = ExcelDocumentReader.Open(filePath, new ExcelReaderOptions { TreatDatesUsingNumberFormat = true })) {
                     var cell = reader.GetSheet("Data").EnumerateCells().Single(item => item.Row == 1 && item.Column == 1);
                     Assert.Equal(date, Assert.IsType<DateTime>(cell.Value));
                 }

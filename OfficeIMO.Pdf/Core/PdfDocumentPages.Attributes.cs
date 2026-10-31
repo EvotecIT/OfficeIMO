@@ -7,7 +7,7 @@ public sealed partial class PdfDocumentPages {
 
     /// <summary>Applies an atomic page-attribute batch and reports the route, reasons and blockers.</summary>
     /// <exception cref="OperationCanceledException">The requested cancellation interrupts planning, editing or output adoption.</exception>
-    public PdfOperationResult<PdfDocument> ApplyAttributesResult(IReadOnlyList<PdfPageAttributeEdit> edits,
+    internal PdfOperationResult<PdfDocument> ApplyAttributesResult(IReadOnlyList<PdfPageAttributeEdit> edits,
         PdfLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         Guard.NotNull(edits, nameof(edits));
         PdfLoadOptions effective = options ?? _document.ReadOptions;
@@ -39,12 +39,12 @@ public sealed partial class PdfDocumentPages {
     public PdfDocument RotateBy(int rotationDegrees, string selector) => RotateBy(rotationDegrees, PdfPageSelector.Parse(selector));
 
     /// <summary>Turns selected pages and reports the mutation route and preservation restrictions.</summary>
-    public PdfOperationResult<PdfDocument> RotateByResult(int rotationDegrees, PdfPageSelection selection, PdfLoadOptions? options = null) =>
+    internal PdfOperationResult<PdfDocument> RotateByResult(int rotationDegrees, PdfPageSelection selection, PdfLoadOptions? options = null) =>
         ApplyAttributesResult(new[] { PdfPageAttributeEdit.RotateBy(rotationDegrees,
             selection ?? throw new ArgumentNullException(nameof(selection))) }, options);
 
     /// <summary>Turns pages resolved by a document-relative selector and reports the mutation route.</summary>
-    public PdfOperationResult<PdfDocument> RotateByResult(int rotationDegrees, PdfPageSelector selector, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> RotateByResult(int rotationDegrees, PdfPageSelector selector, PdfLoadOptions? options = null) {
         Guard.NotNull(selector, nameof(selector));
         return _document.TryMutationOperation("Turn pages", PdfPreflightCapability.ManipulatePages,
             PdfMutationOperation.RotatePages, () => _document.ApplyMutation(
@@ -54,7 +54,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Turns pages resolved by a document-relative expression and reports the mutation route.</summary>
-    public PdfOperationResult<PdfDocument> RotateByResult(int rotationDegrees, string selector, PdfLoadOptions? options = null) =>
+    internal PdfOperationResult<PdfDocument> RotateByResult(int rotationDegrees, string selector, PdfLoadOptions? options = null) =>
         _document.TryMutationOperation("Turn pages", PdfPreflightCapability.ManipulatePages,
             PdfMutationOperation.RotatePages, () => _document.ApplyMutation(
                 input => PdfPageEditor.EditPageAttributes(input, new[] { PdfPageAttributeEdit.RotateBy(rotationDegrees,
@@ -65,7 +65,7 @@ public sealed partial class PdfDocumentPages {
     /// Sets a page boundary box and returns the chosen mutation route, its reasons, and any blockers.
     /// This changes page geometry without translating or removing source content.
     /// </summary>
-    public PdfOperationResult<PdfDocument> SetPageBoxResult(
+    internal PdfOperationResult<PdfDocument> SetPageBoxResult(
         PdfPageBoundaryBox box,
         double left,
         double bottom,

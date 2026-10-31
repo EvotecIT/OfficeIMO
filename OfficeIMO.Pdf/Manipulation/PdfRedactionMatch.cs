@@ -13,6 +13,7 @@ public enum PdfRedactionMatchKind {
 }
 
 /// <summary>Content intersecting a requested redaction area.</summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfRedactionMatch {
     internal PdfRedactionMatch(
         PdfRedactionMatchKind kind,
@@ -50,16 +51,16 @@ public sealed class PdfRedactionMatch {
     /// <summary>One-based page number.</summary>
     public int PageNumber { get; }
 
-    /// <summary>Matched content left coordinate in PDF points.</summary>
+    /// <summary>Matched content left coordinate in page user-space units.</summary>
     public double X { get; }
 
-    /// <summary>Matched content bottom coordinate in PDF points.</summary>
+    /// <summary>Matched content bottom coordinate in page user-space units.</summary>
     public double Y { get; }
 
-    /// <summary>Matched content width in PDF points.</summary>
+    /// <summary>Matched content width in page user-space units.</summary>
     public double Width { get; }
 
-    /// <summary>Matched content height in PDF points.</summary>
+    /// <summary>Matched content height in page user-space units.</summary>
     public double Height { get; }
 
     /// <summary>Matched text, when available.</summary>

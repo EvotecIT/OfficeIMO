@@ -101,17 +101,17 @@ public sealed class WordPdfBiDiOnOffTests {
         string? notesBefore = main.FootnotesPart?.Footnotes?.OuterXml;
         string? stylesBefore = main.StyleDefinitionsPart?.Styles?.OuterXml;
         string? settingsBefore = main.DocumentSettingsPart?.Settings?.OuterXml;
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new PageSize(300, 300),
-            Margins = PageMargins.Uniform(30),
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(300)),
+            Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
             FontFamily = "Helvetica"
         };
         if (viewerDirection.HasValue)
-            options.PdfOptions = new PdfOptions {
+            options.PdfOptions = new PdfCreateOptions {
                 ViewerPreferences = new PdfViewerPreferencesOptions { Direction = viewerDirection.Value }
             };
-        byte[] bytes = document.ToPdfDocumentResult(options).ToBytes();
+        byte[] bytes = document.ConvertToPdfWithEvidence(options).ToBytes();
         Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(bytes, 0, 4));
         Assert.Equal(bodyBefore, main.Document.OuterXml);
         Assert.Equal(notesBefore, main.FootnotesPart?.Footnotes?.OuterXml);

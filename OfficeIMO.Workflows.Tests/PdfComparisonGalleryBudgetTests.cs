@@ -31,8 +31,8 @@ namespace OfficeIMO.Workflows.Tests {
                 ComparisonExpectedPages = fixture.ExpectedPages,
                 ComparisonActualPages = fixture.ActualPages,
                 OutputPath = gallery,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
-                Limits = new OfficeWorkflowLimits { MaximumOutputBytes = long.MaxValue }
+                ConflictPolicy = OfficePublicationPolicy.Replace,
+                Limits = new OfficeOperationLimits { MaximumOutputBytes = long.MaxValue }
             };
             OfficeWorkflowResult generous = await new OfficeWorkflowRunner().RunAsync(request);
             Assert.True(generous.Succeeded, generous.Summary);
@@ -79,7 +79,7 @@ namespace OfficeIMO.Workflows.Tests {
                 ComparisonPath = actual,
                 ComparisonExpectedPages = fixture.ExpectedPages,
                 ComparisonActualPages = fixture.ActualPages,
-                Limits = new OfficeWorkflowLimits { MaximumOutputBytes = retainedPngBytes }
+                Limits = new OfficeOperationLimits { MaximumOutputBytes = retainedPngBytes }
             };
 
             OfficeWorkflowResult exact = await new OfficeWorkflowRunner().RunAsync(request);
@@ -120,7 +120,7 @@ namespace OfficeIMO.Workflows.Tests {
         }
 
         private static byte[] CreatePages(int count) => PdfDocument.Create(document => {
-            for (int index = 0; index < count; index++) document.Page(page => page.Size(24, 24).Margin(0, 0, 0, 0));
+            for (int index = 0; index < count; index++) document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24)).Margin(global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0)));
         }).ToBytes();
 
         private static long RetainedPngBytes(PdfVisualPageComparison pair) => checked(

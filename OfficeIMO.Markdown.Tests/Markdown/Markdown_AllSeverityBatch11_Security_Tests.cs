@@ -13,7 +13,7 @@ public sealed class MarkdownAllSeverityBatch11SecurityTests {
         markdown.Append("safe");
         for (int i = 0; i < 512; i++) markdown.Append("](https://example.com/image.png)");
 
-        MarkdownDoc document = MarkdownReader.Parse(markdown.ToString());
+        MarkdownDocument document = MarkdownDocument.Parse(markdown.ToString());
 
         var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
         Assert.Contains("safe", image.PlainAlt, StringComparison.Ordinal);
@@ -38,7 +38,7 @@ public sealed class MarkdownAllSeverityBatch11SecurityTests {
         markdown.Append("safe");
         for (int i = 0; i < 512; i++) markdown.Append("</u>");
 
-        MarkdownDoc document = MarkdownReader.Parse(markdown.ToString());
+        MarkdownDocument document = MarkdownDocument.Parse(markdown.ToString());
 
         Assert.Single(document.Blocks);
         Assert.Contains("safe", document.ToMarkdown(), StringComparison.Ordinal);
@@ -48,7 +48,7 @@ public sealed class MarkdownAllSeverityBatch11SecurityTests {
     public void MarkdownReader_LinkLabelWrapperSkipsLongUnmatchedBacktickRun() {
         string markdown = "[<u>" + new string('`', 12_000) + "</u>](https://example.com)";
 
-        MarkdownDoc document = MarkdownReader.Parse(markdown);
+        MarkdownDocument document = MarkdownReader.Parse(markdown);
 
         Assert.Single(document.Blocks);
     }
@@ -57,7 +57,7 @@ public sealed class MarkdownAllSeverityBatch11SecurityTests {
     [InlineData("<u><sup>x</u></sup>")]
     [InlineData("<q><ins>x</q></ins>")]
     public void MarkdownReader_CrossedInlineHtmlWrappers_StayWithinTheCurrentSlice(string markdown) {
-        MarkdownDoc document = MarkdownReader.Parse(markdown);
+        MarkdownDocument document = MarkdownDocument.Parse(markdown);
 
         Assert.Single(document.Blocks);
         Assert.Contains("x", document.ToMarkdown(), StringComparison.Ordinal);
@@ -67,7 +67,7 @@ public sealed class MarkdownAllSeverityBatch11SecurityTests {
     public void MarkdownReader_ManyUnmatchedInlineHtmlOpeners_AreHandledWithoutRepeatedSuffixScans() {
         string markdown = string.Join(" ", Enumerable.Repeat("<u>", 4_000));
 
-        MarkdownDoc document = MarkdownReader.Parse(markdown);
+        MarkdownDocument document = MarkdownDocument.Parse(markdown);
 
         Assert.Single(document.Blocks);
     }
@@ -77,7 +77,7 @@ public sealed class MarkdownAllSeverityBatch11SecurityTests {
         string alt = string.Join(" ", Enumerable.Repeat("<u>", 4_000));
         string markdown = "![" + alt + "](https://example.com/image.png)";
 
-        MarkdownDoc document = MarkdownReader.Parse(markdown);
+        MarkdownDocument document = MarkdownDocument.Parse(markdown);
 
         Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
     }
@@ -86,7 +86,7 @@ public sealed class MarkdownAllSeverityBatch11SecurityTests {
     public void MarkdownReader_LongSetextHeading_IsParsedFromOneUnderlineScan() {
         string markdown = string.Join("\n", Enumerable.Repeat("heading", 2_000)) + "\n====";
 
-        MarkdownDoc document = MarkdownReader.Parse(markdown);
+        MarkdownDocument document = MarkdownDocument.Parse(markdown);
 
         var heading = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
         Assert.Equal(1, heading.Level);
@@ -97,7 +97,7 @@ public sealed class MarkdownAllSeverityBatch11SecurityTests {
     public void MarkdownReader_OddEmphasisCloserSelection_PreservesFormattingWithManyRuns() {
         string markdown = "***content* " + string.Join(" ", Enumerable.Repeat("***x*", 2_000));
 
-        MarkdownDoc document = MarkdownReader.Parse(markdown);
+        MarkdownDocument document = MarkdownDocument.Parse(markdown);
 
         Assert.Single(document.Blocks);
         Assert.Contains("content", document.ToMarkdown(), StringComparison.Ordinal);
@@ -107,7 +107,7 @@ public sealed class MarkdownAllSeverityBatch11SecurityTests {
     public void MarkdownReader_RepeatedShortEmphasisOpeners_UseIndexedClosingRunLookups() {
         string markdown = string.Join(" ", Enumerable.Repeat("**x ", 4_000));
 
-        MarkdownDoc document = MarkdownReader.Parse(markdown);
+        MarkdownDocument document = MarkdownDocument.Parse(markdown);
 
         Assert.Single(document.Blocks);
     }
@@ -116,9 +116,9 @@ public sealed class MarkdownAllSeverityBatch11SecurityTests {
     public void MarkdownListRendering_LargeTaskAndLooseScopes_PreserveExpectedHtml() {
         string markdown = string.Join("\n", Enumerable.Range(0, 4_000).Select(index =>
             index % 2 == 0 ? $"- [ ] item {index}" : $"- item {index}"));
-        var options = new MarkdownReaderOptions { TaskLists = true };
+        var options = new MarkdownLoadOptions { TaskLists = true };
 
-        string html = MarkdownReader.Parse(markdown, options).ToHtmlFragment();
+        string html = MarkdownDocument.Parse(markdown, options).ToHtml();
 
         Assert.Contains("contains-task-list", html, StringComparison.Ordinal);
         Assert.Contains("item 3999", html, StringComparison.Ordinal);
@@ -132,7 +132,7 @@ public sealed class MarkdownAllSeverityBatch11SecurityTests {
         html.Append("<div>safe</div>");
         for (int i = 0; i < depthWithinUntrustedInputBudget; i++) html.Append("</span>");
 
-        string markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html.ToString()).ToMarkdown();
+        string markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html.ToString()).ToMarkdown().ToMarkdown();
 
         Assert.Contains("safe", markdown, StringComparison.Ordinal);
     }
@@ -140,10 +140,10 @@ public sealed class MarkdownAllSeverityBatch11SecurityTests {
     [Fact]
     public void HtmlToMarkdown_DefinitionListExpansion_EnforcesConfiguredAggregateBudget() {
         const string html = "<dl><dt>a</dt><dt>b</dt><dt>c</dt><dd>one</dd><dd>two</dd></dl>";
-        var options = new HtmlToMarkdownOptions { MaxDefinitionListEntryExpansions = 5 };
+        var options = new MarkdownHtmlImportOptions { MaxDefinitionListEntryExpansions = 5 };
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-            OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(options));
+            OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(options));
 
         Assert.Contains("entry expansion limit", exception.Message, StringComparison.Ordinal);
     }

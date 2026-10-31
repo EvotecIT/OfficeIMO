@@ -4,7 +4,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Helper methods for manipulating Open XML packages.
     /// </summary>
-    public static class WordPackageCompatibility {
+    internal static class WordPackageCompatibility {
         /// <summary>
         /// Adjusts relationship targets so that the document can be opened by OpenOffice.
         /// </summary>

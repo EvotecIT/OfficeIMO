@@ -5,7 +5,8 @@
     <AssemblyName>OfficeIMO.Workflows</AssemblyName>
     <AssemblyTitle>OfficeIMO.Workflows</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
-    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
@@ -33,7 +34,7 @@
     <ProjectReference Include="..\OfficeIMO.Email.Html\OfficeIMO.Email.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Invoicing\OfficeIMO.Invoicing.csproj" />
     <ProjectReference Include="..\OfficeIMO.Invoicing.Pdf\OfficeIMO.Invoicing.Pdf.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Invoicing.Validation\OfficeIMO.Invoicing.Validation.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Invoicing.Validation\OfficeIMO.Invoicing.Validation.csproj" Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'" />
     <ProjectReference Include="..\OfficeIMO.Project\OfficeIMO.Project.csproj" />
     <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
     <ProjectReference Include="..\OfficeIMO.Epub\OfficeIMO.Epub.csproj" />
@@ -66,11 +67,26 @@
     <ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows.IWork" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Project/ProjectReport.css" LogicalName="OfficeIMO.Workflows.Project.ProjectReport.css" />
   </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+  <ItemGroup><ProjectReference Include="..\OfficeIMO\OfficeIMO.csproj" /></ItemGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+  </PropertyGroup>
 </Project>

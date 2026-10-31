@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ColumnCellShiftAndMove_RemapCellWatchesAndSmartTags() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(2, 2, "Move");
             sheet.CellValue(3, 3, "Keep");
 
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
         public void Test_FileBackedEdit_ReportsPackageSecuritySizeRuleForActiveLimit() {
             string path = Path.Combine(_directoryWithFiles, "FileBackedPackageSecurityLimit.xlsx");
             using (var created = ExcelDocument.Create()) {
-                created.AddWorksheet("Data").CellValue(1, 1, "value");
+                created.AddSheet("Data").CellValue(1, 1, "value");
                 created.Save(path);
             }
 
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencies_ResolveDynamicArraySpillAnchor() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Spill");
+            ExcelSheet sheet = document.AddSheet("Spill");
             sheet.CellValue(1, 2, 1);
             sheet.CellFormula(1, 1, "SUM(B1#)");
 

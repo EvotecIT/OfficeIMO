@@ -11,7 +11,7 @@ public class PdfAIdentificationMetadataTests {
     [InlineData(false)]
     [InlineData(true)]
     public void CombinedArchivalAccessibilityMetadataDeclaresOneSchemaBag(bool invoiceMetadata) {
-        var options = new PdfOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)
+        var options = new PdfCreateOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)
             .ConfigurePdfUaGroundwork();
         if (invoiceMetadata) options.SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("BASIC"));
         byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.Text("Metadata contract")).ToBytes();
@@ -31,7 +31,7 @@ public class PdfAIdentificationMetadataTests {
 
     [Fact]
     public void PdfAIdentification_CanBeEmittedInXmpWithoutFormalComplianceProfile() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .SetPdfAIdentification(3, "b");
 
         byte[] bytes = PdfDocument.Create(options)
@@ -56,7 +56,7 @@ public class PdfAIdentificationMetadataTests {
 
     [Fact]
     public void PdfAIdentification_PropertyEmitsXmpEvenWhenGeneralXmpFlagIsFalse() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             PdfAIdentification = new PdfAIdentification(2, "U")
         };
 
@@ -89,7 +89,7 @@ public class PdfAIdentificationMetadataTests {
 
     [Fact]
     public void PdfAGroundworkHelper_EmitsProfileSpecificArchivalPrerequisitesWithoutFormalProfile() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3A, "pl-PL");
 
         byte[] bytes = PdfDocument.Create()
@@ -100,7 +100,7 @@ public class PdfAIdentificationMetadataTests {
 
         string raw = Encoding.UTF8.GetString(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(PdfComplianceProfile.None, options.ComplianceProfile);
         Assert.Equal(PdfFileVersion.Pdf17, clone.FileVersion);
@@ -123,13 +123,13 @@ public class PdfAIdentificationMetadataTests {
         Assert.True(info.HasOutputIntents);
         Assert.True(info.HasTaggedContent);
         Assert.Equal("en-GB", info.CatalogLanguage);
-        Assert.Throws<ArgumentException>(() => new PdfOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfUa1));
+        Assert.Throws<ArgumentException>(() => new PdfCreateOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfUa1));
     }
 
     [Fact]
     public void PdfAFluentHelper_EnablesStrictArchivalDefaults() {
-        var defaultOptions = new PdfOptions().UsePdfA();
-        PdfOptions defaultClone = defaultOptions.Clone();
+        var defaultOptions = new PdfCreateOptions().UsePdfA();
+        PdfCreateOptions defaultClone = defaultOptions.Clone();
 
         Assert.Equal(PdfComplianceProfile.PdfA3B, defaultClone.ComplianceProfile);
         Assert.Equal(PdfFileVersion.Pdf17, defaultClone.FileVersion);
@@ -137,8 +137,8 @@ public class PdfAIdentificationMetadataTests {
         Assert.Equal("B", defaultClone.PdfAIdentification.Conformance);
         Assert.Equal(PdfOutputIntentPolicy.SrgbIec6196621, defaultClone.OutputIntent!.Policy);
 
-        var options = new PdfOptions().UsePdfA(PdfComplianceProfile.PdfA3A, "pl-PL");
-        PdfOptions clone = options.Clone();
+        var options = new PdfCreateOptions().UsePdfA(PdfComplianceProfile.PdfA3A, "pl-PL");
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Same(options, options.UsePdfA(PdfComplianceProfile.PdfA3A, "pl-PL"));
         Assert.True(clone.IncludeXmpMetadata);
@@ -151,7 +151,7 @@ public class PdfAIdentificationMetadataTests {
 
     [Fact]
     public void PdfA4GroundworkHelper_EmitsPdf20ArchivalPrerequisitesWithoutFormalProfile() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4F, "en-US");
 
         byte[] bytes = PdfDocument.Create()
@@ -162,7 +162,7 @@ public class PdfAIdentificationMetadataTests {
 
         string raw = Encoding.UTF8.GetString(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(PdfComplianceProfile.None, options.ComplianceProfile);
         Assert.Equal(PdfFileVersion.Pdf20, clone.FileVersion);
@@ -179,7 +179,7 @@ public class PdfAIdentificationMetadataTests {
 
     [Fact]
     public void ElectronicInvoiceMetadata_CanBeEmittedInXmpWithoutFormalComplianceProfile() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"));
 
         byte[] bytes = PdfDocument.Create(options)
@@ -208,7 +208,7 @@ public class PdfAIdentificationMetadataTests {
     [Fact]
     public void FacturXInvoiceXmlHelper_EmitsCanonicalAttachmentAndMatchingXmp() {
         byte[] invoiceXml = CreateCiiXml();
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .AddFacturXInvoiceXml(invoiceXml, "EN 16931", relationship: PdfAssociatedFileRelationship.Alternative);
 
         byte[] bytes = PdfDocument.Create()
@@ -247,7 +247,7 @@ public class PdfAIdentificationMetadataTests {
         string invoicePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "officeimo-facturx-" + Guid.NewGuid().ToString("N") + ".xml");
         System.IO.File.WriteAllBytes(invoicePath, invoiceXml);
         try {
-            var options = new PdfOptions()
+            var options = new PdfCreateOptions()
                 .AddFacturXInvoiceXmlFile(invoicePath, "EN 16931");
 
             byte[] bytes = PdfDocument.Create()
@@ -274,7 +274,7 @@ public class PdfAIdentificationMetadataTests {
     [Fact]
     public void FacturXInvoiceXmlBytesRejectOversizedPayloadBeforeOptionsMutation() {
         byte[] oversized = new byte[PdfCiiInvoiceDocument.MaximumXmlBytes + 1];
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
 
         Assert.Throws<InvalidDataException>(() => options.AddFacturXInvoiceXml(oversized));
         Assert.Empty(options.EmbeddedFiles);
@@ -288,7 +288,7 @@ public class PdfAIdentificationMetadataTests {
             stream.SetLength(PdfCiiInvoiceDocument.MaximumXmlBytes + 1L);
         }
         try {
-            var options = new PdfOptions();
+            var options = new PdfCreateOptions();
             Assert.Throws<InvalidDataException>(() => options.AddFacturXInvoiceXmlFile(path));
             Assert.Throws<InvalidDataException>(() => options.ConfigureFacturXGroundworkFile(path));
             Assert.Throws<InvalidDataException>(() => options.UseFacturXFile(path));
@@ -303,9 +303,9 @@ public class PdfAIdentificationMetadataTests {
     [Fact]
     public void FacturXGroundworkHelper_EmitsPdfA3EinvoicePrerequisitesWithoutFormalProfile() {
         byte[] invoiceXml = CreateCiiXml();
-        var fallbackProbe = new PdfOptions();
+        var fallbackProbe = new PdfCreateOptions();
         bool fallbackAvailable = fallbackProbe.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true);
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigureFacturXGroundwork(invoiceXml, "EN 16931");
 
         byte[] bytes = PdfDocument.Create()
@@ -316,7 +316,7 @@ public class PdfAIdentificationMetadataTests {
 
         string raw = Encoding.UTF8.GetString(bytes);
         PdfExtractedAttachment attachment = Assert.Single(PdfAttachmentExtractor.ExtractAttachments(bytes));
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(PdfComplianceProfile.None, options.ComplianceProfile);
         Assert.Equal(PdfFileVersion.Pdf17, clone.FileVersion);
@@ -345,9 +345,9 @@ public class PdfAIdentificationMetadataTests {
     [Fact]
     public void ElectronicInvoiceGroundworkHelper_AcceptsFacturXAndZugferdProfiles() {
         byte[] invoiceXml = CreateCiiXml();
-        var facturXOptions = new PdfOptions()
+        var facturXOptions = new PdfCreateOptions()
             .ConfigureElectronicInvoiceGroundwork(PdfComplianceProfile.FacturX, invoiceXml, "EN 16931");
-        var zugferdOptions = new PdfOptions()
+        var zugferdOptions = new PdfCreateOptions()
             .ConfigureElectronicInvoiceGroundwork(PdfComplianceProfile.Zugferd, invoiceXml, "EN 16931");
 
         Assert.Equal(PdfComplianceProfile.None, facturXOptions.ComplianceProfile);
@@ -355,15 +355,15 @@ public class PdfAIdentificationMetadataTests {
         Assert.Equal(3, facturXOptions.PdfAIdentification!.Part);
         Assert.Equal("EN 16931", zugferdOptions.ElectronicInvoiceMetadata!.ConformanceLevel);
         Assert.Equal("factur-x.xml", Assert.Single(zugferdOptions.EmbeddedFiles).FileName);
-        Assert.Throws<ArgumentException>(() => new PdfOptions().ConfigureElectronicInvoiceGroundwork(PdfComplianceProfile.PdfA3B, invoiceXml));
+        Assert.Throws<ArgumentException>(() => new PdfCreateOptions().ConfigureElectronicInvoiceGroundwork(PdfComplianceProfile.PdfA3B, invoiceXml));
     }
 
     [Fact]
     public void FacturXGroundworkHelper_CanPreserveCallerFontState() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigureFacturXGroundwork(CreateCiiXml(), useDocumentFontFallback: false);
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.True(clone.IncludeStandardFontToUnicodeMaps);
         Assert.False(clone.HasEmbeddedStandardFontFamily(PdfStandardFont.Helvetica));
@@ -376,10 +376,10 @@ public class PdfAIdentificationMetadataTests {
     [Fact]
     public void FacturXFluentHelper_AcceptsTextFallbackEnum() {
         byte[] invoiceXml = CreateCiiXml();
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .UseFacturX(invoiceXml, textFallbacks: PdfTextFallbackFeatures.None);
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(PdfComplianceProfile.None, clone.ComplianceProfile);
         Assert.Equal(PdfFileVersion.Pdf17, clone.FileVersion);
@@ -393,7 +393,7 @@ public class PdfAIdentificationMetadataTests {
 
     [Fact]
     public void PdfUaIdentification_CanBeEmittedInXmpWithoutFormalComplianceProfile() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .SetPdfUaIdentification(PdfUaIdentification.PdfUa1());
 
         byte[] bytes = PdfDocument.Create(options)
@@ -416,7 +416,7 @@ public class PdfAIdentificationMetadataTests {
 
     [Fact]
     public void PdfUa2Identification_CanBeEmittedInXmpWithoutFormalComplianceProfile() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .SetPdfUaIdentification(PdfUaIdentification.PdfUa2());
 
         byte[] bytes = PdfDocument.Create(options)
@@ -436,7 +436,7 @@ public class PdfAIdentificationMetadataTests {
 
     [Fact]
     public void PdfUaGroundworkHelper_EmitsConfigurableAccessibilityPrerequisitesWithoutFormalProfile() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             ViewerPreferences = new PdfViewerPreferencesOptions {
                 HideToolbar = true
             }
@@ -450,7 +450,7 @@ public class PdfAIdentificationMetadataTests {
 
         string raw = Encoding.UTF8.GetString(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(PdfComplianceProfile.None, options.ComplianceProfile);
         Assert.Equal(PdfFileVersion.Pdf17, clone.FileVersion);
@@ -476,8 +476,8 @@ public class PdfAIdentificationMetadataTests {
 
     [Fact]
     public void PdfUaFluentHelper_EnablesStrictAccessibilityDefaults() {
-        var options = new PdfOptions().UsePdfUa(language: "pl-PL");
-        PdfOptions clone = options.Clone();
+        var options = new PdfCreateOptions().UsePdfUa(language: "pl-PL");
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(PdfComplianceProfile.PdfUa1, clone.ComplianceProfile);
         Assert.Equal(PdfFileVersion.Pdf17, clone.FileVersion);
@@ -491,7 +491,7 @@ public class PdfAIdentificationMetadataTests {
 
     [Fact]
     public void PdfUa2GroundworkHelper_EmitsPdf20AccessibilityPrerequisitesWithoutFormalProfile() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfUaGroundwork(PdfComplianceProfile.PdfUa2, "pl-PL");
 
         byte[] bytes = PdfDocument.Create()
@@ -503,7 +503,7 @@ public class PdfAIdentificationMetadataTests {
 
         string raw = Encoding.UTF8.GetString(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(PdfFileVersion.Pdf20, clone.FileVersion);
         Assert.Equal(2, clone.PdfUaIdentification!.Part);
@@ -518,7 +518,7 @@ public class PdfAIdentificationMetadataTests {
     [Fact]
     public void PdfUaIdentification_ValidatesSupportedPartsAndSnapshotsState() {
         var identification = PdfUaIdentification.PdfUa1();
-        var options = new PdfOptions { PdfUaIdentification = identification };
+        var options = new PdfCreateOptions { PdfUaIdentification = identification };
 
         Assert.Equal(1, options.PdfUaIdentification!.Part);
         Assert.Equal(1, options.Clone().PdfUaIdentification!.Part);
@@ -529,7 +529,7 @@ public class PdfAIdentificationMetadataTests {
 
     [Fact]
     public void TaggedPdfCatalogMarkers_CanBeEmittedWithoutFormalComplianceProfile() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .EnableTaggedPdfCatalogMarkers();
 
         byte[] bytes = PdfDocument.Create(options)
@@ -541,7 +541,7 @@ public class PdfAIdentificationMetadataTests {
         string raw = PdfTestContentText.ReadDecoded(bytes);
         PdfDocumentProbe probe = PdfInspector.Probe(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(PdfComplianceProfile.None, options.ComplianceProfile);
         Assert.Equal(PdfTaggedStructureMode.CatalogMarkers, clone.TaggedStructureMode);
@@ -558,7 +558,7 @@ public class PdfAIdentificationMetadataTests {
 
     [Fact]
     public void TaggedStructureMode_ValidatesSupportedValues() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
         };
 
@@ -569,7 +569,7 @@ public class PdfAIdentificationMetadataTests {
     [Fact]
     public void ElectronicInvoiceMetadata_ValidatesAndSnapshotsState() {
         var metadata = PdfElectronicInvoiceMetadata.FacturX("EN 16931");
-        var options = new PdfOptions().SetElectronicInvoiceMetadata(metadata);
+        var options = new PdfCreateOptions().SetElectronicInvoiceMetadata(metadata);
 
         metadata.ConformanceLevel = "BASIC";
         PdfElectronicInvoiceMetadata stored = options.ElectronicInvoiceMetadata!;
@@ -586,7 +586,7 @@ public class PdfAIdentificationMetadataTests {
     [Fact]
     public void FormalPdfA3BRequiresMoreThanIdentificationMetadata() {
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            PdfDocument.Create(new PdfOptions()
+            PdfDocument.Create(new PdfCreateOptions()
                     .SetPdfAIdentification(3, "B")
                     .RequireCompliance(PdfComplianceProfile.PdfA3B))
                 .Paragraph(p => p.Text("Identification alone is not PDF/A-3b support."))

@@ -30,16 +30,16 @@ public sealed class PdfPageLayoutInfo {
     /// <summary>Effective CropBox or MediaBox height in default user-space units.</summary>
     public double Height { get; }
 
-    /// <summary>Displayed page width after rotation and UserUnit are applied.</summary>
+    /// <summary>Displayed page width in physical points (1/72 inch), after rotation and UserUnit are applied.</summary>
     public double VisualWidth { get; }
 
-    /// <summary>Displayed page height after rotation and UserUnit are applied.</summary>
+    /// <summary>Displayed page height in physical points (1/72 inch), after rotation and UserUnit are applied.</summary>
     public double VisualHeight { get; }
 
     /// <summary>Inherited page rotation normalized to 0, 90, 180, or 270 degrees.</summary>
     public int RotationDegrees { get; }
 
-    /// <summary>Effective positive UserUnit value, defaulting to 1.</summary>
+    /// <summary>Physical points (1/72 inch) per default user-space unit; the effective positive /UserUnit value defaults to 1.</summary>
     public double UserUnit { get; }
 
     /// <summary>Typed page boundary and presentation metadata.</summary>

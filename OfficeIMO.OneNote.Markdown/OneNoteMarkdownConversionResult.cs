@@ -30,8 +30,8 @@ public sealed class OneNoteMarkdownDiagnostic {
 }
 
 /// <summary>A Markdown document paired with explicit semantic-projection diagnostics.</summary>
-public sealed class OneNoteMarkdownConversionResult : OfficeConversionResult<MarkdownDoc, OneNoteMarkdownConversionReport> {
-    internal OneNoteMarkdownConversionResult(MarkdownDoc value, IReadOnlyList<OneNoteMarkdownDiagnostic> diagnostics)
+public sealed class OneNoteMarkdownConversionResult : OfficeConversionResult<MarkdownDocument, OneNoteMarkdownConversionReport> {
+    internal OneNoteMarkdownConversionResult(MarkdownDocument value, IReadOnlyList<OneNoteMarkdownDiagnostic> diagnostics)
         : base(value, new OneNoteMarkdownConversionReport(diagnostics)) { }
 
     /// <summary>Source and projection diagnostics captured for this operation.</summary>

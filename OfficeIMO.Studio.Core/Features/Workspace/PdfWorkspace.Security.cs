@@ -20,7 +20,7 @@ internal sealed partial class PdfWorkspace {
         ThrowIfDisposed();
         return new() {
             Password = _readOptions.Password,
-            ReadOptions = page.HasValue ? new PdfReadOptions { PageSelection = PdfPageSelection.From(page.Value) } : null
+            ReadOptions = page.HasValue ? new PdfLoadOptions { PageSelection = PdfPageSelection.From(page.Value) } : null
         };
     }
 

@@ -61,7 +61,7 @@ internal static class WordImagesCommand {
             InputPath = input, WordImageOptimization = options,
             OutputPath = analyze ? null : destination != null ? Path.GetFullPath(destination)
                 : Path.Combine(Path.GetFullPath(directory!), Path.GetFileNameWithoutExtension(input) + ".optimized." + (format ?? Path.GetExtension(input).TrimStart('.'))),
-            ConflictPolicy = force ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = force ? OfficePublicationPolicy.Replace : OfficePublicationPolicy.Fail
         }).ToArray();
         if (!analyze && requests.Select(request => request.OutputPath!).Distinct(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal).Count() != requests.Length)
             throw new WorkflowUsageException("The batch inputs produce duplicate output filenames. Choose separate destinations or run them individually.");

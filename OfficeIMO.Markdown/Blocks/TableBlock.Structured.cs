@@ -16,7 +16,7 @@ public sealed partial class TableBlock {
         }
 
         var options = InlineRenderOptions == null
-            ? new MarkdownReaderOptions()
+            ? new MarkdownLoadOptions()
             : CloneOptionsWithoutTables(InlineRenderOptions);
         var state = InlineRenderState == null
             ? new MarkdownReaderState()
@@ -217,8 +217,8 @@ public sealed partial class TableBlock {
         };
     }
 
-    private static MarkdownReaderOptions CloneOptionsWithoutTables(MarkdownReaderOptions source) {
-        var clone = MarkdownReaderOptions.CreateProfile(MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO);
+    private static MarkdownLoadOptions CloneOptionsWithoutTables(MarkdownLoadOptions source) {
+        var clone = MarkdownLoadOptions.CreateProfile(MarkdownLoadOptions.MarkdownDialectProfile.OfficeIMO);
         clone.FrontMatter = false;
         clone.Callouts = source.Callouts;
         clone.CalloutTitleMode = source.CalloutTitleMode;

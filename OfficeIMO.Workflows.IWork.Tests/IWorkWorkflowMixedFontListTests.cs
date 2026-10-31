@@ -5,7 +5,7 @@ using Xunit;
 namespace OfficeIMO.Workflows.IWork.Tests;
 
 public sealed partial class IWorkWorkflowTests {
-    private static void AssertMixedFontList(PdfReadDocument pdf, bool edited, string title = "Mixed family decimal items") {
+    private static void AssertMixedFontList(PdfDocument pdf, bool edited, string title = "Mixed family decimal items") {
         var page = Assert.Single(pdf.Pages); string text = Compact(page.ExtractText());
         var expected = new List<string> { "7." + (edited ? "Root native" : "Root seven") };
         for (int level = 1; level <= 8; level++)

@@ -428,7 +428,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
         pdfOptions = new HtmlToPdfOptions(options);
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(scenario.Html).ToPdfBytes(pdfOptions);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(scenario.Html).ToPdf(pdfOptions)).ToBytes();
         PdfCore.PdfDocumentInfo pdfInfo = PdfCore.PdfInspector.Inspect(pdf);
         string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 

@@ -6,11 +6,13 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     internal static class AssetDepreciation {
         internal static void Create(string folder) {
             using var document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
-            var sheet = document.AddWorksheet("Assets");
-            sheet.SetColumnWidth(1, 29);
-            for (int column = 2; column <= 6; column++) sheet.SetColumnWidth(column, 22);
+            var sheet = document.AddSheet("Assets");
+            // Widths sized to the content so the register prints on one page at full size.
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(24));
+            for (int column = 2; column <= 5; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(6, ExcelColumnWidth.Characters(18));
             sheet.MergeRange("A1:F1"); sheet.Cell(1, 1, "Asset depreciation register");
-            sheet.CellFontSize(1, 1, 22); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
+            sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(22)); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
             sheet.MergeRange("A2:F2"); sheet.Cell(2, 1, "Straight-line planning schedule / illustrative EUR values");
             string[] headers = { "Asset", "Cost", "Residual", "Life (years)", "Annual charge", "Book after year 1" };
             for (int column = 1; column <= 6; column++) sheet.Cell(4, column, headers[column - 1]);
@@ -31,13 +33,12 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             sheet.MergeRange("A13:F13"); sheet.Cell(13, 1, "Illustrative planning only; confirm accounting policy and tax treatment.");
             sheet.SetGridlinesVisible(false);
             for (int row = 1; row <= 16; row++) {
-                sheet.SetRowHeight(row, row == 1 ? 34 : row == 3 ? 12 : 25);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(row == 1 ? 34 : row == 3 ? 12 : 25)));
                 for (int column = 1; column <= 6; column++) {
-                    sheet.CellFontName(row, column, "Carlito");
-                    if (row > 1) sheet.CellFontSize(row, column, 11);
+                    if (row > 1) sheet.CellFontSize(row, column, OfficeLength.Points(11));
                 }
             }
-            sheet.SetRowHeight(4, 30);
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             for (int column = 1; column <= 6; column++) {
                 sheet.CellFontColor(4, column, "FFFFFF");
                 sheet.CellBold(4, column, true);

@@ -7,19 +7,19 @@ internal static partial class PdfWriter {
         FreeTextAnnotation annotation,
         double width,
         double height,
-        PdfOptions pageOptions,
-        Func<PdfStandardFont, PdfOptions, int> ensureFont,
+        PdfCreateOptions pageOptions,
+        Func<PdfStandardFont, PdfCreateOptions, int> ensureFont,
         out IReadOnlyList<(string Name, int Id)> fontResources) {
         Guard.NotNull(annotation, nameof(annotation));
         Guard.NotNull(pageOptions, nameof(pageOptions));
         Guard.NotNull(ensureFont, nameof(ensureFont));
 
-        PdfColor resolvedTextColor = annotation.TextColor;
+        global::OfficeIMO.OfficeColor resolvedTextColor = annotation.TextColor;
         double effectiveLineHeight = annotation.LineHeight ?? annotation.FontSize * 1.2D;
         double availableWidth = Math.Max(0D, width - annotation.Padding * 2D);
         double availableHeight = Math.Max(0D, height - annotation.Padding * 2D);
         var runs = new[] {
-            PdfTextRun.Normal(annotation.Contents, resolvedTextColor, annotation.FontSize, font: PdfStandardFont.Helvetica)
+            PdfTextRun.Normal(annotation.Contents, resolvedTextColor, global::OfficeIMO.OfficeLength.Points(annotation.FontSize), font: PdfStandardFont.Helvetica)
         };
         var wrapped = WrapRichRunsCore(
             runs,
@@ -93,7 +93,7 @@ internal static partial class PdfWriter {
         return sb.ToString();
     }
 
-    private static bool CanEncodeFreeTextAppearanceLine(IReadOnlyList<RichSeg> line, PdfOptions pageOptions) {
+    private static bool CanEncodeFreeTextAppearanceLine(IReadOnlyList<RichSeg> line, PdfCreateOptions pageOptions) {
         for (int index = 0; index < line.Count; index++) {
             RichSeg segment = line[index];
             if (segment.LeadingSpace && !CanEncodeAppearanceText(" ", segment.Font, pageOptions)) {
@@ -108,7 +108,7 @@ internal static partial class PdfWriter {
         return true;
     }
 
-    private static bool CanEncodeAppearanceText(string text, PdfStandardFont font, PdfOptions pageOptions) {
+    private static bool CanEncodeAppearanceText(string text, PdfStandardFont font, PdfCreateOptions pageOptions) {
         if (text.Length == 0) {
             return true;
         }
@@ -131,9 +131,9 @@ internal static partial class PdfWriter {
         IReadOnlyList<RichSeg> line,
         double x,
         double y,
-        PdfColor defaultTextColor,
-        PdfOptions pageOptions,
-        Func<PdfStandardFont, PdfOptions, int> ensureFont,
+        global::OfficeIMO.OfficeColor defaultTextColor,
+        PdfCreateOptions pageOptions,
+        Func<PdfStandardFont, PdfCreateOptions, int> ensureFont,
         List<(string Name, int Id)> fontResources) {
         double xCursor = 0D;
         for (int index = 0; index < line.Count; index++) {
@@ -184,11 +184,11 @@ internal static partial class PdfWriter {
         double y,
         string text,
         PdfStandardFont font,
-        PdfColor color,
-        PdfOptions pageOptions) {
+        global::OfficeIMO.OfficeColor color,
+        PdfCreateOptions pageOptions) {
         var content = new ContentStreamBuilder(sb)
             .BeginText()
-            .Font(PdfSyntaxEscaper.Name(fontResource), fontSize, pageOptions.NeedsSyntheticOblique(font));
+            .Font(PdfSyntaxEscaper.Name(fontResource), fontSize, pageOptions.NeedsSyntheticOblique(font), syntheticBold: pageOptions.NeedsSyntheticBold(font));
         if (Math.Abs(textRise) > 0.0001D) {
             content.TextRise(textRise);
         }
@@ -200,7 +200,7 @@ internal static partial class PdfWriter {
             .EndText();
     }
 
-    private static string GetFreeTextAppearanceFontResourceName(PdfStandardFont font, PdfOptions pageOptions) =>
+    private static string GetFreeTextAppearanceFontResourceName(PdfStandardFont font, PdfCreateOptions pageOptions) =>
         font == PdfStandardFont.Helvetica
             ? "Helv"
             : GetStandardFontResourceName(font, ChooseNormal(pageOptions.DefaultFont));
@@ -223,8 +223,8 @@ internal static partial class PdfWriter {
         };
     }
 
-    private static string FormatAppearanceColor(PdfColor color) =>
-        FormatAppearanceNumber(color.R) + " " + FormatAppearanceNumber(color.G) + " " + FormatAppearanceNumber(color.B);
+    private static string FormatAppearanceColor(global::OfficeIMO.OfficeColor color) =>
+        FormatAppearanceNumber(color.ToNormalizedRgb().R) + " " + FormatAppearanceNumber(color.ToNormalizedRgb().G) + " " + FormatAppearanceNumber(color.ToNormalizedRgb().B);
 
     private static string FormatAppearanceNumber(double value) =>
         value.ToString("0.###", CultureInfo.InvariantCulture);

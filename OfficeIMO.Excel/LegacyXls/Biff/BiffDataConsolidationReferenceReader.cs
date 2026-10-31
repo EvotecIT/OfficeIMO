@@ -53,8 +53,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 int lastRowOneBased = checked(lastRow + 1);
                 int firstColumnOneBased = checked(firstColumn + 1);
                 int lastColumnOneBased = checked(lastColumn + 1);
-                string start = A1.CellReference(firstRowOneBased, firstColumnOneBased);
-                string end = A1.CellReference(lastRowOneBased, lastColumnOneBased);
+                string start = ExcelA1.CellReference(firstRowOneBased, firstColumnOneBased);
+                string end = ExcelA1.CellReference(lastRowOneBased, lastColumnOneBased);
                 string cellRange = string.Equals(start, end, StringComparison.Ordinal)
                     ? start
                     : start + ":" + end;
@@ -90,7 +90,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             string message) {
             diagnostics.Add(new LegacyXlsImportDiagnostic(
                 LegacyXlsDiagnosticSeverity.Warning,
-                "XLS-BIFF-DCONREF-INVALID",
+                "xls-biff-dconref-invalid",
                 "The DConRef external data source record could not be decoded. " + message,
                 recordOffset: record.Offset,
                 recordType: record.Type,

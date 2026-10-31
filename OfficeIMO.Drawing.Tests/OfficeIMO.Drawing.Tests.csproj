@@ -37,6 +37,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\OfficeIMO.Core\Diagnostics\diagnostic-code-map.json" Link="TestAssets\diagnostic-code-map.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Build\Visual\themes.json" Link="TestAssets\themes.json" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="TestAssets\FontParserLimits\*.gz" />
     <None Update="TestAssets\JpegXr\*.jxr;TestAssets\JpegXr\*.rgba;TestAssets\JpegXr\manifest.csv;TestAssets\JpegXr\*.cmyk;TestAssets\JpegXr\cmyk-manifest.csv;TestAssets\JpegXr\*.nchannel;TestAssets\JpegXr\nchannel-manifest.csv" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\TiffUnsigned16\*.tif;TestAssets\TiffUnsigned16\*.rgba;TestAssets\TiffUnsigned16\manifest.csv" CopyToOutputDirectory="PreserveNewest" />
@@ -170,4 +172,5 @@
   <ItemGroup><None Update="TestAssets/TiffJpegArithmeticAlphaPrecision/*.tif;TestAssets/TiffJpegArithmeticAlphaPrecision/*.rgba;TestAssets/TiffJpegArithmeticAlphaPrecision/*.icc-rgba;TestAssets/TiffJpegArithmeticAlphaPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/TiffJpegArithmetic4x4/*.tif;TestAssets/TiffJpegArithmetic4x4/*.rgba;TestAssets/TiffJpegArithmetic4x4/*.icc-rgba;TestAssets/TiffJpegArithmetic4x4/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/TiffJpegChromaPrecision/*.tif;TestAssets/TiffJpegChromaPrecision/*.rgba;TestAssets/TiffJpegChromaPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" /></ItemGroup>
 </Project>

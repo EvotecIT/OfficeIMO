@@ -73,7 +73,7 @@ public partial class Word {
         source.Paragraphs.First(paragraph => paragraph.Text == "Third")._paragraph.ParagraphProperties!
             .NumberingProperties!.NumberingId!.Val = 2;
         string before = numbering.OuterXml;
-        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         var markers = WordDocumentTraversal.BuildListMarkers(reopened);
         string[] names = { "First", "Second", "Third", "Fourth" };
         Assert.Equal(new[] { "12.", "13.", "14.", "15." }, names.Select(name => markers[reopened.Paragraphs.First(paragraph => paragraph.Text == name)].Marker));
@@ -86,8 +86,8 @@ public partial class Word {
         using WordDocument source = CreateNativeListDefinitionControl();
         source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
             .Elements<AbstractNum>().Single().RemoveAttribute("restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml");
-        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
-        using WordDocument rewritten = WordDocument.Load(new MemoryStream(reopened.ToBytes(WordFileFormat.Doc)));
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
+        using WordDocument rewritten = WordDocument.Load(new MemoryStream(reopened.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal("12.", WordDocumentTraversal.BuildListMarkers(rewritten)[rewritten.Paragraphs.First(paragraph => paragraph.Text == "First")].Marker);
         Assert.Empty(rewritten.ValidateDocument());
     }
@@ -102,7 +102,7 @@ public partial class Word {
         level.LevelText!.Val = "%1)";
         instance.Append(new LevelOverride(level) { LevelIndex = 0 });
         string before = numbering.OuterXml;
-        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         NumberingInstance actual = reopened._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
             .Elements<NumberingInstance>().Single();
         LevelOverride actualOverride = Assert.Single(actual.Elements<LevelOverride>());
@@ -121,7 +121,7 @@ public partial class Word {
         source.Lists.Single().RestartNumberingAfterBreak = true;
         source.AddSection();
         string before = source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!.OuterXml;
-        Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
+        Assert.Throws<NotSupportedException>(() => source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
         Assert.Equal(before, source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!.OuterXml);
     }
 
@@ -129,13 +129,13 @@ public partial class Word {
     public void NativeListDefinitions_ExcessivePlaceholderCountFailsBeforeWriting() {
         using WordDocument source = CreateNativeListDefinitionControl();
         source.Lists.Single().Numbering.Levels[0].LevelText = "%1/%1";
-        Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
+        Assert.Throws<NotSupportedException>(() => source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
     }
 
     [Fact]
     public void NativeListDefinitions_ExcessiveNativePlaceholderCountReportsLoss() {
         using WordDocument source = CreateNativeListDefinitionControl();
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
         byte[] word = compound!.Streams["WordDocument"], table = (byte[])compound.Streams["1Table"].Clone();
         int level = BitConverter.ToInt32(word, 0x2E2) + BitConverter.ToInt32(word, 0x2E6);
@@ -164,7 +164,7 @@ public partial class Word {
                 ._paragraph.ParagraphProperties!.NumberingProperties!.NumberingLevelReference!.Val = 1;
         }
         string before = numbering.OuterXml;
-        Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
+        Assert.Throws<NotSupportedException>(() => source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
         Assert.Equal(before, numbering.OuterXml);
     }
 
@@ -173,7 +173,7 @@ public partial class Word {
     [InlineData(true)]
     public void NativeListDefinitions_MissingOrMalformedTablesReportNumberingLoss(bool malformed) {
         using WordDocument source = CreateNativeListDefinitionControl();
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
         byte[] word = (byte[])compound!.Streams["WordDocument"].Clone();
         BitConverter.GetBytes(malformed ? 29 : 0).CopyTo(word, 0x2E6);
@@ -181,7 +181,7 @@ public partial class Word {
         byte[] altered = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> { ["WordDocument"] = word });
         using WordDocument reopened = WordDocument.Load(new MemoryStream(altered));
         Assert.Contains(reopened.LegacyDocUnsupportedFeatures, item => item.Kind == OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeatureKind.Numbering);
-        Assert.Throws<NotSupportedException>(() => reopened.ToBytes(WordFileFormat.Doc));
+        Assert.Throws<NotSupportedException>(() => reopened.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
     }
 
     [Theory]
@@ -197,7 +197,7 @@ public partial class Word {
         level.NumberingFormat = new NumberingFormat { Val = format };
         if (format == NumberFormatValues.Bullet || format == NumberFormatValues.None)
             level.LevelText = new LevelText { Val = first };
-        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Level actual = reopened._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
             .Elements<AbstractNum>().First().Elements<Level>().First();
         Assert.Equal(format, actual.NumberingFormat!.Val!.Value);
@@ -216,7 +216,7 @@ public partial class Word {
             .Elements<AbstractNum>().Single();
         definition.Elements<Level>().First().PreviousParagraphProperties = new PreviousParagraphProperties(
             new ContextualSpacing { Val = enabled });
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
         byte[] word = compound!.Streams["WordDocument"], table = compound.Streams["1Table"];
         int firstLevel = BitConverter.ToInt32(word, 0x2E2) + BitConverter.ToInt32(word, 0x2E6);
@@ -239,7 +239,7 @@ public partial class Word {
         for (int level = 0; level < levelCount; level++)
             instance.Append(new LevelOverride(new StartOverrideNumberingValue { Val = 1 }) { LevelIndex = level });
         string before = instance.OuterXml;
-        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         var markers = WordDocumentTraversal.BuildListMarkers(reopened);
         Assert.Equal("1.", markers[reopened.Paragraphs.First(paragraph => paragraph.Text == "First")].Marker);
         Assert.Equal("2.", markers[reopened.Paragraphs.First(paragraph => paragraph.Text == "Second")].Marker);
@@ -255,7 +255,7 @@ public partial class Word {
         instance.NumberID = 7;
         foreach (WordParagraph paragraph in source.Paragraphs.Where(paragraph => paragraph.Text == "First" || paragraph.Text == "Second"))
             paragraph._paragraph.ParagraphProperties!.NumberingProperties!.NumberingId!.Val = 7;
-        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         var markers = WordDocumentTraversal.BuildListMarkers(reopened);
         Assert.Equal("12.", markers[reopened.Paragraphs.First(paragraph => paragraph.Text == "First")].Marker);
         Assert.Equal("13.", markers[reopened.Paragraphs.First(paragraph => paragraph.Text == "Second")].Marker);
@@ -266,7 +266,7 @@ public partial class Word {
     public void NativeListDefinitions_SaveAndImportPreserveAbstractStart() {
         using WordDocument source = CreateNativeListDefinitionControl();
         string numberingBefore = source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!.OuterXml;
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         using WordDocument reopened = WordDocument.Load(new MemoryStream(bytes));
         var markers = WordDocumentTraversal.BuildListMarkers(reopened);
         Assert.Equal("12.", markers[reopened.Paragraphs.First(paragraph => paragraph.Text == "First")].Marker);
@@ -278,7 +278,7 @@ public partial class Word {
     [Fact]
     public void NativeListDefinitions_SaveWritesDefinitionAndInstanceTables() {
         using WordDocument source = CreateNativeListDefinitionControl();
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
         byte[] word = compound!.Streams["WordDocument"], table = compound.Streams["1Table"];
         int listsOffset = BitConverter.ToInt32(word, 0x2E2), listsLength = BitConverter.ToInt32(word, 0x2E6);

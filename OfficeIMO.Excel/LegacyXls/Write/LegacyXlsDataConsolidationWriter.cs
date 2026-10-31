@@ -286,11 +286,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             int column1;
             int row2;
             int column2;
-            if (A1.TryParseRange(normalizedReference, out row1, out column1, out row2, out column2)) {
+            if (ExcelA1.TryParseRange(normalizedReference, out row1, out column1, out row2, out column2)) {
                 return TryConvertRange(row1, column1, row2, column2, out firstRow, out firstColumn, out lastRow, out lastColumn);
             }
 
-            if (A1.TryParseCellReferenceFast(normalizedReference, out row1, out column1)) {
+            if (ExcelA1.TryParseCellReferenceFast(normalizedReference, out row1, out column1)) {
                 return TryConvertRange(row1, column1, row1, column1, out firstRow, out firstColumn, out lastRow, out lastColumn);
             }
 

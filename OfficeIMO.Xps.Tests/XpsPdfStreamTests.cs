@@ -36,19 +36,19 @@ public sealed class XpsPdfStreamTests {
         var saved = document.SavePdf(output, new XpsToPdfOptions { PreserveLogicalStructure = semantics });
         Assert.True(saved.Succeeded); Assert.Equal(output.Length, saved.BytesWritten);
         Assert.Equal(0, output.Position); Assert.True(output.CanWrite); Assert.InRange(output.Length, 1, 1024 * 1024 - 1);
-        var read = PdfReadDocument.Open(output.ToArray());
+        var read = PdfDocument.Load(new System.IO.MemoryStream(output.ToArray()));
         Assert.Equal(semantics, read.TaggedContent != null);
-        Assert.Contains("Alpha", PdfDocument.Load(output.ToArray()).Read().Text);
-        Assert.Contains("Beta", PdfDocument.Load(output.ToArray()).Read().Text);
+        Assert.Contains("Alpha", PdfDocument.Load(new System.IO.MemoryStream(output.ToArray())).Read().Text);
+        Assert.Contains("Beta", PdfDocument.Load(new System.IO.MemoryStream(output.ToArray())).Read().Text);
     }
 
     [Fact]
     public void StreamExportAppliesTheClonedNativePdfSecuritySettings() {
-        var options = new XpsToPdfOptions { PdfOptions = new PdfOptions().SetEncryption("original") };
+        var options = new XpsToPdfOptions { PdfOptions = new PdfCreateOptions().SetEncryption("original") };
         var snapshot = options.Clone(); options.PdfOptions.SetEncryption("changed");
         using var output = new MemoryStream();
         Create(XpsFormat.Xps, new[] { "Protected" }).SavePdf(output, snapshot);
-        var loaded = PdfDocument.Load(output.ToArray(), new PdfLoadOptions { Password = "original" });
+        var loaded = PdfDocument.Load(new System.IO.MemoryStream(output.ToArray()), new PdfLoadOptions { Password = "original" });
         Assert.Contains("Protected", loaded.Read().Text);
     }
 

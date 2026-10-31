@@ -16,9 +16,9 @@ namespace OfficeIMO.Tests {
         public void CanSetLineDashAndArrowheads() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointAutoShape line = slide.AddLine(0, 0, 4000, 0, "ArrowLine");
+                    PowerPointAutoShape line = slide.AddLine(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(0), "ArrowLine");
                     line.OutlineColor = "FF0000";
                     line.OutlineDash = PowerPointLineDashStyle.Dash;
                     line.SetLineEnds(OfficeLineMarkerKind.Triangle, OfficeLineMarkerKind.Stealth, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
@@ -52,9 +52,9 @@ namespace OfficeIMO.Tests {
         public void LineEndsStayAfterExistingLineJoinNodes() {
             string filePath = CreateTempFilePath(".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointAutoShape line = slide.AddLine(0, 0, 4000, 0, "JoinedArrowLine");
+                    PowerPointAutoShape line = slide.AddLine(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(0), "JoinedArrowLine");
                     line.OutlineColor = "156082";
                     presentation.Save();
                 }
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
                     slidePart.Slide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointShape line = presentation.Slides[0].GetShape("JoinedArrowLine")!;
                     line.SetLineEnds(null, OfficeLineMarkerKind.Triangle, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
                     presentation.Save();
@@ -104,9 +104,9 @@ namespace OfficeIMO.Tests {
         public void OutlineChildrenStayInSchemaOrderWhenStylingAfterArrowheads() {
             string filePath = CreateTempFilePath(".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointAutoShape line = slide.AddLine(0, 0, 4000, 0, "ReverseStyledArrowLine");
+                    PowerPointAutoShape line = slide.AddLine(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(0), "ReverseStyledArrowLine");
 
                     line.SetLineEnds(OfficeLineMarkerKind.Triangle, OfficeLineMarkerKind.Stealth, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
                     line.OutlineColor = "156082";
@@ -149,11 +149,11 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void OutlineTransparencyPreservesActiveNonSolidFillChoice() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape noFillShape = slide.AddRectanglePoints(
-                10, 10, 100, 60);
+            PowerPointAutoShape noFillShape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(60));
             noFillShape.OutlineColor = "112233";
             A.Outline noFillOutline = ((Shape)noFillShape.Element)
                 .ShapeProperties!.GetFirstChild<A.Outline>()!;
@@ -166,8 +166,8 @@ namespace OfficeIMO.Tests {
             Assert.Null(noFillOutline.GetFirstChild<A.SolidFill>());
             Assert.Null(noFillShape.OutlineTransparency);
 
-            PowerPointAutoShape gradientShape = slide.AddRectanglePoints(
-                130, 10, 100, 60);
+            PowerPointAutoShape gradientShape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(130), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(60));
             gradientShape.OutlineColor = "445566";
             A.Outline gradientOutline = ((Shape)gradientShape.Element)
                 .ShapeProperties!.GetFirstChild<A.Outline>()!;
@@ -199,10 +199,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ClearingOutlineTransparencyRemovesStyleReferenceAlpha() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointAutoShape shape = presentation.AddSlide()
-                .AddRectanglePoints(10, 10, 100, 60);
+                .AddRectangle(OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(60));
             Shape nativeShape = (Shape)shape.Element;
             nativeShape.ShapeProperties!.GetFirstChild<A.Outline>()?.Remove();
             nativeShape.ShapeStyle = new ShapeStyle(
@@ -234,11 +234,11 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void FillTransparencyPreservesActiveNonSolidFillChoice() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape noFillShape = slide.AddRectanglePoints(
-                10, 10, 100, 60);
+            PowerPointAutoShape noFillShape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(60));
             ShapeProperties noFillProperties = ((Shape)noFillShape.Element)
                 .ShapeProperties!;
             noFillProperties.InsertAfter(new A.NoFill(),
@@ -254,8 +254,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("445566", noFillProperties
                 .GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val!.Value);
 
-            PowerPointAutoShape gradientShape = slide.AddRectanglePoints(
-                130, 10, 100, 60);
+            PowerPointAutoShape gradientShape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(130), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(60));
             ShapeProperties gradientProperties = ((Shape)gradientShape.Element)
                 .ShapeProperties!;
             var gradient = new A.GradientFill(
@@ -286,11 +286,11 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void FillTransparencyMutatesPictureFillAlpha() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape shape = slide.AddRectanglePoints(
-                10, 10, 100, 60);
+            PowerPointAutoShape shape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(60));
             ImagePart imagePart = slide.SlidePart.AddImagePart(
                 DocumentFormat.OpenXml.Packaging.ImagePartType.Png);
             using (var image = new MemoryStream(
@@ -328,10 +328,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void TransparencySettersReplaceCompetingColorAlphaTransforms() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointAutoShape shape = presentation.AddSlide()
-                .AddRectanglePoints(10, 10, 100, 60);
+                .AddRectangle(OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(60));
             shape.FillColor = "112233";
             shape.OutlineColor = "445566";
             ShapeProperties properties = ((Shape)shape.Element)
@@ -368,10 +368,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void FillTransparencyRejectsInheritedGroupFill() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointAutoShape shape = presentation.AddSlide()
-                .AddRectanglePoints(10, 10, 100, 60);
+                .AddRectangle(OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(60));
             ShapeProperties properties = ((Shape)shape.Element)
                 .ShapeProperties!;
             properties.RemoveAllChildren<A.SolidFill>();

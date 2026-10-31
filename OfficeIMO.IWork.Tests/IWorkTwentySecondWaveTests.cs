@@ -55,8 +55,8 @@ public sealed partial class IWorkBoundaryTests {
         WordTable table = Assert.Single(result.Value.Tables);
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(400, Assert.Single(table.RowHeight));
-        Assert.Equal(800, Assert.Single(table.ColumnWidth));
+        Assert.Equal(400, Assert.Single(table.RowHeight.Select(height => checked((int)(height?.ToTwips() ?? 0)))));
+        Assert.Equal<WordTableWidth?>(WordTableWidth.Length(OfficeLength.Points(40)), Assert.Single(table.ColumnWidth));
     }
 
     [Fact]
@@ -68,10 +68,10 @@ public sealed partial class IWorkBoundaryTests {
         PowerPointTable table = Assert.Single(Assert.Single(result.Value.Slides).Tables);
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(60d, table.WidthPoints, 5);
-        Assert.Equal(20d, table.HeightPoints, 5);
-        Assert.Equal(30d, table.GetColumnWidthPoints(0), 5);
-        Assert.Equal(10d, table.GetRowHeightPoints(0), 5);
+        Assert.Equal(60d, table.Width.ToPoints(), 5);
+        Assert.Equal(20d, table.Height.ToPoints(), 5);
+        Assert.Equal(30d, (table.GetColumnWidth(0)).ToPoints(), 5);
+        Assert.Equal(10d, (table.GetRowHeight(0)).ToPoints(), 5);
     }
 
     [Fact]

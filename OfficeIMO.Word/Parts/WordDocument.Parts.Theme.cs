@@ -91,7 +91,7 @@ namespace OfficeIMO.Word {
             A.FontScheme fontScheme1 = new A.FontScheme() { Name = "Office" };
 
             A.MajorFont majorFont1 = new A.MajorFont();
-            A.LatinFont latinFont1 = new A.LatinFont() { Typeface = "Calibri Light", Panose = "020F0302020204030204" };
+            A.LatinFont latinFont1 = new A.LatinFont() { Typeface = WordThemeDefaults.Theme.Fonts.Heading.Family };
             A.EastAsianFont eastAsianFont1 = new A.EastAsianFont() { Typeface = "" };
             A.ComplexScriptFont complexScriptFont1 = new A.ComplexScriptFont() { Typeface = "" };
             A.SupplementalFont supplementalFont1 = new A.SupplementalFont() { Script = "Jpan", Typeface = "游ゴシック Light" };
@@ -194,7 +194,7 @@ namespace OfficeIMO.Word {
             majorFont1.Append(supplementalFont47);
 
             A.MinorFont minorFont1 = new A.MinorFont();
-            A.LatinFont latinFont2 = new A.LatinFont() { Typeface = "Calibri", Panose = "020F0502020204030204" };
+            A.LatinFont latinFont2 = new A.LatinFont() { Typeface = WordThemeDefaults.Theme.Fonts.Body.Family };
             A.EastAsianFont eastAsianFont2 = new A.EastAsianFont() { Typeface = "" };
             A.ComplexScriptFont complexScriptFont2 = new A.ComplexScriptFont() { Typeface = "" };
             A.SupplementalFont supplementalFont48 = new A.SupplementalFont() { Script = "Jpan", Typeface = "游明朝" };

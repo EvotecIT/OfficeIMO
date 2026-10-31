@@ -55,8 +55,8 @@ public sealed class WordPdfListMarkerKerningTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1440;
-        level.IndentationHanging = 720;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         level.LevelText = "AV";
         level.LevelJustification = WordListLevelAlignment.Right;
         level.LevelSuffix = tabSuffix ? WordListLevelSuffix.Tab : WordListLevelSuffix.Nothing;
@@ -79,7 +79,7 @@ public sealed class WordPdfListMarkerKerningTests {
         };
         paragraph.Text = "B";
         paragraph.FontFamily = "Courier";
-        paragraph.FontSize = 10;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
         paragraph._paragraph.ParagraphProperties.NumberingProperties = new NumberingProperties(
             new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId });
@@ -87,12 +87,12 @@ public sealed class WordPdfListMarkerKerningTests {
             paragraph._paragraph.ParagraphProperties.ParagraphMarkRunProperties =
                 new ParagraphMarkRunProperties(new Kern { Val = paragraphMarkThreshold.Value });
         if (route is "header" or "footer") document.AddParagraph("B").FontFamily = "Courier";
-        var options = new PdfOptions { DefaultFontSize = 10D };
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D) };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', 'V')));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = options, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var allLetters = pdf.GetPage(1).Letters;
         var letters = allLetters.Where(letter => letter.Value is "A" or "V").ToArray();
         Assert.Equal("AV", string.Concat(letters.Select(letter => letter.Value)));

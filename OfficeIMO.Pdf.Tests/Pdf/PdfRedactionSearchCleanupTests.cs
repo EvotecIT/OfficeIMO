@@ -41,7 +41,7 @@ public class PdfRedactionSearchCleanupTests {
 
     [Fact]
     public void SearchAndApply_RemovesLiteralRegexFieldMetadataAndAttachmentResidue() {
-        var pdfOptions = new PdfOptions().AddEmbeddedFile("secret.txt", Encoding.UTF8.GetBytes("ATTACHMENT-SECRET"), "text/plain", PdfAssociatedFileRelationship.Data);
+        var pdfOptions = new PdfCreateOptions().AddEmbeddedFile("secret.txt", Encoding.UTF8.GetBytes("ATTACHMENT-SECRET"), "text/plain", PdfAssociatedFileRelationship.Data);
         byte[] source = PdfDocument.Create(pdfOptions)
             .Meta(title: "SECRET-METADATA", author: "Sensitive Author")
             .Paragraph(p => p.Text("Payroll token SECRET-2026 and SSN 123-45-6789"))

@@ -1,3 +1,7 @@
+#if !NET8_0_OR_GREATER
+using DateOnly = System.DateTime;
+#endif
+using OfficeIMO.Internal;
 using System.Globalization;
 using System.Xml.Linq;
 
@@ -6,14 +10,14 @@ namespace OfficeIMO.Workflows;
 public sealed partial class BookProject {
     private static XElement[] BuildOnixSalesRestrictions(IReadOnlyList<BookOnixSalesRestriction> restrictions,
         ref int budget, CancellationToken token) {
-        ArgumentNullException.ThrowIfNull(restrictions);
+        if (restrictions == null) throw new ArgumentNullException(nameof(restrictions));
         if (restrictions.Count > 32) throw new ArgumentException("At most 32 sales restrictions are supported per territory or market.", nameof(restrictions));
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>(); var prior = new List<BookOnixSalesRestriction>();
         foreach (var restriction in restrictions) {
-            token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(restriction);
-            if (!Enum.IsDefined(restriction.Kind)) throw new ArgumentOutOfRangeException(nameof(restriction.Kind));
-            ArgumentNullException.ThrowIfNull(restriction.Outlets); ArgumentNullException.ThrowIfNull(restriction.Notes);
+            token.ThrowIfCancellationRequested(); if (restriction == null) throw new ArgumentNullException(nameof(restriction));
+            if (!OfficeRuntimeCompatibility.IsDefined(restriction.Kind)) throw new ArgumentOutOfRangeException(nameof(restriction.Kind));
+            if (restriction.Outlets == null) throw new ArgumentNullException("restriction.Outlets"); if (restriction.Notes == null) throw new ArgumentNullException("restriction.Notes");
             if (restriction.Outlets.Count > 16 || restriction.Notes.Count > 16)
                 throw new ArgumentException("At most 16 outlets and 16 translated notes are supported per restriction.", nameof(restrictions));
             if (restriction.ValidFrom > restriction.ValidUntil) throw new ArgumentException("Restriction dates cannot run backwards.", nameof(restrictions));
@@ -39,8 +43,8 @@ public sealed partial class BookProject {
             }
             var languages = new HashSet<string>(StringComparer.Ordinal);
             foreach (var note in restriction.Notes) {
-                token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(note);
-                if (!Enum.IsDefined(note.Format)) throw new ArgumentOutOfRangeException(nameof(note.Format));
+                token.ThrowIfCancellationRequested(); if (note == null) throw new ArgumentNullException(nameof(note));
+                if (!OfficeRuntimeCompatibility.IsDefined(note.Format)) throw new ArgumentOutOfRangeException(nameof(note.Format));
                 bool xhtml = note.Format == BookOnixCollateralTextFormat.Xhtml;
                 RequireOnixRestrictionText(note.Text, xhtml ? 4096 : 300, ref budget);
                 XElement? fragment = xhtml ? ReadOnixXhtmlFragment(note.Text, token) : null;
@@ -52,15 +56,15 @@ public sealed partial class BookProject {
                     note.LanguageCode != null ? new XAttribute("language", note.LanguageCode) : null,
                     fragment == null ? (object)note.Text : fragment.Nodes()));
             }
-            if (restriction.ValidFrom is { } from) element.Add(new XElement(ns + "StartDate", new XAttribute("dateformat", "00"), from.ToString("yyyyMMdd", CultureInfo.InvariantCulture)));
-            if (restriction.ValidUntil is { } until) element.Add(new XElement(ns + "EndDate", new XAttribute("dateformat", "00"), until.ToString("yyyyMMdd", CultureInfo.InvariantCulture)));
+            if (restriction.ValidFrom is { } from) element.Add(new XElement(ns + "StartDate", new XAttribute("dateformat", "00"), FormatOnixDate(from)));
+            if (restriction.ValidUntil is { } until) element.Add(new XElement(ns + "EndDate", new XAttribute("dateformat", "00"), FormatOnixDate(until)));
             result.Add(element);
         }
         return result.ToArray();
     }
 
     private static XElement BuildOnixSalesOutlet(BookOnixSalesOutlet outlet, ref int budget) {
-        ArgumentNullException.ThrowIfNull(outlet); ArgumentNullException.ThrowIfNull(outlet.Identifiers);
+        if (outlet == null) throw new ArgumentNullException(nameof(outlet)); if (outlet.Identifiers == null) throw new ArgumentNullException("outlet.Identifiers");
         if (outlet.Identifiers.Count > 8 || outlet.Name == null && outlet.Identifiers.Count == 0)
             throw new ArgumentException("An outlet requires a name or identifier, and supports at most eight identifiers.", nameof(outlet));
         if (outlet.Name == null && outlet.NameLanguageCode != null) throw new ArgumentException("Name language requires an outlet name.", nameof(outlet));
@@ -68,8 +72,8 @@ public sealed partial class BookProject {
         var result = new XElement(ns + "SalesOutlet");
         var schemes = new HashSet<(BookOnixSalesOutletScheme, string?)>();
         foreach (var identifier in outlet.Identifiers) {
-            ArgumentNullException.ThrowIfNull(identifier);
-            if (!Enum.IsDefined(identifier.Scheme)) throw new ArgumentOutOfRangeException(nameof(identifier.Scheme));
+            if (identifier == null) throw new ArgumentNullException(nameof(identifier));
+            if (!OfficeRuntimeCompatibility.IsDefined(identifier.Scheme)) throw new ArgumentOutOfRangeException(nameof(identifier.Scheme));
             RequireOnixRestrictionText(identifier.Value, 100, ref budget);
             if (identifier.Scheme == BookOnixSalesOutletScheme.Proprietary) RequireOnixRestrictionText(identifier.SchemeName!, 100, ref budget);
             else if (identifier.SchemeName != null) throw new ArgumentException("Only proprietary outlet identifiers have a scheme name.", nameof(outlet));

@@ -289,7 +289,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 colorHex = null;
             }
 
-            if (!LegacyDocColorPalette.TryGetIcoForHex(colorHex, out _)) {
+            if (!LegacyDocPaletteProjection.CanResolveColor(colorHex)) {
                 throw new NotSupportedException("Native DOC saving supports paragraph borders only with Word 97-2003 palette colors.");
             }
 
@@ -334,7 +334,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return default;
             }
 
-            if (!LegacyDocColorPalette.TryGetIcoForHex(fillColorHex, out _)) {
+            if (!LegacyDocPaletteProjection.CanResolveColor(fillColorHex)) {
                 throw new NotSupportedException("Native DOC saving supports paragraph shading only for Word 97-2003 palette fill colors.");
             }
 

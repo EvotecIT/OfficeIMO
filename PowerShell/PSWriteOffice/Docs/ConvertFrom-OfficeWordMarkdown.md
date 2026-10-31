@@ -11,17 +11,17 @@ Creates a Word document from Markdown.
 ## SYNTAX
 ### Markdown (Default)
 ```powershell
-ConvertFrom-OfficeWordMarkdown [-Markdown] <string> [-OutputPath <string>] [-TemplatePath <string>] [-BookmarkName <string>] [-ContentControlTag <string>] [-ContentControlAlias <string>] [-KeepPlaceholder] [-RenderFrontMatter] [-FontFamily <string>] [-BaseUri <string>] [-AllowLocalImages] [-AllowedImageDirectory <string[]>] [-AllowRemoteImages] [-ReaderOptions <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-Theme <OfficeVisualThemeKind>] [-AllowDataUriImages <Boolean>] [-MaxDataUriImageBytes <Int64>] [-PreferNarrativeSingleLineDefinitions] [-FitImagesToPageContentWidth] [-FitImagesToContextWidth] [-MaxImageWidthPixels <Double>] [-MaxImageHeightPixels <Double>] [-MaxImageWidthPercentOfContent <Double>] [-Open] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertFrom-OfficeWordMarkdown [-Markdown] <string> [-OutputPath <string>] [-TemplatePath <string>] [-BookmarkName <string>] [-ContentControlTag <string>] [-ContentControlAlias <string>] [-KeepPlaceholder] [-RenderFrontMatter] [-FontFamily <string>] [-BaseUri <string>] [-AllowLocalImages] [-AllowedImageDirectory <string[]>] [-AllowRemoteImages] [-ReaderOptions <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-Theme <OfficeVisualThemeKind>] [-AllowDataUriImages <Boolean>] [-MaxDataUriImageBytes <Int64>] [-PreferNarrativeSingleLineDefinitions] [-FitImagesToPageContentWidth] [-FitImagesToContextWidth] [-MaxImageWidthPixels <Double>] [-MaxImageHeightPixels <Double>] [-MaxImageWidthPercentOfContent <Double>] [-Open] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Path
 ```powershell
-ConvertFrom-OfficeWordMarkdown [-Path] <string> [-OutputPath <string>] [-TemplatePath <string>] [-BookmarkName <string>] [-ContentControlTag <string>] [-ContentControlAlias <string>] [-KeepPlaceholder] [-RenderFrontMatter] [-FontFamily <string>] [-BaseUri <string>] [-AllowLocalImages] [-AllowedImageDirectory <string[]>] [-AllowRemoteImages] [-ReaderOptions <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-Theme <OfficeVisualThemeKind>] [-AllowDataUriImages <Boolean>] [-MaxDataUriImageBytes <Int64>] [-PreferNarrativeSingleLineDefinitions] [-FitImagesToPageContentWidth] [-FitImagesToContextWidth] [-MaxImageWidthPixels <Double>] [-MaxImageHeightPixels <Double>] [-MaxImageWidthPercentOfContent <Double>] [-Open] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertFrom-OfficeWordMarkdown [-Path] <string> [-OutputPath <string>] [-TemplatePath <string>] [-BookmarkName <string>] [-ContentControlTag <string>] [-ContentControlAlias <string>] [-KeepPlaceholder] [-RenderFrontMatter] [-FontFamily <string>] [-BaseUri <string>] [-AllowLocalImages] [-AllowedImageDirectory <string[]>] [-AllowRemoteImages] [-ReaderOptions <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-Theme <OfficeVisualThemeKind>] [-AllowDataUriImages <Boolean>] [-MaxDataUriImageBytes <Int64>] [-PreferNarrativeSingleLineDefinitions] [-FitImagesToPageContentWidth] [-FitImagesToContextWidth] [-MaxImageWidthPixels <Double>] [-MaxImageHeightPixels <Double>] [-MaxImageWidthPercentOfContent <Double>] [-Open] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-ConvertFrom-OfficeWordMarkdown -Document <MarkdownDoc> [-OutputPath <string>] [-TemplatePath <string>] [-BookmarkName <string>] [-ContentControlTag <string>] [-ContentControlAlias <string>] [-KeepPlaceholder] [-RenderFrontMatter] [-FontFamily <string>] [-BaseUri <string>] [-AllowLocalImages] [-AllowedImageDirectory <string[]>] [-AllowRemoteImages] [-ReaderOptions <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-Theme <OfficeVisualThemeKind>] [-AllowDataUriImages <Boolean>] [-MaxDataUriImageBytes <Int64>] [-PreferNarrativeSingleLineDefinitions] [-FitImagesToPageContentWidth] [-FitImagesToContextWidth] [-MaxImageWidthPixels <Double>] [-MaxImageHeightPixels <Double>] [-MaxImageWidthPercentOfContent <Double>] [-Open] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertFrom-OfficeWordMarkdown -Document <MarkdownDocument> [-OutputPath <string>] [-TemplatePath <string>] [-BookmarkName <string>] [-ContentControlTag <string>] [-ContentControlAlias <string>] [-KeepPlaceholder] [-RenderFrontMatter] [-FontFamily <string>] [-BaseUri <string>] [-AllowLocalImages] [-AllowedImageDirectory <string[]>] [-AllowRemoteImages] [-ReaderOptions <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-Theme <OfficeVisualThemeKind>] [-AllowDataUriImages <Boolean>] [-MaxDataUriImageBytes <Int64>] [-PreferNarrativeSingleLineDefinitions] [-FitImagesToPageContentWidth] [-FitImagesToContextWidth] [-MaxImageWidthPixels <Double>] [-MaxImageHeightPixels <Double>] [-MaxImageWidthPercentOfContent <Double>] [-Open] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -38,7 +38,7 @@ Writes a Word document containing the supplied Markdown.
 
 ### EXAMPLE 2
 ```powershell
-PS> Get-OfficeMarkdown -Path .\README.md | ConvertFrom-OfficeWordMarkdown
+PS> Open-OfficeMarkdown -Path .\README.md | ConvertFrom-OfficeWordMarkdown
 ```
 
 Returns a Word document instance for further edits.
@@ -184,7 +184,7 @@ Accept wildcard characters: False
 Markdown document instance to convert.
 
 ```yaml
-Type: MarkdownDoc
+Type: MarkdownDocument
 Parameter Sets: Document
 Aliases: None
 Possible values:
@@ -456,7 +456,7 @@ Accept wildcard characters: False
 Optional Markdown reader options used before Word conversion.
 
 ```yaml
-Type: MarkdownReaderOptions
+Type: MarkdownLoadOptions
 Parameter Sets: Markdown, Path, Document
 Aliases: None
 Possible values:
@@ -522,7 +522,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 - `System.String`
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## OUTPUTS
 

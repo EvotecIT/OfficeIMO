@@ -13,8 +13,8 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 public sealed class PowerPointOdpLossClosureTests {
     [Fact]
     public void DirectEastAsianFontIsReportedBeforeStrictConversion() {
-        using PowerPointPresentation source = CreatePowerPoint();
-        source.Slides[0].AddTextBoxPoints("Text", 20, 20, 200, 40);
+        using PowerPointDocument source = CreatePowerPoint();
+        source.Slides[0].AddTextBox("Text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.Single()
             .Slide!.Descendants<A.Run>().Single();
         run.RunProperties = new A.RunProperties(new A.EastAsianFont { Typeface = "Noto Sans CJK JP" });
@@ -24,8 +24,8 @@ public sealed class PowerPointOdpLossClosureTests {
 
     [Fact]
     public void LatinFontMetadataBeyondTypefaceIsReported() {
-        using PowerPointPresentation source = CreatePowerPoint();
-        source.Slides[0].AddTextBoxPoints("Text", 20, 20, 200, 40);
+        using PowerPointDocument source = CreatePowerPoint();
+        source.Slides[0].AddTextBox("Text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.Single()
             .Slide!.Descendants<A.Run>().Single();
         run.RunProperties = new A.RunProperties(new A.LatinFont {
@@ -37,7 +37,7 @@ public sealed class PowerPointOdpLossClosureTests {
 
     [Fact]
     public void PresentationDefaultTextStyleIsReported() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.OpenXmlDocument.PresentationPart!.Presentation!.DefaultTextStyle =
             new DefaultTextStyle(new A.Level1ParagraphProperties { LeftMargin = 914400 });
 
@@ -46,8 +46,8 @@ public sealed class PowerPointOdpLossClosureTests {
 
     [Fact]
     public void PictureBulletIsReportedBeforeStrictConversion() {
-        using PowerPointPresentation source = CreatePowerPoint();
-        source.Slides[0].AddTextBoxPoints("Item", 20, 20, 200, 40);
+        using PowerPointDocument source = CreatePowerPoint();
+        source.Slides[0].AddTextBox("Item",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         A.Paragraph paragraph = source.OpenXmlDocument.PresentationPart!.SlideParts.Single()
             .Slide!.Descendants<A.Paragraph>().Single();
         paragraph.ParagraphProperties = new A.ParagraphProperties(
@@ -58,9 +58,9 @@ public sealed class PowerPointOdpLossClosureTests {
 
     [Fact]
     public void PlainNotesDrawingIsReportedBeforeStrictConversion() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.Slides[0].Notes.Text = "Speaker note";
-        source.Slides[0].AddRectangleCm(1, 1, 2, 1);
+        source.Slides[0].AddRectangle(OfficeIMO.OfficeLength.Centimeters(1), OfficeIMO.OfficeLength.Centimeters(1), OfficeIMO.OfficeLength.Centimeters(2), OfficeIMO.OfficeLength.Centimeters(1));
         var slidePart = source.OpenXmlDocument.PresentationPart!.SlideParts.Single();
         Shape drawing = slidePart.Slide!.Descendants<Shape>().Single();
         slidePart.NotesSlidePart!.NotesSlide!.CommonSlideData!.ShapeTree!
@@ -71,7 +71,7 @@ public sealed class PowerPointOdpLossClosureTests {
 
     [Fact]
     public void NotesConnectorIsReportedBeforeStrictConversion() {
-        using PowerPointPresentation source = CreatePowerPoint();
+        using PowerPointDocument source = CreatePowerPoint();
         source.Slides[0].Notes.Text = "Speaker note";
         var slidePart = source.OpenXmlDocument.PresentationPart!.SlideParts.Single();
         slidePart.NotesSlidePart!.NotesSlide!.CommonSlideData!.ShapeTree!
@@ -94,11 +94,11 @@ public sealed class PowerPointOdpLossClosureTests {
         source.MasterPages[0].BackgroundColor = OdfColor.Parse("#336699");
         slide.MasterPageName = null;
 
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.ForFeature("masters-layouts"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointDocumentResult(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -113,8 +113,8 @@ public sealed class PowerPointOdpLossClosureTests {
             .SetAttributeValue(OdfNamespaces.Draw + "fill-color", "invalid");
         source.Package.MarkXmlDirty("styles.xml");
 
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.ForFeature("masters-layouts"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Approximated);
     }
@@ -131,19 +131,19 @@ public sealed class PowerPointOdpLossClosureTests {
             .SetAttributeValue(OdfNamespaces.Draw + "fill-transparency-gradient-name", "Fade");
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.ForFeature("shape-appearance"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Unsupported);
     }
 
-    private static PowerPointPresentation CreatePowerPoint() {
-        PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+    private static PowerPointDocument CreatePowerPoint() {
+        PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         source.AddSlide(PowerPointSlideLayoutType.Blank);
         return source;
     }
 
-    private static void AssertPowerPointLoss(PowerPointPresentation source, string feature) {
+    private static void AssertPowerPointLoss(PowerPointDocument source, string feature) {
         OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
         Assert.Contains(conversion.Report.ForFeature(feature), mapping =>
             mapping.Status == OdfConversionMappingStatus.Unsupported);

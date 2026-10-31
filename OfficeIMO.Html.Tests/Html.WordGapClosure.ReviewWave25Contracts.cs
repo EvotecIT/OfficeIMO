@@ -18,7 +18,7 @@ public partial class HtmlWordGapClosure {
             </div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "Text");
@@ -45,7 +45,7 @@ public partial class HtmlWordGapClosure {
                 new Text("Adjacent")),
             new M.OfficeMath(new M.Run(new M.Text("x"))));
 
-        string html = document.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
+        string html = document.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true });
 
         Assert.Contains(
             """<mark style="background-color:#00ff00">Regular</mark>""",
@@ -64,22 +64,22 @@ public partial class HtmlWordGapClosure {
         int expectedContentWidth = Assert.IsType<int>(
             WordTable.EstimateCellContentWidthInDxa(document, cell._tableCell));
         WordSection laterSection = document.AddSection();
-        laterSection.PageSettings.Width = 20000;
-        laterSection.Margins.Left = 500;
-        laterSection.Margins.Right = 500;
+        laterSection.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(1000D);
+        laterSection.Margins.Left = global::OfficeIMO.OfficeLength.Points(25D);
+        laterSection.Margins.Right = global::OfficeIMO.OfficeLength.Points(25D);
 
         cell.AddHtml(HtmlConversionDocument.Parse(
             $"""<img style="width:100%" src="data:image/png;base64,{ValidPng}" alt="Cell image">"""));
 
         WordImage image = Assert.Single(document.Images);
-        Assert.Equal(expectedContentWidth / 15D, image.Width!.Value, precision: 3);
+        Assert.Equal(expectedContentWidth / 15D, (image.Width?.ToPixels())!.Value, precision: 3);
     }
 
     [Fact]
     public void HtmlToWord_ModernRgbBackgroundSyntaxPreservesColorAndAlpha() {
         using WordDocument document = HtmlConversionDocument
             .Parse("""<div style="background-color:rgb(100% 0% 50% / 0.5)">Text</div>""")
-            .ToWordDocument();
+            .ToWord();
         WordParagraph paragraph = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "Text");
@@ -93,12 +93,12 @@ public partial class HtmlWordGapClosure {
     public void HtmlToWord_OmittedBlockBorderWidthUsesCssMedium(string style) {
         string html = $"""<div style="{style}">Text</div>""";
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "Text");
 
         Assert.Equal(WordBorderStyle.Single, paragraph.Borders.LeftStyle);
-        Assert.Equal(18U, paragraph.Borders.LeftSize);
+        Assert.Equal(OfficeLength.Points(2.25), paragraph.Borders.LeftSize);
     }
 }

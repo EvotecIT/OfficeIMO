@@ -7,13 +7,32 @@ using OfficeIMO.Reader.FormatInternals;
 namespace OfficeIMO.Reader.Excel;
 
 internal static partial class ExcelReaderAdapter {
-    internal static ReaderExcelOptions Clone(ReaderExcelOptions? source) => new ReaderExcelOptions {
+    internal static ReaderExcelOptions Clone(ReaderExcelOptions? source) {
+        if (source?.SheetNumber is int number) {
+            if (number < 1) throw new ArgumentOutOfRangeException(nameof(source.SheetNumber), "Worksheet positions start at one.");
+            if (!string.IsNullOrWhiteSpace(source.SheetName)) throw new ArgumentException("Choose SheetName or SheetNumber, not both.", nameof(source));
+        }
+        return new ReaderExcelOptions {
         SheetName = source?.SheetName,
+        SheetNumber = source?.SheetNumber,
         A1Range = source?.A1Range,
         HeadersInFirstRow = source?.HeadersInFirstRow ?? true,
         ChunkRows = Math.Max(1, source?.ChunkRows ?? 200),
         ReadOptions = source?.ReadOptions?.Clone()
-    };
+        };
+    }
+
+    /// <summary>Resolves a positional selection once in the native owner, on a per-read option snapshot.</summary>
+    private static ReaderExcelOptions ResolveSheet(ReaderExcelOptions options, ExcelDocumentReader reader) {
+        if (!options.SheetNumber.HasValue) return options;
+        var names = reader.GetSheetNames();
+        int number = options.SheetNumber.Value;
+        if (number > names.Count) throw new ArgumentOutOfRangeException(nameof(options.SheetNumber), number, "The workbook has no worksheet at this position.");
+        var resolved = Clone(options);
+        resolved.SheetName = names[number - 1];
+        resolved.SheetNumber = null;
+        return resolved;
+    }
 
     internal static OfficeDocumentReadResult ReadDocument(
         string path,
@@ -22,6 +41,7 @@ internal static partial class ExcelReaderAdapter {
         CancellationToken cancellationToken) {
         using ExcelDocument document = Load(path, readerOptions);
         using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
+        options = ResolveSheet(options, reader);
         IReadOnlyList<string>? warnings = BuildLegacyWarnings(document);
         ReaderChunk[] chunks = Extract(reader, path, readerOptions, options, warnings, cancellationToken).ToArray();
         IReadOnlyList<OfficeDocumentAsset> assets = readerOptions.Projection == ReaderProjection.TextAndMetadata ? Array.Empty<OfficeDocumentAsset>() : OpenXmlImageAssetCollector.CollectExcel(
@@ -32,7 +52,7 @@ internal static partial class ExcelReaderAdapter {
             capabilities: new[] { OfficeDocumentReaderBuilderExcelExtensions.HandlerId },
             assets: assets);
         AttachWarningsWhenEmpty(result, chunks, warnings, path);
-        ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot(null, cancellationToken);
+        ExcelWorkbookInfo snapshot = document.Inspect(null, cancellationToken);
         result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result);
         return ExcelInspectionProjection.Apply(document, snapshot, readerOptions, options, result, cancellationToken);
     }
@@ -45,6 +65,7 @@ internal static partial class ExcelReaderAdapter {
         CancellationToken cancellationToken) {
         using ExcelDocument document = Load(stream, sourceName, readerOptions);
         using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
+        options = ResolveSheet(options, reader);
         string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "workbook.xlsx" : sourceName!;
         IReadOnlyList<string>? warnings = BuildLegacyWarnings(document);
         ReaderChunk[] chunks = Extract(reader, logicalName, readerOptions, options, warnings, cancellationToken).ToArray();
@@ -56,7 +77,7 @@ internal static partial class ExcelReaderAdapter {
             capabilities: new[] { OfficeDocumentReaderBuilderExcelExtensions.HandlerId },
             assets: assets);
         AttachWarningsWhenEmpty(result, chunks, warnings, logicalName);
-        ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot(null, cancellationToken);
+        ExcelWorkbookInfo snapshot = document.Inspect(null, cancellationToken);
         result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result);
         return ExcelInspectionProjection.Apply(document, snapshot, readerOptions, options, result, cancellationToken);
     }
@@ -70,6 +91,7 @@ internal static partial class ExcelReaderAdapter {
         IReadOnlyList<string>? sourceWarnings = null,
         string capabilityId = OfficeDocumentReaderBuilderExcelExtensions.LegacyHandlerId) {
         using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
+        options = ResolveSheet(options, reader);
         IReadOnlyList<string>? warnings = Combine(sourceWarnings, BuildLegacyWarnings(document));
         ReaderChunk[] chunks = Extract(reader, sourceName, readerOptions, options,
             warnings, cancellationToken).ToArray();
@@ -81,7 +103,7 @@ internal static partial class ExcelReaderAdapter {
             capabilities: new[] { capabilityId },
             assets: assets);
         AttachWarningsWhenEmpty(result, chunks, warnings, sourceName);
-        ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot(null, cancellationToken);
+        ExcelWorkbookInfo snapshot = document.Inspect(null, cancellationToken);
         result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result);
         return ExcelInspectionProjection.Apply(document, snapshot, readerOptions, options, result, cancellationToken);
     }
@@ -119,7 +141,7 @@ internal static partial class ExcelReaderAdapter {
         }
     }
 
-    private static ExcelDocument Load(string path, ReaderOptions options) {
+    internal static ExcelDocument Load(string path, ReaderOptions options) {
         var loadOptions = new ExcelLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
             AllowBinaryProjection = options.Projection == ReaderProjection.Full,
@@ -136,7 +158,7 @@ internal static partial class ExcelReaderAdapter {
         }
     }
 
-    private static ExcelDocument Load(Stream stream, string? sourceName, ReaderOptions options) {
+    internal static ExcelDocument Load(Stream stream, string? sourceName, ReaderOptions options) {
         var loadOptions = new ExcelLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
             AllowBinaryProjection = options.Projection == ReaderProjection.Full,

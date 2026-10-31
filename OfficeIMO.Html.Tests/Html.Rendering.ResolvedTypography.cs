@@ -61,7 +61,7 @@ public sealed partial class HtmlRenderingTests {
         } else {
             rendered.RequireNoLoss();
             Assert.Contains(text, item => item.PreparedShaping != null);
-            PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
+            PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
             pdf.RequireNoLoss();
             Assert.Equal("abc", PdfCore.PdfReadDocument.Open(pdf.ToBytes()).ExtractText().Trim());
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);

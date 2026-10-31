@@ -30,7 +30,6 @@ The `OfficeIMO.Word` package provides a higher-level API for creating, reading, 
 | `WordList` | Manages numbered and bulleted lists with customizable styles. |
 | `WordBookmark` | Represents a named bookmark within the document. |
 | `WordTableOfContent` | Inserts and manages a table of contents. |
-| `WordFluentDocument` | Fluent builder API for composing documents with chained method calls. |
 
 ## Creating a Document
 

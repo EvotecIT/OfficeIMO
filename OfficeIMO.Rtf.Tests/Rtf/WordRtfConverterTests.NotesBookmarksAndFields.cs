@@ -271,6 +271,6 @@ public partial class WordRtfConverterTests {
 
     private static byte[] CreateOnePixelPng() {
         return OfficeIMO.Drawing.OfficePngWriter.Encode(
-            new OfficeIMO.Drawing.OfficeRasterImage(1, 1, OfficeIMO.Drawing.OfficeColor.White));
+            new OfficeIMO.Drawing.OfficeRasterImage(1, 1, OfficeIMO.OfficeColor.White));
     }
 }

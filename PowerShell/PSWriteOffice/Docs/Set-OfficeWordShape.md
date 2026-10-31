@@ -21,7 +21,7 @@ Updates OfficeIMO Word shape metadata, sizing, and colors.
 
 ### EXAMPLE 1
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Report.docx
+PS> $doc = Open-OfficeWord -Path .\Report.docx
 $doc |
     Get-OfficeWordShape |
     Set-OfficeWordShape -FillColor '#fff7e6' -StrokeColor '#fa8c16' -StrokeWidth 1.25 -Description 'Highlighted callout'

@@ -11,7 +11,7 @@ Creates discoverable PDF-to-PowerPoint reconstruction settings.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficePdfToPowerPointOptions [-Mode <PdfPowerPointImportMode>] [-PageRange <string>] [-Dpi <Double>] [-MaxPages <Int32>] [-MaxPixelsPerPage <Int64>] [-MaxOutputBytesPerPage <Int64>] [-MaxTotalOutputBytes <Int64>] [-MaxEditableObjectsPerPage <Int32>] [-MaxRows <Int32>] [-MergePageContinuations] [-SuppressRepeatedBodyHeaderRows] [-MaxRowsPerSlide <Int32>] [-MaxColumnsPerSlide <Int32>] [-TableStyle <PowerPointTableStylePreset>] [-IncludeSourceTitles] [-IncludeColumnHeaderRows] [-BandedRows] [-AlignNumericColumns] [-EmptyPresentationTitle <string>] [-EmptyPresentationMessage <string>] [<CommonParameters>]
+New-OfficePdfToPowerPointOptions [-Mode <PowerPointPdfImportMode>] [-PageRange <string>] [-Dpi <Double>] [-MaxPages <Int32>] [-MaxPixelsPerPage <Int64>] [-MaxOutputBytesPerPage <Int64>] [-MaxTotalOutputBytes <Int64>] [-MaxEditableObjectsPerPage <Int32>] [-MaxRows <Int32>] [-MergePageContinuations] [-SuppressRepeatedBodyHeaderRows] [-MaxRowsPerSlide <Int32>] [-MaxColumnsPerSlide <Int32>] [-TableStyle <PowerPointTableStylePreset>] [-IncludeSourceTitles] [-IncludeColumnHeaderRows] [-BandedRows] [-AlignNumericColumns] [-EmptyPresentationTitle <string>] [-EmptyPresentationMessage <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -288,7 +288,7 @@ Accept wildcard characters: False
 Visual, editable-table, hybrid, editable-content, or automatic import mode.
 
 ```yaml
-Type: PdfPowerPointImportMode
+Type: PowerPointPdfImportMode
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values: VisualPages, EditableTables, HybridVisualAndEditableTables, EditableContent, Auto
@@ -357,7 +357,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.PowerPoint.Pdf.PdfToPowerPointOptions`
+- `OfficeIMO.Pdf.PowerPoint.PowerPointPdfImportOptions`
 
 ## RELATED LINKS
 

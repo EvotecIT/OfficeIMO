@@ -8,7 +8,7 @@ public sealed class PdfTextReplacementReviewTests {
     [InlineData(30)] [InlineData(45)] [InlineData(60)] [InlineData(135)] [InlineData(225)]
     public void DiagonalMatchFitsItsBaselineAdvanceRatherThanEnclosingRectangle(double rotation) {
         byte[] bytes = PdfStamper.StampText(Create("Unchanged").ToBytes(), "AAAA", new PdfTextStampOptions {
-            X = 200, Y = 300, Font = PdfStandardFont.Courier, FontSize = 12, RotationDegrees = rotation
+            X = global::OfficeIMO.OfficeLength.Points(200), Y = global::OfficeIMO.OfficeLength.Points(300), Font = PdfStandardFont.Courier, FontSize = global::OfficeIMO.OfficeLength.Points(12), RotationDegrees = rotation
         });
         PdfDocument source = PdfDocument.Load(bytes);
         PdfTextMatch match = Assert.Single(source.Text.Find("AAAA"));

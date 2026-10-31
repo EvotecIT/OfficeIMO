@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             string accessibilityPath = Path.Combine(outputFolder, "Executive Delivery Review.accessibility.json");
             string visualProofPath = Path.Combine(outputFolder, "Executive Delivery Review.visual-proof.json");
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(presentationPath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(presentationPath);
             presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
             PowerPointDesignBrief brief = PowerPointDesignBrief
                 .FromBrand("#0B7FAB", "e2e-proof", "executive delivery review")
@@ -44,13 +44,13 @@ namespace OfficeIMO.Examples.PowerPoint {
             var chartData = new OfficeChartData(
                 new[] { "Q1", "Q2", "Q3", "Q4" },
                 new[] {
-                    new OfficeChartSeries("Adoption", new[] { 28D, 43D, 61D, 72D }, null, null, null,
-                        showMarkers: false, renderKind: OfficeChartKind.ColumnClustered),
-                    new OfficeChartSeries("Conversion", new[] { 6.2D, 7.8D, 9.6D, 11.4D }, null, null, null,
-                        showMarkers: true, markerSize: 8, renderKind: OfficeChartKind.Line,
+                    new OfficeSeries("Adoption", new[] { 28D, 43D, 61D, 72D }, null, null, null,
+                        showMarkers: false, renderKind: OfficeChartType.ColumnClustered),
+                    new OfficeSeries("Conversion", new[] { 6.2D, 7.8D, 9.6D, 11.4D }, null, null, null,
+                        showMarkers: true, markerSize: global::OfficeIMO.OfficeLength.Points(8), renderKind: OfficeChartType.Line,
                         axisGroup: OfficeChartAxisGroup.Secondary)
                 });
-            var chartStory = new PowerPointChartStoryContent(OfficeChartKind.ColumnClustered, chartData,
+            var chartStory = new PowerPointChartStoryContent(OfficeChartType.ColumnClustered, chartData,
                 new[] { "Adoption improved every quarter.", "Conversion increased with adoption." }) {
                 Caption = "Quarterly adoption and conversion",
                 Provenance = "Illustrative customer-success dataset",
@@ -112,7 +112,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     configure: options => options.Variant = PowerPointClosingLayoutVariant.Statement);
 
             var preflightOptions = new PowerPointDeckPreflightOptions {
-                MinimumReadableFontSizePoints = 8,
+                MinimumReadableFontSize = global::OfficeIMO.OfficeLength.Points(8),
                 DetectShapeCollisions = false
             };
             PowerPointDeckDesign design = brief.CreateDesign(0);
@@ -138,10 +138,9 @@ namespace OfficeIMO.Examples.PowerPoint {
                     .ExportImage(OfficeImageExportFormat.Svg)
                     .Save(Path.Combine(outputFolder, stem + ".svg"), OfficeImageExportFileConflictPolicy.Replace);
             }
-            var pdfOptions = new PowerPointToPdfOptions().UseProfile(PdfExportProfile.Faithful);
-            PdfDocumentConversionResult pdfResult = presentation.ToPdfDocumentResult(pdfOptions);
-            pdfResult.Save(pdfPath);
-            presentation.SaveAsPdf(handoutPath, new PowerPointToPdfOptions {
+            var pdfOptions = new PowerPointPdfExportOptions().UseProfile(PdfExportProfile.Faithful);
+            OfficeConversionReport pdfResult = presentation.SaveAsPdf(pdfPath, pdfOptions);
+            presentation.SaveAsPdf(handoutPath, new PowerPointPdfExportOptions {
                 PageLayout = PowerPointPdfPageLayout.Handouts,
                 HandoutSlidesPerPage = 3,
                 IncludeSpeakerNotes = true
@@ -157,7 +156,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
                     File.ReadAllBytes(presentationPath))
                 .RecordArtifact(Path.GetFileName(pdfPath), "application/pdf", File.ReadAllBytes(pdfPath),
-                    pdfResult.Warnings.Count)
+                    pdfResult.Diagnostics.Count)
                 .RecordArtifact(Path.GetFileName(htmlPath), "text/html", File.ReadAllBytes(htmlPath),
                     htmlResult.ImageDiagnostics.Count);
             visualProof.SaveJson(visualProofPath);

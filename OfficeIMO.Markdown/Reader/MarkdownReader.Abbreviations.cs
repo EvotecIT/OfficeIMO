@@ -1,8 +1,8 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     internal sealed class AbbreviationDefParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
+        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (options?.Abbreviations != true || i < 0 || i >= lines.Length) {
                 return false;
             }
@@ -46,7 +46,7 @@ public static partial class MarkdownReader {
             .ToArray();
     }
 
-    private static void PreScanAbbreviationDefinitions(string[] lines, MarkdownReaderState state, MarkdownReaderOptions options) {
+    private static void PreScanAbbreviationDefinitions(string[] lines, MarkdownReaderState state, MarkdownLoadOptions options) {
         if (options?.Abbreviations != true || lines == null || lines.Length == 0) {
             return;
         }
@@ -120,7 +120,7 @@ public static partial class MarkdownReader {
         }
     }
 
-    private static int GetAbbreviationPreScanStartIndex(string[] lines, MarkdownReaderOptions options) {
+    private static int GetAbbreviationPreScanStartIndex(string[] lines, MarkdownLoadOptions options) {
         if (options?.FrontMatter != true || lines == null || lines.Length == 0) {
             return 0;
         }
@@ -204,7 +204,7 @@ public static partial class MarkdownReader {
         string line,
         int lineIndex,
         MarkdownReaderState? state,
-        MarkdownReaderOptions? options,
+        MarkdownLoadOptions? options,
         out string label,
         out string title,
         out MarkdownSourceSpan? labelSpan,

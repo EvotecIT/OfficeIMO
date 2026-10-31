@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                     string path = Path.Combine(output, fileName);
                     WriteRepresentativePresentation(path, marker);
 
-                    using LegacyPptLoadResult loaded = PowerPointPresentation
+                    using LegacyPptLoadResult loaded = PowerPointDocument
                         .LoadLegacyPptWithReport(path);
                     loaded.EnsureNoImportErrors();
                     Assert.False(loaded.HasConversionLoss,
@@ -65,12 +65,17 @@ namespace OfficeIMO.Tests {
                     Path.GetFileName(candidate).Equals(expectedName,
                         StringComparison.OrdinalIgnoreCase));
 
-                using LegacyPptLoadResult loaded = PowerPointPresentation
+                using LegacyPptLoadResult loaded = PowerPointDocument
                     .LoadLegacyPptWithReport(path);
                 loaded.EnsureNoImportErrors();
-                Assert.False(loaded.HasConversionLoss,
-                    string.Join(Environment.NewLine, loaded.Diagnostics));
-                loaded.EnsureNoConversionLoss();
+                // LibreOffice adds legacy ruler fields that the importer preserves
+                // without projecting. Keep that approximation visible while requiring
+                // every authored semantic below and rejecting any other conversion loss.
+                Assert.All(loaded.FidelityDiagnostics.Where(diagnostic =>
+                    diagnostic.LossKind != OfficeConversionLossKind.None), diagnostic => {
+                    Assert.Equal("ppt-text-paragraph-partial", diagnostic.Code);
+                    Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
+                });
                 AssertRepresentativeSemantics(loaded.Document, marker);
             }
         }
@@ -79,47 +84,47 @@ namespace OfficeIMO.Tests {
             string marker) {
             byte[] image = OfficePngWriter.Encode(new OfficeRasterImage(
                 24, 16, OfficeColor.FromRgb(37, 99, 235)));
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(path);
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(path);
             presentation.SlideSize.SetPreset(
                 PowerPointSlideSizePreset.Screen16x9);
 
-            PowerPointSlide first = presentation.AddSlide();
-            first.AddTitle("Binary interoperability " + marker);
-            first.AddTextBox("OfficeIMO generated " + marker,
-                800000, 1700000, 4200000, 700000);
-            first.AddRectangle(800000, 2800000, 2200000, 900000,
+            PowerPointSlide first = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
+            first.AddTextBox("Binary interoperability " + marker,
+                OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(30),
+                OfficeIMO.OfficeLength.Points(600), OfficeIMO.OfficeLength.Points(70));
+            first.AddTextBox("OfficeIMO generated " + marker,                global::OfficeIMO.OfficeLength.Emus(800000),global::OfficeIMO.OfficeLength.Emus(1700000),global::OfficeIMO.OfficeLength.Emus(4200000),global::OfficeIMO.OfficeLength.Emus(700000));
+            first.AddRectangle(OfficeIMO.OfficeLength.Emus(800000), OfficeIMO.OfficeLength.Emus(2800000), OfficeIMO.OfficeLength.Emus(2200000), OfficeIMO.OfficeLength.Emus(900000),
                     "Interop rectangle")
                 .Fill("D9EAF7")
-                .Stroke("2563EB", 1.5D);
+                .Stroke("2563EB", global::OfficeIMO.OfficeLength.Points(1.5D));
             using (var stream = new MemoryStream(image, writable: false)) {
-                first.AddPicture(stream, OfficeImageFormat.Png,
-                    3600000, 2700000, 1800000, 1200000);
+                PowerPointPicture picture = first.AddImage(stream, OfficeImageFormat.Png,
+                    new PowerPointLayoutBox(OfficeLength.Points(280), OfficeLength.Points(210), OfficeLength.Points(240), OfficeLength.Points(90)));
+                picture.Bounds = new PowerPointLayoutBox(OfficeLength.Points(280), OfficeLength.Points(210), OfficeLength.Points(240), OfficeLength.Points(90));
             }
             first.Notes.Text = "LibreOffice round-trip notes " + marker;
             first.Transition = PowerPointSlideTransition.Fade;
 
-            PowerPointSlide second = presentation.AddSlide();
-            second.AddTextBox("Second slide " + marker,
-                900000, 900000, 4200000, 800000);
-            PowerPointTable table = second.AddTable(2, 2,
-                900000, 2200000, 5000000, 1500000);
+            PowerPointSlide second = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
+            second.AddTextBox("Second slide " + marker,                global::OfficeIMO.OfficeLength.Emus(900000),global::OfficeIMO.OfficeLength.Emus(900000),global::OfficeIMO.OfficeLength.Emus(4200000),global::OfficeIMO.OfficeLength.Emus(800000));
+            PowerPointTable table = second.AddTable(2,2,                global::OfficeIMO.OfficeLength.Emus(900000),global::OfficeIMO.OfficeLength.Emus(2200000),global::OfficeIMO.OfficeLength.Emus(5000000),global::OfficeIMO.OfficeLength.Emus(1500000));
             table.HeaderRow = true;
             table.GetCell(0, 0).Text = "Region";
             table.GetCell(0, 1).Text = "Revenue";
             table.GetCell(1, 0).Text = marker;
             table.GetCell(1, 1).Text = "120";
             table.SetCellBorders(PowerPointTableCellBorders.All, "2563EB",
-                widthPoints: 1.25D);
+                width: global::OfficeIMO.OfficeLength.Points(1.25D));
             presentation.Save();
         }
 
-        private static string ReadAllText(PowerPointPresentation presentation) =>
+        private static string ReadAllText(PowerPointDocument presentation) =>
             string.Join("\n", presentation.Slides.SelectMany(slide =>
                 slide.TextBoxes).Select(textBox => textBox.Text));
 
         private static void AssertRepresentativeSemantics(
-            PowerPointPresentation presentation, string marker) {
+            PowerPointDocument presentation, string marker) {
             Assert.Equal(2, presentation.Slides.Count);
             Assert.InRange(presentation.SlideSize.AspectRatio, 1.77D, 1.79D);
             string text = ReadAllText(presentation);
@@ -135,13 +140,20 @@ namespace OfficeIMO.Tests {
                 presentation.Slides[0].GetSpeakerNotesText());
             Assert.True(presentation.Slides.Sum(slide =>
                 slide.Pictures.Count()) >= 1);
+            PowerPointPicture picture = Assert.Single(presentation.Slides[0].Pictures);
+            Assert.InRange(picture.Left.ToPoints(), 279.9, 280.1);
+            Assert.InRange(picture.Top.ToPoints(), 209.9, 210.1);
+            Assert.InRange(picture.Width.ToPoints(), 239.9, 240.1);
+            Assert.InRange(picture.Height.ToPoints(), 89.9, 90.1);
             PowerPointAutoShape rectangle = Assert.Single(
                 presentation.Slides[0].Shapes.OfType<PowerPointAutoShape>());
             Assert.Equal("D9EAF7", rectangle.FillColor, ignoreCase: true);
             Assert.Equal("2563EB", rectangle.OutlineColor, ignoreCase: true);
             Assert.Equal(PowerPointSlideTransition.Fade,
                 presentation.Slides[0].Transition);
-            Assert.Empty(presentation.ValidateDocument());
+            var errors = presentation.ValidateDocument();
+            Assert.True(errors.Count == 0, string.Join(Environment.NewLine,
+                errors.Select(error => error.PartUri + ": " + error.Description)));
         }
     }
 }

@@ -32,28 +32,16 @@ namespace OfficeIMO.Examples.PowerPoint {
                 .ThenBy(alternative => alternative.Index)
                 .First();
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-            plan.AddCustom("Why this alternative wins", composer => {
-                composer.AddTitle("Why this alternative wins", selected.Design.DirectionName);
-                PowerPointCompositionLayout layout = composer.UsePreset(PowerPointCompositionPreset.MetricStory,
-                    PowerPointCompositionVariant.VisualLead);
-
-                composer.AddCardGrid(selected.ContentFitReasons.Take(4).Select((reason, index) =>
-                        new PowerPointCardContent("Fit signal " + (index + 1), new[] { reason })),
-                    layout.Primary,
-                    new PowerPointCardGridSlideOptions {
-                        MaxColumns = 1,
-                        Variant = PowerPointCardGridLayoutVariant.SoftTiles
-                    });
-
-                composer.AddVisualFrame(layout.Visual, PowerPointVisualFrameVariant.Collage);
-                composer.AddMetricStrip(new[] {
-                    new PowerPointMetric(selected.ContentFitScore.ToString(), "fit score"),
-                    new PowerPointMetric(selected.Slides.Count.ToString(), "planned slides"),
-                    new PowerPointMetric(selected.Diagnostics.Count.ToString(), "diagnostics")
-                }, layout.Metrics, PowerPointMetricStripVariant.SeparatedTiles);
-            }, "advisor-summary", options => options.FooterRight = "Fit score " + selected.ContentFitScore);
+            // The summary is ordinary content: fit signals on the left, the numbers in a results panel.
+            var summary = new List<PowerPointLayoutBlock>();
+            summary.AddRange(selected.ContentFitReasons.Take(3).Select((reason, index) =>
+                (PowerPointLayoutBlock)new PowerPointLayoutCard("Fit signal " + (index + 1), reason)));
+            summary.Add(new PowerPointLayoutKpi(selected.ContentFitScore.ToString(), "Fit score"));
+            summary.Add(new PowerPointLayoutKpi(selected.Slides.Count.ToString(), "Planned slides"));
+            summary.Add(new PowerPointLayoutKpi(selected.Diagnostics.Count.ToString(), "Diagnostics"));
+            plan.AddContent("Why this alternative wins", summary, PowerPointLayout.CaseStudy, selected.Design.DirectionName);
 
             PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromBrief(brief);
             composition.SelectBestAlternative = false;
@@ -134,7 +122,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     "advisor-capability");
         }
 
-        private static void Validate(string filePath, PowerPointPresentation presentation) {
+        private static void Validate(string filePath, PowerPointDocument presentation) {
             List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
             if (errors.Count > 0) {
                 string details = string.Join(Environment.NewLine, errors.Take(5).Select(error => error.Description));

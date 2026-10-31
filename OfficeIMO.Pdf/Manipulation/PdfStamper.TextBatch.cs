@@ -194,7 +194,7 @@ internal static partial class PdfStamper {
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
     internal readonly struct TextStampRequest {
-        internal TextStampRequest(int pageNumber, string text, double x, double y, PdfStandardFont font, double fontSize, PdfColor color, double rotationDegrees, double paintOrder = double.MaxValue, int textRenderingMode = 0, PdfSourceTextFont? sourceFont = null) {
+        internal TextStampRequest(int pageNumber, string text, double x, double y, PdfStandardFont font, double fontSize, global::OfficeIMO.OfficeColor color, double rotationDegrees, double paintOrder = double.MaxValue, int textRenderingMode = 0, PdfSourceTextFont? sourceFont = null) {
             PageNumber = pageNumber;
             Text = text;
             X = x;
@@ -214,7 +214,7 @@ internal static partial class PdfStamper {
         internal double Y { get; }
         internal PdfStandardFont Font { get; }
         internal double FontSize { get; }
-        internal PdfColor Color { get; }
+        internal global::OfficeIMO.OfficeColor Color { get; }
         internal double RotationDegrees { get; }
         internal double PaintOrder { get; }
         internal int TextRenderingMode { get; }

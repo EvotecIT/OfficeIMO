@@ -1,5 +1,7 @@
 using OfficeIMO.Invoicing;
+#if NET8_0_OR_GREATER
 using OfficeIMO.Invoicing.Validation;
+#endif
 
 namespace OfficeIMO.Workflows;
 
@@ -9,10 +11,16 @@ public sealed class OfficeInvoiceWorkflowResult {
     private readonly byte[]? _outputXml;
     internal OfficeInvoiceWorkflowResult(OfficeInvoiceWorkflowRequest request, string hash, bool succeeded,
         InvoiceReadResult? source, InvoiceModelValidationResult? model, IReadOnlyList<InvoiceDiagnostic> diagnostics,
-        InvoiceValidationReport? standards = null, byte[]? output = null, byte[]? outputXml = null) {
+#if NET8_0_OR_GREATER
+        InvoiceValidationReport? standards = null,
+#endif
+        byte[]? output = null, byte[]? outputXml = null) {
         Operation = request.Operation; InputName = request.InputName; InputSha256 = hash; InputByteLength = request.InputByteLength;
         Succeeded = succeeded; Source = source; ModelValidation = model; Diagnostics = diagnostics;
-        StandardsValidation = standards; _output = output; _outputXml = outputXml;
+#if NET8_0_OR_GREATER
+        StandardsValidation = standards;
+#endif
+        _output = output; _outputXml = outputXml;
     }
     /// <summary>Operation performed.</summary>
     public OfficeInvoiceWorkflowOperation Operation { get; }
@@ -30,12 +38,14 @@ public sealed class OfficeInvoiceWorkflowResult {
     public InvoiceModelValidationResult? ModelValidation { get; }
     /// <summary>Bounded model, mapping, target and execution findings.</summary>
     public IReadOnlyList<InvoiceDiagnostic> Diagnostics { get; }
+#if NET8_0_OR_GREATER
     /// <summary>Exact-byte standards report, or null when not requested/configured. For writing operations it validates output XML before output is returned.</summary>
     public InvoiceValidationReport? StandardsValidation { get; }
     /// <summary>Explicit standards schema status; NotRun when no standards report exists.</summary>
     public InvoiceValidationStatus SchemaStatus => StandardsValidation?.SchemaStatus ?? InvoiceValidationStatus.NotRun;
     /// <summary>Explicit business-rule status; NotRun when no standards report exists.</summary>
     public InvoiceValidationStatus BusinessRulesStatus => StandardsValidation?.BusinessRulesStatus ?? InvoiceValidationStatus.NotRun;
+#endif
     /// <summary>Length of the generated primary artifact, or zero.</summary>
     public int OutputByteLength => _output?.Length ?? 0;
     /// <summary>Returns a defensive copy of converted XML or rendered PDF. Failure has no output bytes.</summary>

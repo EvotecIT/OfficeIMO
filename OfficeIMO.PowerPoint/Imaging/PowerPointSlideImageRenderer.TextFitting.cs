@@ -23,17 +23,17 @@ namespace OfficeIMO.PowerPoint {
             AddWavyDoubleUnderlineApproximationDiagnosticIfNeeded(textBox, diagnostics);
             AddBaselineApproximationDiagnosticIfNeeded(textBox, diagnostics);
 
-            double marginLeft = mapping.MapHorizontalLength(textBox.TextMarginLeftPoints ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints);
-            double marginRight = mapping.MapHorizontalLength(textBox.TextMarginRightPoints ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints);
-            double marginTop = mapping.MapVerticalLength(textBox.TextMarginTopPoints ?? PowerPointTextDefaults.DefaultVerticalInsetPoints);
-            double marginBottom = mapping.MapVerticalLength(textBox.TextMarginBottomPoints ?? PowerPointTextDefaults.DefaultVerticalInsetPoints);
+            double marginLeft = mapping.MapHorizontalLength(textBox.TextMarginLeft?.ToPoints() ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints);
+            double marginRight = mapping.MapHorizontalLength(textBox.TextMarginRight?.ToPoints() ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints);
+            double marginTop = mapping.MapVerticalLength(textBox.TextMarginTop?.ToPoints() ?? PowerPointTextDefaults.DefaultVerticalInsetPoints);
+            double marginBottom = mapping.MapVerticalLength(textBox.TextMarginBottom?.ToPoints() ?? PowerPointTextDefaults.DefaultVerticalInsetPoints);
             if (marginLeft + marginRight >= width || marginTop + marginBottom >= height) {
                 double horizontalScale = Math.Min(1D, width * 0.99D / Math.Max(0.01D, marginLeft + marginRight));
                 double verticalScale = Math.Min(1D, height * 0.99D / Math.Max(0.01D, marginTop + marginBottom));
                 marginLeft *= horizontalScale; marginRight *= horizontalScale;
                 marginTop *= verticalScale; marginBottom *= verticalScale;
                 diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
-                    "POWERPOINT_TEXT_PADDING", "Reduced PowerPoint text box margins because they leave no renderable text area.",
+                    "powerpoint-text-padding", "Reduced PowerPoint text box margins because they leave no renderable text area.",
                     DescribeShape(textBox), OfficeConversionLossKind.Approximation));
             }
             double textWidth = width - marginLeft - marginRight;
@@ -48,7 +48,7 @@ namespace OfficeIMO.PowerPoint {
             if (fontScale <= 0D) {
                 fontScale = 0.001D;
                 diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
-                    "POWERPOINT_TEXT_SCALE_APPROXIMATED", "Approximated a zero text font scale with a positive rendering size.",
+                    "powerpoint-text-scale-approximated", "Approximated a zero text font scale with a positive rendering size.",
                     DescribeShape(textBox), OfficeConversionLossKind.Approximation));
             }
 
@@ -83,12 +83,12 @@ namespace OfficeIMO.PowerPoint {
                 measured.Any(paragraph => paragraph.HasContent && paragraph.MeasuredWidth > textWidth + 0.001D);
             if (exceedsFrame) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
-                    "POWERPOINT_TEXT_OVERFLOW", "PowerPoint text exceeds the text frame and is rendered beyond its boundary without truncation.",
+                    "powerpoint-text-overflow", "PowerPoint text exceeds the text frame and is rendered beyond its boundary without truncation.",
                     DescribeShape(textBox), OfficeConversionLossKind.None));
             }
             if (measured.Any(paragraph => paragraph.Clipped)) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
-                    "POWERPOINT_TEXT_LAYOUT_LIMIT", "PowerPoint text exceeded the shared text layout safety limits; some content could not be laid out.",
+                    "powerpoint-text-layout-limit", "PowerPoint text exceeded the shared text layout safety limits; some content could not be laid out.",
                     DescribeShape(textBox), OfficeConversionLossKind.Omission));
             }
 
@@ -103,12 +103,12 @@ namespace OfficeIMO.PowerPoint {
                     double renderHeight = Math.Max(paragraph.Height, paragraph.PaintedHeight) + 0.01D;
                     double renderWidth = (wrap ? Math.Max(textWidth, paragraph.MeasuredWidth) : textWidth) + 0.000001D;
                     var content = new OfficeDrawing(renderWidth, renderHeight);
-                    if (!wrap) {
-                        // Paragraph rendering preserves hard breaks and lets no-wrap text
-                        // overhang its left/center/right anchor without shortening the run.
+                    if (!wrap || paragraph.AbsoluteLineHeight) {
+                        // Keep fixed point leading exact across every visual line.
+                        // Unwrapped text may overhang its authored alignment anchor.
                         content.AddRichTextParagraphs(new[] { new OfficeRichTextParagraph(paragraph.RichRuns,
                             paragraph.Alignment, lineHeight: paragraph.LineHeight, indent: paragraph.Indent) },
-                            0D, 0D, renderWidth, renderHeight, wrapText: false);
+                            0D, 0D, renderWidth, renderHeight, wrapText: wrap);
                     } else if (paragraph.RichRuns.Count > 0) {
                         content.AddRichText(paragraph.RichRuns, 0D, 0D, renderWidth, renderHeight, paragraph.Alignment,
                             paragraph.LineHeight, paragraphIndent: paragraph.Indent);
@@ -135,7 +135,9 @@ namespace OfficeIMO.PowerPoint {
             double currentY = 0D, bottom = 0D;
             foreach (PowerPointParagraphDrawing paragraph in paragraphs) {
                 currentY += paragraph.SpaceBefore;
-                if (paragraph.HasContent) bottom = Math.Max(bottom, currentY + Math.Max(paragraph.Height, paragraph.PaintedHeight));
+                // Full leading advances the next paragraph; its unused trailing
+                // area does not make the last visible glyph exceed the frame.
+                if (paragraph.HasContent) bottom = Math.Max(bottom, currentY + paragraph.PaintedHeight);
                 currentY += paragraph.Height + paragraph.SpaceAfter;
             }
             return bottom;

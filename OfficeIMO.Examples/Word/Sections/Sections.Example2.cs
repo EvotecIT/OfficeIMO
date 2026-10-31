@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal partial class Sections {
@@ -30,7 +30,7 @@ namespace OfficeIMO.Examples.Word {
 
                 var section2 = document.AddSection();
 
-                section2.AddParagraph("Test 2 - Should be after 2nd section").SetFontFamily("Tahoma").SetFontSize(20);
+                section2.AddParagraph("Test 2 - Should be after 2nd section").SetFontFamily("Tahoma").SetFontSize(global::OfficeIMO.OfficeLength.Points(20));
 
                 section2.PageOrientation = OfficePageOrientation.Landscape;
 

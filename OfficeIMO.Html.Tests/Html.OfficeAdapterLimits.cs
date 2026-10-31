@@ -15,7 +15,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
     [Fact]
     public void ExcelHtml_RejectsInvalidExportRowLimit() {
         using ExcelDocument workbook = ExcelDocument.Create();
-        workbook.AddWorksheet("Data").CellValue(1, 1, "value");
+        workbook.AddSheet("Data").CellValue(1, 1, "value");
 
         Assert.Throws<ArgumentOutOfRangeException>(() => workbook.ToHtml(new ExcelHtmlSaveOptions { MaxRowsPerSheet = -1 }));
         Assert.Throws<ArgumentOutOfRangeException>(() => workbook.ToHtml(new ExcelHtmlSaveOptions { MaxRowsPerSheet = 0 }));
@@ -25,7 +25,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
     [Fact]
     public void OfficeHtml_ExportsVersionedSemanticEnvelopes() {
         using ExcelDocument workbook = ExcelDocument.Create();
-        workbook.AddWorksheet("Data").CellValue(1, 1, "value");
+        workbook.AddSheet("Data").CellValue(1, 1, "value");
         HtmlTextConversionResult export = workbook.ToHtmlResult();
         string html = export.RequireValue();
 
@@ -135,7 +135,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxImages = 1;
         limits.MaxShapes = 2;
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult(
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
             new HtmlToPowerPointOptions { Limits = limits, Mode = HtmlImportMode.Generic });
         using var presentation = result.Value;
 
@@ -372,7 +372,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
             </main>
             """;
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
         using var presentation = result.Value;
 
         Assert.Equal(0, result.Charts);
@@ -403,7 +403,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxChartCategories = 2;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(
+            .ToPowerPointDocumentResult(
                 new HtmlToPowerPointOptions { Limits = limits });
         using var presentation = result.Value;
 
@@ -443,7 +443,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxChartPoints = 4;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(
+            .ToPowerPointDocumentResult(
                 new HtmlToPowerPointOptions { Limits = limits });
         using var presentation = result.Value;
 
@@ -475,7 +475,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxChartPoints = 101_000;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(
+            .ToPowerPointDocumentResult(
                 new HtmlToPowerPointOptions { Limits = limits });
         using var presentation = result.Value;
 
@@ -505,7 +505,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxShapes = 1;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Limits = limits });
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Limits = limits });
         using var presentation = result.Value;
 
         Assert.Equal(0, result.Charts);
@@ -531,7 +531,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxCharts = 1;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Limits = limits });
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Limits = limits });
         using var presentation = result.Value;
 
         Assert.Equal(1, result.Charts);
@@ -589,10 +589,10 @@ public sealed class HtmlOfficeAdapterLimitTests {
                 UrlPolicy = hyperlinkPolicy,
                 ResourceUrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
             });
-        HtmlToWordOptions permissiveOptions = HtmlToWordOptions.CreateTrustedDocumentProfile();
+        WordHtmlImportOptions permissiveOptions = WordHtmlImportOptions.CreateTrustedDocumentProfile();
         permissiveOptions.ResourceUrlPolicy = HtmlUrlPolicy.CreateOfficeIMOProfile();
 
-        HtmlToWordResult result = source.ToWordDocumentResult(permissiveOptions);
+        HtmlToWordResult result = source.ConvertToWordWithEvidence(permissiveOptions);
         using WordDocument document = result.Value;
 
         Assert.Empty(document.ParagraphsHyperLinks);
@@ -630,10 +630,10 @@ public sealed class HtmlOfficeAdapterLimitTests {
             Trust = HtmlInputTrust.Trusted,
             Limits = limits
         });
-        HtmlToWordOptions permissiveOptions = HtmlToWordOptions.CreateTrustedDocumentProfile();
+        WordHtmlImportOptions permissiveOptions = WordHtmlImportOptions.CreateTrustedDocumentProfile();
 
         HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
-            () => source.ToWordDocumentResult(permissiveOptions));
+            () => source.ConvertToWordWithEvidence(permissiveOptions));
 
         Assert.Equal(expectedCode, exception.Code);
         Assert.Equal(expectedSource, exception.LimitSource);
@@ -647,7 +647,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
             </main>
             """;
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
         using var presentation = result.Value;
 
         Assert.Equal(1, result.TextBoxes);
@@ -665,7 +665,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxMetadataCharacters = 4;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Limits = limits });
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Limits = limits });
         using var presentation = result.Value;
 
         Assert.Equal(0, result.TextBoxes);
@@ -722,7 +722,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
     public void PowerPointHtml_AutoModeImportsOrdinarySectionsAndTables() {
         const string html = "<section><h2>Agenda</h2><p>First topic</p><table><tr><td>Owner</td><td>Ada</td></tr></table></section>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Auto });
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Auto });
         using var presentation = result.Value;
 
         Assert.True(result.Succeeded);
@@ -736,7 +736,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         const string html = "<main><section><h2>First</h2><p>One</p></section><article><h2>Second</h2><p>Two</p></article></main>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
         using var presentation = result.Value;
 
         Assert.True(result.Succeeded);
@@ -748,7 +748,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         const string html = "<p>intro</p><section><h2>Middle</h2><p>inside</p></section><p>outro</p>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
         using var presentation = result.Value;
 
         Assert.True(result.Succeeded);
@@ -759,7 +759,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
     [Fact]
     public void PowerPointHtml_GenericProjectionPreservesTextInsideOrdinaryContainers() {
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse("<div>Hello from a generic container</div>")
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
         using var presentation = result.Value;
 
         Assert.True(result.Succeeded);
@@ -776,7 +776,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         const string html = "<section><h2>Title</h2><p>This text is too large</p><p>Accepted</p></section>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions {
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions {
                 Mode = HtmlImportMode.Generic,
                 Limits = limits
             });
@@ -794,7 +794,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         const string html = "<section><img src='https://example.test/not-embedded.png'><p>Accepted</p></section>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions {
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions {
                 Mode = HtmlImportMode.Generic,
                 Limits = limits
             });

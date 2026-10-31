@@ -3,7 +3,7 @@ using System.Text;
 
 namespace OfficeIMO.Drawing;
 
-public static partial class OfficeConditionalIconRenderer {
+internal static partial class OfficeConditionalIconRenderer {
     /// <summary>
     /// Gets local CSS-pixel bounds using the current estimated 3px left inset and 16px size cap.
     /// The icon is bounded by the cell; exact native Excel inset and size are not qualified.

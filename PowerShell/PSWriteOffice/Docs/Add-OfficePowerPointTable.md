@@ -11,12 +11,12 @@ Adds a table to a PowerPoint slide.
 ## SYNTAX
 ### InputObject (Default)
 ```powershell
-Add-OfficePowerPointTable [[-Slide] <PowerPointSlide>] [-InputObject] <Object> [-Header <string[]>] [-NoHeader] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-X <double>] [-Y <double>] [-Width <double>] [-Height <double>] [-StyleId <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointTable [-InputObject] <Object> [-Slide <PowerPointSlide>] [-Property <string[]>] [-NoHeader] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-MaxRows <Int32>] [-NoSplit] [-X <double>] [-Y <double>] [-Width <double>] [-Height <double>] [-StyleId <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Size
 ```powershell
-Add-OfficePowerPointTable [[-Slide] <PowerPointSlide>] -Rows <int> -Columns <int> [-X <double>] [-Y <double>] [-Width <double>] [-Height <double>] [-StyleId <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointTable -Rows <int> -Columns <int> [-Slide <PowerPointSlide>] [-X <double>] [-Y <double>] [-Width <double>] [-Height <double>] [-StyleId <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -98,22 +98,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Header
-Optional header order to apply to the table.
-
-```yaml
-Type: String[]
-Parameter Sets: InputObject
-Aliases: Headers
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Height
 Table height in points.
 
@@ -136,13 +120,13 @@ Source objects to convert into table rows.
 ```yaml
 Type: Object
 Parameter Sets: InputObject
-Aliases: Data
+Aliases: None
 Possible values:
 
 Required: True
-Position: 1
+Position: 0
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -178,8 +162,40 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -MaxRows
+Maximum data rows per physical slide; omission uses the shared layout capacity.
+
+```yaml
+Type: Int32
+Parameter Sets: InputObject
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -NoHeader
 Skip writing header row.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: InputObject
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoSplit
+Keep the table together instead of generating continuation slides.
 
 ```yaml
 Type: SwitchParameter
@@ -200,6 +216,22 @@ Emit the object created or changed by the command.
 ```yaml
 Type: SwitchParameter
 Parameter Sets: InputObject, Size
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Property
+Optional header order to apply to the table.
+
+```yaml
+Type: String[]
+Parameter Sets: InputObject
 Aliases: None
 Possible values:
 
@@ -236,9 +268,9 @@ Aliases: None
 Possible values:
 
 Required: False
-Position: 0
+Position: named
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -327,7 +359,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointSlide`
+- `System.Object`
 
 ## OUTPUTS
 

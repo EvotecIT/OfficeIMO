@@ -6,7 +6,7 @@ public sealed partial class OfficeWorkflowRunner {
         IEnumerable<OfficeWorkflowRequest> requests,
         IProgress<OfficeWorkflowProgress>? progress = null,
         CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(requests);
+        if (requests == null) throw new ArgumentNullException(nameof(requests));
         if (cancellationToken.IsCancellationRequested) return Array.Empty<OfficeWorkflowResult>();
         var batch = new List<PreparedRequest>();
         var selectedSources = new List<(string Location, OfficeWorkflowStreamInput? Stream, OfficeWorkflowDirectoryPackageInput? Package)>();
@@ -52,11 +52,11 @@ public sealed partial class OfficeWorkflowRunner {
                     }
                     foreach (var access in accesses.Where(access => access.IsDirectoryPackage)) {
                         if (validated.OutputPath is null) continue;
-                        await using var scope = await access.OpenReadAsync(cancellationToken).ConfigureAwait(false);
+                        using var scope = await access.OpenReadAsync(cancellationToken).ConfigureAwait(false);
                         if (access.SourceGuard is { } owner && !await owner.CanPublishAsync(validated.OutputPath, false, cancellationToken).ConfigureAwait(false))
                             throw new IOException("The batch output is not separate from a selected directory package.");
                     }
-                    IOfficeWorkflowPublicationGuard? guard = validated.PublicationGuard;
+                    IOfficePublicationGuard? guard = validated.PublicationGuard;
                     foreach (var package in packages) guard = new ProviderPackagePublicationGuard(
                         package.Package!.SourcePublicationGuard, guard, package.Location);
                     request = request with { Validated = validated with {
@@ -81,7 +81,7 @@ public sealed partial class OfficeWorkflowRunner {
         return results;
 
         void AddSource(string? location, OfficeWorkflowStreamInput? stream, OfficeWorkflowDirectoryPackageInput? package) {
-            if (string.IsNullOrWhiteSpace(location)) return;
+            if ((location == null || string.IsNullOrWhiteSpace(location))) return;
             try { selectedSources.Add((OfficeIMO.Internal.OfficeStorageIdentity.Normalize(location), stream, package)); }
             catch (Exception error) when (error is ArgumentException or NotSupportedException or PathTooLongException) {
                 // An invalid location cannot identify a destination; its own request retains the validation failure.

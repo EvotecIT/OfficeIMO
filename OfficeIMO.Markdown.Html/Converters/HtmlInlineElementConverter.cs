@@ -8,12 +8,12 @@ namespace OfficeIMO.Markdown.Html;
 /// <summary>
 /// Context passed to custom HTML inline-element converters.
 /// </summary>
-public sealed class HtmlInlineElementConversionContext {
+public sealed class MarkdownHtmlInlineConversionContext {
     private readonly HtmlToMarkdownConverter.ConversionContext? _conversionContext;
     private readonly IElement _nativeElement;
     private HtmlElement? _element;
 
-    internal HtmlInlineElementConversionContext(IElement element, HtmlToMarkdownOptions options, HtmlToMarkdownConverter.ConversionContext? conversionContext) {
+    internal MarkdownHtmlInlineConversionContext(IElement element, MarkdownHtmlImportOptions options, HtmlToMarkdownConverter.ConversionContext? conversionContext) {
         _nativeElement = element ?? throw new ArgumentNullException(nameof(element));
         Options = options ?? throw new ArgumentNullException(nameof(options));
         _conversionContext = conversionContext;
@@ -27,7 +27,7 @@ public sealed class HtmlInlineElementConversionContext {
     /// <summary>
     /// Active HTML-to-markdown options.
     /// </summary>
-    public HtmlToMarkdownOptions Options { get; }
+    public MarkdownHtmlImportOptions Options { get; }
 
     /// <summary>
     /// Converts the supplied HTML nodes into an inline markdown sequence using the current conversion profile.
@@ -57,16 +57,16 @@ public sealed class HtmlInlineElementConversionContext {
 /// <summary>
 /// Custom inline HTML element decoder used during HTML-to-markdown conversion.
 /// </summary>
-public sealed class HtmlInlineElementConverter {
-    private readonly Func<HtmlInlineElementConversionContext, IReadOnlyList<IMarkdownInline>?> _converter;
+public sealed class MarkdownHtmlInlineConverter {
+    private readonly Func<MarkdownHtmlInlineConversionContext, IReadOnlyList<IMarkdownInline>?> _converter;
 
     /// <summary>
     /// Creates a new custom inline HTML element converter.
     /// </summary>
-    public HtmlInlineElementConverter(
+    public MarkdownHtmlInlineConverter(
         string id,
         string name,
-        Func<HtmlInlineElementConversionContext, IReadOnlyList<IMarkdownInline>?> converter) {
+        Func<MarkdownHtmlInlineConversionContext, IReadOnlyList<IMarkdownInline>?> converter) {
         if (string.IsNullOrWhiteSpace(id)) {
             throw new ArgumentException("Converter id is required.", nameof(id));
         }
@@ -93,7 +93,7 @@ public sealed class HtmlInlineElementConverter {
     /// <summary>
     /// Attempts to convert a matching HTML inline element into markdown inline nodes.
     /// </summary>
-    public IReadOnlyList<IMarkdownInline>? Convert(HtmlInlineElementConversionContext context) {
+    public IReadOnlyList<IMarkdownInline>? Convert(MarkdownHtmlInlineConversionContext context) {
         if (context == null) {
             throw new ArgumentNullException(nameof(context));
         }

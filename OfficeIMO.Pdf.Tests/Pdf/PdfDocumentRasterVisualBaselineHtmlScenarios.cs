@@ -20,6 +20,6 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
     private static byte[] CreateNativeHtmlMarketScenario(HtmlRenderingCorpusCase scenario) {
         var options = new HtmlToPdfOptions(scenario.CreateOptions());
-        return HtmlConversionDocument.Parse(scenario.Html).ToPdfBytes(options);
+        return (HtmlConversionDocument.Parse(scenario.Html).ToPdf(options)).ToBytes();
     }
 }

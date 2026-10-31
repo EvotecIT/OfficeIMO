@@ -9,6 +9,9 @@ namespace OfficeIMO.Reader;
 /// Options controlling extraction behavior for <see cref="OfficeDocumentReader"/>.
 /// </summary>
 public sealed class ReaderOptions {
+    /// <summary>Optional defaults for file and folder selection. Explicit folder options replace this policy.</summary>
+    public ReaderFolderOptions? FolderOptions { get; set; }
+
     /// <summary>Requested derived representations. Unsupported handlers reject TextAndMetadata before parsing.
     /// The ordinary rich projection is the default.</summary>
     public ReaderProjection Projection { get; set; }
@@ -140,6 +143,9 @@ public sealed class ReaderOptions {
     /// Maximum ZIP entries inspected when classifying Office, Visio, EPUB, and ZIP containers. Default: 512.
     /// </summary>
     public int DetectionMaxContainerEntries { get; set; } = DefaultDetectionMaxContainerEntries;
+
+    /// <summary>Inspect container structure when classifying content during reads. Default: true.</summary>
+    public bool DetectionInspectContainers { get; set; } = true;
 }
 
 /// <summary>

@@ -16,7 +16,7 @@ public partial class PdfInspectorTests {
     }
 
     private static byte[] BuildOutlinePdf() {
-        return PdfDocument.Create(new PdfOptions { CreateOutlineFromHeadings = true })
+        return PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true })
             .H1("Executive summary")
             .Paragraph(p => p.Text("Outline sample"))
             .ToBytes();

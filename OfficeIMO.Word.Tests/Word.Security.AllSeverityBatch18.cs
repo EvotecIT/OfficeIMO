@@ -58,7 +58,7 @@ public class WordAllSeverityBatch18SecurityTests {
     }
 
     [Fact]
-    public void EmptyTableHeaderAndRowApisRemainUsable() {
+    public void EmptyTableHeadersAndRowsRemainUsableAfterRejectingACommentWithoutARange() {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(0, 3);
 
@@ -66,11 +66,10 @@ public class WordAllSeverityBatch18SecurityTests {
         Assert.False(table.RepeatHeaderRowAtTheTopOfEachPage);
         table.RepeatAsHeaderRowAtTheTopOfEachPage = true;
         table.RepeatHeaderRowAtTheTopOfEachPage = true;
-        Exception? commentException = Record.Exception(
+        Assert.Throws<InvalidOperationException>(
             () => table.AddComment("Reviewer", "R", "No range exists"));
         WordTableRow row = table.AddRow();
 
-        Assert.Null(commentException);
         Assert.Equal(3, row.CellsCount);
     }
 

@@ -20,7 +20,7 @@ document.AddParagraph("Hello, World!");
 var p = document.AddParagraph("Important Notice");
 p.Bold = true;
 p.FontSize = 16;
-p.Color = OfficeIMO.Drawing.OfficeColor.Red;
+p.Color = OfficeIMO.OfficeColor.Red;
 
 document.Save();
 ```
@@ -60,7 +60,7 @@ p.FontSizeComplexScript = 14;
 
 ```csharp
 var p = document.AddParagraph("Colored text");
-p.Color = OfficeIMO.Drawing.OfficeColor.DarkBlue;
+p.Color = OfficeIMO.OfficeColor.DarkBlue;
 
 var p2 = document.AddParagraph("Highlighted text");
 p2.Highlight = WordHighlightColor.Yellow;
@@ -124,8 +124,8 @@ p.SpacingAfter = 200;
 
 ```csharp
 var p = document.AddParagraph("Indented paragraph");
-p.IndentationFirstLine = 720;   // 720 twips = 0.5 inch
-p.IndentationBefore = 360;      // left indent
+p.IndentationFirstLine = OfficeIMO.OfficeLength.Inches(0.5);
+p.IndentationBefore = OfficeIMO.OfficeLength.Points(18);
 ```
 
 ## Heading Styles
@@ -172,7 +172,7 @@ document.AddParagraph("Content on next page");
 ```csharp
 document.AddHorizontalLine(
     lineType: WordBorderStyle.Single,
-    color: OfficeIMO.Drawing.OfficeColor.Gray,
+    color: OfficeIMO.OfficeColor.Gray,
     size: 12
 );
 ```

@@ -42,7 +42,7 @@ public sealed class StudioConversionRunStoreTests {
         string invalid = store.CreateReportPath()!;
         if (oversized) {
             using var stream = new FileStream(invalid, FileMode.CreateNew, FileAccess.Write);
-            stream.SetLength((long)OfficeConversionBatchReportSerializer.MaximumReportBytes + 1);
+            stream.SetLength((long)OfficeBatchReportSerializer.MaximumReportBytes + 1);
         } else File.WriteAllText(invalid, "{not a conversion report");
 
         var restored = store.ReadLatest();
@@ -83,59 +83,45 @@ public sealed class StudioConversionRunStoreTests {
         Directory.CreateDirectory(source);
         File.WriteAllText(Path.Combine(source, "one.txt"), "A recorded document");
         string jobPath = Path.Combine(files.Root, "run.json"), output = Path.Combine(files.Root, "run-output");
-        var definition = new OfficeConversionJob { InputDirectory = "source", OutputDirectory = "run-output" };
-        OfficeConversionJobSerializer.SaveFile(definition, jobPath);
+        var definition = new OfficeBatchOptions { InputDirectory = "source", OutputDirectory = "run-output" };
+        (definition).Save(jobPath);
         string reportPath = history.ConversionRuns.CreateReportPath()!;
-        var runner = new BlockingRunner();
-        Task<OfficeConversionJobRunReport> execution = OfficeConversionJobRunner.RunRecordedAsync(definition, jobPath,
-            reportPath, runner, retainReport: () => history.ConversionRuns.CanRetainReport);
+        var guard = new PausedPdfPublicationGuard();
+        Task<OfficeBatchReport> execution = OfficeConverter.ConvertAsync(OfficeBatchOptions.Load(jobPath) with {
+            ReportPath = reportPath, PublicationGuard = guard, RetainReport = () => history.ConversionRuns.CanRetainReport
+        });
         try {
-            await runner.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            Assert.Equal(OfficeConversionJobRunState.Running, Assert.Single(history.ConversionRuns.ReadLatest().Entries).Report.State);
+            await guard.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.Equal(OfficeBatchRunState.Running, Assert.Single(history.ConversionRuns.ReadLatest().Entries).Report.State);
             Assert.True(history.ConversionRuns.ClearFinished());
             Assert.True(File.Exists(reportPath));
             Assert.False(history.ConversionRuns.RemoveFinished(reportPath));
             history.SetRememberHistory(false);
         } finally {
-            runner.Release.TrySetResult();
+            guard.Release.TrySetResult();
             await execution.WaitAsync(TimeSpan.FromSeconds(10));
         }
 
         var report = await execution.WaitAsync(TimeSpan.FromSeconds(10));
 
-        Assert.Equal(OfficeConversionJobRunState.Completed, report.State);
+        Assert.Equal(OfficeBatchRunState.Completed, report.State);
         Assert.False(File.Exists(reportPath));
-        Assert.True(File.Exists(Path.Combine(output, "one.txt.pdf")));
+        Assert.True(File.Exists(Path.Combine(output, "one.pdf")));
         Assert.True(File.Exists(jobPath));
         Assert.Equal("Keep the recovery", File.ReadAllText(files.Recovery));
     }
 
     private static string WriteReport(StudioConversionRunStore store, TestFiles files, DateTimeOffset started) {
         string path = store.CreateReportPath()!;
-        var report = new OfficeConversionJobRunReport {
+        var report = new OfficeBatchReport {
             RunId = Guid.NewGuid().ToString("N"), StartedUtc = started, FinishedUtc = started.AddSeconds(1),
             JobPath = files.Job, JobSha256 = new string('A', 64), OutputDirectory = Path.GetDirectoryName(files.Output)!,
-            CheckpointDirectory = Path.GetDirectoryName(files.Checkpoint), State = OfficeConversionJobRunState.Completed,
-            Batch = new OfficeConversionBatchReportCollector().Complete(new(0, 0, 0, 0, false), allowEmpty: true)
+            ResumeFrom = files.Checkpoint, State = OfficeBatchRunState.Completed,
+            Summary = new(0, 0, 0, 0, false), Succeeded = true
         };
-        File.WriteAllText(path, OfficeConversionJobRunReportSerializer.Serialize(report));
+        File.WriteAllText(path, OfficeBatchReportSerializer.Serialize(report));
         File.SetLastWriteTimeUtc(path, started.UtcDateTime);
         return path;
-    }
-
-    private sealed class BlockingRunner : IOfficeWorkflowRunner {
-        private readonly OfficeWorkflowRunner _runner = new();
-        internal TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        internal TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        public async Task<OfficeWorkflowResult> RunAsync(OfficeWorkflowRequest request,
-            IProgress<OfficeWorkflowProgress>? progress = null, CancellationToken cancellationToken = default) {
-            Started.TrySetResult();
-            await Release.Task.WaitAsync(cancellationToken);
-            return await _runner.RunAsync(request, progress, cancellationToken);
-        }
-        public Task<IReadOnlyList<OfficeWorkflowResult>> RunBatchAsync(IEnumerable<OfficeWorkflowRequest> requests,
-            IProgress<OfficeWorkflowProgress>? progress = null, CancellationToken cancellationToken = default) =>
-            _runner.RunBatchAsync(requests, progress, cancellationToken);
     }
 
     private sealed class TestFiles : IDisposable {

@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents one named sequence of presentation slides.</summary>
-    public sealed class LegacyPptCustomShow {
+    internal sealed class LegacyPptCustomShow {
         private bool _hasStructuralLoss;
 
         internal LegacyPptCustomShow(string name, IReadOnlyList<uint> slideIds,

@@ -44,11 +44,11 @@ Use the same artifact in each format. Worksheet ranges and slide layout boxes pr
 ```csharp
 paragraph.AddVisualArtifact(artifact);
 sheet.AddVisualArtifact("B4:I18", artifact);
-slide.AddVisualArtifact(artifact, presentation.SlideSize.GetContentBoxPoints(36));
+slide.AddVisualArtifact(artifact, presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Points(36)));
 content.AddVisualArtifact(artifact, spacingAfter: 12);
 ```
 
-Word uses the containing cell or owning section, authored columns, margins and direct paragraph indents. `paragraph.GetContentWidthPoints()` exposes that estimate for preparation. Unequal flowing columns use their smallest authored width. Shared headers with differing section widths and unsupported text boxes require explicit dimensions. This is authored geometry, not Microsoft Word's measured pagination or automatic table layout.
+Word uses the containing cell or owning section, authored columns, margins and direct paragraph indents. `paragraph.GetContentWidth()` exposes that estimate for preparation. Unequal flowing columns use their smallest authored width. Shared headers with differing section widths and unsupported text boxes require explicit dimensions. This is authored geometry, not Microsoft Word's measured pagination or automatic table layout.
 
 PDF constrains oversized drawings to their actual flow width, including padded containers and columns, without enlarging smaller visuals. Supply a `PdfDrawingStyle` to explicitly choose placement behavior; set `ConstrainToContentWidth = true` to retain automatic fitting with custom styling.
 

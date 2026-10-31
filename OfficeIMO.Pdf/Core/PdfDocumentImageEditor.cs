@@ -4,6 +4,7 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Finds and edits image placements on existing PDF pages.</summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfDocumentImageEditor {
     private readonly PdfDocument _document;
 
@@ -31,7 +32,7 @@ public sealed class PdfDocumentImageEditor {
         _document.Reader.Images(selector, readOptions);
 
     /// <summary>Attempts to extract images, returning preflight diagnostics when blocked or failed.</summary>
-    public PdfOperationResult<IReadOnlyList<PdfExtractedImage>> ExtractResult(PdfLoadOptions? readOptions = null) =>
+    internal PdfOperationResult<IReadOnlyList<PdfExtractedImage>> ExtractResult(PdfLoadOptions? readOptions = null) =>
         _document.Reader.ImagesResult(readOptions);
 
     /// <summary>Returns every image placement invocation in page paint order.</summary>
@@ -56,7 +57,7 @@ public sealed class PdfDocumentImageEditor {
     }
 
     /// <summary>Attempts to inspect image placements, returning preflight diagnostics when blocked or failed.</summary>
-    public PdfOperationResult<IReadOnlyList<PdfImagePlacement>> PlacementsResult(PdfLoadOptions? readOptions = null) =>
+    internal PdfOperationResult<IReadOnlyList<PdfImagePlacement>> PlacementsResult(PdfLoadOptions? readOptions = null) =>
         _document.TryOperation(
             "Extract image placements",
             PdfPreflightCapability.ExtractImages,

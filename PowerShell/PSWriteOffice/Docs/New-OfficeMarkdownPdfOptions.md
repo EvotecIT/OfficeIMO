@@ -11,7 +11,7 @@ Creates discoverable Markdown-to-PDF conversion options for Export-OfficeDocumen
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficeMarkdownPdfOptions [-Options <MarkdownToPdfOptions>] [-PdfOptions <PdfOptions>] [-Theme <OfficeVisualThemeKind>] [-FontFamily <string>] [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-BaseDirectory <string>] [-ApplyWordLikeTheme] [-IncludeLocalImages] [-IncludeDataUriImages] [-RestrictLocalImagesToBaseDirectory] [-MaximumDataUriImageBytes <Int32>] [-DefaultImageWidth <Double>] [-DefaultImageHeight <Double>] [-FrontMatterRenderMode <MarkdownPdfFrontMatterRenderMode>] [-UseFrontMatterVisualTheme] [-UseFrontMatterMetadata] [-UseFirstHeadingAsTitle] [-CreateOutlineFromHeadings] [<CommonParameters>]
+New-OfficeMarkdownPdfOptions [-Options <MarkdownPdfExportOptions>] [-PdfOptions <PdfCreateOptions>] [-Theme <OfficeVisualThemeKind>] [-FontFamily <string>] [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-BaseDirectory <string>] [-ApplyWordLikeTheme] [-IncludeLocalImages] [-IncludeDataUriImages] [-RestrictLocalImagesToBaseDirectory] [-MaximumDataUriImageBytes <Int32>] [-DefaultImageWidth <Double>] [-DefaultImageHeight <Double>] [-FrontMatterRenderMode <MarkdownPdfFrontMatterRenderMode>] [-UseFrontMatterVisualTheme] [-UseFrontMatterMetadata] [-UseFirstHeadingAsTitle] [-CreateOutlineFromHeadings] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -225,7 +225,7 @@ Accept wildcard characters: False
 Existing Markdown PDF options to clone and override.
 
 ```yaml
-Type: MarkdownToPdfOptions
+Type: MarkdownPdfExportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -241,7 +241,7 @@ Accept wildcard characters: False
 Underlying low-level OfficeIMO PDF options.
 
 ```yaml
-Type: PdfOptions
+Type: PdfCreateOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -370,11 +370,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Markdown.Pdf.MarkdownToPdfOptions`
+- `OfficeIMO.Markdown.Pdf.MarkdownPdfExportOptions`
 
 ## OUTPUTS
 
-- `OfficeIMO.Markdown.Pdf.MarkdownToPdfOptions`
+- `OfficeIMO.Markdown.Pdf.MarkdownPdfExportOptions`
 
 ## RELATED LINKS
 

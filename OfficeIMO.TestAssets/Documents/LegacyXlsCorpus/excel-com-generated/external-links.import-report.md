@@ -63,7 +63,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
+| xls-biff-feature-external-reference-unsupported | 1 |
 
 ## Formula Tokens By Name
 
@@ -252,7 +252,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
+| xls-biff-feature-external-reference-unsupported | 1 |
 
 ## Unsupported Features By Kind
 
@@ -264,19 +264,19 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|0x01AE | 1 |
+| ExternalReference\|xls-biff-feature-external-reference-unsupported\|0x01AE | 1 |
 
 ## Unsupported Feature Details
 
 | Key | Count |
 | --- | --- |
-| ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:ExternalWorkbook | 1 |
+| ExternalReference\|xls-biff-feature-external-reference-unsupported\|ExternalReference:ExternalWorkbook | 1 |
 
 ## Unsupported Feature Locations
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|(workbook) | 1 |
+| xls-biff-feature-external-reference-unsupported\|(workbook) | 1 |
 
 ## File Format States
 
@@ -1114,4 +1114,4 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:ExternalWorkbook | 1 |
+| ExternalReference\|xls-biff-feature-external-reference-unsupported\|ExternalReference:ExternalWorkbook | 1 |

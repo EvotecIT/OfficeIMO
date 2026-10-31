@@ -73,7 +73,7 @@ namespace OfficeIMO.Data {
         /// <summary>Per‑path default values used when <see cref="NullPolicy.DefaultValue"/> is selected.</summary>
         public Dictionary<string, object?> DefaultValues { get; } = new(StringComparer.OrdinalIgnoreCase);
         /// <summary>Per‑path formatting delegates applied to values.</summary>
-        public Dictionary<string, Func<object?, object?>> Formatters { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, Func<object?, object?>> Formatters { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
         /// <summary>How to handle collections.</summary>
         public CollectionMode CollectionMode { get; set; } = CollectionMode.JoinWith;
         /// <summary>Delimiter used when <see cref="CollectionMode.JoinWith"/> is selected.</summary>
@@ -157,7 +157,7 @@ namespace OfficeIMO.Data {
     /// <summary>
     /// Flattens objects to a dictionary of dotted-path keys to values suitable for table generation.
     /// </summary>
-    public partial class ObjectFlattener {
+    internal partial class ObjectFlattener {
         private static readonly ConcurrentDictionary<Type, ObjectFlattenerProperty[]> _propertyCache = new();
         private static readonly ConcurrentDictionary<CollectionMapAccessorKey, CollectionMapAccessors> _collectionMapAccessorCache = new();
         private static readonly ConcurrentDictionary<Type, FieldInfo[]> _valueTupleFieldCache = new();
@@ -627,8 +627,20 @@ namespace OfficeIMO.Data {
                 var joined = JoinCollectionValues(path, enumerable, opts.CollectionJoinWith, opts.MaxCollectionItems);
                 return ApplyFormatting(path, joined, opts);
             }
-            // ExpandRows handled in SheetBuilder
-            return enumerable;
+            return opts.CollectionMode == CollectionMode.ExpandRows
+                ? FormatExpandedCollection(path, enumerable, opts) : enumerable;
+        }
+
+        // Hosts expand this lazy sequence into rows. Format each selected element
+        // once here, alongside scalar/joined values, before a host appends its table.
+        private static IEnumerable<object?> FormatExpandedCollection(string path, IEnumerable source, ObjectFlattenerOptions options) {
+            int count = 0;
+            foreach (object? value in source) {
+                if (count++ >= options.MaxCollectionItems)
+                    throw new InvalidDataException($"The collection at '{path}' exceeds the {options.MaxCollectionItems}-item flattening limit.");
+                yield return ApplyFormatting(path, value, options);
+            }
+            if (count == 0) yield return ApplyFormatting(path, null, options);
         }
 
         private static string JoinCollectionValues(string path, IEnumerable enumerable, string separator, int maximumItems) {

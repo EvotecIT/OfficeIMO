@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
 
             string path = Path.Combine(_directoryWithFiles, "SortCollation-" + caseName + ".xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet(caseName);
+                var sheet = document.AddSheet(caseName);
                 for (int row = 0; row < input.GetLength(0); row++) {
                     for (int column = 0; column < input.GetLength(1); column++) {
                         switch (input[row, column]) {

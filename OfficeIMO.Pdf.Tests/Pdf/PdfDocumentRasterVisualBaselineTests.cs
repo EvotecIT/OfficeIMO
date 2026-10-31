@@ -122,9 +122,9 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         Assert.Contains(logical.Headings, heading => heading.Text == "Native proof areas");
         Assert.Contains(logical.Headings, heading => heading.Text == "Native evidence table");
 
-        var tocLinks = logical.GetLinksByDestinationName("officeimo-heading-native-word-pdf-visual-gate").ToList();
+        var tocLinks = logical.Links.Where(link => link.Contents == "Table of contents: Native Word PDF Visual Gate").ToList();
         Assert.NotEmpty(tocLinks);
-        Assert.All(tocLinks, link => Assert.Equal("Table of contents: Native Word PDF Visual Gate", link.Contents));
+        Assert.All(tocLinks, link => Assert.Contains(logical.NamedDestinations, destination => destination.Name == link.DestinationName));
 
         var listItems = PdfTextExtractor.ExtractListItemsByPage(bytes)
             .SelectMany(page => page.ListItems)
@@ -154,7 +154,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
-        Assert.NotEmpty(logical.GetLinksByDestinationName("officeimo-heading-daily-word-layout-gate"));
+        var tocLink = Assert.Single(logical.Links, link => link.Contents == "Table of contents: Daily Word Layout Gate");
+        Assert.Contains(logical.NamedDestinations, destination => destination.Name == tocLink.DestinationName);
 
         using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var page = pdf.GetPage(1);

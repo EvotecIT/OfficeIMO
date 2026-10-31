@@ -17,12 +17,12 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// </example>
 [Cmdlet(VerbsCommon.Set, "OfficePowerPointThemeName")]
 [Alias("PptThemeName")]
-[OutputType(typeof(PowerPointPresentation))]
+[OutputType(typeof(PowerPointDocument))]
 public sealed class SetOfficePowerPointThemeNameCommand : PSCmdlet
 {
     /// <summary>Presentation to update (optional inside New-OfficePowerPoint).</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Theme name to apply.</summary>
     [Parameter(Mandatory = true)]
@@ -41,7 +41,7 @@ public sealed class SetOfficePowerPointThemeNameCommand : PSCmdlet
     {
         try
         {
-            var presentation = Presentation ?? PowerPointDslContext.Require(this).Presentation;
+            var presentation = Presentation ?? PowerPointDslContext.Require(this).Document;
             if (AllMasters.IsPresent)
             {
                 presentation.SetThemeNameForAllMasters(Name);

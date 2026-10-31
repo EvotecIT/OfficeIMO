@@ -40,11 +40,11 @@ $services = @(
     }
 )
 
-$workbook = New-OfficeExcel -Path $workbookPath -NoSave
+$workbook = New-OfficeExcel -Path $workbookPath
 try {
     $sheet = $workbook | Add-OfficeExcelSheet -Name 'Review' -PassThru
     $sheet | Set-OfficeExcelRow -Row 1 -Values 'Service review' -Bold $true -Height 26
-    Add-OfficeExcelTable -Worksheet $sheet -InputObject $services -StartRow 3 -TableName 'Services'
+    Add-OfficeExcelTable -Worksheet $sheet -InputObject $services -StartRow 3 -Name 'Services'
 
     $sheet | Set-OfficeExcelColumn -ColumnName A -Width 20
     $sheet | Set-OfficeExcelColumn -ColumnName B -Width 16

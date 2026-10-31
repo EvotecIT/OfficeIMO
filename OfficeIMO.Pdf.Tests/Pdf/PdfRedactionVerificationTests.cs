@@ -97,9 +97,9 @@ public class PdfRedactionVerificationTests {
     public void AppliedPlanVerificationRejectsReorderedPagesThatDifferOnlyByVectorPaths() {
         byte[] source = PdfDocument.Create(compose => {
             compose.Page(page => page.Content(content => content.Item(item => item
-                .Rectangle(40D, 30D, strokeColor: PdfColor.FromRgb(180, 20, 20), fillColor: PdfColor.FromRgb(255, 220, 220)))));
+                .Rectangle(global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(30D), strokeColor: global::OfficeIMO.OfficeColor.FromRgb(180, 20, 20), fillColor: global::OfficeIMO.OfficeColor.FromRgb(255, 220, 220)))));
             compose.Page(page => page.Content(content => content.Item(item => item
-                .Rectangle(80D, 30D, strokeColor: PdfColor.FromRgb(20, 20, 180), fillColor: PdfColor.FromRgb(220, 220, 255)))));
+                .Rectangle(global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(30D), strokeColor: global::OfficeIMO.OfficeColor.FromRgb(20, 20, 180), fillColor: global::OfficeIMO.OfficeColor.FromRgb(220, 220, 255)))));
         }).ToBytes();
         PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
             new PdfRedactionArea(1, 10D, 10D, 10D, 10D, "reviewed area")
@@ -977,7 +977,7 @@ public class PdfRedactionVerificationTests {
         Assert.Equal(placement.ObjectNumber, match.ObjectNumber);
         Assert.Null(match.Text);
         PdfDiagnosticFinding finding = Assert.Single(plan.Findings, finding =>
-            finding.Code == "RedactionPlanImageIntersection" &&
+            finding.Code == "redaction-plan-image-intersection" &&
             finding.Severity == PdfDiagnosticSeverity.Warning &&
             finding.PageNumber == image.PageNumber);
         Assert.Contains("rewrites supported image pixels", finding.Message, StringComparison.Ordinal);
@@ -1394,7 +1394,7 @@ public class PdfRedactionVerificationTests {
     }
 
     private static byte[] BuildImageRedactionPlanningSource() {
-        return PdfDocument.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Paragraph(paragraph => paragraph.Text("Visible image redaction planning marker"))

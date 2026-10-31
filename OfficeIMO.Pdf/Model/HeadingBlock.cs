@@ -4,13 +4,15 @@ internal sealed class HeadingBlock : IPdfBlock {
     public int Level { get; }
     public string Text { get; }
     public PdfAlign Align { get; }
-    public PdfColor? Color { get; }
+    public global::OfficeIMO.OfficeColor? Color { get; }
     public string? LinkUri { get; }
     public string? LinkDestinationName { get; }
     public string? LinkContents { get; }
     public PdfHeadingStyle? Style { get; }
     public System.Collections.Generic.IReadOnlyList<PdfTextRun>? Runs { get; }
-    public HeadingBlock(int level, string text, PdfAlign align, PdfColor? color, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null, System.Collections.Generic.IReadOnlyList<PdfTextRun>? runs = null) {
+    /// <summary>Document titles sit above the heading hierarchy and stay out of the generated outline.</summary>
+    internal bool IsTitle { get; set; }
+    public HeadingBlock(int level, string text, PdfAlign align, global::OfficeIMO.OfficeColor? color, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null, System.Collections.Generic.IReadOnlyList<PdfTextRun>? runs = null) {
         if (level < 1 || level > 9) throw new System.ArgumentOutOfRangeException(nameof(level), level, "Heading level must be between 1 and 9.");
         Guard.NotNullOrWhiteSpace(text, nameof(text));
         if (align != PdfAlign.Justify || style?.UseWordJustificationSpacing != true)

@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Contains image content retrieved from an HTTP or HTTPS source.
 /// </summary>
-public sealed class OfficeRemoteImage {
+internal sealed class OfficeRemoteImage {
     private readonly byte[] _bytes;
 
     internal OfficeRemoteImage(Uri source, byte[] bytes, string fileName, string contentType) {

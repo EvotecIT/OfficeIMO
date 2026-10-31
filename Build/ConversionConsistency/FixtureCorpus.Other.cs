@@ -53,12 +53,11 @@ internal static partial class FixtureCorpus {
         var profile = new OfficeRenderingProfile("conversion-consistency",
             new OfficeFontFaceCollection().Add(family, font).AddFallbackFamily(family), OfficeManagedTextShapingProvider.Instance);
         var rendering = new HtmlRenderOptions {
-            Mode = HtmlRenderMode.Paged, TargetDpi = 96, PageSize = new OfficePageSize(5, 320D / 96),
+            Mode = HtmlRenderMode.Paged, TargetDpi = 96, PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(5), global::OfficeIMO.OfficeLength.Inches(320D / 96)),
             DefaultFontFamily = family, Margins = HtmlRenderMargins.All(0), BackgroundColor = OfficeColor.White
         };
         rendering.UseRenderingProfile(profile);
-        File.WriteAllBytes(Path.Combine(output, "service-review.pdf"),
-            HtmlConversionDocument.Parse(html).ToPdfDocumentResult(new HtmlToPdfOptions(rendering)).ToBytes());
+        HtmlConversionDocument.Parse(html).SaveAsPdf(Path.Combine(output, "service-review.pdf"), new HtmlToPdfOptions(rendering));
         var visio = VisioDocument.Create(Path.Combine(output, "service-review.vsdx"));
         for (int number = 1; number <= 2; number++) {
             var page = visio.AddPage("Review " + number).Size(5, 320D / 96);

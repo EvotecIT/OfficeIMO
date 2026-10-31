@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
@@ -22,17 +23,17 @@ public partial class Word {
         WordTable table = CreateBorderFrameControl(document, 1, 1, 0);
         table.LayoutMode = WordTableLayoutMode.AutoFit;
         table._tableProperties!.TableWidth = new W.TableWidth { Type = W.TableWidthUnitValues.Auto, Width = "0" };
-        table.GridColumnWidth = new List<int> { 0 };
-        table.Rows[0].Height = 2400;
+        table.GridColumnWidth = new List<int> { 0 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
+        table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(120D);
         WordTableCell cell = table.Rows[0].Cells[0];
-        cell.WidthType = WordTableWidthUnit.Auto; cell.Width = 0;
+        cell.Width = WordTableWidth.Auto;
         cell.TextDirection = direction;
         WordParagraph paragraph = cell.Paragraphs[0];
         paragraph.Text = "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ";
         paragraph._paragraph.ParagraphProperties!.ParagraphMarkRunProperties = new W.ParagraphMarkRunProperties(
             new W.FontSize { Val = (markSize * 2).ToString(System.Globalization.CultureInfo.InvariantCulture) });
         string xml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(xml, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         var page = Assert.Single(pdf.GetPages());
         var frame = Assert.Single(page.Paths.Where(path => path.IsStroked)
@@ -50,13 +51,13 @@ public partial class Word {
     public void SaveAsPdf_CellDirectionPreservesTextAndSource(WordTextDirection direction, int verticalSign) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(document, 1, 1, 0);
-        table.Rows[0].Height = 2400;
+        table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(120D);
         table.Rows[0].Cells[0].TextDirection = direction;
         table.Rows[0].Cells[0].Paragraphs[0].Text = "ABCD";
         using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Equal(direction, imported.Tables[0].Rows[0].Cells[0].TextDirection);
         string xml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(xml, imported._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         var page = Assert.Single(pdf.GetPages());
         Assert.Equal("ABCD", string.Concat(page.Letters.Select(letter => letter.Value)));
@@ -94,16 +95,15 @@ public partial class Word {
     public void SaveAsPdf_UprightTurnedCellPicturePaintsAboveOverlappingFollowingText(WordTextDirection direction, bool pictureAbove) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(document, 1, 1, 0);
-        table.Rows[0].Height = 2400;
+        table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(120D);
         WordTableCell cell = table.Rows[0].Cells[0];
         cell.TextDirection = direction;
         WordParagraph paragraph = cell.Paragraphs[0];
         paragraph.Text = "Before";
         using var image = new MemoryStream(Convert.FromBase64String(CellDirectionImagePng));
-        paragraph.AddImage(image, "direction.png", 40D * 4D / 3D, 20D * 4D / 3D,
-            description: "Red left half and blue right half");
+        paragraph.AddImage(image, "direction.png", OfficeIMO.OfficeLength.Pixels(40D * 4D / 3D), OfficeIMO.OfficeLength.Pixels(20D * 4D / 3D), options: new OfficeIMO.Word.WordImageOptions { Description = "Red left half and blue right half" });
         paragraph.AddText("After");
-        byte[] bytes = document.ToPdfBytes(BorderFramePdfOptions());
+        byte[] bytes = document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         var page = Assert.Single(pdf.GetPages());
         Assert.Single(page.GetImages());
@@ -135,13 +135,13 @@ public partial class Word {
         WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         table.Rows[0].Cells[0].TextDirection = WordTextDirection.TopToBottomRightToLeft;
         paragraph.Text = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        paragraph.FontSize = runSize;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(runSize);
         paragraph._paragraph.ParagraphProperties!.ParagraphMarkRunProperties =
             new W.ParagraphMarkRunProperties(new W.FontSize { Val = (markSize * 2).ToString(System.Globalization.CultureInfo.InvariantCulture) });
         WordParagraph after = document.AddParagraph("After");
-        after.FontSize = 12;
-        after.LineSpacingBeforePoints = after.LineSpacingAfterPoints = 0;
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        after.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+        after.LineSpacingBefore = after.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         return Assert.Single(Assert.Single(pdf.GetPages()).GetWords(), word => word.Text == "After")
             .Letters[0].StartBaseLine.Y;
     }
@@ -149,18 +149,17 @@ public partial class Word {
     private static (double Width, double Height, double Top) CellDirectionImageBounds(WordTextDirection direction, WordParagraphAlignment alignment) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(document, 1, 1, 0);
-        table.Rows[0].Height = 2400;
+        table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(120D);
         WordTableCell cell = table.Rows[0].Cells[0];
         cell.TextDirection = direction;
         WordParagraph paragraph = cell.Paragraphs[0];
         paragraph.Text = string.Empty;
         paragraph.ParagraphAlignment = alignment;
         using var imageStream = new MemoryStream(Convert.FromBase64String(CellDirectionImagePng));
-        paragraph.AddImage(imageStream, "direction.png", 40D * 4D / 3D, 20D * 4D / 3D,
-            description: "Red left half and blue right half");
+        paragraph.AddImage(imageStream, "direction.png", OfficeIMO.OfficeLength.Pixels(40D * 4D / 3D), OfficeIMO.OfficeLength.Pixels(20D * 4D / 3D), options: new OfficeIMO.Word.WordImageOptions { Description = "Red left half and blue right half" });
         using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
         string xml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdfBytes(BorderFramePdfOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(xml, imported._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         var image = Assert.Single(Assert.Single(pdf.GetPages()).GetImages());
         return (image.BoundingBox.Width, image.BoundingBox.Height, image.BoundingBox.Top);
@@ -177,9 +176,8 @@ public partial class Word {
         cell.TextDirection = direction;
         WordParagraph paragraph = cell.Paragraphs[0];
         paragraph.Text = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-        paragraph.LineSpacing = 300;
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(300) * 635)));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         // The 109.2-point content frame retains the partially visible eighth 15-point column.
         var page = Assert.Single(pdf.GetPages());
         Assert.Equal(8, page.Letters.Select(letter => Math.Round(letter.StartBaseLine.X, 3)).Distinct().Count());

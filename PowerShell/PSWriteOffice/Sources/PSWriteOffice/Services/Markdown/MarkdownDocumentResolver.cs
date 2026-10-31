@@ -7,11 +7,11 @@ namespace PSWriteOffice.Services.Markdown;
 
 internal static class MarkdownDocumentResolver
 {
-    public static MarkdownDoc Resolve(
+    public static MarkdownDocument Resolve(
         PSCmdlet cmdlet,
         string parameterSetName,
         string documentParameterSetName,
-        MarkdownDoc? document,
+        MarkdownDocument? document,
         string? inputPath,
         string? text,
         IMarkdownReaderOptionSource optionSource)
@@ -31,21 +31,21 @@ internal static class MarkdownDocumentResolver
                 throw new FileNotFoundException($"File '{resolvedPath}' was not found.", resolvedPath);
             }
 
-            return MarkdownDoc.Load(resolvedPath, effectiveOptions);
+            return MarkdownDocument.Load(resolvedPath, effectiveOptions);
         }
 
-        return MarkdownReader.Parse(text ?? string.Empty, effectiveOptions);
+        return MarkdownDocument.Parse(text ?? string.Empty, effectiveOptions);
     }
 
-    public static MarkdownDoc Resolve(
+    public static MarkdownDocument Resolve(
         PSCmdlet cmdlet,
         string parameterSetName,
         string documentParameterSetName,
-        MarkdownDoc? document,
+        MarkdownDocument? document,
         string? inputPath,
         string? text,
-        MarkdownReaderOptions? options,
-        MarkdownReaderOptions.MarkdownDialectProfile? profile)
+        MarkdownLoadOptions? options,
+        MarkdownLoadOptions.MarkdownDialectProfile? profile)
     {
         if (options != null && profile.HasValue)
         {
@@ -58,7 +58,7 @@ internal static class MarkdownDocumentResolver
         }
 
         var effectiveOptions = options ?? (profile.HasValue
-            ? MarkdownReaderOptions.CreateProfile(profile.Value)
+            ? MarkdownLoadOptions.CreateProfile(profile.Value)
             : null);
 
         if (!string.IsNullOrEmpty(inputPath))
@@ -69,9 +69,9 @@ internal static class MarkdownDocumentResolver
                 throw new FileNotFoundException($"File '{resolvedPath}' was not found.", resolvedPath);
             }
 
-            return MarkdownDoc.Load(resolvedPath, effectiveOptions);
+            return MarkdownDocument.Load(resolvedPath, effectiveOptions);
         }
 
-        return MarkdownReader.Parse(text ?? string.Empty, effectiveOptions);
+        return MarkdownDocument.Parse(text ?? string.Empty, effectiveOptions);
     }
 }

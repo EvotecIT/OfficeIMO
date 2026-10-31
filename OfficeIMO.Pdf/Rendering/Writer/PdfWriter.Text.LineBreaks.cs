@@ -24,7 +24,7 @@ internal static partial class PdfWriter {
 
     private static System.Collections.Generic.List<PdfTextTokenChunk>? TryBuildSoftLineBreakTokenChunks(
         string token,
-        PdfOptions? options,
+        PdfCreateOptions? options,
         Func<string, double> measure,
         double firstMaxWidth,
         double subsequentMaxWidth) {
@@ -95,7 +95,7 @@ internal static partial class PdfWriter {
         return chunks.Count > 1 || allowSingleChunk ? chunks : null;
     }
 
-    private static int[] GetValidSoftLineBreakpoints(string token, PdfOptions? options) {
+    private static int[] GetValidSoftLineBreakpoints(string token, PdfCreateOptions? options) {
         Func<string, IReadOnlyList<int>>? callback = options?.TextLineBreakCallbackSnapshot;
         if (callback == null || string.IsNullOrEmpty(token)) {
             return Array.Empty<int>();
@@ -127,7 +127,7 @@ internal static partial class PdfWriter {
 
     // Largest prefix ending at a UAX #14 opportunity (or a hyphenation point, which adds a hyphen)
     // that fits the space left on the line.
-    private static bool TrySplitTokenAtLineEnd(string token, double available, PdfOptions? options, Func<string, double> measure,
+    private static bool TrySplitTokenAtLineEnd(string token, double available, PdfCreateOptions? options, Func<string, double> measure,
         out string head, out double headWidth, out int consumed,
         System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -140,12 +140,14 @@ internal static partial class PdfWriter {
         foreach (int position in GetValidHyphenationBreakpoints(token, options)) {
             if (!candidates.ContainsKey(position)) candidates[position] = true;
         }
+        bool identifier = IsHyphenatedIdentifier(token);
         // Try short prefixes first. On long CJK or zero-width tokens, measuring every
         // overlapping prefix would make one line's layout quadratic in token length.
         long remainingMeasurementWork = Math.Max(4096L, 32L * token.Length);
         foreach (KeyValuePair<int, bool> candidate in candidates) {
             cancellationToken.ThrowIfCancellationRequested();
             if (candidate.Key <= 0 || candidate.Key >= token.Length) continue;
+            if (identifier && !candidate.Value && IsHyphenCharacter(token[candidate.Key - 1])) continue;
             int length = candidate.Key + (candidate.Value ? 1 : 0);
             if (length > remainingMeasurementWork) break;
             remainingMeasurementWork -= length;
@@ -159,4 +161,16 @@ internal static partial class PdfWriter {
         }
         return consumed > 0;
     }
+
+    private static bool IsHyphenatedIdentifier(string token) {
+        bool hasDigit = false, hasHyphen = false;
+        foreach (char ch in token) {
+            if (char.IsDigit(ch)) hasDigit = true;
+            else if (IsHyphenCharacter(ch)) hasHyphen = true;
+            else if (!char.IsLetter(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '#') return false;
+        }
+        return hasDigit && hasHyphen;
+    }
+
+    private static bool IsHyphenCharacter(char ch) => ch == '-' || ch == '\u2010' || ch == '\u2011';
 }

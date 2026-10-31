@@ -84,19 +84,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 verticalAxis.GetFirstChild<C.MajorGridlines>();
             C.ChartShapeProperties? properties =
                 gridlines?.GetFirstChild<C.ChartShapeProperties>();
-            A.Outline? outline = properties?.GetFirstChild<A.Outline>();
-            if (gridlines == null || properties == null || outline == null ||
-                gridlines.ChildElements.Count != 1 ||
-                properties.ChildElements.Count != 1 ||
-                outline.ChildElements.Count != 1 ||
-                outline.Width?.Value !=
-                    6350L) {
-                return false;
-            }
-
-            OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(
-                outline.GetFirstChild<A.SolidFill>(), colorScheme: null);
-            return color == OfficeChartStyle.Default.GridLineColor;
+            if (gridlines == null || properties == null) return false;
+            return !HasUnsupportedBubbleShapeProperties(gridlines);
         }
 
         internal static bool TryGetReferencedBubbleAxes(
@@ -143,10 +132,14 @@ namespace OfficeIMO.OpenXml.Internal {
                     .GetFirstChild<C.Title>()) ||
             plotArea.GetFirstChild<C.Layout>()?
                 .GetFirstChild<C.ManualLayout>() != null ||
-            chartPart.ChartSpace?.GetFirstChild<C.ShapeProperties>()?
-                .ChildElements.Count > 0 ||
+            !IsFramelessChartArea(chartPart.ChartSpace?.GetFirstChild<C.ShapeProperties>()) ||
             plotArea.GetFirstChild<C.ShapeProperties>()?
                 .ChildElements.Count > 0;
+
+        // No chart-area shape, or one with no fill and no outline, draws nothing.
+        private static bool IsFramelessChartArea(C.ShapeProperties? shape) =>
+            shape == null || shape.ChildElements.All(child => child is A.NoFill ||
+                child is A.Outline outline && !outline.HasAttributes && outline.ChildElements.All(item => item is A.NoFill));
 
         private static bool HasUnsupportedBubbleTitle(C.Title? title) =>
             title != null &&
@@ -155,41 +148,24 @@ namespace OfficeIMO.OpenXml.Internal {
              HasUnsupportedBubbleTextStyle(title) ||
              HasUnsupportedBubbleShapeProperties(title));
 
-        private static bool HasUnsupportedBubbleTextStyle(
-            OpenXmlElement parent) =>
-            parent.Descendants<A.RunProperties>()
-                .Any(HasUnsupportedBubbleTextCharacterProperties) ||
-            parent.Descendants<A.DefaultRunProperties>()
-                .Any(HasUnsupportedBubbleTextCharacterProperties) ||
-            parent.Descendants<A.EndParagraphRunProperties>()
-                .Any(HasUnsupportedBubbleTextCharacterProperties) ||
-            parent.Descendants<A.BodyProperties>()
-                .Any(properties =>
-                    properties.HasAttributes ||
-                    properties.ChildElements.Count > 0) ||
-            parent.Descendants<A.ListStyle>()
-                .Any(style => style.ChildElements.Count > 0) ||
-            parent.Descendants<A.ParagraphProperties>()
-                .Any(properties =>
-                    properties.HasAttributes ||
-                    properties.ChildElements.Any(child =>
-                        child is not A.DefaultRunProperties));
+        private static bool HasUnsupportedBubbleTextStyle(OpenXmlElement parent) {
+            C.Chart? chart = parent as C.Chart ?? parent.Ancestors<C.Chart>().FirstOrDefault();
+            if (chart == null) return true;
+            try {
+                OfficeOpenXmlChartTextReader.ReadNativeText(chart, parent, scheme: null, allowMultiline: true);
+                return false;
+            } catch (NotSupportedException) {
+                return true;
+            }
+        }
 
-        private static bool HasUnsupportedBubbleTextCharacterProperties(
-            A.TextCharacterPropertiesType properties) =>
-            properties.ChildElements.Count > 0 ||
-            properties.GetAttributes().Any(attribute =>
-                !string.Equals(
-                    attribute.LocalName, "lang",
-                    StringComparison.Ordinal));
-
-        private static bool HasUnsupportedBubbleShapeProperties(
-            OpenXmlElement parent) {
-            C.ChartShapeProperties? properties =
-                parent.GetFirstChild<C.ChartShapeProperties>();
-            return properties != null &&
-                (properties.HasAttributes ||
-                 properties.ChildElements.Count > 0);
+        private static bool HasUnsupportedBubbleShapeProperties(OpenXmlElement parent) {
+            try {
+                ReadSurface(parent.GetFirstChild<C.ChartShapeProperties>(), scheme: null, colorMap: null);
+                return false;
+            } catch (NotSupportedException) {
+                return true;
+            }
         }
 
         private static bool HasEnabledBubbleDataLabels(C.BubbleChart chart) =>

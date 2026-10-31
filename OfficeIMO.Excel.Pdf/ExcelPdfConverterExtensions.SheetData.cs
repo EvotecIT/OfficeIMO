@@ -22,13 +22,13 @@ namespace OfficeIMO.Excel.Pdf {
                    workbookSheet.GetColumnDefinitions(cancellationToken).Any(column => column.Hidden);
         }
 
-        private static IReadOnlyList<string> GetExportRanges(ExcelSheetReader sheet, ExcelSheet? workbookSheet, ExcelToPdfOptions options) {
+        private static IReadOnlyList<string> GetExportRanges(ExcelSheetReader sheet, ExcelSheet? workbookSheet, ExcelPdfExportOptions options) {
             IReadOnlyList<string> areas = options.UseWorksheetPrintAreas && workbookSheet != null
                 ? workbookSheet.GetPrintAreas()
                 : Array.Empty<string>();
-            if (areas.Count == 0) return new[] { sheet.GetUsedRangeA1() };
+            if (areas.Count == 0) return new[] { ExtendUsedRangeToMergedCells(sheet.GetUsedRangeA1(), workbookSheet, options) };
 
-            A1.TryParseRange(NormalizeA1Range(sheet.GetUsedRangeA1()), out _, out _, out int usedLastRow, out int usedLastColumn);
+            ExcelA1.TryParseRange(NormalizeA1Range(sheet.GetUsedRangeA1()), out _, out _, out int usedLastRow, out int usedLastColumn);
             var ranges = new List<string>(areas.Count);
             foreach (string area in areas) {
                 options.CancellationToken.ThrowIfCancellationRequested();
@@ -44,30 +44,62 @@ namespace OfficeIMO.Excel.Pdf {
             return ranges;
         }
 
-        private static bool IsBoundedWorksheetRead(ExcelToPdfOptions options) =>
+        /// <summary>
+        /// Excel prints a merged cell whole when its anchor is inside the used range, even
+        /// if the other cells of the merge hold no value. Grow the automatic range to the
+        /// merge extents so a title merged across A1:F1 is not cut at the last value column.
+        /// </summary>
+        private static string ExtendUsedRangeToMergedCells(string usedRange, ExcelSheet? workbookSheet, ExcelPdfExportOptions options) {
+            if (workbookSheet == null || !options.UseWorksheetMergedCells || IsBoundedWorksheetRead(options) ||
+                !ExcelA1.TryParseRange(NormalizeA1Range(usedRange), out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                return usedRange;
+            }
+
+            int extendedLastRow = lastRow;
+            int extendedLastColumn = lastColumn;
+            foreach (ExcelMergedRangeInfo merged in workbookSheet.GetMergedRanges()) {
+                if (merged.StartRow < firstRow || merged.StartRow > lastRow ||
+                    merged.StartColumn < firstColumn || merged.StartColumn > lastColumn) {
+                    continue;
+                }
+
+                extendedLastRow = Math.Max(extendedLastRow, merged.EndRow);
+                extendedLastColumn = Math.Max(extendedLastColumn, merged.EndColumn);
+            }
+
+            return extendedLastRow == lastRow && extendedLastColumn == lastColumn
+                ? usedRange
+                : ToA1Range(firstRow, firstColumn, extendedLastRow, extendedLastColumn);
+        }
+
+        private static bool IsBoundedWorksheetRead(ExcelPdfExportOptions options) =>
             options.UseBoundedWorksheetRead && options.MaxRowsPerSheet.HasValue;
 
-        private static bool HasWorksheetPrintArea(ExcelSheet? workbookSheet, ExcelToPdfOptions options) =>
+        private static bool HasWorksheetPrintArea(ExcelSheet? workbookSheet, ExcelPdfExportOptions options) =>
             !string.IsNullOrWhiteSpace(GetWorksheetPrintArea(workbookSheet, options));
 
-        private static string? GetWorksheetPrintArea(ExcelSheet? workbookSheet, ExcelToPdfOptions options) =>
+        private static string? GetWorksheetPrintArea(ExcelSheet? workbookSheet, ExcelPdfExportOptions options) =>
             options.UseWorksheetPrintAreas && workbookSheet != null ? workbookSheet.GetPrintArea() : null;
 
-        private static SheetExportData ReadSheetExportData(ExcelDocument document, ExcelSheetReader sheet, ExcelSheet? workbookSheet, string exportRange, ExcelToPdfOptions options, PdfCore.PdfStandardFont defaultFontFamily) {
+        private static SheetExportData ReadSheetExportData(ExcelDocument document, ExcelSheetReader sheet, ExcelSheet? workbookSheet, string exportRange, ExcelPdfExportOptions options, PdfCore.PdfStandardFont defaultFontFamily) {
             string normalizedRange = NormalizeA1Range(exportRange);
-            A1.TryParseRange(normalizedRange, out int rangeFirstRow, out int rangeFirstColumn, out _, out int rangeLastColumn);
+            ExcelA1.TryParseRange(normalizedRange, out int rangeFirstRow, out int rangeFirstColumn, out _, out int rangeLastColumn);
             bool boundedRead = IsBoundedWorksheetRead(options);
             ExcelSheet? metadataSheet = boundedRead ? null : workbookSheet;
             IReadOnlyList<StructuredTableVisualData> structuredTables = ReadStructuredTableVisuals(document, sheet.Name, options);
             RangeExportData bodyRange = ReadRangeWithPrintTitleColumns(sheet, metadataSheet, workbookSheet, normalizedRange, options, defaultFontFamily, boundedRead);
             object?[,] values = bodyRange.Values;
-            ExcelCellStyleSnapshot?[,]? styles = bodyRange.Styles;
-            ExcelHyperlinkSnapshot?[,]? hyperlinks = bodyRange.Hyperlinks;
+            ExcelCellStyleInfo?[,]? styles = bodyRange.Styles;
+            ExcelHyperlinkInfo?[,]? hyperlinks = bodyRange.Hyperlinks;
             string?[,]? cellReferences = bodyRange.CellReferences;
             MergeLayoutData? mergedCells = bodyRange.MergedCells;
             ColumnLayoutData? columnWidths = bodyRange.ColumnWidths;
             RowLayoutData? rowHeights = bodyRange.RowHeights;
-            int headerRows = options.HeaderRowCount;
+            // A spreadsheet repeats only its print-title rows on later pages. The worksheet canvas
+            // follows that unless the caller asks for header rows explicitly.
+            int headerRows = options.WorksheetLayout == ExcelPdfWorksheetLayoutMode.WorksheetCanvas && !options.HeaderRowCountSpecified
+                ? 0
+                : options.HeaderRowCount;
             if (!options.UseWorksheetPrintTitleRows || metadataSheet == null) {
                 return CreateSheetExportData(metadataSheet, values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, rangeFirstRow, structuredTables, options);
             }
@@ -87,8 +119,8 @@ namespace OfficeIMO.Excel.Pdf {
                 int bodyRowCount = values.GetLength(0);
                 int columnCount = values.GetLength(1);
                 object?[,] prependedValues = PrependRows(titleRangeData.Values, values);
-                ExcelCellStyleSnapshot?[,]? prependedStyles = PrependRows(titleRangeData.Styles, styles, prependedRowCount, bodyRowCount, columnCount);
-                ExcelHyperlinkSnapshot?[,]? prependedHyperlinks = PrependRows(titleRangeData.Hyperlinks, hyperlinks, prependedRowCount, bodyRowCount, columnCount);
+                ExcelCellStyleInfo?[,]? prependedStyles = PrependRows(titleRangeData.Styles, styles, prependedRowCount, bodyRowCount, columnCount);
+                ExcelHyperlinkInfo?[,]? prependedHyperlinks = PrependRows(titleRangeData.Hyperlinks, hyperlinks, prependedRowCount, bodyRowCount, columnCount);
                 string?[,]? prependedCellReferences = PrependRows(titleRangeData.CellReferences, cellReferences, prependedRowCount, bodyRowCount, columnCount);
                 MergeLayoutData? prependedMergedCells = PrependRows(titleRangeData.MergedCells, mergedCells, prependedRowCount, bodyRowCount, columnCount);
                 RowLayoutData? prependedRowHeights = PrependRows(titleRangeData.RowHeights, rowHeights, prependedRowCount, bodyRowCount);
@@ -118,7 +150,7 @@ namespace OfficeIMO.Excel.Pdf {
             return CreateSheetExportData(metadataSheet, values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, rangeFirstRow, structuredTables, options);
         }
 
-        private static SheetExportData CreateSheetExportData(ExcelSheet? workbookSheet, object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int headerRows, int firstBodyRowNumber, IReadOnlyList<StructuredTableVisualData> structuredTables, ExcelToPdfOptions options) {
+        private static SheetExportData CreateSheetExportData(ExcelSheet? workbookSheet, object?[,] values, ExcelCellStyleInfo?[,]? styles, ExcelHyperlinkInfo?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int headerRows, int firstBodyRowNumber, IReadOnlyList<StructuredTableVisualData> structuredTables, ExcelPdfExportOptions options) {
             ConditionalFillData? conditionalFills = ReadConditionalFillData(
                 workbookSheet,
                 values,
@@ -130,8 +162,39 @@ namespace OfficeIMO.Excel.Pdf {
             return new SheetExportData(values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, firstBodyRowNumber, structuredTables, conditionalFills, titleColumns, titleRows);
         }
 
-        private static RangeExportData ReadRangeExportData(ExcelSheetReader sheet, ExcelSheet? metadataSheet, ExcelSheet? styleSheet, string normalizedRange, ExcelToPdfOptions options, PdfCore.PdfStandardFont defaultFontFamily, bool boundedRead) {
+        /// <summary>
+        /// The reader returns a formula's text when the workbook stores no cached result.
+        /// Excel shows the calculated value instead, so evaluate supported formulas here
+        /// without changing the workbook, and report the ones that cannot be calculated.
+        /// </summary>
+        private static void ApplyUncachedFormulaValues(ExcelSheet? metadataSheet, string normalizedRange, object?[,] values, ExcelPdfExportOptions options) {
+            if (metadataSheet == null || values.Length == 0 ||
+                !ExcelA1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                return;
+            }
+
+            var (calculated, unsupported) = metadataSheet.EvaluateUncachedFormulaDisplayValues(firstRow, firstColumn, lastRow, lastColumn);
+            foreach (KeyValuePair<(int Row, int Column), object?> entry in calculated) {
+                int row = entry.Key.Row - firstRow;
+                int column = entry.Key.Column - firstColumn;
+                if (row >= 0 && column >= 0 && row < values.GetLength(0) && column < values.GetLength(1)) {
+                    values[row, column] = entry.Value;
+                }
+            }
+
+            if (unsupported.Count > 0) {
+                AddWarning(
+                    options,
+                    metadataSheet.Name,
+                    "formula-not-calculated",
+                    $"{unsupported.Count.ToString(CultureInfo.InvariantCulture)} formula cell(s) have no cached result and use functions the built-in calculator does not support; they were exported blank. Recalculate and save the workbook in a spreadsheet application to include their values. First cell: {unsupported[0]}.",
+                    OfficeConversionLossKind.Omission);
+            }
+        }
+
+        private static RangeExportData ReadRangeExportData(ExcelSheetReader sheet, ExcelSheet? metadataSheet, ExcelSheet? styleSheet, string normalizedRange, ExcelPdfExportOptions options, PdfCore.PdfStandardFont defaultFontFamily, bool boundedRead) {
             object?[,] rawValues = sheet.ReadRange(normalizedRange);
+            ApplyUncachedFormulaValues(metadataSheet, normalizedRange, rawValues, options);
             VisibilityLayoutData? visibility = ReadVisibilityLayoutData(
                 metadataSheet,
                 normalizedRange,
@@ -147,7 +210,7 @@ namespace OfficeIMO.Excel.Pdf {
                 rowCount,
                 columnCount,
                 visibility);
-            ExcelCellStyleSnapshot?[,]? styles = ReadCellStyleData(
+            ExcelCellStyleInfo?[,]? styles = ReadCellStyleData(
                 styleSheet,
                 sheet,
                 normalizedRange,
@@ -157,7 +220,7 @@ namespace OfficeIMO.Excel.Pdf {
                 defaultFontFamily,
                 boundedRead,
                 visibility);
-            ExcelHyperlinkSnapshot?[,]? hyperlinks = ReadHyperlinkData(
+            ExcelHyperlinkInfo?[,]? hyperlinks = ReadHyperlinkData(
                 metadataSheet,
                 normalizedRange,
                 rowCount,

@@ -538,8 +538,8 @@ public class PdfImageExtractorTests {
 
         byte[] stamped = PdfStamper.StampImage(source, CreateMinimalRgbPng(), new PdfImageStampOptions {
             PageNumbers = new[] { 2 },
-            Width = 24,
-            Height = 24
+            Width = global::OfficeIMO.OfficeLength.Points(24),
+            Height = global::OfficeIMO.OfficeLength.Points(24)
         });
 
         var images = PdfImageExtractor.ExtractImages(stamped);
@@ -554,8 +554,8 @@ public class PdfImageExtractorTests {
     public void ExtractImagesByPageRanges_ReturnsSelectedPagesInRangeOrder() {
         byte[] stamped = PdfStamper.StampImage(BuildThreePagePdf(), CreateMinimalRgbPng(), new PdfImageStampOptions {
             PageNumbers = new[] { 1, 3 },
-            Width = 24,
-            Height = 24
+            Width = global::OfficeIMO.OfficeLength.Points(24),
+            Height = global::OfficeIMO.OfficeLength.Points(24)
         });
 
         var images = PdfImageExtractor.ExtractImagesByPageRanges(stamped, PdfPageRange.ParseMany("3,1-2,3"));
@@ -670,8 +670,8 @@ public class PdfImageExtractorTests {
             Directory.CreateDirectory(directory);
             byte[] stamped = PdfStamper.StampImage(BuildThreePagePdf(), CreateMinimalRgbPng(), new PdfImageStampOptions {
                 PageNumbers = new[] { 1, 3 },
-                Width = 24,
-                Height = 24
+                Width = global::OfficeIMO.OfficeLength.Points(24),
+                Height = global::OfficeIMO.OfficeLength.Points(24)
             });
             File.WriteAllBytes(inputPath, stamped);
 
@@ -722,8 +722,8 @@ public class PdfImageExtractorTests {
             Directory.CreateDirectory(directory);
             byte[] stamped = PdfStamper.StampImage(BuildThreePagePdf(), CreateMinimalRgbPng(), new PdfImageStampOptions {
                 PageNumbers = new[] { 1, 3 },
-                Width = 24,
-                Height = 24
+                Width = global::OfficeIMO.OfficeLength.Points(24),
+                Height = global::OfficeIMO.OfficeLength.Points(24)
             });
             File.WriteAllBytes(inputPath, stamped);
 
@@ -795,12 +795,12 @@ public class PdfImageExtractorTests {
         var doc = PdfDocument.Create();
         doc.Compose(compose => {
             compose.Page(page => {
-                page.Size(PageSizes.A4);
+                page.Size(PdfPageSizes.A4);
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("First page body"))));
             });
 
             compose.Page(page => {
-                page.Size(PageSizes.A4);
+                page.Size(PdfPageSizes.A4);
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Second page body"))));
             });
         });
@@ -812,17 +812,17 @@ public class PdfImageExtractorTests {
         var doc = PdfDocument.Create();
         doc.Compose(compose => {
             compose.Page(page => {
-                page.Size(PageSizes.A4);
+                page.Size(PdfPageSizes.A4);
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("First page body"))));
             });
 
             compose.Page(page => {
-                page.Size(PageSizes.A4);
+                page.Size(PdfPageSizes.A4);
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Second page body"))));
             });
 
             compose.Page(page => {
-                page.Size(PageSizes.A4);
+                page.Size(PdfPageSizes.A4);
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Third page body"))));
             });
         });

@@ -11,19 +11,19 @@ namespace OfficeIMO.PowerPoint.OpenDocument;
 public static partial class PowerPointOpenDocumentConversionExtensions {
     private const int MaximumOdpSlideNameLength = 128;
     /// <summary>Converts a PowerPoint presentation to an in-memory ODP document.</summary>
-    public static OdpPresentation ToOpenDocument(this PowerPointPresentation source,
+    public static OdpPresentation ToOpenDocument(this PowerPointDocument source,
         PowerPointOpenDocumentConversionOptions? options = null) => source.ToOpenDocumentResult(options).Value;
 
     /// <summary>Converts a PowerPoint presentation to an in-memory ODP document and reports every lossy mapping.</summary>
-    public static OdfConversionResult<OdpPresentation> ToOpenDocumentResult(this PowerPointPresentation source,
+    public static OdfConversionResult<OdpPresentation> ToOpenDocumentResult(this PowerPointDocument source,
         PowerPointOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);
         OdpPresentation target = OdpPresentation.Create();
         var report = new OdfConversionReport("PPTX", "ODP");
         CopyPowerPointMetadata(source, target, report);
-        target.PageWidth = OdfLength.Points(source.SlideSize.WidthPoints);
-        target.PageHeight = OdfLength.Points(source.SlideSize.HeightPoints);
+        target.PageWidth = OdfLength.Points(source.SlideSize.Width.ToPoints());
+        target.PageHeight = OdfLength.Points(source.SlideSize.Height.ToPoints());
 
         int textBoxes = 0, pictures = 0, tables = 0, autoShapes = 0;
         int notes = 0, transitions = 0, backgrounds = 0, unsupportedBackgrounds = 0, unsupportedShapes = 0, unsupportedPictures = 0;
@@ -159,8 +159,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     OdpShape converted;
                     if (autoShape.ShapeType == OfficePresetShapeType.Ellipse) converted = targetSlide.AddEllipse(ToOdfRect(autoShape), autoShape.Name);
                     else if (autoShape.ShapeType == OfficePresetShapeType.Line) {
-                        converted = targetSlide.AddLine(OdfLength.Points(autoShape.LeftPoints), OdfLength.Points(autoShape.TopPoints),
-                            OdfLength.Points(autoShape.RightPoints), OdfLength.Points(autoShape.BottomPoints), autoShape.Name);
+                        converted = targetSlide.AddLine(OdfLength.Points(autoShape.Left.ToPoints()), OdfLength.Points(autoShape.Top.ToPoints()),
+                            OdfLength.Points(autoShape.Right.ToPoints()), OdfLength.Points(autoShape.Bottom.ToPoints()), autoShape.Name);
                     } else {
                         converted = targetSlide.AddRectangle(ToOdfRect(autoShape), autoShape.Name);
                         if (autoShape.ShapeType != OfficePresetShapeType.Rectangle) transformedShapes++;
@@ -168,8 +168,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     CopyShapeAppearance(autoShape, converted, effective);
                     autoShapes++;
                 } else if (shape is PowerPointConnectionShape connection) {
-                    OdpLine converted = targetSlide.AddLine(OdfLength.Points(connection.LeftPoints), OdfLength.Points(connection.TopPoints),
-                        OdfLength.Points(connection.RightPoints), OdfLength.Points(connection.BottomPoints), connection.Name);
+                    OdpLine converted = targetSlide.AddLine(OdfLength.Points(connection.Left.ToPoints()), OdfLength.Points(connection.Top.ToPoints()),
+                        OdfLength.Points(connection.Right.ToPoints()), OdfLength.Points(connection.Bottom.ToPoints()), connection.Name);
                     CopyShapeAppearance(connection, converted, effective);
                     autoShapes++;
                     transformedShapes++;
@@ -284,7 +284,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "Authored handout-master content is not transferred to ODP.");
         AddUnsupported(report, "slide-show-settings", CountUnmappedPowerPointShowProperties(sourcePresentation),
             "PowerPoint slide-show playback settings are not transferred to ODP.");
-        AddUnsupported(report, "presentation-properties", CountUnmappedPowerPointPresentationProperties(sourcePresentation),
+        AddUnsupported(report, "presentation-properties", CountUnmappedPowerPointDocumentProperties(sourcePresentation),
             "PowerPoint print, web, publishing, and other presentation properties were not transferred to ODP.");
         AddUnsupported(report, "presentation-settings", CountUnmappedPowerPointRootSettings(sourcePresentation),
             "PowerPoint root presentation settings and custom notes size were not transferred to ODP.");
@@ -297,21 +297,21 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     }
 
     /// <summary>Converts an ODP document to an in-memory PowerPoint presentation.</summary>
-    public static PowerPointPresentation ToPowerPointPresentation(this OdpPresentation source,
-        PowerPointOpenDocumentConversionOptions? options = null) => source.ToPowerPointPresentationResult(options).Value;
+    public static PowerPointDocument ToPowerPointDocument(this OdpPresentation source,
+        PowerPointOpenDocumentConversionOptions? options = null) => source.ToPowerPointDocumentResult(options).Value;
 
     /// <summary>Converts an ODP document to an in-memory PowerPoint presentation and reports every lossy mapping.</summary>
-    public static OdfConversionResult<PowerPointPresentation> ToPowerPointPresentationResult(this OdpPresentation source,
+    public static OdfConversionResult<PowerPointDocument> ToPowerPointDocumentResult(this OdpPresentation source,
         PowerPointOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);
-        PowerPointPresentation target = PowerPointPresentation.Create();
+        PowerPointDocument target = PowerPointDocument.CreateForImport();
         var report = new OdfConversionReport("ODP", "PPTX");
         CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
         CopyOdpMetadata(source, target, report);
         int unsupportedMeasurements = 0;
         if (source.PageWidth.TryToPoints(out double pageWidth) && source.PageHeight.TryToPoints(out double pageHeight)) {
-            target.SlideSize.SetSizePoints(pageWidth, pageHeight);
+            target.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(pageWidth),OfficeIMO.OfficeLength.Points(pageHeight));
         } else {
             unsupportedMeasurements++;
         }
@@ -372,7 +372,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     }
                     IReadOnlyList<OdpParagraph> sourceParagraphs = textBox.Paragraphs;
                     listParagraphs += textBox.Lists.Sum(list => list.Items.Count);
-                    PowerPointTextBox converted = targetSlide.AddTextBox(string.Empty, textBoxBounds);
+                    PowerPointTextBox converted = targetSlide.AddTextBox(string.Empty,textBoxBounds);
                     converted.Name = textBox.Name;
                     if (textBox.PresentationClass != null) {
                         PowerPointPlaceholderType? placeholderType = GetPowerPointPlaceholderType(textBox.PresentationClass);
@@ -409,7 +409,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                             continue;
                         }
                         using var stream = new MemoryStream(imageBytes, writable: false);
-                        PowerPointPicture converted = targetSlide.AddPicture(stream, imageInfo.Format, imageBounds);
+                        PowerPointPicture converted = targetSlide.AddImage(stream, imageInfo.Format, imageBounds);
+                        // Import retains the source frame, including intentional stretching.
+                        converted.Bounds = imageBounds;
                         converted.Name = image.Name;
                         unsupportedMeasurements += CopyShapeAppearance(image, converted, effective);
                         unsupportedImageCrop += ApplyOdpCrop(image, imageInfo, converted);
@@ -435,7 +437,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     if (columnCount > effective.MaxTableColumns) {
                         throw new InvalidDataException($"ODP table columns ({columnCount}) exceed the configured conversion limit ({effective.MaxTableColumns}).");
                     }
-                    PowerPointTable converted = targetSlide.AddTable(rowCount, columnCount, tableBounds);
+                    PowerPointTable converted = targetSlide.AddTable(rowCount,columnCount,tableBounds);
                     converted.Name = table.Name;
                     unsupportedMeasurements += CopyShapeAppearance(table, converted, effective);
                     var merges = new List<(int Row, int Column, int RowSpan, int ColumnSpan)>();
@@ -467,7 +469,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         unsupportedShapes++;
                         continue;
                     }
-                    PowerPointAutoShape converted = targetSlide.AddRectanglePoints(x, y, width, height, rectangle.Name);
+                    PowerPointAutoShape converted = targetSlide.AddRectangle(OfficeIMO.OfficeLength.Points(x), OfficeIMO.OfficeLength.Points(y), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height), rectangle.Name);
                     unsupportedMeasurements += CopyShapeAppearance(rectangle, converted, effective);
                     basicShapes++;
                 } else if (shape is OdpEllipse ellipse) {
@@ -476,7 +478,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         unsupportedShapes++;
                         continue;
                     }
-                    PowerPointAutoShape converted = targetSlide.AddEllipsePoints(x, y, width, height, ellipse.Name);
+                    PowerPointAutoShape converted = targetSlide.AddEllipse(OfficeIMO.OfficeLength.Points(x), OfficeIMO.OfficeLength.Points(y), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height), ellipse.Name);
                     unsupportedMeasurements += CopyShapeAppearance(ellipse, converted, effective);
                     basicShapes++;
                 } else if (shape is OdpLine line) {
@@ -487,7 +489,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         continue;
                     }
                     if (x1 > x2 || y1 > y2) transformedShapes++;
-                    PowerPointAutoShape converted = targetSlide.AddLinePoints(x1, y1, x2, y2, line.Name);
+                    PowerPointAutoShape converted = targetSlide.AddLine(OfficeIMO.OfficeLength.Points(x1), OfficeIMO.OfficeLength.Points(y1), OfficeIMO.OfficeLength.Points(x2), OfficeIMO.OfficeLength.Points(y2), line.Name);
                     unsupportedMeasurements += CopyShapeAppearance(line, converted, effective);
                     basicShapes++;
                 } else {
@@ -621,7 +623,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "ODP named custom slide shows were not transferred to PowerPoint.");
         AddUnsupported(report, "slide-show-settings", CountUnmappedOdpSlideShowSettings(source),
             "ODP slide-show playback settings were not transferred to PowerPoint.");
-        return new OdfConversionResult<PowerPointPresentation>(target, report).ApplyPolicy(effective.LossPolicy);
+        return new OdfConversionResult<PowerPointDocument>(target, report).ApplyPolicy(effective.LossPolicy);
     }
 
     private static bool TryResolveSlideFragment(
@@ -696,7 +698,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         target.Bold = source.Bold ? true : (bool?)null;
         target.Italic = source.Italic ? true : (bool?)null;
         ApplyPowerPointTextSemantics(source, target);
-        if (source.FontSizePoints.HasValue) target.FontSize = OdfLength.Points(source.FontSizePoints.Value);
+        if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value.ToPoints());
         target.FontFamily = source.FontName;
         if (!string.IsNullOrWhiteSpace(source.Color)) target.Color = ParseColor(source.Color);
         if (!string.IsNullOrWhiteSpace(source.HighlightColor)) target.BackgroundColor = ParseColor(source.HighlightColor);
@@ -708,14 +710,14 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         target.Bold = source.Bold ? true : (bool?)null;
         target.Italic = source.Italic ? true : (bool?)null;
         ApplyPowerPointTextSemantics(source, target);
-        if (source.FontSizePoints.HasValue) target.FontSize = OdfLength.Points(source.FontSizePoints.Value);
+        if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value.ToPoints());
         target.FontFamily = source.FontName;
         if (!string.IsNullOrWhiteSpace(source.Color)) target.Color = ParseColor(source.Color);
         if (!string.IsNullOrWhiteSpace(source.HighlightColor)) target.BackgroundColor = ParseColor(source.HighlightColor);
     }
 
     private static bool HasBasicFormatting(PowerPointTextRun run) =>
-        run.Bold || run.Italic || run.Underline || run.Strikethrough || run.FontSizePoints.HasValue ||
+        run.Bold || run.Italic || run.Underline || run.Strikethrough || run.FontSize.HasValue ||
         run.UnderlineStyle.HasValue || run.StrikeStyle.HasValue || run.BaselinePercent.HasValue || run.Capitalization.HasValue ||
         !string.IsNullOrWhiteSpace(run.FontName) || !string.IsNullOrWhiteSpace(run.Color) ||
         !string.IsNullOrWhiteSpace(run.HighlightColor);
@@ -786,7 +788,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     };
 
     private static bool HasBasicFormatting(PowerPointShape shape) =>
-        !string.IsNullOrWhiteSpace(shape.FillColor) || !string.IsNullOrWhiteSpace(shape.OutlineColor) || shape.OutlineWidthPoints.HasValue;
+        !string.IsNullOrWhiteSpace(shape.FillColor) || !string.IsNullOrWhiteSpace(shape.OutlineColor) || shape.OutlineWidth.HasValue;
 
     private static bool HasBasicFormatting(OdpShape shape) =>
         shape.FillColor.HasValue || shape.StrokeColor.HasValue || shape.StrokeWidth.HasValue;
@@ -796,7 +798,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (!options.IncludeBasicFormatting) return;
         if (!string.IsNullOrWhiteSpace(source.FillColor)) target.FillColor = ParseColor(source.FillColor);
         if (!string.IsNullOrWhiteSpace(source.OutlineColor)) target.StrokeColor = ParseColor(source.OutlineColor);
-        if (source.OutlineWidthPoints.HasValue) target.StrokeWidth = OdfLength.Points(source.OutlineWidthPoints.Value);
+        if (source.OutlineWidth.HasValue) target.StrokeWidth = OdfLength.Points(source.OutlineWidth.Value.ToPoints());
     }
 
     private static int CopyShapeAppearance(OdpShape source, PowerPointShape target, PowerPointOpenDocumentConversionOptions options) {
@@ -805,7 +807,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (source.FillColor.HasValue) target.FillColor = source.FillColor.Value.ToString().TrimStart('#');
         if (source.StrokeColor.HasValue) target.OutlineColor = source.StrokeColor.Value.ToString().TrimStart('#');
         if (source.StrokeWidth.HasValue) {
-            if (source.StrokeWidth.Value.TryToPoints(out double points)) target.OutlineWidthPoints = points;
+            if (source.StrokeWidth.Value.TryToPoints(out double points)) target.OutlineWidth = global::OfficeIMO.OfficeLength.Points(points);
             else return 1;
         }
         return 0;
@@ -845,15 +847,15 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     }
 
     private static OdfRect ToOdfRect(PowerPointShape shape) => new OdfRect(
-        OdfLength.Points(shape.LeftPoints), OdfLength.Points(shape.TopPoints),
-        OdfLength.Points(Math.Max(0.01D, shape.WidthPoints)), OdfLength.Points(Math.Max(0.01D, shape.HeightPoints)));
+        OdfLength.Points(shape.Left.ToPoints()), OdfLength.Points(shape.Top.ToPoints()),
+        OdfLength.Points(Math.Max(0.01D, shape.Width.ToPoints())), OdfLength.Points(Math.Max(0.01D, shape.Height.ToPoints())));
 
     private static bool TryToPowerPointBox(OdfRect bounds, out PowerPointLayoutBox box) {
         if (!TryGetRectPoints(bounds, out double x, out double y, out double width, out double height)) {
             box = default;
             return false;
         }
-        box = PowerPointLayoutBox.FromPoints(x, y, width, height);
+        box = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(x),OfficeIMO.OfficeLength.Points(y),OfficeIMO.OfficeLength.Points(width),OfficeIMO.OfficeLength.Points(height));
         return true;
     }
 

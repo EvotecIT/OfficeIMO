@@ -24,6 +24,12 @@ namespace OfficeIMO.Word {
             return tableLook;
         }
 
+        /// <summary>Reads the native first-row role without constructing another table wrapper.</summary>
+        internal static bool HasFirstRowFormatting(Table table) {
+            TableLook? look = table.GetFirstChild<TableProperties>()?.TableLook;
+            return look != null && (GetTableLookMask(look) & TableLookFirstRow) != 0;
+        }
+
         private bool? GetTableLookFlag(int flag, Func<TableLook, OnOffValue?> expandedAttribute) {
             var tableLook = _tableProperties?.TableLook;
             if (tableLook == null) {

@@ -16,19 +16,25 @@ using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Data;
 
-internal sealed class AutomaticRowMappingPlan<
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T> where T : new() {
+internal sealed partial class AutomaticRowMappingPlan<
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T> {
     internal const int MaximumCachedHeaderCount = 256;
     internal const int MaximumCachedHeaderCharacters = 16 * 1024;
 
     private readonly MappingBinding[] _bindings;
+    private readonly MappingBinding[] _assignmentBindings;
+    private readonly ConstructorBinding? _constructor;
     private readonly Func<DbDataReader, T>? _fastReaderMap;
     private static CacheEntry? _cachedPlan;
 
     private AutomaticRowMappingPlan(
         MappingBinding[] bindings,
+        ConstructorBinding? constructor,
         Func<DbDataReader, T>? fastReaderMap) {
         _bindings = bindings;
+        _constructor = constructor;
+        _assignmentBindings = constructor is null ? bindings
+            : bindings.Where(binding => !constructor.Contains(binding.Property)).ToArray();
         _fastReaderMap = fastReaderMap;
     }
 
@@ -67,9 +73,15 @@ internal sealed class AutomaticRowMappingPlan<
             .ToArray();
 
         if (bindings.Length == 0) {
-            throw new DataMappingException($"No columns match writable properties on {typeof(T).Name}.");
+            throw new DataMappingException($"No columns match assignable properties or constructor parameters on {typeof(T).Name}.");
         }
-        var plan = new AutomaticRowMappingPlan<T>(bindings, CreateFastReaderMap(bindings));
+        ConstructorBinding? constructor = CreateConstructorBinding(bindings);
+        if (bindings.Any(binding => !binding.Property.CanAssign
+                && (constructor is null || !constructor.Contains(binding.Property)))) {
+            throw new DataMappingException($"A read-only mapped property on {typeof(T).Name} has no constructor parameter.");
+        }
+        var plan = new AutomaticRowMappingPlan<T>(bindings, constructor,
+            constructor is null ? CreateFastReaderMap(bindings) : null);
         if (IsHeaderShapeCacheable(headers)) {
             System.Threading.Volatile.Write(
                 ref _cachedPlan,
@@ -96,8 +108,10 @@ internal sealed class AutomaticRowMappingPlan<
         IReadOnlyList<string>? dateTimeFormats,
         Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter = null,
         DataMappingErrorValuePolicy errorValuePolicy = DataMappingErrorValuePolicy.Include) {
-        T instance = new T();
-        foreach (MappingBinding binding in _bindings) {
+        T instance = _constructor is null ? Activator.CreateInstance<T>()
+            : _constructor.Create(binding => getValue(binding.ColumnIndex),
+                culture, dateTimeFormats, typeConverter, errorValuePolicy);
+        foreach (MappingBinding binding in _assignmentBindings) {
             instance = binding.Apply(instance, getValue(binding.ColumnIndex), culture, dateTimeFormats, typeConverter, errorValuePolicy);
         }
         return instance;
@@ -109,8 +123,10 @@ internal sealed class AutomaticRowMappingPlan<
         IReadOnlyList<string>? dateTimeFormats,
         Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter = null,
         DataMappingErrorValuePolicy errorValuePolicy = DataMappingErrorValuePolicy.Include) {
-        T instance = new T();
-        foreach (MappingBinding binding in _bindings) {
+        T instance = _constructor is null ? Activator.CreateInstance<T>()
+            : _constructor.Create(binding => values[binding.ColumnIndex],
+                culture, dateTimeFormats, typeConverter, errorValuePolicy);
+        foreach (MappingBinding binding in _assignmentBindings) {
             instance = binding.Apply(
                 instance,
                 values[binding.ColumnIndex],
@@ -164,8 +180,10 @@ internal sealed class AutomaticRowMappingPlan<
             }
         }
 
-        T instance = new T();
-        foreach (MappingBinding binding in _bindings) {
+        T instance = _constructor is null ? Activator.CreateInstance<T>()
+            : _constructor.Create(binding => DataReaderMappingValue.Read(reader, binding.ColumnIndex, binding.Property.ValueType),
+                culture, dateTimeFormats, typeConverter, errorValuePolicy);
+        foreach (MappingBinding binding in _assignmentBindings) {
             instance = binding.ApplyReader(
                 instance,
                 reader,
@@ -193,8 +211,10 @@ internal sealed class AutomaticRowMappingPlan<
         IReadOnlyList<string>? dateTimeFormats,
         Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
         DataMappingErrorValuePolicy errorValuePolicy) {
-        T instance = new T();
-        foreach (MappingBinding binding in _bindings) {
+        T instance = _constructor is null ? Activator.CreateInstance<T>()
+            : _constructor.Create(binding => DataReaderMappingValue.Read(reader, binding.ColumnIndex, binding.Property.ValueType),
+                culture, dateTimeFormats, typeConverter, errorValuePolicy);
+        foreach (MappingBinding binding in _assignmentBindings) {
             instance = binding.ApplyReader(
                 instance,
                 reader,
@@ -306,6 +326,7 @@ internal sealed class AutomaticRowMappingPlan<
         internal PropertyInfo Property { get; }
         internal string Name { get; }
         internal Type ValueType { get; }
+        internal bool CanAssign => Property.SetMethod?.IsPublic == true;
 
         internal T Assign(T instance, object? value) => _assign(instance, value);
 
@@ -371,7 +392,8 @@ internal sealed class AutomaticRowMappingPlan<
         static AutomaticMappingCache() {
             AutomaticPropertySetter[] properties = typeof(T)
                 .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(static property => property.SetMethod?.IsPublic == true && property.GetIndexParameters().Length == 0)
+                .Where(static property => property.GetIndexParameters().Length == 0
+                    && (property.SetMethod?.IsPublic == true || CanBindConstructorProperty(property)))
                 .Select(static property => new AutomaticPropertySetter(
                     property,
                     CreateAssignment(property),

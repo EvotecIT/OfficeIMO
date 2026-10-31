@@ -213,7 +213,7 @@ internal static class PdfImageExtractor {
     /// <summary>
     /// Extracts image XObjects from all pages in page order.
     /// </summary>
-    public static IReadOnlyList<PdfExtractedImage> ExtractImages(PdfReadDocument document) {
+    internal static IReadOnlyList<PdfExtractedImage> ExtractImages(PdfReadDocument document) {
         Guard.NotNull(document, nameof(document));
         document.DemandContentExtraction("image");
 
@@ -240,7 +240,7 @@ internal static class PdfImageExtractor {
     /// <summary>
     /// Extracts image XObject placement invocations from all pages in page order.
     /// </summary>
-    public static IReadOnlyList<PdfImagePlacement> ExtractImagePlacements(PdfReadDocument document) {
+    internal static IReadOnlyList<PdfImagePlacement> ExtractImagePlacements(PdfReadDocument document) {
         Guard.NotNull(document, nameof(document));
         document.DemandContentExtraction("image placement");
 
@@ -271,7 +271,7 @@ internal static class PdfImageExtractor {
     /// <summary>
     /// Extracts image XObjects from the supplied inclusive one-based page ranges in caller order.
     /// </summary>
-    public static IReadOnlyList<PdfExtractedImage> ExtractImagesByPageRanges(PdfReadDocument document, params PdfPageRange[] pageRanges) {
+    internal static IReadOnlyList<PdfExtractedImage> ExtractImagesByPageRanges(PdfReadDocument document, params PdfPageRange[] pageRanges) {
         Guard.NotNull(document, nameof(document));
         document.DemandContentExtraction("image");
         int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
@@ -287,7 +287,7 @@ internal static class PdfImageExtractor {
     /// <summary>
     /// Extracts image XObject placement invocations from the supplied inclusive one-based page ranges in caller order.
     /// </summary>
-    public static IReadOnlyList<PdfImagePlacement> ExtractImagePlacementsByPageRanges(PdfReadDocument document, params PdfPageRange[] pageRanges) {
+    internal static IReadOnlyList<PdfImagePlacement> ExtractImagePlacementsByPageRanges(PdfReadDocument document, params PdfPageRange[] pageRanges) {
         Guard.NotNull(document, nameof(document));
         document.DemandContentExtraction("image placement");
         int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));

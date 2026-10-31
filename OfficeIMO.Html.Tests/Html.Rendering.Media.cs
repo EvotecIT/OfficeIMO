@@ -39,7 +39,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<style>.target{color:#0000ff}@media print and (max-width:300px){.target{color:#ff0000}}</style><p class='target'>Paged media</p>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(4D, 3D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         });

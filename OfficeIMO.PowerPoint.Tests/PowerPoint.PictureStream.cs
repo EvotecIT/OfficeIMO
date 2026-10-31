@@ -12,15 +12,15 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     using FileStream stream = new(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                    PowerPointPicture picture = slide.AddPicture(stream, OfficeIMO.Drawing.OfficeImageFormat.Png, 0, 0, 1000000, 1000000);
+                    PowerPointPicture picture = slide.AddImage(stream, OfficeIMO.Drawing.OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(0), global::OfficeIMO.OfficeLength.Emus(0), global::OfficeIMO.OfficeLength.Emus(1000000), global::OfficeIMO.OfficeLength.Emus(1000000));
                     Assert.Equal("image/png", picture.ContentType);
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.Single();
                     Assert.Single(slide.Pictures);
                 }

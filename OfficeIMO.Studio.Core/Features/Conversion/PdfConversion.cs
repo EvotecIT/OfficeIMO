@@ -49,7 +49,7 @@ internal static class PdfConversion {
             InputPath = inputPath,
             OutputPath = outputPath,
             ConversionRouteId = route.Route,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            ConflictPolicy = OfficePublicationPolicy.Replace
         }, route.Name, $"“{Path.GetFileName(inputPath)}” couldn’t be converted", cancellationToken).ConfigureAwait(false);
     }
 
@@ -80,7 +80,7 @@ internal static class PdfConversion {
                 OutputPath = outputPath,
                 ConversionRouteId = routeId,
                 InputPdfLoadOptions = readOptions,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             }, "PDF", "The PDF couldn’t be converted", cancellationToken).ConfigureAwait(false);
         } finally {
             try { Directory.Delete(folder, recursive: true); } catch (IOException) { } catch (UnauthorizedAccessException) { }

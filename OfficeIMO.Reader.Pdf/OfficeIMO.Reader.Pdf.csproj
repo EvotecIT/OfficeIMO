@@ -50,4 +50,5 @@
     <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
   </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO" /><InternalsVisibleTo Include="OfficeIMO.Workflows" /></ItemGroup>
 </Project>

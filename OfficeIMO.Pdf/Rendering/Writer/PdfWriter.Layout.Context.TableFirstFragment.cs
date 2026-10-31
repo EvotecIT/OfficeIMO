@@ -4,16 +4,16 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         /// <summary>Previews only references in the first legal visual fragment used by a preceding keep chain.</summary>
         private IEnumerable<RichSeg> GetFirstTableFootnoteSegments(TableBlock table) {
-            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
             int columns = GetTableColumnCount(table);
             if (columns == 0 || table.Rows.Count == 0 || !ValidateTableFootnotePlacement(table, style, columns))
                 return Enumerable.Empty<RichSeg>();
             style = PreparePairedTableBorders(table, style);
             double gap = GetTableCellSpacing(style);
             int footerStart = table.Rows.Count - style.FooterRowCount;
-            double fontSize = GetTableBodyFontSize(style, currentOpts.DefaultFontSize);
+            double fontSize = GetTableBodyFontSize(style, currentOpts.DefaultFontSize.ToPoints());
             TableColumnLayout columnLayout = ResolveTableColumnLayout(table, currentOpts, style, columns,
-                currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight,
+                currentOpts.PageWidth.ToPoints() - currentOpts.MarginLeft.ToPoints() - currentOpts.MarginRight.ToPoints(),
                 fontSize, style.HeaderRowCount, footerStart);
             PreparedFlowTableRows rows = PrepareFlowTableRows(table, style, columns, columnLayout.Widths,
                 gap, gap, style.HeaderRowCount, footerStart);
@@ -31,8 +31,8 @@ internal static partial class PdfWriter {
                 }
             }
             return GetTableRowFootnoteSegments(table, style, rows, columns, columnLayout.Widths, gap, gap,
-                spans, 0, 0, count, y, firstHeight, currentOpts.MarginLeft,
-                GetMeasuredContinuationFrameHeight(), GetClosingTextPadding(style.SpacingAfter));
+                spans, 0, 0, count, y, firstHeight, currentOpts.MarginLeft.ToPoints(),
+                GetMeasuredContinuationFrameHeight(), GetClosingTextPadding(style.SpacingAfter.ToPoints()));
         }
 
         /// <summary>Preflights a breakable first row at its first legal cell boundary instead of requiring the entire row.</summary>

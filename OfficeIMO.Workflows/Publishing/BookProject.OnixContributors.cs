@@ -5,7 +5,7 @@ namespace OfficeIMO.Workflows;
 public sealed partial class BookProject {
     private static IReadOnlyList<XElement> BuildOnixContributors(IReadOnlyList<BookOnixContributor> contributors,
         bool noContributors, bool requireDeclaration, CancellationToken cancellationToken) {
-        ArgumentNullException.ThrowIfNull(contributors);
+        if (contributors == null) throw new ArgumentNullException(nameof(contributors));
         if (contributors.Count > 100 || (noContributors && contributors.Count != 0))
             throw new ArgumentException("Supply at most 100 credits, or explicitly select NoContributors.", nameof(contributors));
         if (requireDeclaration && !noContributors && contributors.Count == 0)
@@ -15,7 +15,7 @@ public sealed partial class BookProject {
         var result = new List<XElement>();
         foreach (var credit in contributors) {
             cancellationToken.ThrowIfCancellationRequested();
-            ArgumentNullException.ThrowIfNull(credit);
+            if (credit == null) throw new ArgumentNullException(nameof(credit));
             RequireOnixText(credit.Name, nameof(credit.Name));
             string role = credit.Role switch {
                 BookOnixContributorRole.Author => "A01", BookOnixContributorRole.Editor => "B01",

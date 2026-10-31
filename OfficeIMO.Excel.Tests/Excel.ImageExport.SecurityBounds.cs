@@ -11,17 +11,15 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExcelRange_ImageExportKeepsAnchorsInsideTallRequestedRanges() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("TallRange");
-            sheet.AddImage(
-                15000,
-                1,
-                CreateSolidPng(8, 8, OfficeColor.FromRgb(37, 99, 235)),
-                "image/png",
-                widthPixels: 8,
-                heightPixels: 8,
-                name: "DeepAnchor");
+            ExcelSheet sheet = document.AddSheet("TallRange");
+            sheet.AddImage(15000, 1, CreateSolidPng(8, 8, OfficeColor.FromRgb(37, 99, 235)), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(8),
+                Height = OfficeIMO.OfficeLength.Pixels(8),
+                Name = "DeepAnchor"
+            });
 
-            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A20000").CreateVisualSnapshot(
+            ExcelRangeVisualInfo snapshot = sheet.Range("A1:A20000").CreateVisualSnapshot(
                 new ExcelImageExportOptions { ShowGridlines = false });
 
             ExcelVisualImage image = Assert.Single(snapshot.Images);
@@ -31,30 +29,30 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExcelChart_ImageExportSkipsWorksheetGeometryForOneCellAnchors() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("OneCell");
+            ExcelSheet sheet = document.AddSheet("OneCell");
             sheet.CellValue(1, 1, "Category");
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Only");
             sheet.CellValue(2, 2, 1);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B2", row: 1, column: 3);
+            ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 3 });
             X.Row invalidRow = new X.Row();
             invalidRow.SetAttribute(new OpenXmlAttribute("r", string.Empty, "invalid"));
             sheet.WorksheetPart.Worksheet!.GetFirstChild<X.SheetData>()!.Append(invalidRow);
 
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
-            Assert.True(snapshot.WidthPixels > 0);
-            Assert.True(snapshot.HeightPixels > 0);
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
+            Assert.True(snapshot.Width.ToPixels() > 0);
+            Assert.True(snapshot.Height.ToPixels() > 0);
         }
 
         [Fact]
         public void ExcelChart_ImageExportBoundsDuplicateRowDefinitionWork() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("DuplicateRows");
+            ExcelSheet sheet = document.AddSheet("DuplicateRows");
             sheet.CellValue(1, 1, "Category");
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Only");
             sheet.CellValue(2, 2, 1);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B2", row: 1, column: 3);
+            ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 3 });
             ReplaceChartAnchorWithTwoCell(
                 document,
                 new Xdr.FromMarker(new Xdr.ColumnId("0"), new Xdr.ColumnOffset("0"), new Xdr.RowId("0"), new Xdr.RowOffset("0")),
@@ -70,15 +68,15 @@ namespace OfficeIMO.Tests {
             invalidRow.SetAttribute(new OpenXmlAttribute("r", string.Empty, "invalid"));
             sheetData.Append(invalidRow);
 
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
-            Assert.True(snapshot.WidthPixels > 0);
-            Assert.True(snapshot.HeightPixels > 0);
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
+            Assert.True(snapshot.Width.ToPixels() > 0);
+            Assert.True(snapshot.Height.ToPixels() > 0);
         }
 
         [Fact]
         public void ExcelChart_ImageExportCountsInvalidColumnDefinitionsAgainstWorkBudget() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("InvalidColumns");
+            ExcelSheet sheet = document.AddSheet("InvalidColumns");
             X.Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
             var columns = new X.Columns();
             var invalid = new X.Column();
@@ -90,23 +88,24 @@ namespace OfficeIMO.Tests {
 
             ExcelWorksheetGeometryIndex geometry = ExcelWorksheetGeometryIndex.Create(sheet.WorksheetPart);
 
-            Assert.Equal(64, geometry.GetSimpleColumnWidthPixels(1));
+            using ExcelDocument baseline = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet baselineSheet = baseline.AddSheet("Default");
+            int defaultWidth = ExcelWorksheetGeometryIndex.Create(baselineSheet.WorksheetPart).GetSimpleColumnWidthPixels(1);
+            Assert.Equal(defaultWidth, geometry.GetSimpleColumnWidthPixels(1));
         }
 
         [Fact]
         public void ExcelRange_ImageExportKeepsNearbyAnchorsThatOverlapThroughNegativeOffsets() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("NegativeOffset");
-            sheet.AddImage(
-                1,
-                2,
-                CreateSolidPng(8, 8, OfficeColor.FromRgb(37, 99, 235)),
-                widthPixels: 64,
-                heightPixels: 8,
-                offsetXPixels: -50,
-                name: "Overlap");
+            ExcelSheet sheet = document.AddSheet("NegativeOffset");
+            sheet.AddImage(1, 2, CreateSolidPng(8, 8, OfficeColor.FromRgb(37, 99, 235)), new OfficeIMO.Excel.ExcelImageOptions {
+                Width = OfficeIMO.OfficeLength.Pixels(64),
+                Height = OfficeIMO.OfficeLength.Pixels(8),
+                OffsetX = OfficeIMO.OfficeLength.Pixels(-50),
+                Name = "Overlap"
+            });
 
-            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A1").CreateVisualSnapshot(
+            ExcelRangeVisualInfo snapshot = sheet.Range("A1:A1").CreateVisualSnapshot(
                 new ExcelImageExportOptions { ShowGridlines = false });
 
             ExcelVisualImage image = Assert.Single(snapshot.Images);

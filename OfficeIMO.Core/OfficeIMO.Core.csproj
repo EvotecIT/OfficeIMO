@@ -33,6 +33,9 @@
     <InternalsVisibleTo Include="OfficeIMO.Archives" />
     <InternalsVisibleTo Include="OfficeIMO.Archives.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Html" />
+    <InternalsVisibleTo Include="OfficeIMO" />
+    <InternalsVisibleTo Include="OfficeIMO.Word.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.Markdown.Html" />
     <InternalsVisibleTo Include="OfficeIMO.OneNote" />
     <InternalsVisibleTo Include="OfficeIMO.Chm" />
     <InternalsVisibleTo Include="OfficeIMO.Xps" />
@@ -58,9 +61,11 @@
     <InternalsVisibleTo Include="OfficeIMO.Provenance.C2pa" />
     <InternalsVisibleTo Include="OfficeIMO.Word.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Tool" />
+    <InternalsVisibleTo Include="OfficeIMO.Tool.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Studio" />
     <InternalsVisibleTo Include="OfficeIMO.Studio.Core" />
     <InternalsVisibleTo Include="OfficeIMO.Workflows" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows.IWork" />
     <InternalsVisibleTo Include="OfficeIMO.RealWorldCorpus.Tool" />
     <InternalsVisibleTo Include="OfficeIMO.GoogleWorkspace.Drive" />
     <InternalsVisibleTo Include="OfficeIMO.IWork" />
@@ -92,16 +97,15 @@
     </None>
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <Reference Include="System.IO.Compression" />
-    <Reference Include="System.Numerics" />
-    <Reference Include="System.Net.Http" />
-  </ItemGroup>
-
   <ItemGroup>
     <EmbeddedResource Include="Raster/Avif/OfficeAv1QuantizerMatrices.bin" LogicalName="OfficeIMO.Core.Av1QuantizerMatrices" />
     <EmbeddedResource Include="Typography/Hyphenation/*.patterns" LogicalName="OfficeIMO.Core.Hyphenation.%(Filename)" />
     <None Include="Typography/Hyphenation/manifest.json" Pack="true" PackagePath="Typography/Hyphenation/" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
 </Project>

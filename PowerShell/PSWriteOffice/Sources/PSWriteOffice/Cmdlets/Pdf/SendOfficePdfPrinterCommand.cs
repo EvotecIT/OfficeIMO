@@ -47,7 +47,7 @@ public sealed class SendOfficePdfPrinterCommand : AsyncPSCmdlet {
     [Parameter] [ValidateSet("Fit", "ActualSize", "Fill")]
     public string ScaleMode { get; set; } = "Fit";
     /// <summary>PDF paper size, default A4.</summary>
-    [Parameter] public PageSize PaperSize { get; set; } = PageSizes.A4;
+    [Parameter] public PdfPageSize PaperSize { get; set; } = PdfPageSizes.A4;
     /// <summary>Password for an encrypted PDF; printing permissions remain enforced.</summary>
     [Parameter] public string? Password { get; set; }
     /// <inheritdoc />

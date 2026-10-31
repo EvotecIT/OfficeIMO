@@ -67,7 +67,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.False(value!.Length == 1 && char.IsSurrogate(value[0]));
         });
         string markdown = string.Concat(chunks.Select(c => c.Markdown));
-        string html = OfficeIMO.Markdown.MarkdownDoc.Parse(markdown).ToHtmlFragment();
+        string html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToHtml();
         Assert.Contains("table 1, cell AA1", html);
         Assert.Contains("&lt;author&gt;", html);
         Assert.Contains("&lt;b&gt;&amp;amp;*review*", html);

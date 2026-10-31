@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfAdvancedUnderstandingStages {
+internal static partial class PdfAdvancedUnderstandingStages {
     private sealed class AdvancedLineGroupingStage : IPdfLineGroupingStage {
         public IReadOnlyList<PdfUnderstandingLine> GroupLines(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingWord> words) {
             var groups = new List<BaselineGroup>();
@@ -22,9 +22,9 @@ public static partial class PdfAdvancedUnderstandingStages {
                 double radians = angle * Math.PI / 180D;
                 bool selectionAnchor = IsSelectionAnchor(word);
                 double normal = GetGroupingNormal(word, radians);
-                double tolerance = Math.Max(0.75D, Math.Min(context.LayoutOptions.LineMergeMaxPoints, word.FontSize * context.LayoutOptions.LineMergeToleranceEm));
+                double tolerance = Math.Max(0.75D, Math.Min(context.LayoutOptions.LineMergeMax.ToPoints(), word.FontSize * context.LayoutOptions.LineMergeToleranceEm));
                 if (selectionAnchor) tolerance = Math.Max(tolerance,
-                    Math.Min(context.LayoutOptions.LineMergeMaxPoints * 2D, word.FontSize * 0.2D));
+                    Math.Min(context.LayoutOptions.LineMergeMax.ToPoints() * 2D, word.FontSize * 0.2D));
                 BaselineGroup? group = FindIndexedGroup(context, spatialIndex, angle, normal, tolerance, selectionAnchor);
                 (int Angle, int Normal) previousKey = default;
                 if (group is null) {
@@ -59,9 +59,9 @@ public static partial class PdfAdvancedUnderstandingStages {
                 for (int i = 0; i < ordered.Length; i++) {
                     double alongStart = GetProjectedAlongStart(ordered[i], radians);
                     double alongEnd = GetProjectedAlongEnd(ordered[i], radians);
-                    double splitGap = Math.Max(context.LayoutOptions.MinGutterWidth, ordered[i].FontSize * (Math.Abs(group.Angle) > 2D ? 6D : 5D));
+                    double splitGap = Math.Max(context.LayoutOptions.MinGutterWidth.ToPoints(), ordered[i].FontSize * (Math.Abs(group.Angle) > 2D ? 6D : 5D));
                     double gap = alongStart - previousAlongEnd;
-                    bool repeatedGutter = gap >= context.LayoutOptions.MinGutterWidth && HasRepeatedGutter(gutterAnchors, group, alongStart);
+                    bool repeatedGutter = gap >= GetRepeatedGutterWidth(context, ordered[i]) && HasRepeatedGutter(gutterAnchors, group, alongStart);
                     if (runs[runs.Count - 1].Count > 0 && (gap > splitGap || repeatedGutter)) runs.Add(new List<PdfUnderstandingWord>());
                     runs[runs.Count - 1].Add(ordered[i]);
                     previousAlongEnd = Math.Max(previousAlongEnd, alongEnd);
@@ -75,7 +75,7 @@ public static partial class PdfAdvancedUnderstandingStages {
                         ? runWords.Where(static word => word.SourceSequence.HasValue).Min(static word => word.SourceSequence!.Value)
                         : null;
                     lines.Add(new PdfUnderstandingLine(runWords, lineText, PdfInference.Clamp(runWords.Average(static word => word.Confidence) - Math.Min(0.25D, normalSpread / 20D)), new[] {
-                        new PdfInferenceEvidence("line.arbitrary-baseline", "Words share a projected baseline at " + group.Angle.ToString("0.###", CultureInfo.InvariantCulture) + " degrees with " + normalSpread.ToString("0.###", CultureInfo.InvariantCulture) + " point spread.", normalSpread <= 2D ? 0.9D : 0.3D)
+                        new PdfInferenceEvidence("line-arbitrary-baseline", "Words share a projected baseline at " + group.Angle.ToString("0.###", CultureInfo.InvariantCulture) + " degrees with " + normalSpread.ToString("0.###", CultureInfo.InvariantCulture) + " point spread.", normalSpread <= 2D ? 0.9D : 0.3D)
                     },
                     sourceSequence: lineSourceSequence,
                     visualBounds: runWords.All(static word => word.VisualBounds is not null)
@@ -147,7 +147,7 @@ public static partial class PdfAdvancedUnderstandingStages {
                 for (int index = 0; index < ordered.Length; index++) {
                     context.ConsumeWork();
                     double start = GetProjectedAlongStart(ordered[index], radians);
-                    if (index > 0 && start - previousEnd >= context.LayoutOptions.MinGutterWidth && TryGutterKey(group, start, out var key)) {
+                    if (index > 0 && start - previousEnd >= GetRepeatedGutterWidth(context, ordered[index]) && TryGutterKey(group, start, out var key)) {
                         if (anchors.TryGetValue(key, out var existing)) {
                             if (!ReferenceEquals(existing.First, group)) anchors[key] = (existing.First, true);
                         } else anchors.Add(key, (group, false));
@@ -157,6 +157,13 @@ public static partial class PdfAdvancedUnderstandingStages {
             }
             return anchors;
         }
+
+        /// <summary>
+        /// A gap that recurs at the same position on several baselines is a column gutter even when it is narrower than
+        /// the page-level gutter option: newspaper-style columns are often set only about two ems apart.
+        /// </summary>
+        private static double GetRepeatedGutterWidth(PdfUnderstandingPageContext context, PdfUnderstandingWord word) =>
+            Math.Min(context.LayoutOptions.MinGutterWidth.ToPoints(), Math.Max(9D, Math.Max(1D, word.FontSize) * 1.5D));
 
         private static bool HasRepeatedGutter(Dictionary<(int Angle, long Along), (BaselineGroup First, bool Repeated)> anchors,
             BaselineGroup group, double start) {

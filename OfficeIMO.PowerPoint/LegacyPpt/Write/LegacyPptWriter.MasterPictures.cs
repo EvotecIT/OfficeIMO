@@ -6,7 +6,7 @@ using P = DocumentFormat.OpenXml.Presentation;
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
         private static bool TryValidateMaterializedLayoutPictures(
-            PowerPointPresentation presentation,
+            PowerPointDocument presentation,
             ISet<OpenXmlElement> materializedPictures,
             out string? reason) {
             IEnumerable<SlideLayoutPart> layoutParts = presentation

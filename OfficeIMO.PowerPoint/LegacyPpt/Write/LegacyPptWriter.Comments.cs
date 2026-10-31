@@ -12,7 +12,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordComment10Atom = 0x2EE1;
         private const string Ppt10TagName = "___PPT10";
 
-        internal static bool TryReadAllClassicComments(PowerPointPresentation presentation,
+        internal static bool TryReadAllClassicComments(PowerPointDocument presentation,
             out IReadOnlyDictionary<string, IReadOnlyList<LegacyPptWriterComment>> commentsBySlide,
             out string? reason) {
             commentsBySlide = new ReadOnlyDictionary<string, IReadOnlyList<LegacyPptWriterComment>>(
@@ -57,7 +57,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        internal static bool HasModernComments(PowerPointPresentation presentation) {
+        internal static bool HasModernComments(PowerPointDocument presentation) {
             PresentationPart? presentationPart = presentation.OpenXmlDocument.PresentationPart;
             if (presentationPart == null) return false;
             if (presentationPart.Parts.Any(pair =>

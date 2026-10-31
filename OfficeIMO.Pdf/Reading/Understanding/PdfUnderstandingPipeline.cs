@@ -200,7 +200,7 @@ internal sealed class PdfUnderstandingPipeline {
                         line.Words.Min(static word => word.VisualBounds!.Top), line.Words.Max(static word => word.VisualBounds!.Right),
                         line.Words.Max(static word => word.VisualBounds!.Bottom)) : null;
                 combined.Add(new PdfUnderstandingLine(line.Words, line.Text, line.Confidence,
-                    line.Evidence.Concat(new[] { new PdfInferenceEvidence("line.ocr-reconstructed-layout",
+                    line.Evidence.Concat(new[] { new PdfInferenceEvidence("line-ocr-reconstructed-layout",
                         "OCR line hierarchy was reconstructed from accepted word geometry.", 0.75D) }),
                     PdfLogicalContentSourceKind.Ocr, visualBounds: visual));
             }
@@ -384,7 +384,7 @@ internal sealed class PdfUnderstandingPipeline {
         for (int i = 0; i < ordered.Count; i++) {
             var evidence = new[] {
                 new PdfInferenceEvidence(
-                    "reading-order.provider",
+                    "reading-order-provider",
                     "Reading order was produced by " + providerType.FullName + ".",
                     0.5D)
             };

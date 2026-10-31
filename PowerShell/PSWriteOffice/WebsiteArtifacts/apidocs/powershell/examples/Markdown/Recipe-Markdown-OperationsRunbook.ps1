@@ -5,7 +5,7 @@ $checks = @(
     [pscustomobject]@{ Check = 'Error rate'; Expected = 'Below 1%'; Owner = 'Monitoring' }
 )
 
-MarkdownNew -Path $path {
+New-OfficeMarkdown -Path $path {
     MarkdownFrontMatter -Data @{ title = 'Service restart runbook'; owner = 'Operations'; reviewed = '2026-08-18' }
     MarkdownTableOfContents -Title 'On this page' -PlaceAtTop -MinLevel 2 -MaxLevel 3
     MarkdownHeading -Level 1 -Text 'Service Restart Runbook'

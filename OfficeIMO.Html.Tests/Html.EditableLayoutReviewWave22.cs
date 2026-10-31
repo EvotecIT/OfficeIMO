@@ -50,11 +50,11 @@ public sealed class HtmlEditableLayoutReviewWave22Tests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<div style='position:absolute;width:180px;height:50px'>" + children + "</div>",
             new HtmlConversionDocumentOptions { Trust = HtmlInputTrust.Trusted });
-        HtmlToWordOptions options = HtmlToWordOptions.CreateTrustedDocumentProfile();
+        WordHtmlImportOptions options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
         options.MaxHtmlNodes = 12;
 
         HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
-            () => source.ToWordDocumentResult(options));
+            () => source.ConvertToWordWithEvidence(options));
 
         Assert.Equal(HtmlRenderDiagnosticCodes.NodeLimitExceeded, exception.Code);
         Assert.Equal(nameof(HtmlConversionLimits.MaxHtmlNodes), exception.LimitSource);
@@ -68,11 +68,11 @@ public sealed class HtmlEditableLayoutReviewWave22Tests {
             "<div style='position:absolute;width:180px;height:50px'>"
             + "<span><span><span><span>Deep</span></span></span></span></div>",
             new HtmlConversionDocumentOptions { Trust = HtmlInputTrust.Trusted });
-        HtmlToWordOptions options = HtmlToWordOptions.CreateTrustedDocumentProfile();
+        WordHtmlImportOptions options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
         options.MaxHtmlDepth = 5;
 
         HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
-            () => source.ToWordDocumentResult(options));
+            () => source.ConvertToWordWithEvidence(options));
 
         Assert.Equal(HtmlConversionDiagnosticCodes.HtmlDepthLimitExceeded, exception.Code);
         Assert.Equal(nameof(HtmlConversionLimits.MaxHtmlDepth), exception.LimitSource);
@@ -86,11 +86,11 @@ public sealed class HtmlEditableLayoutReviewWave22Tests {
             "<style>.bounded { position:absolute; width:180px; height:50px }</style>"
             + "<div class='bounded'>Bounded</div>",
             new HtmlConversionDocumentOptions { Trust = HtmlInputTrust.Trusted });
-        HtmlToWordOptions options = HtmlToWordOptions.CreateTrustedDocumentProfile();
+        WordHtmlImportOptions options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
         options.Limits.MaxCssDeclarations = 1;
 
         HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
-            () => source.ToWordDocumentResult(options));
+            () => source.ConvertToWordWithEvidence(options));
 
         Assert.Equal(HtmlConversionDiagnosticCodes.CssDeclarationLimitExceeded, exception.Code);
         Assert.Equal(nameof(HtmlConversionLimits.MaxCssDeclarations), exception.LimitSource);
@@ -109,7 +109,7 @@ public sealed class HtmlEditableLayoutReviewWave22Tests {
             + "<img alt='Clean' src='" + image
             + "' style='width:40px;height:20px;object-fit:fill;opacity:1'></div>";
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument document = result.Value;
         List<WordImage> images = document.TextBoxes
             .SelectMany(textBox => textBox.Paragraphs)
@@ -121,12 +121,12 @@ public sealed class HtmlEditableLayoutReviewWave22Tests {
         WordImage clean = Assert.Single(images, imageItem => imageItem.Description == "Clean");
 
         Assert.Equal(60, affected.Transparency);
-        Assert.True(affected.CropLeft.HasValue || affected.CropRight.HasValue
-            || affected.CropTop.HasValue || affected.CropBottom.HasValue);
+        Assert.True((affected.CropLeftRatio is double cropRatio2 ? (int?)System.Math.Round(cropRatio2 * 100000D, System.MidpointRounding.AwayFromZero) : null).HasValue || (affected.CropRightRatio is double cropRatio4 ? (int?)System.Math.Round(cropRatio4 * 100000D, System.MidpointRounding.AwayFromZero) : null).HasValue
+            || (affected.CropTopRatio is double cropRatio6 ? (int?)System.Math.Round(cropRatio6 * 100000D, System.MidpointRounding.AwayFromZero) : null).HasValue || (affected.CropBottomRatio is double cropRatio8 ? (int?)System.Math.Round(cropRatio8 * 100000D, System.MidpointRounding.AwayFromZero) : null).HasValue);
         Assert.Null(clean.Transparency);
-        Assert.Null(clean.CropLeft);
-        Assert.Null(clean.CropTop);
-        Assert.Null(clean.CropRight);
-        Assert.Null(clean.CropBottom);
+        Assert.Null((clean.CropLeftRatio is double cropRatio10 ? (int?)System.Math.Round(cropRatio10 * 100000D, System.MidpointRounding.AwayFromZero) : null));
+        Assert.Null((clean.CropTopRatio is double cropRatio12 ? (int?)System.Math.Round(cropRatio12 * 100000D, System.MidpointRounding.AwayFromZero) : null));
+        Assert.Null((clean.CropRightRatio is double cropRatio14 ? (int?)System.Math.Round(cropRatio14 * 100000D, System.MidpointRounding.AwayFromZero) : null));
+        Assert.Null((clean.CropBottomRatio is double cropRatio16 ? (int?)System.Math.Round(cropRatio16 * 100000D, System.MidpointRounding.AwayFromZero) : null));
     }
 }

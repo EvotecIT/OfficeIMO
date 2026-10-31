@@ -9,12 +9,12 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportRepeatsPrintTitleColumns() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 1, lastCol: 1, save: false);
             sheet.AddManualColumnPageBreak(2, save: false);
 
-            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
@@ -32,20 +32,20 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedImageExportRepeatsPrintTitleCorner() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: 1, lastCol: 1, save: false);
             sheet.AddManualRowPageBreak(2, save: false);
             sheet.AddManualColumnPageBreak(2, save: false);
 
-            var options = new ExcelWorksheetImageExportOptions {
+            var options = new ExcelImageExportOptions {
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
             };
             IReadOnlyList<OfficeImageExportResult> svgResults = sheet.ExportImages(OfficeImageExportFormat.Svg, options);
             IReadOnlyList<OfficeImageExportResult> pngResults = sheet.ExportImages(OfficeImageExportFormat.Png, options);
-            OfficeImageExportResult bodyOnly = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions {
+            OfficeImageExportResult bodyOnly = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "C3:D4",
                 ShowGridlines = false
             });
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
         private static void FillPageBreakGrid(ExcelSheet sheet) {
             for (int row = 1; row <= 4; row++) {
                 for (int column = 1; column <= 4; column++) {
-                    sheet.CellValue(row, column, A1.CellReference(row, column));
+                    sheet.CellValue(row, column, ExcelA1.CellReference(row, column));
                 }
             }
         }

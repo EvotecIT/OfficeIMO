@@ -30,7 +30,7 @@ internal static class ExcelRichTextRunService
         record.Properties.Add(new PSNoteProperty("FontColor", run.FontColor));
         record.Properties.Add(new PSNoteProperty("Color", run.FontColor));
         record.Properties.Add(new PSNoteProperty("FontName", run.FontName));
-        record.Properties.Add(new PSNoteProperty("FontSize", run.FontSize));
+        record.Properties.Add(new PSNoteProperty("FontSize", run.FontSize?.ToPoints()));
         record.Properties.Add(new PSNoteProperty("Address", address));
         record.Properties.Add(new PSNoteProperty("Row", row));
         record.Properties.Add(new PSNoteProperty("Column", column));
@@ -54,7 +54,7 @@ internal static class ExcelRichTextRunService
             Underline = run.Underline,
             FontColor = OfficeColorUtilities.ToExcelColorHex(run.Color),
             FontName = run.FontName,
-            FontSize = run.FontSize
+            FontSize = run.FontSize.HasValue ? global::OfficeIMO.OfficeLength.Points(run.FontSize.Value) : (global::OfficeIMO.OfficeLength?)null
         };
     }
 }

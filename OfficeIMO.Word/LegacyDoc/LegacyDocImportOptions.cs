@@ -2,7 +2,7 @@ namespace OfficeIMO.Word.LegacyDoc {
     /// <summary>
     /// Controls legacy binary Word import behavior.
     /// </summary>
-    public sealed class LegacyDocImportOptions {
+    internal sealed class LegacyDocImportOptions {
         /// <summary>
         /// Maximum size, in bytes, of the extracted document input stream.
         /// </summary>

@@ -18,7 +18,7 @@ public sealed class PdfWordCompressionAdmissionTests {
     [InlineData("collapse")]
     public void NativeSpaceBudgetAdmitsTheWholeWordBeforeClippingOrFormattingSplits(string scenario) {
         PdfTextRun[] runs = scenario == "split-word"
-            ? new[] { new PdfTextRun("Alpha beta gam"), new PdfTextRun("ma", color: new PdfColor(1, 0, 0)) }
+            ? new[] { new PdfTextRun("Alpha beta gam"), new PdfTextRun("ma", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1, 0, 0)) }
             : new[] { new PdfTextRun("Alpha beta gamma") };
         var whitespace = scenario == "collapse" ? PdfTextWhitespaceMode.Collapse : PdfTextWhitespaceMode.Preserve;
         List<Letter> control = Assert.Single(Lines(Render(runs, 300D, false, whitespace), "pdf-natural-" + scenario));
@@ -42,7 +42,7 @@ public sealed class PdfWordCompressionAdmissionTests {
         PdfTextWhitespaceMode whitespace = scenario == "collapse" ? PdfTextWhitespaceMode.Collapse : PdfTextWhitespaceMode.Preserve;
         string text = CandidateQualityPrefix + " it tail";
         PdfTextRun[] runs = scenario == "split-word"
-            ? new[] { new PdfTextRun(CandidateQualityPrefix + " i"), new PdfTextRun("t", color: new PdfColor(1, 0, 0)), new PdfTextRun(" tail") }
+            ? new[] { new PdfTextRun(CandidateQualityPrefix + " i"), new PdfTextRun("t", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1, 0, 0)), new PdfTextRun(" tail") }
             : new[] { new PdfTextRun(scenario == "collapse" ? text.Replace(" ", "  ") : text) };
         var frames = CandidateQualityFrames(runs, whitespace, scenario);
         string prefix = CandidateQualityPrefix.Replace(" ", "");
@@ -79,7 +79,7 @@ public sealed class PdfWordCompressionAdmissionTests {
         int noteCalls = 0, paragraphCalls = 0;
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => {
             noteCalls++;
-            body.Text("QualityNote", style: new PdfParagraphStyle { FontSize = 8D, LineSpacing = PdfLineSpacing.Exactly(10D) });
+            body.Text("QualityNote", style: new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8D), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10D)) });
         });
         document.Content.Paragraph(paragraph => {
             paragraphCalls++;
@@ -104,8 +104,8 @@ public sealed class PdfWordCompressionAdmissionTests {
 
     [Fact]
     public void MixedSourceSpaceAdvancesOwnTheirProportionalCompression() {
-        var runs = new[] { new PdfTextRun("Alpha"), new PdfTextRun(" ", fontSize: 12D),
-            new PdfTextRun("beta"), new PdfTextRun(" ", fontSize: 24D), new PdfTextRun("gamma") };
+        var runs = new[] { new PdfTextRun("Alpha"), new PdfTextRun(" ", fontSize: global::OfficeIMO.OfficeLength.Points(12D)),
+            new PdfTextRun("beta"), new PdfTextRun(" ", fontSize: global::OfficeIMO.OfficeLength.Points(24D)), new PdfTextRun("gamma") };
         List<Letter> natural = Assert.Single(Lines(Render(runs, 300D, false), "mixed-natural"));
         List<Letter> actual = Assert.Single(Lines(Render(runs, Span(natural) - 1.2D, true), "mixed-compressed"));
         double first = Gap(natural, 4, 5) - Gap(actual, 4, 5);
@@ -122,8 +122,8 @@ public sealed class PdfWordCompressionAdmissionTests {
         string text = separator == "tab" ? "Alpha\tbeta\tgamma" : "Alpha\u00a0beta\u00a0gamma";
         var style = new PdfParagraphStyle { UseWordJustificationSpacing = true, TextWhitespaceMode = PdfTextWhitespaceMode.Preserve };
         if (separator == "tab") {
-            style.TabStops.Add(new PdfTabStop(40D));
-            style.TabStops.Add(new PdfTabStop(80D));
+            style.TabStops.Add(new PdfTabStop(global::OfficeIMO.OfficeLength.Points(40D)));
+            style.TabStops.Add(new PdfTabStop(global::OfficeIMO.OfficeLength.Points(80D)));
         }
         byte[] wide = PdfDocument.Create(Options(300D)).Paragraph(p => p.Text(text), PdfAlign.Justify, style: style).ToBytes();
         double natural = Span(Assert.Single(Lines(wide, "separator-wide-" + separator)));
@@ -137,13 +137,13 @@ public sealed class PdfWordCompressionAdmissionTests {
         double natural = Span(Assert.Single(Lines(Render(runs, 300D, false), "columns-natural")));
         double narrow = natural - 1D, wide = natural - 0.5D;
         var options = Options(narrow + wide + 20D);
-        options.PageHeight = 100D;
+        options.PageHeight = global::OfficeIMO.OfficeLength.Points(100D);
         var document = PdfDocument.Create(options);
         document.Content.Columns(content => content.Paragraph(p => p.Text(string.Join("\n", Enumerable.Repeat("Alpha beta gamma", 8))),
                 PdfAlign.Justify, style: new PdfParagraphStyle { UseWordJustificationSpacing = true,
-                    TextWhitespaceMode = PdfTextWhitespaceMode.Preserve, LineSpacing = PdfLineSpacing.Exactly(18D) }),
+                    TextWhitespaceMode = PdfTextWhitespaceMode.Preserve, LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18D)) }),
             new PdfMultiColumnOptions { BalanceLastPage = false, ColumnDefinitions = new[] {
-                new PdfFlowColumn(PdfColumnWidth.Fixed(narrow), 20D), new PdfFlowColumn(PdfColumnWidth.Fixed(wide)) } });
+                new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(narrow)), global::OfficeIMO.OfficeLength.Points(20D)), new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(wide))) } });
         byte[] bytes = document.ToBytes();
         RetainEvidence(bytes, "different-width-columns");
         using var pdf = PdfPigDocument.Open(bytes);
@@ -179,9 +179,9 @@ public sealed class PdfWordCompressionAdmissionTests {
         PdfJustificationMode mode = PdfJustificationMode.Words) =>
         PdfDocument.Create(Options(width)).Paragraph(p => p.Runs(runs), PdfAlign.Justify,
             style: new PdfParagraphStyle { UseWordJustificationSpacing = native, TextWhitespaceMode = whitespace, JustificationMode = mode }).ToBytes();
-    private static PdfOptions Options(double width) => new() { PageWidth = width + 40D, PageHeight = 300D,
-        MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D,
-        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12D, CompressContentStreams = false };
+    private static PdfCreateOptions Options(double width) => new() { PageWidth = global::OfficeIMO.OfficeLength.Points(width + 40D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
+        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), CompressContentStreams = false };
     private static double Span(IReadOnlyList<Letter> letters) => letters[letters.Count - 1].EndBaseLine.X - letters[0].StartBaseLine.X;
     private static double Gap(IReadOnlyList<Letter> letters, int left, int right) => letters[right].StartBaseLine.X - letters[left].EndBaseLine.X;
     private static List<List<Letter>> Lines(byte[] bytes, string label) {

@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
             string expectedText = Assert.Single(source.Equations).Text;
             Assert.Empty(source.ValidateDocument());
 
-            HtmlTextConversionResult export = source.ToHtmlResult();
+            HtmlTextConversionResult export = source.ConvertToHtmlWithEvidence();
             string html = export.RequireValue();
             IElement exportedMath = Assert.IsAssignableFrom<IElement>(
                 HtmlDocumentParser.ParseDocument(html).QuerySelector("math"));
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(exportedMath.QuerySelector("mroot"));
             Assert.False(string.IsNullOrWhiteSpace(exportedMath.GetAttribute("aria-label")));
 
-            HtmlToWordResult import = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+            HtmlToWordResult import = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
             using WordDocument imported = import.RequireValue();
             using var artifact = new MemoryStream();
             imported.Save(artifact);
@@ -365,7 +365,7 @@ namespace OfficeIMO.Tests {
             string label = labeled ? " aria-label='spoken radical'" : string.Empty;
             string html = "<p>Formula: <math" + label + "><msqrt><mi>x</mi></msqrt></math></p>";
 
-            using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+            using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
 
             WordEquation equation = Assert.Single(document.Equations);
             Assert.Equal(WordEquationRepresentation.Omml, equation.Representation);
@@ -387,7 +387,7 @@ namespace OfficeIMO.Tests {
             + "</semantics></math>", "x + 1")]
         public void HtmlToWord_PreservesEquationTextFallbackWhenNoPresentationProjectionExists(
             string html, string expectedText) {
-            HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+            HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
             using WordDocument document = result.RequireValue();
             using var artifact = new MemoryStream();
             document.Save(artifact);
@@ -412,7 +412,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_ImportsUnlabeledStructuredMathMlAsEditableOmml() {
             const string html = "<p>Formula: <math><mfrac><mi>a</mi><mi>b</mi></mfrac></math></p>";
 
-            using WordDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using WordDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             WordEquation equation = Assert.Single(document.Equations);
             Assert.Equal(WordEquationRepresentation.Omml, equation.Representation);
@@ -425,7 +425,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_PreservesMathMlAndRunFormattingInsideHyperlink() {
             const string html = "<p><a href=\"#target\"><strong>prefix </strong><math aria-label=\"linked\"><mi>x</mi></math><em> suffix</em></a></p>";
 
-            using WordDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using WordDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             WordParagraph paragraph = Assert.Single(document.Paragraphs);
             Hyperlink hyperlink = Assert.Single(paragraph._paragraph.Elements<Hyperlink>());
@@ -444,7 +444,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_PreservesEquationOnlyMathMlInsideHyperlink() {
             const string html = "<p><a href=\"https://example.test/math\"><math aria-label=\"linked-only\"><mi>x</mi></math></a></p>";
 
-            using WordDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using WordDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             WordParagraph paragraph = Assert.Single(document.Paragraphs);
             Hyperlink hyperlink = Assert.Single(paragraph._paragraph.Elements<Hyperlink>());

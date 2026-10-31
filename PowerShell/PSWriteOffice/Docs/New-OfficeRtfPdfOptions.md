@@ -11,7 +11,7 @@ Creates discoverable RTF-to-PDF conversion options for Export-OfficeDocumentPdf.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficeRtfPdfOptions [-PdfOptions <PdfOptions>] [-IncludeHiddenText] [-IncludeImages] [-DefaultImageWidth <Double>] [-DefaultImageHeight <Double>] [-IncludeMetadata] [-IncludeTables] [-IncludeHeaderFooters] [-IncludeNotes] [-MaximumSystemFontFamilies <Int32>] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
+New-OfficeRtfPdfOptions [-PdfOptions <PdfCreateOptions>] [-IncludeHiddenText] [-IncludeImages] [-DefaultImageWidth <Double>] [-DefaultImageHeight <Double>] [-IncludeMetadata] [-IncludeTables] [-IncludeHeaderFooters] [-IncludeNotes] [-MaximumSystemFontFamilies <Int32>] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -208,7 +208,7 @@ Accept wildcard characters: False
 Underlying low-level OfficeIMO PDF options.
 
 ```yaml
-Type: PdfOptions
+Type: PdfCreateOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

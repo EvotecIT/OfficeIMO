@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using OfficeIMO.Workflows;
@@ -16,17 +17,19 @@ public sealed class SavedConversionJobOutcomeTests {
             File.WriteAllText(Path.Combine(input, "one.txt"), "Completed output is still available");
             File.WriteAllText(Path.Combine(input, "two.docx"), "Invalid document package");
             string jobPath = Path.Combine(root, "job.json"), reportPath = Path.Combine(root, "run.json");
-            var job = new OfficeConversionJob { InputDirectory = "input", OutputDirectory = "output", MaximumConcurrency = 1 };
-            OfficeConversionJobSerializer.SaveFile(job, jobPath);
+            var job = new OfficeBatchOptions { InputDirectory = "input", OutputDirectory = "output", MaxParallelism = 1 };
+            job.Save(jobPath);
+            job = OfficeBatchOptions.Load(jobPath);
+            job.ReportPath = reportPath;
             bool replaced = false;
-            var report = await OfficeConversionJobRunner.RunRecordedAsync(job, jobPath, reportPath, new OfficeWorkflowRunner(),
+            var report = await OfficeConverter.ConvertAsync(job,
                 progress: new Observer(_ => {
                     if (replaced) return;
                     File.WriteAllText(reportPath, "External replacement must survive");
                     replaced = true;
                 }));
-            Assert.Equal(1, report.Batch!.Summary.Completed);
-            Assert.Equal(1, report.Batch.Summary.Failed);
+            Assert.Equal(1, report.Summary.Completed);
+            Assert.Equal(1, report.Summary.Failed);
             Assert.NotNull(report.RecordingError);
 
             var state = InitialSessionState.CreateDefault();
@@ -44,16 +47,16 @@ public sealed class SavedConversionJobOutcomeTests {
             Assert.Contains("1 conversion(s) failed", caught.Exception.Message);
             Assert.Contains("run report could not be finalized", caught.Exception.Message);
             Assert.Same(report, caught.TargetObject);
-            Assert.Same(report.Batch.Summary, runspace.SessionStateProxy.GetVariable("summary"));
+            Assert.Same(report.Summary, runspace.SessionStateProxy.GetVariable("summary"));
             Assert.Equal("External replacement must survive", File.ReadAllText(reportPath));
-            Assert.Contains("Completed output", OfficeIMO.Pdf.PdfDocument.Load(Path.Combine(root, "output", "one.txt.pdf")).Read().Text);
+            Assert.Contains("Completed output", OfficeIMO.Pdf.PdfDocument.Load(Path.Combine(root, "output", "one.pdf")).Read().Text);
         } finally {
             Directory.Delete(root, true);
         }
     }
 
-    private sealed class Observer(Action<OfficeConversionBatchItemResult> action) : IProgress<OfficeConversionBatchItemResult> {
-        public void Report(OfficeConversionBatchItemResult value) => action(value);
+    private sealed class Observer(Action<OfficeBatchItemReport> action) : IProgress<OfficeBatchItemReport> {
+        public void Report(OfficeBatchItemReport value) => action(value);
     }
 }
 
@@ -61,11 +64,11 @@ public sealed class SavedConversionJobOutcomeTests {
 [Cmdlet(VerbsDiagnostic.Test, "RecordedJobOutcome")]
 public sealed class RecordedJobOutcomeCommand : AsyncPSCmdlet {
     [Parameter(Mandatory = true)]
-    public OfficeConversionJobRunReport Report { get; set; } = null!;
+    public OfficeBatchReport Report { get; set; } = null!;
     [Parameter]
     public string? SummaryVariable { get; set; }
     protected override Task ProcessRecordAsync() {
-        OfficeWorkflowCommandUtilities.WriteSavedJobOutcome(this, Report.Batch!.Summary, Report, SummaryVariable, false, false);
+        OfficeWorkflowCommandUtilities.WriteSavedJobOutcome(this, Report.Summary, Report, SummaryVariable, false, false);
         return Task.CompletedTask;
     }
 }
