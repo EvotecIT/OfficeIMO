@@ -726,5 +726,109 @@
   {
     "Row": 1811,
     "Formula": "XLOOKUP(1,{#DIV/0!},{10})"
+  },
+  {
+    "Row": 1821,
+    "Formula": "SUMPRODUCT(Data!A1:A5,Data!F1:F5)"
+  },
+  {
+    "Row": 1831,
+    "Formula": "SUMPRODUCT(Data!F1:F5)"
+  },
+  {
+    "Row": 1841,
+    "Formula": "SUMPRODUCT(Data!A1:A5,Data!F1:F5,Data!F1:F5)"
+  },
+  {
+    "Row": 1851,
+    "Formula": "SUMPRODUCT(Data!F5,2)"
+  },
+  {
+    "Row": 1861,
+    "Formula": "SUMPRODUCT(INDEX(Data!F1:F6,5),2)"
+  },
+  {
+    "Row": 1871,
+    "Formula": "SUMPRODUCT(IFERROR(Data!F5,77),2)"
+  },
+  {
+    "Row": 1881,
+    "Formula": "SUMPRODUCT(TRUE,2)"
+  },
+  {
+    "Row": 1891,
+    "Formula": "SUMPRODUCT(\"1\",2)"
+  },
+  {
+    "Row": 1901,
+    "Formula": "SUMPRODUCT({1;\"1\";TRUE;FALSE;0},{10;20;30;40;50})"
+  },
+  {
+    "Row": 1911,
+    "Formula": "SUMPRODUCT(Data!F5,NA())"
+  },
+  {
+    "Row": 1921,
+    "Formula": "SUMPRODUCT(Data!F1:F6,Data!A1:A6)"
+  },
+  {
+    "Row": 1931,
+    "Formula": "IFERROR(SUMPRODUCT(Data!F1:F5,Data!A1:A5),99)"
+  },
+  {
+    "Row": 1941,
+    "Formula": "INDEX({10,20;30,40},2)"
+  },
+  {
+    "Row": 1951,
+    "Formula": "SUM(INDEX({10,20;30,40},2))"
+  },
+  {
+    "Row": 1961,
+    "Formula": "INDEX({10,20;30,40},2,)"
+  },
+  {
+    "Row": 1971,
+    "Formula": "SUMPRODUCT(Data!F5,Data!F5)"
+  },
+  {
+    "Row": 1981,
+    "Formula": "SUMPRODUCT(Data!F5)"
+  },
+  {
+    "Row": 1991,
+    "Formula": "SUMPRODUCT(Data!F5:F5,{2})"
+  },
+  {
+    "Row": 2001,
+    "Formula": "SUMPRODUCT(0,2)"
+  },
+  {
+    "Row": 2011,
+    "Formula": "SUMPRODUCT(Data!F2,2)"
+  },
+  {
+    "Row": 2021,
+    "Formula": "SUMPRODUCT(Data!F3,2)"
+  },
+  {
+    "Row": 2031,
+    "Formula": "SUMPRODUCT(NA(),Data!F5)"
+  },
+  {
+    "Row": 2041,
+    "Formula": "SUMPRODUCT({#N/A;0},{0;0})"
+  },
+  {
+    "Row": 2051,
+    "Formula": "SUMPRODUCT({\"\";0},{2;3})"
+  },
+  {
+    "Row": 2061,
+    "Formula": "SUMPRODUCT(Data!F4:F5,Data!A1:A2)"
+  },
+  {
+    "Row": 2071,
+    "Formula": "SUMPRODUCT(Data!F5:F6,Data!A1:A2)"
   }
 ]

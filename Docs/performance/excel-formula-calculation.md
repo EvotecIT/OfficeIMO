@@ -85,11 +85,11 @@ with `7c7cf4b0769028732b65d39898df6d0dc072d92f`. It records the exact Excel/Core
 assembly hashes, all 144 measured report operations and the complete summaries.
 Both versions calculate the same four inputs and validate all 2,048 cached values.
 
-The candidate adds lookup modes, reference/array INDEX and named expressions.
+The measured lookup candidate adds lookup modes, reference/array INDEX and named expressions.
 Lazy reference-backed lookup sources avoid eager materialization, per-pass name
 catalogs avoid repeated definition scans, and literal lookup keys avoid wildcard
 regex construction. Nine measured iterations per engine/case use rotated order
-and each fixed processor domain, with one warmup at Normal priority. The final
+and each fixed processor domain, with one warmup at Normal priority. This
 candidate includes the native-qualified blank/reference, source-error,
 conditional and binary-duplicate corrections, plus typed callback preservation.
 
@@ -122,7 +122,7 @@ compares 256 linear and binary XLOOKUPs over identical sorted numeric sources at
 processor domain ran the complete four-case matrix with BenchmarkDotNet 0.15.8
 ShortRun, one launch, three warmups and three measured iterations. The primary
 cohorts explicitly apply Normal priority to all benchmark child processes and
-measure the same final `7c7cf4b0769028732b65d39898df6d0dc072d92f` assemblies.
+measure the same `7c7cf4b0769028732b65d39898df6d0dc072d92f` lookup assemblies.
 
 | Domain | Keys | Linear mean | Binary mean | Linear allocation | Binary allocation |
 | --- | --- | --- | --- | --- | --- |
@@ -142,6 +142,10 @@ cohorts separate when interpreting variation.
 All final report operations and scale cases pass output validation. No persistent
 lookup index, parser cache, timing assertion or memory budget is added to ordinary
 correctness CI. The [native Excel lookup corpus](../../OfficeIMO.TestAssets/Documents/ExcelFormulaCorpus/lookup-conformance.provenance.json)
-separately qualifies 182 formulas, 204 typed result cells and 10 spill ranges after
+separately qualifies 208 formulas, 232 typed result cells and 12 spill ranges after
 save/reopen. The timed engine in both report lanes is OfficeIMO; desktop Excel
 produces the independent correctness fixture.
+
+The later `SUMPRODUCT` coercion correction affects a separate function that these
+lookup workloads do not call. The recorded hashes identify the measured lookup
+candidate; its timed lookup paths are unchanged by that correction.

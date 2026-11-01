@@ -4,6 +4,24 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Theory]
+        [InlineData("number", 1, "3")]
+        [InlineData("text", 0, "42")]
+        [InlineData("missing", 0, "42")]
+        public void FormulaEvaluator_SumProductPreservesNumericCachesWithoutCoercingUnevaluatedNonnumericInputs(
+            string cacheKind, int calculated, string expected) {
+            using var document = ExcelDocument.Create();
+            var sheet = document.AddWorksheet("Unresolved");
+            if (cacheKind == "number") sheet.CellValue(1, 1, 1d);
+            else if (cacheKind == "text") sheet.CellValue(1, 1, string.Empty);
+            sheet.CellFormula(1, 1, "UNKNOWN()");
+            sheet.CellValue(2, 1, 2d);
+            sheet.CellValue(1, 4, 42d);
+            sheet.CellFormula(1, 4, "IFERROR(SUMPRODUCT(A1:A2),99)");
+            Assert.Equal(calculated, document.Calculate());
+            AssertFormulaCache(sheet, 1, 4, expected);
+        }
+
+        [Theory]
         [InlineData("IF(NA(),1,2)")]
         [InlineData("IFS(NA(),1,TRUE,2)")]
         [InlineData("SWITCH(NA(),1,10,20)")]

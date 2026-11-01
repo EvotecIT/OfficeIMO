@@ -1445,8 +1445,10 @@ array with an omitted column also selects the whole row.
 
 Error-valued conditions and selectors also propagate through `IF`, `IFS`,
 `SWITCH` and `CHOOSE`. Text helpers preserve operand errors instead of treating
-their codes as text, and `SUMPRODUCT` preserves errors in its supported numeric
-vectors. `TEXTBEFORE`/`TEXTAFTER` evaluate an explicit fallback only when needed.
+their codes as text. `SUMPRODUCT` treats blank, text and Boolean array elements
+as zero and preserves typed errors. A single blank argument returns `#VALUE!`;
+unresolved formula inputs remain unevaluated. `TEXTBEFORE`/`TEXTAFTER` evaluate
+an explicit fallback only when needed.
 `IF` permits an omitted false branch, which returns Boolean `FALSE`; explicitly
 empty selected `IF` or `CHOOSE` arguments return numeric zero. `IF`, `IFS`,
 `SWITCH` and `CHOOSE` retain a selected reference for its consumer. `IFERROR`,
@@ -1456,7 +1458,7 @@ as zero. A blank reference selected by `INDEX`, `OFFSET` or `XLOOKUP` is
 skipped by `COUNT`. Both forms cache numeric zero as a cell result.
 
 The [native Excel lookup corpus](../OfficeIMO.TestAssets/Documents/ExcelFormulaCorpus/lookup-conformance.provenance.json)
-qualifies 182 formulas, 204 typed result cells and 10 spill ranges after
+qualifies 208 formulas, 232 typed result cells and 12 spill ranges after
 save/reopen. Normal regression tests calculate fresh uncached inputs and compare
 them with the independent Excel results. Regenerate the reference with
 `pwsh -STA -File Build/Verification/New-ExcelFormulaConformanceOracle.ps1 -LookupExpansion`

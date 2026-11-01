@@ -183,10 +183,18 @@ namespace OfficeIMO.Excel {
                     if (isReference || !TryResolveFormulaArgument(token, out FormulaArgumentValue scalar)) return false;
                     values = new List<FormulaArgumentValue> { scalar };
                 }
-                foreach (FormulaArgumentValue value in values) {
+                for (int index = 0; index < values.Count; index++) {
+                    FormulaArgumentValue value = values[index];
                     if (value.IsUnresolvedFormula) return false;
                     if (value.IsError) { if (!firstError.IsError) firstError = value; }
-                    else if (!value.IsNumericAggregateValue || !IsFinite(value.Number!.Value)) return false;
+                    else if (!value.HasValue || value.IsBoolean || !value.IsNumericAggregateValue) {
+                        if (value.IsUnevaluatedFormulaCache) return false;
+                        // Array blanks and nonnumeric elements contribute zero;
+                        // Excel rejects a single blank argument with #VALUE!.
+                        if (!value.HasValue && values.Count == 1 && !firstError.IsError)
+                            firstError = FormulaArgumentValue.Error("#VALUE!");
+                        values[index] = new FormulaArgumentValue(0d, "0");
+                    } else if (!IsFinite(value.Number!.Value)) return false;
                 }
                 argumentSets.Add(values);
             }
