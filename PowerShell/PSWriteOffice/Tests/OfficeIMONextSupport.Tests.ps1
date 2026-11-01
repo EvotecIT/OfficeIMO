@@ -324,16 +324,16 @@ Describe 'Expanded OfficeIMO support' {
         New-OfficePdf -Path $pdfPath { PdfParagraph 'PDF image' } | Out-Null
 
         $quietImagePath = Join-Path $TestDrive 'word-quiet.svg'
-        @(Export-OfficeWordImage -Path $wordPath -OutputPath $quietImagePath -Format Svg) | Should -HaveCount 0
+        @(Export-OfficeDocumentImage -Path $wordPath -OutputPath $quietImagePath -Format Svg) | Should -HaveCount 1
         Test-Path -LiteralPath $quietImagePath | Should -BeTrue
 
         $results = @(
-            Export-OfficeWordImage -Path $wordPath -OutputPath (Join-Path $TestDrive 'word.svg') -Format Svg -PassThru
-            Export-OfficeExcelImage -Path $excelPath -OutputPath (Join-Path $TestDrive 'excel-images') -Format Svg -PassThru
-            Export-OfficePowerPointImage -Path $powerPointPath -OutputPath (Join-Path $TestDrive 'ppt-images') -Format Svg -PassThru
-            Export-OfficeHtmlImage -Html '<h1>HTML image</h1>' -OutputPath (Join-Path $TestDrive 'html.svg') -Format Svg -PassThru
-            Export-OfficePdfImage -Path $pdfPath -OutputPath (Join-Path $TestDrive 'pdf-images') -Format Svg -PassThru
-            Export-OfficePdfImage -Path $pdfPath -OutputPath (Join-Path $TestDrive 'pdf-webp-images') -Format Webp -PassThru
+            Export-OfficeDocumentImage -Path $wordPath -OutputPath (Join-Path $TestDrive 'word.svg') -Format Svg
+            Export-OfficeDocumentImage -Path $excelPath -OutputDirectory (Join-Path $TestDrive 'excel-images') -Format Svg
+            Export-OfficeDocumentImage -Path $powerPointPath -OutputDirectory (Join-Path $TestDrive 'ppt-images') -Format Svg
+            Export-OfficeDocumentImage -From Html -Text '<h1>HTML image</h1>' -OutputPath (Join-Path $TestDrive 'html.svg') -Format Svg
+            Export-OfficeDocumentImage -Path $pdfPath -OutputDirectory (Join-Path $TestDrive 'pdf-images') -Format Svg
+            Export-OfficeDocumentImage -Path $pdfPath -OutputDirectory (Join-Path $TestDrive 'pdf-webp-images') -Format Webp
         )
 
         $results.Count | Should -BeGreaterOrEqual 5
@@ -347,7 +347,7 @@ Describe 'Expanded OfficeIMO support' {
 
         $htmlLines = @('<html><body>', '<h1>Pipeline heading</h1><p>Pipeline body</p>', '</body></html>')
         $pipelineHtmlPath = Join-Path $TestDrive 'pipeline-html.svg'
-        $pipelineHtml = @($htmlLines | Export-OfficeHtmlImage -OutputPath $pipelineHtmlPath -Format Svg -PassThru)
+        $pipelineHtml = @(Export-OfficeDocumentImage -Text ($htmlLines -join "`n") -From Html -OutputPath $pipelineHtmlPath -Format Svg)
         $pipelineHtml | Should -HaveCount 1
         $pipelineHtml[0].GetType().FullName | Should -Be 'OfficeIMO.Drawing.OfficeImageExportResult'
         Test-Path -LiteralPath $pipelineHtmlPath | Should -BeTrue
@@ -365,8 +365,8 @@ Describe 'Expanded OfficeIMO support' {
 
         foreach ($format in 'Jpeg', 'Tiff', 'Webp') {
             $extension = if ($format -eq 'Jpeg') { 'jpg' } else { $format.ToLowerInvariant() }
-            $wordResult = Export-OfficeWordImage -Path $wordPath -OutputPath (Join-Path $TestDrive "word.$extension") -Format $format -PassThru
-            $htmlResult = Export-OfficeHtmlImage -Html '<h1>Format contract</h1>' -OutputPath (Join-Path $TestDrive "html.$extension") -Format $format -PassThru
+            $wordResult = Export-OfficeDocumentImage -Path $wordPath -Page 1 -OutputPath (Join-Path $TestDrive "word.$extension") -Format $format
+            $htmlResult = Export-OfficeDocumentImage -From Html -Text '<h1>Format contract</h1>' -OutputPath (Join-Path $TestDrive "html.$extension") -Format $format
 
             foreach ($result in $wordResult, $htmlResult) {
                 $result.Format.ToString() | Should -Be $format
@@ -390,7 +390,7 @@ Describe 'Expanded OfficeIMO support' {
 
         $batchOptions = New-OfficeWordImageOptions -PageIndex 0 -PageCount 2
         $batchFolder = Join-Path $TestDrive 'word-pages'
-        $batch = @(Export-OfficeWordImage -Path $wordPath -OutputPath $batchFolder -Format Svg -Options $batchOptions -PassThru)
+        $batch = @(Export-OfficeDocumentImage -Path $wordPath -OutputDirectory $batchFolder -Format Svg -Options $batchOptions)
         $batch | Should -HaveCount 2
         $batch[0].SequenceIndex | Should -Be 0
         $batch[1].SequenceIndex | Should -Be 1
@@ -403,7 +403,7 @@ Describe 'Expanded OfficeIMO support' {
         $powerPointPath = Join-Path $TestDrive 'transient.pptx'
         New-OfficePowerPoint -Path $powerPointPath { PowerPointSlide -Title 'Transient' } | Out-Null
 
-        Export-OfficePowerPointImage -Path $powerPointPath -OutputPath (Join-Path $TestDrive 'transient-images') -Format Svg | Out-Null
+        Export-OfficeDocumentImage -Path $powerPointPath -OutputDirectory (Join-Path $TestDrive 'transient-images') -Format Svg | Out-Null
         Test-OfficePowerPoint -Path $powerPointPath | Out-Null
 
         $renamedPath = Join-Path $TestDrive 'transient-renamed.pptx'

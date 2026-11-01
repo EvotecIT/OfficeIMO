@@ -44,7 +44,6 @@ Describe 'Authenticated PDF automation' {
             'ConvertTo-OfficePdfSanitized',
             'ConvertTo-OfficePdfSearchable',
             'Copy-OfficePdfPage',
-            'Export-OfficePdfImage',
             'Export-OfficePdfLayoutOverlay',
             'Export-OfficePdfXfdf',
             'Open-OfficePdf',
@@ -108,6 +107,14 @@ Describe 'Authenticated PDF automation' {
             Should -Match 'Authenticated restricted text'
         Get-OfficePdfText -Path $path -Password 'owner' |
             Should -Match 'Authenticated restricted text'
+
+        { ConvertTo-OfficeDocumentImage -LiteralPath $path -Format Svg -Password open -ErrorAction Stop } |
+            Should -Throw
+        { ConvertTo-OfficeDocumentImage -LiteralPath $path -Format Svg -Password wrong -Options @{ PermissionPolicy = 'IgnoreRestrictions' } -ErrorAction Stop } |
+            Should -Throw
+        $image = ConvertTo-OfficeDocumentImage -LiteralPath $path -Format Svg -Password open -Options @{ PermissionPolicy = 'IgnoreRestrictions' } -ErrorAction Stop
+        $image.GetType().FullName | Should -Be 'OfficeIMO.Drawing.OfficeImageExportResult'
+        $image.Bytes.Length | Should -BeGreaterThan 0
     }
 
     It 'merges independently authenticated restricted sources and reports what happened' {

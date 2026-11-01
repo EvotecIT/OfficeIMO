@@ -27,8 +27,9 @@ internal static class OfficeMergeOptionBinding {
             if (typed) throw new PSArgumentException("Provide at most one typed merge options object.");
             typed = true;
             // Override tables apply to a separate bag rather than modifying the caller's options object.
-            foreach (PropertyInfo property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
-                if (property.CanRead && property.SetMethod?.IsPublic == true) property.SetValue(result, property.GetValue(value));
+            result = CopyProperties(value);
+            if (result is PdfMergeOptions pdfCopy && pdfCopy.Policy != null)
+                pdfCopy.Policy = (PdfMergePolicy)CopyProperties(pdfCopy.Policy);
         }
         var binder = new OfficeOptionsTransformationAttribute(type);
         foreach (object item in values ?? Array.Empty<object>()) {
@@ -57,6 +58,15 @@ internal static class OfficeMergeOptionBinding {
     internal static object? Unwrap(object? value) {
         while (value is PSObject wrapper && !ReferenceEquals(value, wrapper.BaseObject)) value = wrapper.BaseObject;
         return value;
+    }
+
+    // Merge option records contain scalar settings; PDF's separately mutable policy needs its own copy.
+    private static object CopyProperties(object source) {
+        Type type = source.GetType();
+        object copy = Activator.CreateInstance(type)!;
+        foreach (PropertyInfo property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            if (property.CanRead && property.SetMethod?.IsPublic == true) property.SetValue(copy, property.GetValue(source));
+        return copy;
     }
 
     private static void ValidateEnums(object options) {

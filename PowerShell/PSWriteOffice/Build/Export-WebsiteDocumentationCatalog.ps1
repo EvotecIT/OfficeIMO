@@ -95,7 +95,7 @@ $familyDefinitions = @(
     [ordered]@{
         id = 'visio'; title = 'Visio'; description = 'Create, inspect, arrange, and export VSDX diagrams with built-in and imported stencils.'
         docs = 'visio'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Visio'
-        samples = @('New-OfficeVisio', 'Add-OfficeVisioStencilShape', 'Get-OfficeVisioInfo', 'ConvertTo-OfficeVisioSvg')
+        samples = @('New-OfficeVisio', 'Add-OfficeVisioStencilShape', 'Get-OfficeVisioInfo', 'Export-OfficeDocumentImage')
         match = { param($name) $name -match 'OfficeVisio' }
     }
     [ordered]@{

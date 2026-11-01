@@ -2652,7 +2652,7 @@
               "type": "OfficeImageFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png (default), Jpeg or Svg; inferred from -OutputPath when given."
+              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
             },
             {
               "name": "Page",
@@ -2755,7 +2755,7 @@
               "type": "OfficeImageFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png (default), Jpeg or Svg; inferred from -OutputPath when given."
+              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
             },
             {
               "name": "Page",
@@ -2854,7 +2854,7 @@
               "type": "OfficeImageFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png (default), Jpeg or Svg; inferred from -OutputPath when given."
+              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
             },
             {
               "name": "Page",
@@ -2960,7 +2960,7 @@
               "type": "OfficeImageFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png (default), Jpeg or Svg; inferred from -OutputPath when given."
+              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
             },
             {
               "name": "Page",
@@ -3056,7 +3056,7 @@
               "type": "OfficeImageFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png (default), Jpeg or Svg; inferred from -OutputPath when given."
+              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
             },
             {
               "name": "Page",
@@ -3151,7 +3151,7 @@
               "type": "OfficeImageFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png (default), Jpeg or Svg; inferred from -OutputPath when given."
+              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
             },
             {
               "name": "Page",
@@ -3232,7 +3232,7 @@
               "mandatory": true,
               "position": 0,
               "pipeline": "value",
-              "note": "Source markup, for example HTML."
+              "note": "HTML markup; use From Html. Each pipeline record is a separate source; use Get-Content -Raw for a complete HTML file."
             },
             {
               "name": "From",
@@ -3253,7 +3253,7 @@
               "type": "OfficeImageFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png (default), Jpeg or Svg; inferred from -OutputPath when given."
+              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
             },
             {
               "name": "Page",
@@ -3333,7 +3333,8 @@
               "type": "string",
               "mandatory": true,
               "position": 0,
-              "pipeline": "value"
+              "pipeline": "value",
+              "note": "HTML markup; use From Html. Each pipeline record is a separate source; use Get-Content -Raw for a complete HTML file."
             },
             {
               "name": "From",
@@ -3354,7 +3355,7 @@
               "type": "OfficeImageFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png (default), Jpeg or Svg; inferred from -OutputPath when given."
+              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
             },
             {
               "name": "Page",
@@ -3426,7 +3427,7 @@
           ]
         }
       ],
-      "notes": "Always writes files: every set requires -OutputDirectory or -OutputPath and returns one OfficeImageExportResult per input document (files written, page numbers, diagnostics). For images as objects without a file-system effect, use ConvertTo-OfficeDocumentImage, which takes the same page, sheet, format, DPI and options parameters (PowerShell convention: Export- writes files, ConvertTo- returns objects). Absorbs (mapped by their agents): Export-OfficeWordImage, Export-OfficeExcelImage, Export-OfficeExcelRangeImage (-Sheet -Range), Export-OfficeExcelChartImage (-Sheet -Chart), Export-OfficePdfImage, Export-OfficePowerPointImage, Export-OfficeHtmlImage (-Text -From Html or -Document), Export-OfficeVisioImage (-Format Png/Svg; NoText, font and connector-label settings move to New-OfficeVisioImageOptions). ConvertTo-OfficeVisioPng and ConvertTo-OfficeVisioSvg move to ConvertTo-OfficeDocumentImage. New-OfficeExcelWorkbookImageOptions and New-OfficeExcelImageOptions overlap; the Excel agent decides whether they merge. Raster limits (MaximumRasterPixelCount, MaximumTotalRasterPixelCount, MaximumOutputCount, RenderTimeoutSeconds ...) stay in the format options factories. PDF input honors -Password; permission restrictions are handled by PdfLoadOptions inside New-OfficePdfImageOptions or by the PDF area's load options.",
+      "notes": "Always writes files and returns one native OfficeImageExportResult per saved image, with its payload, name, dimensions, diagnostics, batch position and SavedPath. OutputPath requires exactly one input and one selected image, with rejection before any destination is created. OutputDirectory writes a numbered batch. NoClobber uses atomic create-if-absent publication. Format is inferred from a file extension when omitted; extensionless file paths append the selected encoding extension. For in-memory images use ConvertTo-OfficeDocumentImage. Absorbs the eight format-specific Export-Office*Image commands; Visio PNG/SVG file output also uses this command. Sheet, Range and Chart select Excel content. NoText moves to Options.RenderText=false; native font and connector settings stay in VisioImageExportOptions. Format-specific load and image options are accepted together through Options, routed by type, with unknown or unused keys rejected. Native output limits and deadlines remain in those options. PDF passwords and permission policy remain with PdfLoadOptions.",
       "examples": [
         {
           "title": "Render slides to PNG files",
@@ -3441,7 +3442,7 @@
         {
           "title": "Make first-page thumbnails for a mixed folder",
           "description": "Renders the first page or slide of every PDF, Word and PowerPoint handout as a JPEG thumbnail, six files at a time.",
-          "code": "$thumbnail = New-OfficePdfImageOptions -ThumbnailMaxDimension 320\nGet-ChildItem -Path .\\Handouts -Include *.pdf, *.docx, *.pptx -Recurse |\n    Export-OfficeDocumentImage -OutputDirectory .\\Thumbnails -Page 1 -Format Jpeg -Options $thumbnail -ThrottleLimit 6"
+          "code": "$thumbnail = New-OfficePdfImageOptions -ThumbnailMaxDimension 320\nGet-ChildItem -Path .\\Handouts -Filter *.pdf -Recurse |\n    Export-OfficeDocumentImage -OutputDirectory .\\Thumbnails -Page 1 -Format Jpeg -Options $thumbnail -ThrottleLimit 6"
         }
       ]
     },
@@ -3473,7 +3474,7 @@
               "type": "OfficeImageFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png (default), Jpeg or Svg."
+              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
             },
             {
               "name": "Page",
@@ -3565,7 +3566,7 @@
               "type": "OfficeImageFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png (default), Jpeg or Svg."
+              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
             },
             {
               "name": "Page",
@@ -3654,7 +3655,7 @@
               "type": "OfficeImageFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png (default), Jpeg or Svg."
+              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
             },
             {
               "name": "Page",
@@ -3729,7 +3730,7 @@
               "mandatory": true,
               "position": 0,
               "pipeline": "value",
-              "note": "Source markup, for example HTML."
+              "note": "HTML markup; use From Html. Each pipeline record is a separate source; use Get-Content -Raw for a complete HTML file."
             },
             {
               "name": "From",
@@ -3742,7 +3743,7 @@
               "type": "OfficeImageFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png (default), Jpeg or Svg."
+              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
             },
             {
               "name": "Page",
@@ -3808,12 +3809,12 @@
           ]
         }
       ],
-      "notes": "Returns one OfficeImage per rendered page, slide, sheet, range, chart or diagram page, with Format, Source, Page/Slide/Sheet (1-based), Name, Width, Height and Bytes (raster) or SvgText (SVG); Bytes is hidden from default views. No file-system effect, so no -WhatIf; Export-OfficeDocumentImage writes the same images to files. Takes the same -Page, -Sheet, -Range, -Chart, -Format, -Dpi, -Scale, -BackgroundColor, -Options and -Password parameters as Export-OfficeDocumentImage. Replaces the in-memory results of ConvertTo-OfficeVisioPng (byte[]) and ConvertTo-OfficeVisioSvg (string), and the in-memory mode of Export-OfficeDocumentImage. Inputs: files (-Path, -LiteralPath), a live Word, Excel, PowerPoint, PDF, Visio or HTML document (-Document), or markup (-Text with -From).",
+      "notes": "Returns one native OfficeImageExportResult per rendered page, slide, sheet, range, chart or diagram page. Results expose Format, MimeType, Source, Name, Width, Height, Bytes, Diagnostics, SequenceIndex and SequenceCount; Bytes also holds UTF-8 SVG. The default view omits Bytes. No filesystem effects and no WhatIf; Export-OfficeDocumentImage writes the same images to files. Inputs are Path/LiteralPath files, live Word/Excel/PowerPoint/PDF/Visio/HTML documents, or Text with From Html. Caller-owned documents retain their current content, association and lifetime. Page uses one-based selection; PowerPoint retains native document order and de-duplication. Options are cloned and routed to admitted native owners.",
       "examples": [
         {
           "title": "Get slide images as objects",
           "description": "Renders the first three slides and lists their sizes without writing any files.",
-          "code": "ConvertTo-OfficeDocumentImage -Path .\\Decks\\Q3-Review.pptx -Page 1-3 | Select-Object Slide, Width, Height"
+          "code": "ConvertTo-OfficeDocumentImage -Path .\\Decks\\Q3-Review.pptx -Page 1-3 | Select-Object Name, Width, Height"
         },
         {
           "title": "Render in memory for an HTML report",
@@ -3823,7 +3824,7 @@
         {
           "title": "Get a diagram as SVG text",
           "description": "Renders the first Visio page as SVG markup and inlines it into a status page.",
-          "code": "$svg = ConvertTo-OfficeDocumentImage -Path .\\Diagrams\\Network.vsdx -Page 1 -Format Svg -BackgroundColor Transparent\nSet-Content -Path .\\Site\\network.html -Value \"<html><body>$($svg.SvgText)</body></html>\""
+          "code": "$image = ConvertTo-OfficeDocumentImage -Path .\\Diagrams\\Network.vsdx -Page 1 -Format Svg -BackgroundColor Transparent\nSet-Content -Path .\\Site\\network.html -Value \"<html><body>$([Text.Encoding]::UTF8.GetString($image.Bytes))</body></html>\""
         }
       ]
     },

@@ -53,4 +53,4 @@ Copy or import slides when the workflow assembles a deck from approved sources. 
 
 ## Review output
 
-Use `ConvertTo-OfficePowerPointHtml` for a browser-review surface and `Export-OfficePowerPointImage` for visual artifacts. For exact parameters and supported chart/layout values, search the [command reference](/api/powershell/) for `OfficePowerPoint`. The [PowerPoint examples](https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/PowerPoint) demonstrate normal script shapes.
+Use `Convert-OfficeDocument -Path ./review.pptx -To Html -OutputPath ./review.html` for a browser-review surface and `Export-OfficeDocumentImage -Path ./review.pptx -OutputDirectory ./slides` for slide images. For exact parameters and supported chart/layout values, search the [command reference](/api/powershell/) for `OfficePowerPoint`. The [PowerPoint examples](https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/PowerPoint) demonstrate normal script shapes.

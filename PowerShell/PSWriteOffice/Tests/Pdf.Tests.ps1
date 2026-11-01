@@ -90,7 +90,7 @@ Describe 'PDF cmdlets' {
             Should -Throw '*page*'
         { ConvertTo-OfficePdfMarkdown -Path $missingPath -PageRange 'invalid' -ErrorAction Stop } |
             Should -Throw '*page*'
-        { Export-OfficePdfImage -Path $missingPath -OutputPath $exportDirectory -PageRange 'invalid' -ErrorAction Stop } |
+        { Export-OfficeDocumentImage -Path $missingPath -OutputDirectory $exportDirectory -Page 'invalid' -ErrorAction Stop } |
             Should -Throw '*page*'
         { Join-OfficePdf -Path $missingPath, $missingPath -Password 'one', 'two', 'three' -OutputPath $joinPath -ErrorAction Stop } |
             Should -Throw '*one -Password value or one value for every -Path source*'

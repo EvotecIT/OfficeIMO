@@ -40,14 +40,14 @@ Describe 'Visio cmdlets' {
         $document.Pages[0].AddRectangle(2, 2, 2, 1, 'SVG smoke') | Out-Null
         $document | Save-OfficeVisio -Path $path | Out-Null
 
-        ConvertTo-OfficeVisioSvg -Path $path -OutputPath $svgPath |
-            Should -BeOfType System.IO.FileInfo
+        Export-OfficeDocumentImage -Path $path -Page 1 -Format Svg -OutputPath $svgPath |
+            ForEach-Object { $_.GetType().FullName | Should -Be 'OfficeIMO.Drawing.OfficeImageExportResult' }
         $svg = Get-Content -Path $svgPath -Raw
         $svg | Should -Match '<svg'
         $svg | Should -Match 'SVG smoke'
 
-        ConvertTo-OfficeVisioPng -Path $path -OutputPath $pngPath -NoText |
-            Should -BeOfType System.IO.FileInfo
+        Export-OfficeDocumentImage -Path $path -Page 1 -Format Png -OutputPath $pngPath -Options @{ RenderText = $false } |
+            ForEach-Object { $_.GetType().FullName | Should -Be 'OfficeIMO.Drawing.OfficeImageExportResult' }
         $bytes = [System.IO.File]::ReadAllBytes($pngPath)
         $bytes.Length | Should -BeGreaterThan 8
         $bytes[0] | Should -Be 137
@@ -64,18 +64,19 @@ Describe 'Visio cmdlets' {
 
         $svgBasePath = Join-Path $TestDrive 'extensionless-svg'
         $pngBasePath = Join-Path $TestDrive 'extensionless-png'
-        (ConvertTo-OfficeVisioSvg -Path $path -OutputPath $svgBasePath).FullName |
+        (Export-OfficeDocumentImage -Path $path -Page 1 -Format Svg -OutputPath $svgBasePath).SavedPath |
             Should -Be ($svgBasePath + '.svg')
-        (ConvertTo-OfficeVisioPng -Path $path -OutputPath $pngBasePath).FullName |
+        (Export-OfficeDocumentImage -Path $path -Page 1 -Format Png -OutputPath $pngBasePath).SavedPath |
             Should -Be ($pngBasePath + '.png')
     }
 
     It 'does not load or render path-based Visio image output under WhatIf' {
-        $missingPath = Join-Path $TestDrive 'missing.vsdx'
+        $inputPath = Join-Path $TestDrive 'invalid-but-existing.vsdx'
+        Set-Content -LiteralPath $inputPath -Value 'WhatIf must not invoke the Visio package parser.'
 
-        { ConvertTo-OfficeVisioSvg -Path $missingPath -OutputPath (Join-Path $TestDrive 'whatif-svg') -WhatIf } |
+        { Export-OfficeDocumentImage -Path $inputPath -Format Svg -OutputPath (Join-Path $TestDrive 'whatif-svg') -WhatIf } |
             Should -Not -Throw
-        { ConvertTo-OfficeVisioPng -Path $missingPath -OutputPath (Join-Path $TestDrive 'whatif-png') -WhatIf } |
+        { Export-OfficeDocumentImage -Path $inputPath -Format Png -OutputPath (Join-Path $TestDrive 'whatif-png') -WhatIf } |
             Should -Not -Throw
     }
 
@@ -104,7 +105,7 @@ Describe 'Visio cmdlets' {
             }
         } | Out-Null
 
-        $results = @(Export-OfficeVisioImage -Path $path -OutputPath $output -Format Svg -PassThru)
+        $results = @(Export-OfficeDocumentImage -Path $path -OutputDirectory $output -Format Svg)
         $results | Should -HaveCount 2
         $results | ForEach-Object {
             $_.GetType().FullName | Should -Be 'OfficeIMO.Drawing.OfficeImageExportResult'
@@ -137,7 +138,7 @@ Describe 'Visio cmdlets' {
         $info.ShapeCount | Should -Be 5
         $info.ConnectorCount | Should -Be 2
 
-        ConvertTo-OfficeVisioSvg -Path $path -OutputPath $svgPath | Out-Null
+        Export-OfficeDocumentImage -Path $path -Page 1 -Format Svg -OutputPath $svgPath | Out-Null
         $svg = Get-Content -Path $svgPath -Raw
         $svg | Should -Match 'Web'
         $svg | Should -Match 'Ready'
@@ -201,7 +202,7 @@ Describe 'Visio cmdlets' {
         $info.ShapeCount | Should -Be 3
         $info.ConnectorCount | Should -Be 2
 
-        ConvertTo-OfficeVisioSvg -Path $path -OutputPath $svgPath | Out-Null
+        Export-OfficeDocumentImage -Path $path -Page 1 -Format Svg -OutputPath $svgPath | Out-Null
         $svg = Get-Content -Path $svgPath -Raw
         $svg | Should -Match 'Intake'
         $svg | Should -Match 'Review'
@@ -345,7 +346,7 @@ Describe 'Visio cmdlets' {
 
         Push-Location $TestDrive
         try {
-            ConvertTo-OfficeVisioPng -Path $path -OutputPath $pngPath -FontFilePath '.\Fonts\test-font.ttf' | Out-Null
+            Export-OfficeDocumentImage -Path $path -Page 1 -Format Png -OutputPath $pngPath -Options @{ FontFilePath = '.\Fonts\test-font.ttf' } | Out-Null
         } finally {
             Pop-Location
         }
