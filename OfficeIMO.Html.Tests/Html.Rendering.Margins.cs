@@ -118,6 +118,18 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlContainerQueries_ContainerUnitsResolveInStylesheetPaddingShorthand() {
+        const string html = "<style>.c{container-type:inline-size;width:200px}.p{padding:5cqw}</style><div class='c'><div class='p'>Text</div></div>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous, ViewportWidth = 220D, ViewportHeight = 60D, Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Equal(10D, Assert.Single(DrawingTestTraversal.Elements(rendered.Pages[0].CreateDrawing()).OfType<OfficeDrawingText>()).X, 2);
+    }
+
+    [Fact]
     public void HtmlContainerQueries_FlexItemQueriesItsLaidOutWidthNotItsParents() {
         const string html = "<style>.c{container-type:inline-size}.t{height:10px;background:#ff0000}"
             + "@container (min-width:150px){.t{background:#0000ff}}.u{height:10px;width:25cqw;background:#00ff00}</style>"

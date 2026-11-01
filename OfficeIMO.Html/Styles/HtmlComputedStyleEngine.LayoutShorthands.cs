@@ -8,7 +8,10 @@ public static partial class HtmlComputedStyleEngine {
         "place-items", "place-self", "place-content", "align-items", "justify-items", "align-self", "justify-self", "align-content", "justify-content",
         "text-decoration", "text-decoration-line", "text-decoration-style", "text-decoration-color", "text-decoration-thickness", "text-underline-offset", "text-underline-position", "text-decoration-skip-ink",
         // Retain the whole family in source order; the provider grammar predates anywhere.
-        "overflow-wrap", "word-break"
+        "overflow-wrap", "word-break",
+        // The provider grammar rejects container units in these shorthands.
+        "margin", "margin-top", "margin-right", "margin-bottom", "margin-left",
+        "padding", "padding-top", "padding-right", "padding-bottom", "padding-left"
     };
     private static readonly string[] GapLonghands = { "row-gap", "column-gap" };
 
