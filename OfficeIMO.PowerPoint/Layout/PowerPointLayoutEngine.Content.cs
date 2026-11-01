@@ -903,6 +903,24 @@ namespace OfficeIMO.PowerPoint {
             return picture;
         }
 
+        /// <summary>Puts a label on the marker's right, else on the wider side, wrapped to stay on the slide.</summary>
+        private static PowerPointLayoutRect PlaceAnnotationLabel(PowerPointLayoutContext context, PowerPointTextStyleSpec caption, string label,
+            double x, double y, double width, double height, double inset) {
+            PowerPointLayoutGrid grid = context.Grid;
+            const double markerClearance = 15D;
+            double rightRoom = grid.SlideWidth - grid.MarginRight - (x + markerClearance);
+            double leftRoom = x - markerClearance - grid.MarginLeft;
+            bool right = width <= rightRoom || rightRoom >= leftRoom;
+            double room = Math.Max(1D, right ? rightRoom : leftRoom);
+            if (width > room) {
+                width = room;
+                int lines = PowerPointTextMeasure.LineCount(label, caption.Size, width - 2D * inset, context.Theme.BodyFont);
+                height = Math.Max(height, lines * caption.Size * caption.LineHeight + 2D * inset);
+            }
+            double top = Math.Max(0D, Math.Min(y - height / 2D, grid.SlideHeight - height));
+            return new PowerPointLayoutRect(right ? x + markerClearance : x - markerClearance - width, top, width, height);
+        }
+
         /// <summary>Numbered markers placed on the visible (cropped) picture, with their labels beside them.</summary>
         private static void RenderAnnotations(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointPicture picture,
             PowerPointLayoutImage image) {
@@ -928,7 +946,7 @@ namespace OfficeIMO.PowerPoint {
                     (text, size) => metrics.MeasureText(text, size, context.Theme.BodyFont, OfficeFontStyle.Regular), wrap: false);
                 double labelWidth = Math.Ceiling(layout.Width) + 2D * labelInset + 10D;
                 double labelHeight = Math.Max(18D, Math.Ceiling(Math.Max(layout.Height, OfficeDrawingTextLayout.PaintedHeight(layout))) + 2D * labelInset);
-                writer.Text("Screenshot Annotation Label " + (i + 1), new PowerPointLayoutRect(x + 15D, y - labelHeight / 2D, labelWidth, labelHeight),
+                writer.Text("Screenshot Annotation Label " + (i + 1), PlaceAnnotationLabel(context, caption, label, x, y, labelWidth, labelHeight, labelInset),
                     new[] { context.Paragraph(label, PowerPointTextRole.Caption, context.Theme.Text) }, anchor: "ctr", fill: context.Theme.Background, inset: labelInset);
             }
         }
