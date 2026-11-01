@@ -7,6 +7,7 @@ internal sealed class PublisherParagraphStyle {
     public uint? DefaultStyleIndex { get; internal set; }
     public OfficeTextAlignment? Alignment { get; internal set; }
     public bool? SuppressAutomaticHyphenation { get; internal set; }
+    internal bool HyphenationSuppressionUnassessed { get; set; }
     public double? LineHeight { get; internal set; }
     public double? LineHeightFactor { get; internal set; }
     public double? Before { get; internal set; }
@@ -31,7 +32,9 @@ internal sealed class PublisherParagraphStyle {
     internal PublisherParagraphStyle Inherit(PublisherParagraphStyle fallback) => new() {
         DefaultStyleIndex = DefaultStyleIndex ?? fallback.DefaultStyleIndex,
         Alignment = Alignment ?? fallback.Alignment,
-        SuppressAutomaticHyphenation = SuppressAutomaticHyphenation ?? fallback.SuppressAutomaticHyphenation,
+        SuppressAutomaticHyphenation = HyphenationSuppressionUnassessed ? null : SuppressAutomaticHyphenation ?? fallback.SuppressAutomaticHyphenation,
+        HyphenationSuppressionUnassessed = HyphenationSuppressionUnassessed
+            || !SuppressAutomaticHyphenation.HasValue && fallback.HyphenationSuppressionUnassessed,
         LineHeight = LineHeight ?? (LineHeightFactor.HasValue ? null : fallback.LineHeight),
         LineHeightFactor = LineHeightFactor ?? (LineHeight.HasValue ? null : fallback.LineHeightFactor),
         Before = Before ?? fallback.Before, After = After ?? fallback.After,

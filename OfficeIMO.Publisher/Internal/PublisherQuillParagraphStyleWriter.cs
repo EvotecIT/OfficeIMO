@@ -25,8 +25,8 @@ internal static class PublisherQuillParagraphStyleWriter {
         IReadOnlyList<PublisherBlock> fields = blocks.Chunk(span.Offset, span.Offset + span.Length);
         var changes = new SortedDictionary<byte, byte[]>();
         if (before.SuppressAutomaticHyphenation != after.SuppressAutomaticHyphenation) {
-            if (fields.Any(field => field.Id == 0x1C && field.Type is not (0x0A or 0x02))) return null;
-            changes.Add(0x1C, Boolean(0x1C, after.SuppressAutomaticHyphenation));
+            if (!after.SuppressAutomaticHyphenation.HasValue || fields.Any(field => field.Id == 0x1C && field.Type is not (0x0A or 0x02))) return null;
+            changes.Add(0x1C, Boolean(0x1C, after.SuppressAutomaticHyphenation.Value));
         }
         if (before.Alignment != after.Alignment) {
             if (fields.Any(field => field.Id == 4 && field.Value is not (0 or 1 or 2 or 6))) return null;

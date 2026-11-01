@@ -586,7 +586,8 @@ unsupported. Existing text replacements retain the story setting.
 `WithAutomaticHyphenationSuppressed` read/edit the qualified Quill paragraph
 field `0x1C`, using true `0x0A` and false `0x02` through the paragraph-style codec.
 Selected style defaults and direct overrides use the existing style inheritance
-path. Unknown field encodings remain opaque and cannot be overwritten by a
+path. The shared property is null for an unassessed native setting, distinct from
+the ordinary false default. Unknown field encodings remain opaque and cannot be overwritten by a
 suppression edit. The source-derived suppressed [TextHyphenation control](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextHyphenation/provenance.json)
 removes generated hyphens on 13 of its 15 native pages; all 15 initial/resaved
 page pairs are identical at 144 dpi. Native save retains true and normalizes

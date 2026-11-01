@@ -35,8 +35,10 @@ public sealed class PublisherStoryHyphenationTests {
         Assert.All(story.Paragraphs, p => Assert.Equal(initiallySuppressed, p.SuppressAutomaticHyphenation));
     }
 
-    [Fact]
-    public void Unknown_paragraph_flag_is_preserved_and_refuses_an_explicit_suppression_edit() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Unknown_paragraph_flag_is_preserved_and_refuses_an_explicit_setting_edit(bool suppressed) {
         const string fixture = "NativeComparison/TextHyphenation/native-paragraph-suppressed.pub";
         byte[] source = PublisherInputContractTests.Mutate(Quill, bytes => {
             var context = new PublisherParseContext(new PublisherReadOptions(), default);
@@ -49,8 +51,9 @@ public sealed class PublisherStoryHyphenationTests {
         PublisherDocument document = PublisherDocument.Load(source);
         PublisherTextStory story = document.TextStories[0];
         Assert.Contains(document.ReadReport.FidelityDiagnostics, d => d.Code == "PUB_HYPHENATION_SUPPRESSION_UNASSESSED");
+        Assert.Null(story.Paragraphs[0].SuppressAutomaticHyphenation);
         Assert.Equal(source, document.ToPubBytes());
-        document.ReplaceStoryParagraphs(story.Id, story.Paragraphs.Select(p => p.WithAutomaticHyphenationSuppressed(true)).ToArray());
+        document.ReplaceStoryParagraphs(story.Id, story.Paragraphs.Select(p => p.WithAutomaticHyphenationSuppressed(suppressed)).ToArray());
         Assert.False(document.PrepareNativeBytes(MaximumBytes).IsPrepared);
         Assert.Throws<OfficeConversionException>(() => Save(document));
     }

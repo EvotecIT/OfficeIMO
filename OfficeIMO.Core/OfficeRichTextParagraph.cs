@@ -78,8 +78,8 @@ public sealed class OfficeRichTextParagraph {
 
     /// <summary>Optional measured tab settings. Null retains the legacy space-expansion behavior.</summary>
     public OfficeTextTabStops? TabStops { get; private set; }
-    /// <summary>Whether automatic word hyphenation is suppressed for this paragraph. Native adapters retain this setting independently of source text; shared layout does not yet generate automatic hyphens.</summary>
-    public bool SuppressAutomaticHyphenation { get; internal set; }
+    /// <summary>Whether automatic word hyphenation is suppressed for this paragraph. False is the default; null means a native adapter encountered an unassessed setting. Shared layout does not yet generate automatic hyphens.</summary>
+    public bool? SuppressAutomaticHyphenation { get; internal set; } = false;
 
     /// <summary>Returns an independent paragraph with automatic word hyphenation suppressed or allowed.</summary>
     public OfficeRichTextParagraph WithAutomaticHyphenationSuppressed(bool suppressed) {

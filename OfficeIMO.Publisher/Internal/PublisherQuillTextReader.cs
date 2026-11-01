@@ -120,7 +120,7 @@ internal sealed class PublisherQuillTextReader {
                 : new OfficeRichTextParagraph(runs, label, paragraph.Alignment ?? OfficeTextAlignment.Left, paragraph.LineHeight,
                     paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor);
             if (label != null && ++runCount > 4096) throw new InvalidDataException("Publisher story exceeds the shared rich text run limit, including list labels.");
-            projected.SuppressAutomaticHyphenation = paragraph.SuppressAutomaticHyphenation ?? false;
+            projected.SuppressAutomaticHyphenation = paragraph.HyphenationSuppressionUnassessed ? null : paragraph.SuppressAutomaticHyphenation ?? false;
             paragraphs.Add(projected.WithTabStops(paragraph.CreateTabStops(tabInterval)));
             if (runCount + paragraphs.Count - 1 > 4096) throw new InvalidDataException("Publisher story exceeds the shared rich text run limit, including paragraph separators.");
             if (paragraphs.Count > 4096) throw new InvalidDataException("Publisher paragraph limit exceeded.");

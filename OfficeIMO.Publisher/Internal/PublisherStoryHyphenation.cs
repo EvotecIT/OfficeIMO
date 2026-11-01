@@ -57,14 +57,17 @@ internal static class PublisherStoryHyphenation {
         if (!storyReference.HasValue) return null;
         var chunk = Resolve(storyReference.Value, 0x65);
         var fields = blocks.Chunk(chunk.Offset, chunk.End);
-        var count = PublisherContentsReader.Field(fields, 1) ?? throw new InvalidDataException("Publisher story catalog count is missing.");
-        if (count.Type is not (0x18 or 0x20) || count.Value > context.Options.Limits.MaxItems)
-            throw new InvalidDataException("Publisher story catalog count is invalid or exceeds the item limit.");
+        var count = PublisherContentsReader.Field(fields, 1);
         var array = PublisherContentsReader.Field(fields, 2);
-        if (!array.HasValue && count.Value == 0) return null;
+        // Native image-only publications use an empty catalog chunk with both
+        // the zero count and entry array omitted.
+        if (!count.HasValue && !array.HasValue) return null;
+        if (!count.HasValue || count.Value.Type is not (0x18 or 0x20) || count.Value.Value > context.Options.Limits.MaxItems)
+            throw new InvalidDataException("Publisher story catalog count is invalid or exceeds the item limit.");
+        if (!array.HasValue && count.Value.Value == 0) return null;
         if (!array.HasValue || array.Value.Type != 0xA0) throw new InvalidDataException("Invalid Publisher story catalog array.");
         var entries = blocks.Children(array.Value);
-        if (entries.Count != count.Value || entries.Any(entry => entry.Type != 0x88))
+        if (entries.Count != count.Value.Value || entries.Any(entry => entry.Type != 0x88))
             throw new InvalidDataException("Publisher story catalog entries disagree with their count or encoding.");
         return new Catalog(chunk, fields, array.Value, entries);
 

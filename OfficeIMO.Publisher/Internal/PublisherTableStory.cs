@@ -25,8 +25,9 @@ internal sealed class PublisherTableStory {
             OfficeRichTextParagraph? retained = original.Paragraphs.LastOrDefault();
             paragraphs = new[] { retained == null ? new OfficeRichTextParagraph(Array.Empty<OfficeRichTextRun>())
                 : new OfficeRichTextParagraph(Array.Empty<OfficeRichTextRun>(), retained.Alignment, retained.LineHeight,
-                    retained.Margins, retained.Indent, retained.LineHeightFactor).WithTabStops(retained.TabStops)
-                    .WithAutomaticHyphenationSuppressed(retained.SuppressAutomaticHyphenation) };
+                    retained.Margins, retained.Indent, retained.LineHeightFactor) {
+                        SuppressAutomaticHyphenation = retained.SuppressAutomaticHyphenation
+                    }.WithTabStops(retained.TabStops) };
         }
         PublisherTextStory replacement = PublisherStoryEditor.Replace(original, paragraphs, options, token);
         var segments = Segments.ToArray(); segments[index] = replacement;
