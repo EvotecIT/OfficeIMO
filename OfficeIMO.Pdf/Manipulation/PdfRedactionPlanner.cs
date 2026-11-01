@@ -182,7 +182,7 @@ internal static partial class PdfRedactionPlanner {
         }
 
         var searchedMetadata = PdfRedactionApplier.SearchMetadataHolders(readDocument.Objects, readDocument.CatalogDictionary, readDocument.TrailerRaw,
-            readDocument.Pages.Select(static page => page.ObjectNumber).ToArray(), areaArray.Select(static area => area.SearchCriteria).OfType<PdfRedactionSearchCriteria>().Distinct().ToArray(), readDocument.ReadOptions.Limits);
+            readDocument.Pages.Select(static page => page.ObjectNumber).ToArray(), areaArray.Select(static area => area.SearchCriteria).OfType<PdfRedactionSearchCriteria>().Distinct().ToArray(), readDocument.ReadOptions.Limits, cancellationToken);
         var navigation = PdfRedactionNavigation.Search(readDocument.Objects, readDocument.CatalogDictionary,
             areaArray.Select(static area => area.SearchCriteria).OfType<PdfRedactionSearchCriteria>().Distinct().ToArray(), cancellationToken);
         foreach (PdfDictionary title in navigation.Titles) {

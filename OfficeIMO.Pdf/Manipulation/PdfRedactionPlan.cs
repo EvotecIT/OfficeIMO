@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Preview of text, image placements, vectors, and annotations that intersect requested redaction areas.</summary>
-public sealed class PdfRedactionPlan {
+public sealed partial class PdfRedactionPlan {
     internal PdfRedactionPlan(
         PdfDocumentPreflight preflight,
         IReadOnlyList<PdfRedactionArea> areas,
@@ -120,6 +120,8 @@ public sealed class PdfRedactionPlan {
         // A cleared field changes on every page its widgets reach, including pages with no area.
         var affectedFields = new HashSet<string>(reviewedAreas.Where(static area => area.SearchCriteria is not null)
             .SelectMany(static area => area.SearchCriteria!.AffectedFields), StringComparer.Ordinal);
+        HashSet<int> removedAnnotations = includeInteractiveContent ? FindRemovedAnnotations(document, reviewedAreas) : new HashSet<int>();
+        Func<PdfDictionary, string, bool> includeEntry = CreateIdentityEntryFilter(document, reviewedAreas, removedAnnotations);
         var identities = new string[document.Pages.Count];
         for (int i = 0; i < document.Pages.Count; i++) {
             PdfReadPage page = document.Pages[i];
@@ -139,19 +141,19 @@ public sealed class PdfRedactionPlan {
             IReadOnlyList<PdfRedactionTextObjectScope> pageReviewedTextObjectScopes = i < reviewedTextObjectScopes.Count
                 ? reviewedTextObjectScopes[i]
                 : Array.Empty<PdfRedactionTextObjectScope>();
-            AppendUnredactedTextIdentity(identity, document, page, pageAreas, pageReviewedTextObjectScopes, drawingEffects);
-            AppendUnredactedPathIdentity(identity, document, page, pageAreas, drawingEffects);
-            AppendUnredactedImageIdentity(identity, document, page, pageNumber, pageAreas, drawingEffects);
+            AppendUnredactedTextIdentity(identity, document, page, pageAreas, pageReviewedTextObjectScopes, drawingEffects, includeEntry);
+            AppendUnredactedPathIdentity(identity, document, page, pageAreas, drawingEffects, includeEntry);
+            AppendUnredactedImageIdentity(identity, document, page, pageNumber, pageAreas, drawingEffects, includeEntry);
             if (includeInteractiveContent) {
-                AppendUnredactedAnnotationIdentity(identity, document, page, pageAreas, stablePageReferences, affectedFields);
-                AppendUnredactedLinkIdentity(identity, page, pageAreas);
+                AppendUnredactedAnnotationIdentity(identity, document, page, pageAreas, stablePageReferences, affectedFields, removedAnnotations, includeEntry);
+                AppendUnredactedLinkIdentity(identity, page, pageAreas, removedAnnotations);
             }
-            AppendPageRenderingResourceIdentity(identity, document, page, reviewedAreas);
+            AppendPageRenderingResourceIdentity(identity, document, page, reviewedAreas, includeEntry);
             identity.Append("|C:OCProperties:");
             PdfRedactionImageIdentity.AppendObjectGraph(
                 identity,
                 document.CatalogDictionary?.Items.TryGetValue("OCProperties", out PdfObject? optionalContent) == true ? optionalContent : null,
-                document.Objects);
+                document.Objects, includeEntry);
             identities[i] = ComputeIdentityHash(identity.ToString());
         }
 
@@ -190,7 +192,7 @@ public sealed class PdfRedactionPlan {
         PdfReadPage page,
         IReadOnlyList<PdfRedactionArea> pageAreas,
         IReadOnlyList<PdfRedactionTextObjectScope> reviewedTextObjectScopes,
-        IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects) {
+        IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects, Func<PdfDictionary, string, bool>? includeEntry = null) {
         IReadOnlyList<PdfTextSpan> spans = pageAreas.Any(static area => area.RequiresGlyphRewrite)
             ? page.GetGlyphTextSpans(includeHiddenOptionalContent: true) : page.GetTextSpansIncludingHiddenOptionalContent(requireMappedText: true);
         var ignoredTextObjectKeys = new HashSet<PdfContentOrderKey>();
@@ -234,7 +236,7 @@ public sealed class PdfRedactionPlan {
             AppendIdentityColor(identity, span.Color);
             AppendIdentityString(identity, span.VisualPaintIdentity);
             PdfRedactionImageIdentity.AppendClip(identity, span.ClipPath);
-            AppendDrawingEffectIdentity(identity, document, PdfReadPage.ResolveDrawingEffect(drawingEffects, span.PaintOrder, contentOrderKey: span.ContentOrderKey));
+            AppendDrawingEffectIdentity(identity, document, PdfReadPage.ResolveDrawingEffect(drawingEffects, span.PaintOrder, contentOrderKey: span.ContentOrderKey), includeEntry);
         }
     }
 
@@ -414,7 +416,7 @@ public sealed class PdfRedactionPlan {
         System.Text.StringBuilder identity,
         PdfReadDocument document,
         PdfReadPage page,
-        IReadOnlyList<PdfRedactionArea> reviewedAreas) {
+        IReadOnlyList<PdfRedactionArea> reviewedAreas, Func<PdfDictionary, string, bool>? includeEntry = null) {
         PdfDictionary? current = page.PageDictionary;
         var visited = new HashSet<int>();
         while (current != null) {
@@ -422,13 +424,13 @@ public sealed class PdfRedactionPlan {
                 PdfObjectLookup.TryResolveReferenceChain(document.Objects, resourcesObject, out PdfObject? resolvedResources) &&
                 resolvedResources is PdfDictionary resources) {
                 identity.Append("|R:Font:");
-                PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("Font", out PdfObject? fonts) ? fonts : null, document.Objects);
+                PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("Font", out PdfObject? fonts) ? fonts : null, document.Objects, includeEntry);
                 identity.Append("|R:ExtGState:");
-                PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("ExtGState", out PdfObject? states) ? states : null, document.Objects);
+                PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("ExtGState", out PdfObject? states) ? states : null, document.Objects, includeEntry);
                 identity.Append("|R:Properties:");
-                PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("Properties", out PdfObject? properties) ? properties : null, document.Objects);
+                PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("Properties", out PdfObject? properties) ? properties : null, document.Objects, includeEntry);
                 AppendFormRenderingResourceIdentity(identity, document.Objects, resources,
-                    PdfRedactionApplier.FindUnpaintedFormsHoldingSearch(document.Objects, page.PageDictionary, reviewedAreas));
+                    PdfRedactionApplier.FindUnpaintedFormsHoldingSearch(document.Objects, page.PageDictionary, reviewedAreas), includeEntry);
                 break;
             }
             if (!current.Items.TryGetValue("Parent", out PdfObject? parentObject) ||
@@ -444,7 +446,7 @@ public sealed class PdfRedactionPlan {
         System.Text.StringBuilder identity,
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary pageResources,
-        HashSet<PdfStream> removedForms) {
+        HashSet<PdfStream> removedForms, Func<PdfDictionary, string, bool>? includeEntry = null) {
         const int maximumDepth = 64;
         const int maximumContexts = 16384;
         var visited = new HashSet<(PdfStream Form, PdfDictionary Resources)>();
@@ -475,17 +477,17 @@ public sealed class PdfRedactionPlan {
                 PdfRedactionImageIdentity.AppendObjectGraph(
                     formIdentity,
                     form.Dictionary.Items.TryGetValue("OC", out PdfObject? optionalContent) ? optionalContent : null,
-                    objects);
+                    objects, includeEntry);
                 formIdentity.Append(":Properties:");
                 PdfRedactionImageIdentity.AppendObjectGraph(
                     formIdentity,
                     effectiveResources.Items.TryGetValue("Properties", out PdfObject? properties) ? properties : null,
-                    objects);
+                    objects, includeEntry);
                 if (declaredResources != null) {
                     formIdentity.Append(":Font:");
-                    PdfRedactionImageIdentity.AppendObjectGraph(formIdentity, effectiveResources.Items.TryGetValue("Font", out PdfObject? fonts) ? fonts : null, objects);
+                    PdfRedactionImageIdentity.AppendObjectGraph(formIdentity, effectiveResources.Items.TryGetValue("Font", out PdfObject? fonts) ? fonts : null, objects, includeEntry);
                     formIdentity.Append(":ExtGState:");
-                    PdfRedactionImageIdentity.AppendObjectGraph(formIdentity, effectiveResources.Items.TryGetValue("ExtGState", out PdfObject? states) ? states : null, objects);
+                    PdfRedactionImageIdentity.AppendObjectGraph(formIdentity, effectiveResources.Items.TryGetValue("ExtGState", out PdfObject? states) ? states : null, objects, includeEntry);
                 } else {
                     formIdentity.Append(":inherited");
                 }
@@ -511,7 +513,7 @@ public sealed class PdfRedactionPlan {
         PdfReadDocument document,
         PdfReadPage page,
         IReadOnlyList<PdfRedactionArea> pageAreas,
-        IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects) {
+        IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects, Func<PdfDictionary, string, bool>? includeEntry = null) {
         IReadOnlyList<PdfPageVisualPrimitive> primitives = page.GetIdentityVisualPrimitives();
         for (int i = 0; i < primitives.Count; i++) {
             PdfPageVisualPrimitive primitive = primitives[i];
@@ -548,14 +550,14 @@ public sealed class PdfRedactionPlan {
             AppendIdentityGradient(identity, primitive.StrokeRadialGradient);
             if (primitive.FunctionPaint is PdfPageFunctionPaint functionPaint) {
                 identity.Append(":function:");
-                PdfRedactionImageIdentity.AppendObjectGraph(identity, functionPaint.Resource.SourceDictionary, document.Objects);
+                PdfRedactionImageIdentity.AppendObjectGraph(identity, functionPaint.Resource.SourceDictionary, document.Objects, includeEntry);
                 var transform = functionPaint.InverseTransform;
                 AppendIdentityNumbers(identity, new[] { transform.M11, transform.M12, transform.M21,
                     transform.M22, transform.OffsetX, transform.OffsetY });
             }
             PdfRedactionImageIdentity.AppendClip(identity, primitive.ClipPath);
-            AppendIdentityTilingPattern(identity, primitive.FillTilingPattern);
-            AppendIdentityTilingPattern(identity, primitive.StrokeTilingPattern);
+            AppendIdentityTilingPattern(identity, primitive.FillTilingPattern, document, includeEntry);
+            AppendIdentityTilingPattern(identity, primitive.StrokeTilingPattern, document, includeEntry);
             identity.Append(':').Append(primitive.PathCommands.Count);
             for (int commandIndex = 0; commandIndex < primitive.PathCommands.Count; commandIndex++) {
                 OfficeIMO.Drawing.OfficePathCommand command = primitive.PathCommands[commandIndex];
@@ -567,7 +569,7 @@ public sealed class PdfRedactionPlan {
                     .Append(',').Append(FormatIdentityNumber(command.ControlPoint2.X))
                     .Append(',').Append(FormatIdentityNumber(command.ControlPoint2.Y));
             }
-            AppendDrawingEffectIdentity(identity, document, PdfReadPage.ResolveDrawingEffect(drawingEffects, primitive.PaintOrder, contentOrderKey: primitive.ContentOrderKey));
+            AppendDrawingEffectIdentity(identity, document, PdfReadPage.ResolveDrawingEffect(drawingEffects, primitive.PaintOrder, contentOrderKey: primitive.ContentOrderKey), includeEntry);
         }
     }
 
@@ -587,7 +589,7 @@ public sealed class PdfRedactionPlan {
     private static void AppendDrawingEffectIdentity(
         System.Text.StringBuilder identity,
         PdfReadDocument document,
-        PdfPageDrawingEffect effect) {
+        PdfPageDrawingEffect effect, Func<PdfDictionary, string, bool>? includeEntry = null) {
         identity.Append(":effect:")
             .Append((int)effect.BlendMode)
             .Append(',').Append(effect.HasBlendMode ? '1' : '0')
@@ -617,14 +619,14 @@ public sealed class PdfRedactionPlan {
             identity.Append(":matrix:null");
         }
         identity.Append(":group:");
-        PdfRedactionImageIdentity.AppendObjectGraph(identity, softMask.Group, document.Objects);
+        PdfRedactionImageIdentity.AppendObjectGraph(identity, softMask.Group, document.Objects, includeEntry);
         identity.Append(":resources:");
-        PdfRedactionImageIdentity.AppendObjectGraph(identity, softMask.ParentResources, document.Objects);
+        PdfRedactionImageIdentity.AppendObjectGraph(identity, softMask.ParentResources, document.Objects, includeEntry);
     }
 
     private static void AppendIdentityTilingPattern(
         System.Text.StringBuilder identity,
-        PdfPageTilingPatternPaint? pattern) {
+        PdfPageTilingPatternPaint? pattern, PdfReadDocument document, Func<PdfDictionary, string, bool>? includeEntry = null) {
         if (pattern is null) {
             identity.Append(":pattern:null");
             return;
@@ -654,7 +656,12 @@ public sealed class PdfRedactionPlan {
             .Append(resource.ConsumesInheritedLineState ? '1' : '0')
             .Append(resource.HasMalformedStrictInvocation ? '1' : '0');
         AppendIdentityColor(identity, pattern.Tint);
-        identity.Append(':').Append(resource.SourceIdentity);
+        identity.Append(':');
+        using var fingerprint = new PdfObjectGraphFingerprint(document.Objects, document.ReadOptions.Limits.MaxObjectNestingDepth,
+            Math.Min(1_000_000, Math.Max(16_384, document.ReadOptions.Limits.MaxIndirectObjects)), includeDictionaryEntry: includeEntry);
+        fingerprint.AppendRoot(resource.SourceStream);
+        fingerprint.AppendRoot(resource.SourceResources);
+        identity.Append(Convert.ToBase64String(fingerprint.Complete()));
     }
 
     private static void AppendIdentityColor(System.Text.StringBuilder identity, OfficeIMO.OfficeColor? color) {
@@ -721,7 +728,7 @@ public sealed class PdfRedactionPlan {
         PdfReadPage page,
         int pageNumber,
         IReadOnlyList<PdfRedactionArea> pageAreas,
-        IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects) {
+        IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects, Func<PdfDictionary, string, bool>? includeEntry = null) {
         IReadOnlyList<PdfImagePlacement> placements = page.GetImagePlacements();
         for (int i = 0; i < placements.Count; i++) {
             PdfImagePlacement placement = placements[i];
@@ -743,106 +750,19 @@ public sealed class PdfRedactionPlan {
                 .Append(',').Append(FormatIdentityNumber(placement.D))
                 .Append(',').Append(FormatIdentityNumber(placement.E))
                 .Append(',').Append(FormatIdentityNumber(placement.F));
-            PdfRedactionImageIdentity.Append(identity, placement, imageStream, document.Objects);
-            AppendDrawingEffectIdentity(identity, document, PdfReadPage.ResolveDrawingEffect(drawingEffects, placement.PaintOrder, contentOrderKey: placement.ContentOrderKey));
-        }
-    }
-
-    private static void AppendUnredactedAnnotationIdentity(
-        System.Text.StringBuilder identity,
-        PdfReadDocument document,
-        PdfReadPage page,
-        IReadOnlyList<PdfRedactionArea> pageAreas,
-        IReadOnlyDictionary<int, string> stablePageReferences,
-        HashSet<string> affectedFields) {
-        IReadOnlyList<PdfAnnotation> annotations = page.GetAnnotationsForContentSafety();
-        for (int i = 0; i < annotations.Count; i++) {
-            PdfAnnotation annotation = annotations[i];
-            if (annotation.HasReadableRectangle &&
-                IntersectsReviewedUnderlay(pageAreas, annotation.X1, annotation.Y1, annotation.Width, annotation.Height)) continue;
-            if (affectedFields.Count > 0 && annotation.SourceDictionary is PdfDictionary widget &&
-                affectedFields.Contains(PdfRedactionApplier.GetFieldName(document.Objects, widget))) continue;
-            // Carrying the searched text takes it out of the kept set wherever it sits.
-            if (PdfRedactionApplier.CarriesSearchedText(document.Objects, page.ObjectNumber, annotation, pageAreas)) continue;
-
-            identity.Append("|A:");
-            AppendIdentityString(identity, annotation.Subtype);
-            identity.Append(':').Append(FormatIdentityNumber(annotation.X1))
-                .Append(',').Append(FormatIdentityNumber(annotation.Y1))
-                .Append(',').Append(FormatIdentityNumber(annotation.X2))
-                .Append(',').Append(FormatIdentityNumber(annotation.Y2));
-            AppendIdentityString(identity, annotation.Contents);
-            AppendIdentityString(identity, annotation.Name);
-            AppendIdentityString(identity, annotation.Title);
-            AppendIdentityString(identity, annotation.ActionType);
-            identity.Append(':').Append(annotation.Flags?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null")
-                .Append(':').Append(annotation.HasNormalAppearance ? '1' : '0');
-            AppendIdentityString(identity, annotation.AppearanceState);
-            AppendIdentityString(identity, annotation.DefaultAppearance);
-            AppendIdentityString(identity, annotation.DefaultStyle);
-            AppendIdentityString(identity, annotation.RichContents);
-            AppendIdentityString(identity, annotation.RichContentsPlainText);
-            AppendIdentityNullableNumber(identity, annotation.EffectiveFontSize);
-            AppendIdentityPdfColor(identity, annotation.EffectiveTextColor);
-            identity.Append(':').Append(annotation.EffectiveTextAlign.HasValue
-                ? ((int)annotation.EffectiveTextAlign.Value).ToString(System.Globalization.CultureInfo.InvariantCulture)
-                : "null");
-            AppendIdentityNullableNumber(identity, annotation.Opacity);
-            AppendIdentityNullableNumber(identity, annotation.BorderWidth);
-            AppendIdentityString(identity, annotation.BorderStyle);
-            AppendIdentityNumbers(identity, annotation.BorderDashPattern);
-            AppendIdentityString(identity, annotation.BorderEffectStyle);
-            AppendIdentityNullableNumber(identity, annotation.BorderEffectIntensity);
-            AppendIdentityNumbers(identity, annotation.RectangleDifferences);
-            AppendIdentityNumbers(identity, annotation.CalloutLine);
-            AppendIdentityString(identity, annotation.CalloutLineEnding);
-            AppendIdentityString(identity, annotation.LineStartEnding);
-            AppendIdentityString(identity, annotation.LineEndEnding);
-            identity.Append(":appearance:");
-            PdfRedactionImageIdentity.AppendObjectGraph(identity, annotation.NormalAppearanceObject, document.Objects);
-            AppendIdentityNumbers(identity, annotation.Color);
-            AppendIdentityNumbers(identity, annotation.InteriorColor);
-            AppendIdentityNumbers(identity, annotation.QuadPoints);
-            AppendIdentityNumbers(identity, annotation.LineCoordinates);
-            AppendIdentityNumbers(identity, annotation.Vertices);
-            for (int pathIndex = 0; pathIndex < annotation.InkList.Count; pathIndex++) {
-                AppendIdentityNumbers(identity, annotation.InkList[pathIndex]);
-            }
-            for (int actionIndex = 0; actionIndex < annotation.AdditionalActions.Count; actionIndex++) {
-                PdfAnnotationAdditionalAction action = annotation.AdditionalActions[actionIndex];
-                AppendIdentityString(identity, action.TriggerName);
-                AppendIdentityString(identity, action.ActionType);
-            }
-            for (int actionIndex = 0; actionIndex < annotation.ChainedActions.Count; actionIndex++) {
-                PdfAnnotationChainedAction action = annotation.ChainedActions[actionIndex];
-                AppendIdentityString(identity, action.SourceName);
-                AppendIdentityString(identity, action.ActionPath);
-                AppendIdentityString(identity, action.ActionType);
-            }
-            if (annotation.Review != null) {
-                AppendIdentityString(identity, annotation.Review.ReplyType);
-                AppendIdentityString(identity, annotation.Review.State);
-                AppendIdentityString(identity, annotation.Review.StateModel);
-                AppendIdentityString(identity, annotation.Review.Subject);
-                AppendIdentityString(identity, annotation.Review.Intent);
-            }
-            if (annotation.SourceDictionary != null) {
-                identity.Append(":dictionary:")
-                    .Append(PdfRedactionAnnotationIdentity.Compute(
-                        annotation.SourceDictionary,
-                        document.Objects,
-                        stablePageReferences));
-            }
+            PdfRedactionImageIdentity.Append(identity, placement, imageStream, document.Objects, includeEntry);
+            AppendDrawingEffectIdentity(identity, document, PdfReadPage.ResolveDrawingEffect(drawingEffects, placement.PaintOrder, contentOrderKey: placement.ContentOrderKey), includeEntry);
         }
     }
 
     private static void AppendUnredactedLinkIdentity(
         System.Text.StringBuilder identity,
         PdfReadPage page,
-        IReadOnlyList<PdfRedactionArea> pageAreas) {
+        IReadOnlyList<PdfRedactionArea> pageAreas, HashSet<int> removedAnnotations) {
         IReadOnlyList<PdfLinkAnnotation> links = page.GetLinkAnnotations();
         for (int i = 0; i < links.Count; i++) {
             PdfLinkAnnotation link = links[i];
+            if (link.SourceObjectNumber.HasValue && removedAnnotations.Contains(link.SourceObjectNumber.Value)) continue;
             if (IntersectsReviewedUnderlay(pageAreas, link.X1, link.Y1, link.Width, link.Height)) continue;
 
             identity.Append("|L:")

@@ -159,7 +159,7 @@ internal static partial class PdfRedactionPlanner {
             }
         }
         var metadata = PdfRedactionApplier.SearchMetadataHolders(document.Objects, document.CatalogDictionary, document.TrailerRaw,
-            document.Pages.Select(static page => page.ObjectNumber).ToArray(), searched, document.ReadOptions.Limits);
+            document.Pages.Select(static page => page.ObjectNumber).ToArray(), searched, document.ReadOptions.Limits, search.CancellationToken);
         var navigation = PdfRedactionNavigation.Search(document.Objects, document.CatalogDictionary, searched, search.CancellationToken);
         if (areas.Count == 0 && document.Pages.Count > 0 && (metadata.Owners.Count > 0 || metadata.Info || forms.XfaHoldsSearch || forms.Fields.Count > 0 || navigation.Titles.Count > 0 || navigation.DestinationMatch)) {
             int page = search.PageNumbers.Count > 0 ? search.PageNumbers.Min() : 1;

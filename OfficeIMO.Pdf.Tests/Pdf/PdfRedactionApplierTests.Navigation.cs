@@ -76,7 +76,7 @@ public partial class PdfRedactionApplierTests {
         if (plan.Areas.Count > 0) AssertNavigationTree(source.Redactions.Apply(plan.Areas).ToBytes(), variant == "CaseBody" ? "Secret" : "");
     }
 
-    private byte[] BuildNavigationRedactionFixture(string variant, bool hybrid) {
+    private byte[] BuildNavigationRedactionFixture(string variant, bool hybrid, Action<Dictionary<int, string>>? customize = null) {
         string middle = variant switch {
             "Hex" => "<736563726574>", "Utf16" => "<FEFF007300650063007200650074>",
             "PdfDoc" => @"(secret\200)", "CaseSensitive" or "CaseBody" => "(Secret)", "NoMatch" => "(Middle public)", _ => @"(se\143ret)"
@@ -123,6 +123,7 @@ public partial class PdfRedactionApplierTests {
             if (variant == "FormScriptOpening") objects[1] = objects[1].Replace(" /Outlines 20 0 R", "");
             if (variant == "FormScriptOutline") objects[1] = objects[1].Replace(" /OpenAction " + action, "");
         }
+        customize?.Invoke(objects);
         return hybrid ? BuildWordHybridRedactionFixture(false, objects) : BuildPdf(objects.Select(pair => pair.Key.ToString(CultureInfo.InvariantCulture) + " 0 obj\n" + pair.Value + "\nendobj").ToArray(), 1);
         static string Stream(string content) => "<< /Length " + content.Length + " >>\nstream\n" + content + "\nendstream";
         static string UnsafeAction(string type) => "<< /S /" + type + (type == "JavaScript" ? " /JS (alert)" : type == "URI" ? " /URI (https://example.invalid/)" : " /F (public)") + " >>";

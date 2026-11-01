@@ -75,8 +75,10 @@ internal static partial class PdfRedactionNavigation {
             if (value is null || !active.Add(value)) return false;
             if (completed.Contains(value)) { active.Remove(value); return true; }
             bool safe = value is PdfDictionary action &&
-                Resolve(action.Items.TryGetValue("S", out PdfObject? type) ? type : null) is PdfName { Name: "GoTo" } &&
-                action.Items.TryGetValue("D", out PdfObject? target) && Destination(target);
+                Resolve(action.Items.TryGetValue("S", out PdfObject? type) ? type : null) is PdfName actionType &&
+                (actionType.Name == "GoTo" && action.Items.TryGetValue("D", out PdfObject? target) && Destination(target) ||
+                 actionType.Name == "Named" && Resolve(action.Items.TryGetValue("N", out PdfObject? command) ? command : null)
+                     is PdfName { Name: "NextPage" or "PrevPage" or "FirstPage" or "LastPage" });
             if (safe && ((PdfDictionary)value!).Items.TryGetValue("Next", out PdfObject? next)) {
                 safe = Resolve(next) is PdfArray sequence ? sequence.Items.All(item => Action(item, depth + 1)) : Action(next, depth + 1);
             }

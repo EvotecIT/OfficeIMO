@@ -213,23 +213,33 @@ internal static partial class PdfRedactionApplier {
         }
     }
 
-    /// <summary>Finds catalog/page XMP and trailer Info that must be removed independently of the optional cleanup policy.</summary>
+    /// <summary>Finds matching metadata owned anywhere in the live graph, respecting excluded page data.</summary>
     internal static (List<PdfDictionary> Owners, bool Info) SearchMetadataHolders(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? catalog,
-        string? trailer, IReadOnlyList<int> pages, PdfRedactionSearchCriteria[] criteria, PdfReadLimits limits) {
+        string? trailer, IReadOnlyList<int> pages, PdfRedactionSearchCriteria[] criteria, PdfReadLimits limits,
+        CancellationToken cancellationToken = default) {
         var owners = new List<PdfDictionary>();
         if (criteria.Length == 0) return (owners, false);
-        Check(catalog);
-        for (int index = 0; index < pages.Count; index++) {
-            if (!criteria.Any(criterion => criterion.CoversAllPages || criterion.PageNumbers.Contains(index + 1))) continue;
-            if (objects.TryGetValue(pages[index], out PdfIndirectObject? page)) Check(page.Value as PdfDictionary);
+        HashSet<PdfObject> excluded = FindExcludedSearchObjects(objects, pages.ToArray(), criteria, cancellationToken);
+        var visited = new HashSet<PdfObject>();
+        var matches = new Dictionary<PdfObject, bool>();
+        var pending = new Stack<PdfObject>();
+        if (catalog is not null) pending.Push(catalog);
+        while (pending.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfObject? value = PdfObjectLookup.Resolve(objects, pending.Pop());
+            if (value is null || excluded.Contains(value) || !visited.Add(value)) continue;
+            if (value is PdfArray array) { foreach (PdfObject item in array.Items) pending.Push(item); continue; }
+            PdfDictionary? owner = value as PdfDictionary ?? (value as PdfStream)?.Dictionary;
+            if (owner is null) continue;
+            if (owner.Items.TryGetValue("Metadata", out PdfObject? metadata) && PdfObjectLookup.Resolve(objects, metadata) is PdfObject holder) {
+                if (!matches.TryGetValue(holder, out bool holds))
+                    matches[holder] = holds = SearchObjectHolds(objects, holder, criteria, limits, new HashSet<PdfObject>(), cancellationToken: cancellationToken);
+                if (holds) owners.Add(owner);
+            }
+            foreach (PdfObject child in owner.Items.Values) pending.Push(child);
         }
-        PdfReference? info = PdfSyntax.ReadTrailerReference(trailer, "Info", limits);
-        bool removeInfo = info is not null && SearchObjectHolds(objects, info, criteria, limits, new HashSet<PdfObject>());
+        PdfReference? info = PdfSyntax.ReadTrailerReference(trailer, "Info", limits, cancellationToken);
+        bool removeInfo = info is not null && SearchObjectHolds(objects, info, criteria, limits, new HashSet<PdfObject>(), cancellationToken: cancellationToken);
         return (owners, removeInfo);
-
-        void Check(PdfDictionary? owner) {
-            if (owner is not null && owner.Items.TryGetValue("Metadata", out PdfObject? metadata) &&
-                SearchObjectHolds(objects, metadata, criteria, limits, new HashSet<PdfObject>())) owners.Add(owner);
-        }
     }
 }
