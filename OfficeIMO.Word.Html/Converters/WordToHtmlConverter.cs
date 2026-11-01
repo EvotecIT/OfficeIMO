@@ -405,7 +405,8 @@ namespace OfficeIMO.Word.Html {
                     IElement? hyperlinkNode = container is Hyperlink hyperlink
                         ? CreateEquationHyperlinkNode(
                             htmlDoc,
-                            new WordHyperLink(para._document, para._paragraph, hyperlink))
+                            new WordHyperLink(para._document, para._paragraph, hyperlink),
+                            options)
                         : null;
 
                     bool IncludeVisibleRunElement(DocumentFormat.OpenXml.OpenXmlElement element) {
@@ -427,7 +428,7 @@ namespace OfficeIMO.Word.Html {
                                 hyperlinkNode == null &&
                                 sourceRun.IsHyperLink &&
                                 sourceRun.Hyperlink != null) {
-                                IElement? sourceAnchor = CreateEquationHyperlinkNode(htmlDoc, sourceRun.Hyperlink);
+                                IElement? sourceAnchor = CreateEquationHyperlinkNode(htmlDoc, sourceRun.Hyperlink, options);
                                 if (sourceAnchor != null) {
                                     sourceAnchor.AppendChild(mathNode);
                                     expandedNodes.Add(sourceAnchor);
@@ -452,7 +453,7 @@ namespace OfficeIMO.Word.Html {
                                 artifactNodes = new List<INode> { revision };
                             }
                             IElement? sourceAnchor = hyperlinkNode == null && sourceRun.IsHyperLink && sourceRun.Hyperlink != null
-                                ? CreateEquationHyperlinkNode(htmlDoc, sourceRun.Hyperlink) : null;
+                                ? CreateEquationHyperlinkNode(htmlDoc, sourceRun.Hyperlink, options) : null;
                             if (sourceAnchor != null) {
                                 foreach (INode artifactNode in artifactNodes) sourceAnchor.AppendChild(artifactNode);
                                 if (artifactNodes.Count > 0) expandedNodes.Add(sourceAnchor);
@@ -487,7 +488,8 @@ namespace OfficeIMO.Word.Html {
                         paragraphChildren[occurrence.StartChildIndex] is Hyperlink hyperlink) {
                         IElement? anchor = CreateEquationHyperlinkNode(
                             htmlDoc,
-                            new WordHyperLink(para._document, para._paragraph, hyperlink));
+                            new WordHyperLink(para._document, para._paragraph, hyperlink),
+                            options);
                         if (anchor != null) {
                             anchor.AppendChild(mathNode);
                             return anchor;
@@ -644,7 +646,7 @@ namespace OfficeIMO.Word.Html {
                                 href = "#" + anchor;
                             }
                         }
-                        if (!string.IsNullOrEmpty(href)) {
+                        if (IsExportableLink(href, options, "Hyperlink")) {
                             var a = CreateOutputElement(htmlDoc, "a");
                             SetOutputAttribute(htmlDoc, a, "href", href!, "Hyperlink:href");
                             a.AppendChild(node);

@@ -129,7 +129,7 @@ namespace OfficeIMO.Word.Html {
                 node = subscript;
             }
             if (includeHyperlink && run.IsHyperLink && run.Hyperlink != null) {
-                IElement? anchor = CreateEquationHyperlinkNode(htmlDocument, run.Hyperlink);
+                IElement? anchor = CreateEquationHyperlinkNode(htmlDocument, run.Hyperlink, options);
                 if (anchor != null) {
                     anchor.AppendChild(node);
                     node = anchor;
@@ -296,12 +296,12 @@ namespace OfficeIMO.Word.Html {
             return semanticNode;
         }
 
-        private static IElement? CreateEquationHyperlinkNode(IHtmlDocument htmlDocument, WordHyperLink hyperlink) {
+        private static IElement? CreateEquationHyperlinkNode(IHtmlDocument htmlDocument, WordHyperLink hyperlink, WordHtmlExportOptions options) {
             string? href = hyperlink.Uri?.ToString();
             if (string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(hyperlink.Anchor)) {
                 href = "#" + hyperlink.Anchor;
             }
-            if (string.IsNullOrEmpty(href)) {
+            if (!IsExportableLink(href, options, "EquationHyperlink")) {
                 return null;
             }
 
