@@ -530,5 +530,32 @@ namespace OfficeIMO.Tests {
             using var reader = ExcelDocumentReader.Open(reloaded.ToBytes(new ExcelSaveOptions { Password = null }));
             Assert.Equal("after save", reader.GetSheet("Data").ReadRange("A3:A3")[0, 0]);
         }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Create_FromTemplate_WithoutDestinationExtensionUsesRequestedDocumentType(bool useStream) {
+            using var template = new MemoryStream();
+            using (var source = ExcelDocument.Create(template, new ExcelCreateOptions { DocumentType = ExcelDocumentType.Template })) {
+                source.AddSheet("Data").CellValue(1, 1, "template");
+                source.Save();
+            }
+
+            template.Position = 0;
+            var options = new ExcelCreateOptions { TemplateStream = template };
+            using var output = new MemoryStream();
+            if (useStream) {
+                using var document = ExcelDocument.Create(output, options);
+                document.Save();
+            } else {
+                using var document = ExcelDocument.Create(options);
+                byte[] bytes = document.ToBytes();
+                output.Write(bytes, 0, bytes.Length);
+            }
+
+            output.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(output, false);
+            Assert.Equal(DocumentFormat.OpenXml.SpreadsheetDocumentType.Workbook, spreadsheet.DocumentType);
+        }
     }
 }
