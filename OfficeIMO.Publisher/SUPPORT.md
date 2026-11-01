@@ -70,7 +70,7 @@ still consume the image-processing byte budget.
 | Document pages | Native order, physical size and page clipping, including empty physical pages | Master and utility roles follow the ordered native reference array and its role boundaries; malformed boundaries are rejected |
 | Master pages | Recovered definitions applied to referring pages | Missing references report omission; nested master inheritance is unassessed |
 | Text | UTF-16 stories, styled paragraphs, referenced native style values, explicit reciprocal links or complete native story/frame catalog bindings, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; source style pairs and use ranges are retained internally, while names, builtin selectors and auxiliary inheritance metadata remain unassessed |
-| Character formatting | Native font names, size, referenced color, bold/italic, strikethrough, superscript/subscript, pair-kerning threshold metadata and none, single, words-only, double, dotted, dashed and wavy underlines | Explicit thresholds control shared run measurement and raster/SVG/PDF glyph output; omitted native defaults and same-font mixed-run parity remain unqualified. Native underline weight, long-dash, compound and unknown patterns use the closest shared pattern with `PUB_TEXT_UNDERLINE_APPROXIMATED`. Font availability, exact metrics and decoration geometry remain separate rendering limits |
+| Character formatting | Native font names, size, referenced color, bold/italic, strikethrough, superscript/subscript, pair-kerning threshold metadata and none, single, words-only, double, dotted, dashed and wavy underlines | Explicit thresholds and qualified source-bound effective defaults control shared run measurement and raster/SVG/PDF glyph output; same-font mixed-run parity and broader producer profiles remain unqualified. Native underline weight, long-dash, compound and unknown patterns use the closest shared pattern with `PUB_TEXT_UNDERLINE_APPROXIMATED`. Font availability, exact metrics and decoration geometry remain separate rendering limits |
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs; complete tabbed lines follow recovered center/right paragraph alignment | Numbering sequences, additional per-stop alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval. Native font metrics and exact tabbed-line positions remain separate rendering limits |
 | Tables | `PublisherPage.Tables` exposes current tracks, spans, styled paragraphs, text and placement; qualified anchor-cell text edits preserve complete story partitions, and qualified bounds edits scale tracks proportionally; master tables remain on their master | Separate `CanEditCellText`/`CanEditBounds` and limitation properties identify supported operations. Unavailable frame geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`; individual cell borders, fills and padding are unassessed |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
@@ -628,17 +628,23 @@ retain byte-exact unmodified native saves.
 
 For the qualified modern producer, native getters and the native character-format
 initializer establish a 14-point effective default when the threshold is omitted.
-Public metadata remains null. Applying this default during managed rendering,
-including an unspecified replacement that retains a different source threshold,
-still requires source-definition correspondence; broader producer profiles remain
-unqualified.
+Public metadata remains null. Qualified Quill profiles resolve effective scene
+and flow settings through retained direct definitions and selected STSH snapshots.
+The same source-format planner used by native save maps unspecified replacements,
+merged native ranges and supported paragraph changes, including table cells and
+typing CRs. For example, an unspecified replacement over a retained 8-point source
+still paints with 8 rather than the omitted 14-point default. Public stories and
+cell snapshots retain the requested nullable metadata; source-free runs retain
+generic renderer defaults. Unknown profiles, ambiguous correspondence and opaque
+tokens report `PUB_TEXT_KERNING_SOURCE_UNASSESSED` and retain generic defaults for
+unspecified runs. Broader producer profiles remain unqualified.
 
 The scalar writer accepts finite values from 0 through 999.5 points that are
 exactly representable in 1/12700-point units. It preserves other OPL fields,
 complete stories, neighboring stories and compound streams. The same explicit
 request handling covers retained body runs and typing CRs in the qualified
-ordinary-story and table-cell edit profiles. Unrecognized source token types or
-out-of-range source values remain opaque, report
+ordinary-story and table-cell edit profiles. Duplicate tokens, unrecognized
+source token types and out-of-range source values remain opaque, report
 `PUB_TEXT_KERNING_UNASSESSED`, and refuse explicit threshold rewriting even when
 loss is allowed. An unspecified replacement preserves them.
 
@@ -660,7 +666,8 @@ painting, SVG CSS font features and PDF glyph output use the same run setting.
 Zero disables kerning; a positive threshold activates at or above the base run
 size, before superscript/subscript reduction. Drawing scale transforms both
 sizes; font fitting changes the font size while retaining the threshold. Null
-keeps the renderer's feature defaults. Existing caller-supplied width callbacks
+keeps generic drawing feature defaults; qualified imported Publisher scenes carry
+their resolved effective value. Existing caller-supplied width callbacks
 retain control of their measurements.
 
 A 15-input source-edit control compares Arial 12/14 pt, thresholds 0/8/12/14/18,
@@ -682,9 +689,21 @@ directions show that soft line breaks, tabs, font-size changes and face changes
 reset activation. Their initial/resaved native pages also agree at 144 dpi.
 These boundaries do not establish native mixed-run parity: shared rendering still
 measures and paints separate source runs, whereas native kerning can span a color
-boundary. Native repair-free opening, other application defaults, effective
-inherited-default rendering, broader mixed baselines and exact managed/native
-glyph geometry remain unqualified.
+boundary. Native repair-free opening, other application defaults and broader native
+source profiles, broader mixed baselines and exact managed/native glyph geometry
+remain unqualified.
+
+Seven public-caller controls cover omitted defaults at 12 and 14 points, retained
+0/8 settings, and merged 8/18 source ranges in ordinary stories and table cells.
+Native PUB bytes match the prior implementation, while every managed preview
+agrees with its managed native-save/reload preview at 144 dpi. All seven native
+initial/resaved PDF page pairs also agree. For the four uniform ordinary controls,
+maximum native/managed glyph-origin differences are 0.111 pt horizontally and
+0.089 pt vertically. The 12-point omitted-default and retained-zero controls
+previously differed by up to 6.969 pt horizontally. The merged same-font control
+still differs by up to 5.044 pt: native activation spans the font context while
+shared rendering applies the recovered per-run settings independently. These
+controls qualify source-bound effective settings, not native mixed-run parity.
 
 The `nativeLanguageFeasibility` record isolates the language-dependent native
 layout gap. Scratch variants adding character property `0x12` with language ID

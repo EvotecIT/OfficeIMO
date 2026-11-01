@@ -315,9 +315,11 @@ formatting. Null retains the selected source definition. The supported native
 scalar range is 0–999.5 points in exact 1/12700-point units. Font-aware shared
 layout and raster, SVG and PDF rendering apply an explicit threshold to each run:
 zero disables kerning, and a positive value enables it at or above that base run
-size. An unspecified threshold keeps the renderer's normal feature defaults.
-Native omitted defaults, same-font mixed-run activation and exact native glyph
-geometry remain separate qualification limits. See the
+size. For qualified imported Quill profiles, layout resolves unspecified settings
+through the retained source definitions, including the native 14-point default;
+public story and cell metadata stays nullable. Source-free runs keep the renderer's
+normal feature defaults. Same-font mixed-run activation and exact native glyph
+geometry remain qualification limits. See the
 [native threshold contract](SUPPORT.md#native-pair-kerning-metadata).
 
 `PublisherReadOptions.Fonts` supplies scoped font faces for story flow and page

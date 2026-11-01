@@ -25201,5 +25201,386 @@
       "Same-font mixed-run shaping/painting is not implemented; mixed scripts and baseline context boundaries remain unqualified.",
       "Native repair-free opening, generic template-free native writing and full PUB00-PUB06 lifecycle remain open."
     ]
+  },
+  "effectiveNativeKerning": {
+    "schema": "officeimo.publisher.effective-native-kerning.v1",
+    "sourceCommit": "212a92da8cb858f50e2e57c6305150a10cea4d27",
+    "scope": "Derived effective settings for qualified modern Quill source profiles; public nullable metadata, authored generic defaults and native save requests remain distinct.",
+    "contract": {
+      "omittedNativeThresholdPoints": 14,
+      "sourceRetention": "Unspecified replacements follow retained direct/selected native definitions, including split/merged source spans and supported paragraph topology.",
+      "ownership": "Publisher derives scene/flow copies through canonical native paragraph/table planning; existing Core rendering consumes explicit effective thresholds.",
+      "publicModelChanged": false,
+      "newPublicApi": false,
+      "newProductionDependency": false,
+      "sourceFree": "Generic feature defaults remain unchanged.",
+      "opaqueOrAmbiguousSource": "PUB_TEXT_KERNING_SOURCE_UNASSESSED; unspecified runs retain generic renderer defaults.",
+      "scalarValidation": "One shared native decoder rejects duplicate, incorrectly typed and out-of-range threshold tokens; the writer retains its existing qualified scalar range."
+    },
+    "fixtures": {
+      "sourceDerived": true,
+      "independentlyAuthoredSources": [
+        "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+        "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableLabel/native-tablelabel.pub"
+      ],
+      "reproduction": "Use Arial AVATAR AVAV at the listed size, retaining source paragraph settings. Default cases request no threshold. Retained cases first save/load the stored threshold, then replace with a null request. Merged cases first save AVA at8 and TAR AVAV at18, then merge to one null-request run. Cell cases edit the first table cell. Export before saving and after native reload; validate the exact PUB through Invoke-NativePublisherOperation -Operation Validate -Stage Full."
+    },
+    "baseline": {
+      "sourceCommit": "850b6ac9b5edd62e326aabdb71af443ee56e3a7b",
+      "assemblySha256": "c0a7d9f78f9a316e0160e16c7eb7114ebec619418f9c277203459c72f1ded137",
+      "framework": "Prior source-built net8 Publisher assembly in a private copy of the same net10 public consumer/Core/PDF runtime.",
+      "limits": "Regression control only, not target-framework parity. The baseline source-owner hash was checked against the prior recorded PSWriteOffice smoke before replacement.",
+      "allSevenEffectiveScenesWereNull": true,
+      "sameNativeBytesForAllSeven": true
+    },
+    "native": {
+      "producer": "Microsoft Publisher16.0.20527.20088",
+      "arialSha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a",
+      "fullRuns": 7,
+      "operations": 49,
+      "initialResaved144DpiPagePairs": 7,
+      "allNativePairsEqual": true,
+      "sourceUnchanged": true,
+      "repairFreeQualified": false
+    },
+    "managed": {
+      "publicCallerCases": 7,
+      "preSaveReload144DpiPairs": 7,
+      "allPairsEqual": true,
+      "uniformOrdinaryMaxOriginXPoints": 0.11017608642578125,
+      "uniformOrdinaryMaxOriginYPoints": 0.0889892578125,
+      "omitted12AndRetained0PriorMaxOriginXPoints": 6.968780517578125,
+      "mixedCurrentMaxOriginXPoints": 5.0439910888671875,
+      "nativeMixedParity": false,
+      "visualInspection": "Before/current/native default12 crops inspected: current spacing follows native disabled kerning; exact device glyph geometry remains separate."
+    },
+    "cases": [
+      {
+        "name": "default12",
+        "publicThresholds": [
+          null
+        ],
+        "effectiveThresholds": [
+          14
+        ],
+        "expected": [
+          14
+        ],
+        "baselineEffective": [
+          null
+        ],
+        "sameNativeBytesAsBaseline": true,
+        "nativeInitialResaved144DpiEqual": true,
+        "currentBeforeAfterNativeSave144DpiEqual": true,
+        "baselineCurrent144DpiEqual": false,
+        "nativePages": 1,
+        "sourceUnchanged": true,
+        "inputSha256": "d5069857e82051734a58193225eb55652c64e3d64270af1413d95c21eafaa866",
+        "nativeValidationSha256": "adc05edabeec12730438d9ab895d7735794b2da9596c840800ae77eab660f57a",
+        "maxNativeCurrentXPoints": 0.10964202880859375,
+        "maxNativeCurrentYPoints": 0.0450439453125,
+        "maxNativeBaselineXPoints": 6.968780517578125
+      },
+      {
+        "name": "default14",
+        "publicThresholds": [
+          null
+        ],
+        "effectiveThresholds": [
+          14
+        ],
+        "expected": [
+          14
+        ],
+        "baselineEffective": [
+          null
+        ],
+        "sameNativeBytesAsBaseline": true,
+        "nativeInitialResaved144DpiEqual": true,
+        "currentBeforeAfterNativeSave144DpiEqual": true,
+        "baselineCurrent144DpiEqual": true,
+        "nativePages": 1,
+        "sourceUnchanged": true,
+        "inputSha256": "d6011737d10d2fc68d71edd9e213dce998972da773318154680e7a059426920e",
+        "nativeValidationSha256": "3ba276f13cbd1905c6a2f714613cbfa3f4664716423239ede25ec0a8ec994514",
+        "maxNativeCurrentXPoints": 0.09815216064453125,
+        "maxNativeCurrentYPoints": 0.0889892578125,
+        "maxNativeBaselineXPoints": 0.09815216064453125
+      },
+      {
+        "name": "retained8",
+        "publicThresholds": [
+          null
+        ],
+        "effectiveThresholds": [
+          8
+        ],
+        "expected": [
+          8
+        ],
+        "baselineEffective": [
+          null
+        ],
+        "sameNativeBytesAsBaseline": true,
+        "nativeInitialResaved144DpiEqual": true,
+        "currentBeforeAfterNativeSave144DpiEqual": true,
+        "baselineCurrent144DpiEqual": true,
+        "nativePages": 1,
+        "sourceUnchanged": true,
+        "inputSha256": "792daa14fcf5ce49cd26193ae223fbe96bca2705a6dd678b6367ed18f0d91ae7",
+        "nativeValidationSha256": "ff548e8d03f735621ee9ec3061fddfb3cfae07fedfb15968ee6b2ad97d09a0c4",
+        "maxNativeCurrentXPoints": 0.11017608642578125,
+        "maxNativeCurrentYPoints": 0.0450439453125,
+        "maxNativeBaselineXPoints": 0.11017608642578125
+      },
+      {
+        "name": "retained0",
+        "publicThresholds": [
+          null
+        ],
+        "effectiveThresholds": [
+          0
+        ],
+        "expected": [
+          0
+        ],
+        "baselineEffective": [
+          null
+        ],
+        "sameNativeBytesAsBaseline": true,
+        "nativeInitialResaved144DpiEqual": true,
+        "currentBeforeAfterNativeSave144DpiEqual": true,
+        "baselineCurrent144DpiEqual": false,
+        "nativePages": 1,
+        "sourceUnchanged": true,
+        "inputSha256": "73cd60ef5875eb59d3b0826c2bd1adf3e7c8ae2254d8bbb327b417957615b2e2",
+        "nativeValidationSha256": "c6d9f7ecc0e746cba78419420ad9f7e8b476b2a4b056919adec4758238aa7e41",
+        "maxNativeCurrentXPoints": 0.10964202880859375,
+        "maxNativeCurrentYPoints": 0.0450439453125,
+        "maxNativeBaselineXPoints": 6.968780517578125
+      },
+      {
+        "name": "merged8-18",
+        "publicThresholds": [
+          null
+        ],
+        "effectiveThresholds": [
+          8,
+          18
+        ],
+        "expected": [
+          8,
+          18
+        ],
+        "baselineEffective": [
+          null
+        ],
+        "sameNativeBytesAsBaseline": true,
+        "nativeInitialResaved144DpiEqual": true,
+        "currentBeforeAfterNativeSave144DpiEqual": true,
+        "baselineCurrent144DpiEqual": false,
+        "nativePages": 1,
+        "sourceUnchanged": true,
+        "inputSha256": "16f8504ed80b8621f10f504fc86499f0b5bc9101cc55bf5619f34e07c5d44034",
+        "nativeValidationSha256": "c87af21337f64f694d31a7fa344f71c9188f4157bb692e0ab4f00d0df17edce8",
+        "maxNativeCurrentXPoints": 5.0439910888671875,
+        "maxNativeCurrentYPoints": 0.0450439453125,
+        "maxNativeBaselineXPoints": 0.11017608642578125
+      },
+      {
+        "name": "cell-retained8",
+        "publicThresholds": [
+          null
+        ],
+        "effectiveThresholds": [
+          8
+        ],
+        "expected": [
+          8
+        ],
+        "baselineEffective": [
+          null
+        ],
+        "sameNativeBytesAsBaseline": true,
+        "nativeInitialResaved144DpiEqual": true,
+        "currentBeforeAfterNativeSave144DpiEqual": true,
+        "baselineCurrent144DpiEqual": false,
+        "nativePages": 1,
+        "sourceUnchanged": true,
+        "inputSha256": "d3f8d50c086ba588eb3e632bb8106257df3254f2bdb9a7a9a5ea913f34610895",
+        "nativeValidationSha256": "80ea3b2d2f68c98f1d35555bd064e1cc4cf6b22b14a5e0a7c8298d09cd7fbab5",
+        "nativeGeometryLimit": "Native TableLabel reference uses imposed sheet copies; physical managed page origins are not compared."
+      },
+      {
+        "name": "cell-merged8-18",
+        "publicThresholds": [
+          null
+        ],
+        "effectiveThresholds": [
+          8,
+          18
+        ],
+        "expected": [
+          8,
+          18
+        ],
+        "baselineEffective": [
+          null
+        ],
+        "sameNativeBytesAsBaseline": true,
+        "nativeInitialResaved144DpiEqual": true,
+        "currentBeforeAfterNativeSave144DpiEqual": true,
+        "baselineCurrent144DpiEqual": false,
+        "nativePages": 1,
+        "sourceUnchanged": true,
+        "inputSha256": "d16c3b8910c03ed2b7f3fb4b1247926de61264c5f00a8092a3dab98310fc4126",
+        "nativeValidationSha256": "e0853d4d5300b46770a000bcdd6cfa54143e7d44fca96fc323e858c2eae33365",
+        "nativeGeometryLimit": "Native TableLabel reference uses imposed sheet copies; physical managed page origins are not compared."
+      }
+    ],
+    "regressionTests": {
+      "names": [
+        "Native_default_is_applied_only_to_scene_runs_and_preserves_public_metadata",
+        "Unspecified_replacement_keeps_source_thresholds_in_body_and_cell_scenes",
+        "Unqualified_threshold_source_stays_opaque_and_refuses_explicit_rewriting"
+      ],
+      "focused": {
+        "Passed": 25
+      },
+      "initialBefore": {
+        "Passed": 1,
+        "Failed": 5,
+        "productFailures": 3,
+        "testSetupFailures": 2
+      },
+      "setupCorrection": "Two initial table rows referenced a nonexistent Table directory; corrected to the existing independently authored TableLabel fixture. Seven prior-assembly public controls then reproduce missing effective scene settings including both table cases.",
+      "fullPublisher": [
+        {
+          "target": "net10.0",
+          "outcomes": {
+            "Passed": 991
+          }
+        },
+        {
+          "target": "net472",
+          "outcomes": {
+            "Passed": 991
+          }
+        },
+        {
+          "target": "net8.0",
+          "outcomes": {
+            "Passed": 991
+          }
+        }
+      ],
+      "readerPublisher": {
+        "Passed": 93,
+        "target": "net10.0",
+        "existingNullableWarnings": 2
+      }
+    },
+    "portableBuilds": {
+      "readerNetstandard20": "Nonincremental PASS, zero warnings/errors",
+      "sourcePSWriteOfficeNet80": "PASS, zero warnings/errors"
+    },
+    "powerShell": {
+      "runtime": "7.6.9",
+      "publisherSha256": "4000dc1919af3fa02ca9b440f2eb91ce847ac0d18c3d3cce646109efdd53547b",
+      "cases": [
+        {
+          "sourceUnchanged": true,
+          "recoveredThreshold": null,
+          "publicThreshold": null,
+          "sceneThresholds": [
+            14.0
+          ],
+          "name": "default12",
+          "pdfTextRecovered": true
+        },
+        {
+          "sourceUnchanged": true,
+          "recoveredThreshold": 0.0,
+          "publicThreshold": null,
+          "sceneThresholds": [
+            0.0
+          ],
+          "name": "retained0",
+          "pdfTextRecovered": true
+        },
+        {
+          "sourceUnchanged": true,
+          "recoveredThreshold": 8.0,
+          "publicThreshold": null,
+          "sceneThresholds": [
+            8.0
+          ],
+          "name": "retained8",
+          "pdfTextRecovered": true
+        }
+      ],
+      "publicWorkflow": "ConvertTo-OfficeDocument publisher-pdf plus native source-retaining API/scene/save checks"
+    },
+    "review": {
+      "sourceCommit": "212a92da8cb858f50e2e57c6305150a10cea4d27",
+      "scope": "New source-definition/derived-scene boundary, moved eligibility and scalar codec consolidation",
+      "independentFullPasses": 1,
+      "targetedConfirmations": 0,
+      "actionableFindings": 0,
+      "disposition": "Accept as shaped; native and target validation performed separately.",
+      "priorExplicitRenderScope": "Unchanged; prior one full plus one targeted confirmation remains consumed."
+    },
+    "sourceFiles": [
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherKerningProjectionTests.cs",
+        "gitBlobSha256": "d64d8d4892fced366cb80d6142150d4e055f15ed3f9db767451d27c95d6774e9"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherKerningWritingTests.cs",
+        "gitBlobSha256": "6a7f65f2e78ba2261397f18816d28be21e87d16e16ca710eef68f3be992462fd"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.Compare.cs",
+        "gitBlobSha256": "21632854dfbee8c407cdec68f24e34ea8f438d0f66fac151b3da3019650723e8"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherPageProjector.Flow.cs",
+        "gitBlobSha256": "fff8d541347126fe972c41b2b0d1bf190fb530bfcb2c97827b0b528f2ae18479"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherPageProjector.Tables.cs",
+        "gitBlobSha256": "efff46c73d9b84eeb644c4411b0df5d8d7b06f4ba28b64ab21df8ab7a85fa344"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherPageProjector.cs",
+        "gitBlobSha256": "f7d0c8e020a5d3871aed24053fc94219f0c18f9f85c489cf770134c3e13a3a23"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillCharacterStyleWriter.Kerning.cs",
+        "gitBlobSha256": "598a8ea06548f7fd107f3143d61e19afa904a3d5576599ff2682dc6704e1d9e3"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillKerning.cs",
+        "gitBlobSha256": "6bfa2a169b7640f610f218d75d4462eb6e783541a474d7cc9a853df53e219770"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillKerningProjection.cs",
+        "gitBlobSha256": "3b11c48f49f850b409a6745b589c9b6314df36cb4db61265ac48308b20a8ae75"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Eligibility.cs",
+        "gitBlobSha256": "fd321e743e705db083d8cdd5f16c4e3260033886eafd8d2d42b04d7c5995022f"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillStyleReader.cs",
+        "gitBlobSha256": "19f36061d726ad9b38be7b5b0ec26d208e28bd56b99826625274006bb6d0128c"
+      }
+    ],
+    "limits": [
+      "Mixed same-font native shaping follows its first-setting font context; current shared rendering applies per-run settings. Merged8/18 control differs by up to5.044pt horizontally.",
+      "Native TableLabel PDF uses imposed sheet copies; physical managed page origins are not compared.",
+      "Broader producer/source profiles, mixed baselines/scripts, device advances and exact native glyph geometry remain unqualified.",
+      "Automatic hyphenation, repair-free opening, generic native creation and the full PUB00-PUB06 lifecycle remain open."
+    ]
   }
 }
