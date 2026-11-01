@@ -58,6 +58,7 @@ public sealed class AddOfficePowerPointListItemCommand : OfficeCmdlet {
         var item = scope.List.AddParagraph(Content == null ? Text : string.Empty);
         try {
             item.Level = Level - 1;
+            scope.ListItemDefaults?.Invoke(item);
             if (Content != null) {
                 item.ClearInlineContent();
                 using (OfficeDocumentContext.Push(new PowerPointTextScope(scope, item))) Content.Invoke();

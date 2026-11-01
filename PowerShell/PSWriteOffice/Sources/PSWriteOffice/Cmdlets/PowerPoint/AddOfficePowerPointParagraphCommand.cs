@@ -17,7 +17,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointParagraph", DefaultParameterSetName = "Text")]
 [Alias("PowerPointParagraph")]
 [OutputType(typeof(PowerPointParagraph))]
-public sealed class AddOfficePowerPointParagraphCommand : OfficeCmdlet {
+public sealed class AddOfficePowerPointParagraphCommand : PowerPointTextPlacementCmdlet {
     /// <summary>Gets or sets the paragraph text.</summary>
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Text"), AllowEmptyString]
     public string Text { get; set; } = string.Empty;
@@ -65,7 +65,19 @@ public sealed class AddOfficePowerPointParagraphCommand : OfficeCmdlet {
     protected override void ProcessRecord() {
         var scope = PowerPointContentScope.Current;
         var textScope = PowerPointTextScope.Current;
-        if (scope == null && textScope?.HasTextBody != true) { InvalidArgument(new ArgumentException("Invoke PowerPointParagraph inside a slide, column, text-box or cell content block."), Text); return; }
+        PowerPointTextBox? fixedBox = null;
+        PowerPointContentScope? fixedScope = null;
+        if (HasFixedPlacement && textScope != null) {
+            InvalidArgument(new ArgumentException("Placement is only valid for a direct slide paragraph, not inside text-box, list or table-cell content."), Slide);
+            return;
+        }
+        if (HasFixedPlacement) {
+            var placed = CreatePlacedTextBox(string.Empty);
+            fixedBox = placed.Box;
+            fixedScope = placed.Scope;
+            textScope = new PowerPointTextScope(fixedBox.OwnerSlide!.OwnerDocument!, fixedBox);
+        }
+        if (scope == null && textScope?.HasTextBody != true) { InvalidArgument(new ArgumentException("Supply -Slide or invoke PowerPointParagraph inside a slide, column, text-box or cell content block."), Text); return; }
         var body = textScope?.HasTextBody != true ? scope!.CreateTextBody() : null;
         try {
             var paragraph = body != null ? body.Box.AddParagraph() : textScope!.StartParagraph();
@@ -76,14 +88,17 @@ public sealed class AddOfficePowerPointParagraphCommand : OfficeCmdlet {
             if (Content != null) {
                 paragraph.ClearInlineContent();
                 var inline = body != null ? new PowerPointTextScope(scope!, paragraph) : new PowerPointTextScope(textScope!, paragraph);
+                using (OfficeDocumentContext.Push(inline.Document))
                 using (OfficeDocumentContext.Push(inline)) Content.Invoke();
             } else foreach (var run in paragraph.Runs) {
                 if (body != null) PowerPointTextFormatting.Apply(run, scope!, Bold, Italic, Strikethrough, Underline, Color, Highlight, Font, Size);
                 else PowerPointTextFormatting.Apply(run, textScope!, Bold, Italic, Strikethrough, Underline, Color, Highlight, Font, Size);
             }
             if (body != null) scope!.Blocks.Add(new PowerPointLayoutText(Text) { NativeBody = body });
+            if (fixedBox != null) fixedScope?.TrackFixedFigure(fixedBox);
             if (PassThru) WriteObject(paragraph);
         } catch {
+            fixedBox?.Remove();
             if (body != null) scope!.DiscardTextBody(body);
             throw;
         }

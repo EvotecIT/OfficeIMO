@@ -17,10 +17,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointTextBox", DefaultParameterSetName = "Text")]
 [Alias("PowerPointTextBox")]
 [OutputType(typeof(PowerPointTextBox))]
-public sealed class AddOfficePowerPointTextBoxCommand : OfficeCmdlet {
-    /// <summary>Gets or sets a native slide or one-based position; omission uses the current slide block.</summary>
-    [Parameter(ValueFromPipeline = true), PowerPointSlideTransformation]
-    public PowerPointSlideSelector? Slide { get; set; }
+public sealed class AddOfficePowerPointTextBoxCommand : PowerPointTextPlacementCmdlet {
     /// <summary>Gets or sets plain text; an empty string creates an empty box.</summary>
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Text"), AllowEmptyString]
     public string Text { get; set; } = string.Empty;
@@ -30,24 +27,6 @@ public sealed class AddOfficePowerPointTextBoxCommand : OfficeCmdlet {
     /// <summary>Gets or sets the native shape name.</summary>
     [Parameter]
     public string? Name { get; set; }
-    /// <summary>Gets or sets the left coordinate; numbers mean points.</summary>
-    [Parameter, OfficeLengthTransformation]
-    public OfficeLength? X { get; set; }
-    /// <summary>Gets or sets the top coordinate; numbers mean points.</summary>
-    [Parameter, OfficeLengthTransformation]
-    public OfficeLength? Y { get; set; }
-    /// <summary>Gets or sets the width; omission uses the native default.</summary>
-    [Parameter, OfficeLengthTransformation]
-    public OfficeLength? Width { get; set; }
-    /// <summary>Gets or sets the height; omission uses the native default.</summary>
-    [Parameter, OfficeLengthTransformation]
-    public OfficeLength? Height { get; set; }
-    /// <summary>Gets or sets the one-based theme grid column; explicit X overrides its position.</summary>
-    [Parameter, ValidateRange(1, 12)]
-    public int? Column { get; set; }
-    /// <summary>Gets or sets the number of grid columns; the default is twelve, and explicit Width overrides it.</summary>
-    [Parameter, ValidateRange(1, 12)]
-    public int? Span { get; set; }
     /// <summary>Gets or sets whether the live native text box is returned.</summary>
     [Parameter]
     public SwitchParameter PassThru { get; set; }
@@ -56,19 +35,16 @@ public sealed class AddOfficePowerPointTextBoxCommand : OfficeCmdlet {
     protected override void ProcessRecord() {
         PowerPointTextBox? box = null;
         try {
-            if (Width is OfficeLength w && w <= OfficeLength.Zero || Height is OfficeLength h && h <= OfficeLength.Zero)
-                throw new ArgumentException("Text-box width and height must be positive.");
-            var target = PowerPointManualPlacement.Resolve(Slide);
-            var horizontal = PowerPointManualPlacement.Horizontal(target.Slide, X, Width, Column, Span);
-            box = target.Slide.AddTextBox(Content == null ? Text : string.Empty, horizontal.X, Y, horizontal.Width, Height);
+            var placed = CreatePlacedTextBox(Content == null ? Text : string.Empty);
+            box = placed.Box;
             if (Name != null) box.Name = Name;
             if (Content != null) {
-                var document = target.Slide.OwnerDocument ?? throw new ArgumentException("The slide has no owning document.");
+                var document = box.OwnerSlide?.OwnerDocument ?? throw new ArgumentException("The slide has no owning document.");
                 box.Paragraphs[0].ClearInlineContent();
                 using (OfficeDocumentContext.Push(document))
                 using (OfficeDocumentContext.Push(new PowerPointTextScope(document, box))) Content.Invoke();
             }
-            target.Scope?.TrackFixedFigure(box);
+            placed.Scope?.TrackFixedFigure(box);
             if (PassThru) WriteObject(box);
         } catch (Exception error) {
             box?.Remove();

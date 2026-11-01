@@ -46,7 +46,7 @@ Describe 'PowerPointShapeEditing workflows' {
         )
         $table = Add-OfficePowerPointTable -Slide $slide -InputObject $rows -X 40 -Y 140 -Width 360 -Height 200 -PassThru
         $image = Add-OfficePowerPointImage -Slide $slide -Path $imagePath -X 420 -Y 40 -Width 120 -Height 90 -PassThru
-        $bullets = Add-OfficePowerPointBullets -Slide $slide -Bullets 'Wins','Risks','Next Steps' -X 420 -Y 150 -Width 250 -Height 200 -PassThru
+        $bullets = Add-OfficePowerPointList -Slide $slide -Items 'Wins','Risks','Next Steps' -BulletChar '*' -X 420 -Y 150 -Width 250 -Height 200 -PassThru
         Set-OfficePowerPointNotes -Slide $slide -Text 'Keep this under five minutes.'
 
         $presentation.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointDocument'
@@ -63,6 +63,8 @@ Describe 'PowerPointShapeEditing workflows' {
         $image | Should -Not -BeNullOrEmpty
         $bullets.Paragraphs.Count | Should -Be 3
         $bullets.Paragraphs[0].Text | Should -Be 'Wins'
+        $bullets.Paragraphs[0].BulletCharacter | Should -Be '*'
+        $bullets.Paragraphs[0].NumberingScheme | Should -BeNullOrEmpty
         $notes = Get-OfficePowerPointNotes -Slide $slide
         $notes.Text | Should -Be 'Keep this under five minutes.'
         $notes.HasNotes | Should -BeTrue

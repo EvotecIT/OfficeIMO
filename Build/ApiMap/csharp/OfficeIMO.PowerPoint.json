@@ -2721,6 +2721,17 @@
   ],
   "changes": [
     {
+      "old": "PowerPointTextBox.SetNumberedList(...) and AddNumberedList(...) default to an 18-point number gutter",
+      "kind": "method",
+      "action": "change",
+      "new": "Numbered list defaults reserve a 28-point hanging indent",
+      "reason": "Matches automatic PowerPoint list layout and leaves room between Roman number markers and body text. Character bullets retain their 18-point gutter; custom margins and indents are preserved.",
+      "file": "OfficeIMO.PowerPoint/PowerPointListParagraphDefaults.cs",
+      "category": "authoring",
+      "phase": "M5",
+      "applied": "applied"
+    },
+    {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation",
       "kind": "type",
       "action": "rename",

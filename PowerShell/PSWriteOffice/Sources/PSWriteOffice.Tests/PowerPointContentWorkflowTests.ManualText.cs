@@ -45,8 +45,11 @@ public sealed partial class PowerPointContentWorkflowTests {
         Assert.Equal(1440000L, persisted.Height.ToEmus());
     }
 
-    [Fact]
-    public void FailedManualTextContentRemovesItsBoxAndRestoresTheTextContext() {
+    [Theory]
+    [InlineData("PowerPointTextBox")]
+    [InlineData("PowerPointParagraph")]
+    [InlineData("PowerPointList")]
+    public void FailedManualTextContentRemovesItsBoxAndRestoresTheTextContext(string command) {
         using var document = PowerPointDocument.Create();
         var slide = document.AddSlide();
         var existing = slide.AddTextBox("Keep this");
@@ -54,12 +57,8 @@ public sealed partial class PowerPointContentWorkflowTests {
         runspace.SessionStateProxy.SetVariable("slide", slide);
         using var shell = PowerShell.Create();
         shell.Runspace = runspace;
-        shell.AddScript("""
-            $slide | PowerPointTextBox -ErrorAction Stop {
-                PowerPointParagraph { PowerPointText 'Partial' }
-                throw 'manual-content-failed'
-            }
-            """);
+        string content = command == "PowerPointList" ? "PowerPointListItem { PowerPointText 'Partial' }" : "PowerPointText 'Partial'";
+        shell.AddScript("$slide | " + command + " -X 1cm -Y 2cm -Width 3cm -Height 1cm -ErrorAction Stop { " + content + "; throw 'manual-content-failed' }");
         Exception? error = Record.Exception(() => shell.Invoke());
         Assert.True(error != null || shell.HadErrors);
         Assert.Contains("manual-content-failed", error?.ToString() + Errors(shell));

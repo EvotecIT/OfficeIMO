@@ -1320,7 +1320,7 @@
           ]
         }
       ],
-      "notes": "Replaces Add-OfficePowerPointBullets. Theme list style by default; long lists shrink to the theme minimum, then continue on a new slide. -Numbered makes a numbered list; -Numbering picks the number scheme and implies -Numbered. -Items are written at -Level (1-based); rich and nested items use a PowerPointListItem block.",
+      "notes": "Replaces Add-OfficePowerPointBullets. Theme list style by default; long lists shrink to the theme minimum, then continue on a new slide. -Numbered makes a numbered list; -Numbering picks the number scheme and implies -Numbered. -Items are written at -Level (1-based); rich and nested items use a PowerPointListItem block. Explicit -Slide or geometry creates a fixed native frame. Numbering selects the top-level scheme; BulletChar cannot be combined with numbering. Native edits made inside the content block take precedence over these defaults.",
       "examples": [
         {
           "title": "Add a bulleted list",
