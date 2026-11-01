@@ -81,7 +81,7 @@ separate output roots. Never treat an incomplete baseline as equivalent work.
 
 The [expansion evidence](excel-formula-expansion-2026-11-01.json) compares the
 complete shared-string-optimized source `67ab8dd54bcc17697df755b5b69bb36316056827`
-with `ef7fc8843ef80862d250d97fc0fd3e3906072689`. It records the exact Excel/Core
+with `7c7cf4b0769028732b65d39898df6d0dc072d92f`. It records the exact Excel/Core
 assembly hashes, all 144 measured report operations and the complete summaries.
 Both versions calculate the same four inputs and validate all 2,048 cached values.
 
@@ -89,27 +89,30 @@ The candidate adds lookup modes, reference/array INDEX and named expressions.
 Lazy reference-backed lookup sources avoid eager materialization, per-pass name
 catalogs avoid repeated definition scans, and literal lookup keys avoid wildcard
 regex construction. Nine measured iterations per engine/case use rotated order
-and each fixed processor domain, with one warmup. The final comparison includes
-the shared blank-key correction as well as the literal-key regex optimization.
-VLOOKUP timing remains mixed across domains, so this comparison establishes its
-allocation reduction without claiming a consistent timing improvement.
+and each fixed processor domain, with one warmup at Normal priority. The final
+candidate includes the native-qualified blank/reference, source-error,
+conditional and binary-duplicate corrections, plus typed callback preservation.
 
 | Report | Domain 0 median, baseline → candidate | Domain 1 median, baseline → candidate | Formula allocation, baseline → candidate |
 | --- | --- | --- | --- |
-| INDEX/MATCH hit | 236.95 → 148.70 ms | 191.74 → 115.64 ms | 251.6–252.0 → 150.3–151.1 MB |
-| INDEX/MATCH missing product | 224.37 → 138.98 ms | 180.31 → 125.35 ms | 251.6–252.0 → 153.0–153.4 MB |
-| VLOOKUP missing product | 144.96 → 127.83 ms | 115.11 → 122.44 ms | 154.6–155.0 → 148.0–148.4 MB |
-| XLOOKUP missing product | 352.56 → 143.94 ms | 296.79 → 116.64 ms | 414.4–414.8 → 150.4–150.7 MB |
+| INDEX/MATCH hit | 537.45 → 328.60 ms | 304.76 → 193.26 ms | 251.9–252.0 → 151.0–151.1 MB |
+| INDEX/MATCH missing product | 438.83 → 272.97 ms | 313.41 → 206.31 ms | 251.9–252.0 → 153.3–153.3 MB |
+| VLOOKUP missing product | 256.59 → 275.77 ms | 193.45 → 200.57 ms | 154.9–154.9 → 148.3–148.3 MB |
+| XLOOKUP missing product | 549.47 → 289.48 ms | 435.39 → 176.99 ms | 414.7–414.8 → 150.6–150.7 MB |
 
 Allocation is cumulative managed allocation inside Calculate, expressed in decimal
 MB; it is not peak or retained RAM. INDEX/MATCH allocation falls approximately
 39–40%, XLOOKUP approximately 64%, and VLOOKUP approximately 4%. INDEX/MATCH medians
-improve approximately 1.44–1.66 times and XLOOKUP 2.45–2.54 times against this already
-optimized baseline. VLOOKUP is approximately 12% faster on domain 0 and 6% slower
-on domain 1, with overlapping sample ranges and 13–18 ms standard deviations.
-Those mixed timings do not establish a portable speedup or regression. Background
-development activity remains uncontrolled; the recorded 12% CPU snapshot before
-the final run is not a continuous trace.
+correspond to 1.52–1.64 times faster calculation and XLOOKUP 1.90–2.46 times in
+these runs against the already optimized baseline. VLOOKUP medians are about
+4–7.5% higher, with overlapping sample ranges and 42–110 ms standard deviations.
+Its timing effect remains inconclusive; the evidence establishes its allocation
+reduction without claiming a speedup.
+
+The shared development host was heavily loaded: the CPU snapshot before the
+report comparison was 97%. This is not a continuous trace. Large sample dispersion
+limits portable timing conclusions; both domains, every sample and slower results
+remain in the evidence.
 
 ## Binary lookup scale
 
@@ -117,22 +120,28 @@ The maintained [FormulaLookupScaleBenchmarks](../../Benchmarks/ExcelReaderTyped/
 compares 256 linear and binary XLOOKUPs over identical sorted numeric sources at
 512 and 8,192 keys. Setup and full result validation are outside timing. Each
 processor domain ran the complete four-case matrix with BenchmarkDotNet 0.15.8
-ShortRun, one launch, three warmups and three measured iterations at normal
-priority. The evidence identifies the measured `a94fbfeb97ecfa7f0f1df41d0f500bd700fcc4a8`
-assemblies; binary traversal is unchanged in the final report candidate.
+ShortRun, one launch, three warmups and three measured iterations. The primary
+cohorts explicitly apply Normal priority to all benchmark child processes and
+measure the same final `7c7cf4b0769028732b65d39898df6d0dc072d92f` assemblies.
 
-At 8,192 keys, linear search means are 530–630 ms and binary means 110–120 ms.
-Allocation is approximately 754 MiB for linear search and 11.5–11.6 MiB for binary
-search. At 512 keys, allocation falls from approximately 55 MiB to 2.7–5.0 MiB,
-but timing is variable and does not establish a consistent binary speedup.
+| Domain | Keys | Linear mean | Binary mean | Linear allocation | Binary allocation |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 512 | 126.25 ms | 48.32 ms | 55.12 MiB | 4.91 MiB |
+| 0 | 8,192 | 2004.74 ms | 346.45 ms | 753.45 MiB | 11.78 MiB |
+| 1 | 512 | 236.28 ms | 99.35 ms | 55.12 MiB | 4.93 MiB |
+| 1 | 8,192 | 1913.29 ms | 226.03 ms | 753.50 MiB | 11.82 MiB |
+
 All 256 cached results were checked after every measured operation. Binary search
 requires sorted input; this numeric cohort does not qualify arbitrary mixed-type
 or locale-dependent text ordering. BDN's three-sample confidence intervals are
-wide, so these results demonstrate the larger-case scaling benefit without
-claiming precise portable timing ratios.
+wide, so the table describes these runs rather than precise portable timing ratios.
+The initial eight-case cohort used BDN's default High child priority; its complete
+samples are retained separately in the same JSON. Keep processor and priority
+cohorts separate when interpreting variation.
 
 All final report operations and scale cases pass output validation. No persistent
 lookup index, parser cache, timing assertion or memory budget is added to ordinary
-correctness CI. Native Excel was unavailable for a completed new oracle on the
-measurement host; these performance runs establish equivalent validated work,
-not native formula parity.
+correctness CI. The [native Excel lookup corpus](../../OfficeIMO.TestAssets/Documents/ExcelFormulaCorpus/lookup-conformance.provenance.json)
+separately qualifies 182 formulas, 204 typed result cells and 10 spill ranges after
+save/reopen. The timed engine in both report lanes is OfficeIMO; desktop Excel
+produces the independent correctness fixture.
