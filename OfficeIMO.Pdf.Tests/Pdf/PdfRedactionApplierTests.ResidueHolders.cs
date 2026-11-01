@@ -79,4 +79,32 @@ public partial class PdfRedactionApplierTests {
 
         Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
     }
+
+    [Theory]
+    [InlineData("% TOPSECRET\n", "")]
+    [InlineData("", "TOPSECRET\n")]
+    public void NoMatchSearchFindsSearchedTextOutsideParsedObjects(string betweenObjects, string afterEndOfFile) {
+        byte[] input = BuildNoMatchPdf(betweenObjects, afterEndOfFile);
+        PdfDocument source = PdfDocument.Load(input);
+
+        PdfRedactionPlan held = source.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral(ResidueHolderQuery));
+        PdfRedactionPlan absent = source.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("absent"));
+        PdfRedactionPlan numbers = source.Redactions.Search(new PdfRedactionSearchOptions().AddRegex(@"\d{3}"));
+
+        Assert.Contains(held.Findings, static finding => finding.Code == "redaction-search-unplanned-residue");
+        Assert.Throws<InvalidOperationException>(() => source.Redactions.ApplyWithEvidence(held));
+        Assert.Equal(input, source.Redactions.ApplyWithEvidence(absent).Pdf);
+        Assert.Equal(input, source.Redactions.ApplyWithEvidence(numbers).Pdf);
+    }
+
+    private static byte[] BuildNoMatchPdf(string betweenObjects, string afterEndOfFile) {
+        byte[] pdf = BuildPdf(new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n" + betweenObjects.TrimEnd(),
+            BuildStreamObject(5, Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Public page) Tj ET"))
+        }, rootObjectNumber: 1);
+        return pdf.Concat(Encoding.ASCII.GetBytes(afterEndOfFile)).ToArray();
+    }
 }

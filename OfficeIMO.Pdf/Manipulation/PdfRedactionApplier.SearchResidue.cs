@@ -6,6 +6,7 @@ using OfficeIMO.Pdf.Filters;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfRedactionApplier {
+    private static readonly Regex FileStructure = new Regex(@"(?<!\S)(?:start)?xref\b.*?%%EOF|%PDF-\d\.\d", RegexOptions.Singleline | RegexOptions.CultureInvariant, Regex.InfiniteMatchTimeout);
     private static readonly string[] FontProgramKeys = { "FontFile", "FontFile2", "FontFile3" };
     private static readonly string[] FontCMapKeys = { "ToUnicode", "Encoding", "UseCMap" };
     private static readonly HashSet<string> CMapSyntaxWords = new HashSet<string>(StringComparer.Ordinal) {
@@ -77,20 +78,62 @@ internal static partial class PdfRedactionApplier {
                         historical ? "An earlier PDF revision still holds searched text." : "A saved PDF object still holds searched text."));
                 }
             }
-            if (!historical) return;
-            // Raw historical data can contain strings no longer present in its selected object map.
-            // Omit excluded page objects, including their streams, before checking those retained bytes.
-            string raw = PdfEncoding.Latin1GetString(bytes);
-            foreach (PdfIndirectObject item in current.Objects.Values.Where(item => excluded.Contains(item.Value)).OrderByDescending(static item => item.SourceOffset)) {
-                int start = item.SourceOffset;
-                if (start < 0) continue;
-                int end = raw.IndexOf("endobj", start, StringComparison.Ordinal);
-                if (end >= start) raw = raw.Remove(start, end + 6 - start);
-            }
+            string raw = historical ? RemoveExcludedObjects(bytes, current, excluded) : ReadBytesOutsideObjects(bytes, current, cancellationToken);
             bool encodedResidue = PdfRedactionVerification.ContainsSearchedPdfString(PdfEncoding.Latin1GetBytes(raw), criteria, cancellationToken);
             // Font names and dictionary keys must not masquerade as retained values.
             raw = Regex.Replace(raw, @"/[^\s()<>\[\]{}/%]+", "", RegexOptions.CultureInvariant, RegexTimeout);
-            if (encodedResidue || SearchTextHolds(raw, criteria)) issues.Add(new PdfRedactionVerificationIssue("SearchResidue", "HistoricalBytes", "Retained bytes of an earlier PDF revision still hold searched text."));
+            if (encodedResidue || SearchTextHolds(raw, criteria)) issues.Add(historical
+                ? new PdfRedactionVerificationIssue("SearchResidue", "HistoricalBytes", "Retained bytes of an earlier PDF revision still hold searched text.")
+                : new PdfRedactionVerificationIssue("SearchResidue", "UnparsedBytes", "Bytes outside the PDF's objects still hold searched text."));
+        }
+    }
+
+    // Raw historical data can contain strings no longer present in its selected object map.
+    // Omit excluded page objects, including their streams, before checking those retained bytes.
+    private static string RemoveExcludedObjects(byte[] bytes, PdfReadDocument document, HashSet<PdfObject> excluded) {
+        string raw = PdfEncoding.Latin1GetString(bytes);
+        foreach (PdfIndirectObject item in document.Objects.Values.Where(item => excluded.Contains(item.Value)).OrderByDescending(static item => item.SourceOffset)) {
+            int start = item.SourceOffset;
+            if (start < 0) continue;
+            int end = raw.IndexOf("endobj", start, StringComparison.Ordinal);
+            if (end >= start) raw = raw.Remove(start, end + 6 - start);
+        }
+        return raw;
+    }
+
+    // Comments and bytes between or after objects never reach the object map, so no other check sees them.
+    // Object bodies were inspected decoded, and their numbers would pass for retained digits, as would the file structure.
+    private static string ReadBytesOutsideObjects(byte[] bytes, PdfReadDocument document, CancellationToken cancellationToken) {
+        string raw = PdfEncoding.Latin1GetString(bytes);
+        var outside = new StringBuilder();
+        var streams = new Dictionary<int, bool>();
+        foreach (PdfIndirectObject item in document.Objects.Values) if (item.SourceOffset >= 0) streams[item.SourceOffset] = item.Value is PdfStream;
+        int cursor = 0;
+        foreach (KeyValuePair<int, bool> item in streams.OrderBy(static item => item.Key)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int start = item.Key;
+            if (start < cursor) continue;
+            int bodyEnd = item.Value ? raw.IndexOf("stream", start, StringComparison.Ordinal) : -1;
+            int end = raw.IndexOf("endobj", bodyEnd >= 0 ? Math.Max(start, raw.IndexOf("endstream", bodyEnd, StringComparison.Ordinal)) : start, StringComparison.Ordinal);
+            if (end < 0) break;
+            outside.Append(raw, cursor, start - cursor);
+            AppendComments(raw, start, bodyEnd >= 0 ? bodyEnd : end, outside);
+            cursor = end + 6;
+        }
+        outside.Append(raw, cursor, raw.Length - cursor);
+        return FileStructure.Replace(outside.ToString(), match => {
+            var comments = new StringBuilder();
+            AppendComments(match.Value, 0, Math.Max(0, match.Length - 5), comments);
+            return comments.ToString();
+        });
+    }
+
+    private static void AppendComments(string text, int start, int end, StringBuilder target) {
+        int index = start;
+        while (index < end) {
+            if (!TrySkipPdfStringOrComment(text, index, out int next)) { index++; continue; }
+            if (text[index] == '%') target.Append(text, index, next - index).Append('\n');
+            index = Math.Max(next, index + 1);
         }
     }
 
