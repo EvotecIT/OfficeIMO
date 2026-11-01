@@ -39,6 +39,20 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlBorders_GradientBorderImagePaintsTheBorderAreaOnly() {
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous, ViewportWidth = 120D, ViewportHeight = 80D, Margins = HtmlRenderMargins.All(0D)
+        };
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(
+            "<div style='margin:10px;width:60px;height:30px;border:6px solid transparent;border-image:linear-gradient(red,red) 1'></div>"), options);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(13, 30));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(40, 30));
+    }
+
+    [Fact]
     public void HtmlBackgrounds_ClipTextShowsTextInsteadOfAFilledBarAndReportsIt() {
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous, ViewportWidth = 200D, ViewportHeight = 60D, Margins = HtmlRenderMargins.All(0D)

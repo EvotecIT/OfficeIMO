@@ -944,6 +944,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             ReportUnsupportedColor(element, pseudoElement, "background-color", computed.GetValue("background-color"));
         }
         ApplyBackgroundLayers(computed, style, backgroundShorthand);
+        ApplyBorderImage(computed, style);
         ApplyOpacity(computed.GetValue("opacity"), style);
         style.Transform = NormalizeCssValue(computed.GetValue("transform"), "none");
         if (HtmlCssTransformParser.TryParseIndividualScale(computed.GetValue("scale"), out string scale)
@@ -1079,6 +1080,32 @@ internal sealed partial class HtmlRenderStyleResolver {
         _diagnostics.Add("OfficeIMO.Html", HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
             "background-clip:text is approximated: text takes the gradient's mean color, and other backgrounds are omitted.",
             HtmlDiagnosticSeverity.Warning, "background-clip", "background-clip=" + computed.GetValue("background-clip"), OfficeConversionLossKind.Approximation);
+    }
+
+    // Gradient sources paint across the whole border area. Slicing and url() sources are not implemented.
+    private void ApplyBorderImage(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
+        string source = computed.GetValue("border-image-source");
+        if (source.Length == 0) source = computed.GetValue("border-image");
+        string trimmed = source.Trim();
+        if (trimmed.Length == 0 || trimmed.Equals("none", StringComparison.OrdinalIgnoreCase)
+            || trimmed.Equals("initial", StringComparison.OrdinalIgnoreCase)) return;
+        int start = trimmed.IndexOf("gradient(", StringComparison.OrdinalIgnoreCase);
+        if (start >= 0) {
+            while (start > 0 && (char.IsLetter(trimmed[start - 1]) || trimmed[start - 1] == '-')) start--;
+            int depth = 0;
+            for (int index = start; index < trimmed.Length; index++) {
+                if (trimmed[index] == '(') depth++;
+                if (trimmed[index] == ')' && --depth == 0) {
+                    style.BorderImageLayer = TryCreateGradientLayer(trimmed.Substring(start, index - start + 1));
+                    break;
+                }
+            }
+        }
+        if (style.BorderImageLayer == null) {
+            _diagnostics.Add("OfficeIMO.Html", HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
+                "A border-image source is not supported; the ordinary border was painted instead.",
+                HtmlDiagnosticSeverity.Warning, "border-image", "border-image=" + source, OfficeConversionLossKind.Omission);
+        }
     }
 
     private HtmlRenderBackgroundLayer? TryCreateGradientLayer(string value) {

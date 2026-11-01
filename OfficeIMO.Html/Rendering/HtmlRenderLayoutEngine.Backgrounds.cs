@@ -29,9 +29,38 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddInsetBoxShadows(visuals, style, x, y, width, height, style.BorderInsets, radii, source, sourceDescription);
 
         if (paintBorders || style.UnsupportedBorderPaint.Length > 0) {
-            AddBorderPaint(visuals, style, x, y, width, height, radii, source, sourceDescription);
+            if (style.BorderImageLayer != null) AddBorderImagePaint(visuals, style, x, y, width, height, radii, sourceDescription);
+            else AddBorderPaint(visuals, style, x, y, width, height, radii, source, sourceDescription);
         }
         foreach (HtmlRenderVisual visual in visuals.Skip(backgroundStart)) visual.PaintPhase = HtmlRenderPaintPhase.BlockBackground;
+    }
+
+    private void AddBorderImagePaint(
+        ICollection<HtmlRenderVisual> visuals,
+        HtmlRenderBoxStyle style,
+        double x,
+        double y,
+        double width,
+        double height,
+        HtmlResolvedBorderRadii radii,
+        string sourceDescription) {
+        HtmlRenderBorderInsets insets = style.BorderInsets;
+        if (width <= 0D || height <= 0D || insets.Horizontal + insets.Vertical <= 0D) return;
+        HtmlRenderBoxStyle imageStyle = style.Clone();
+        imageStyle.BackgroundColor = null;
+        imageStyle.BackgroundImageLayers = new[] { style.BorderImageLayer! };
+        imageStyle.BackgroundImageLayerCount = 1;
+        imageStyle.HasDeclaredBackgroundImage = true;
+        var paint = new List<HtmlRenderVisual>();
+        AddBoxBackgroundCore(paint, imageStyle, x, y, width, height, insets, radii, sourceDescription, sourceDescription, sourceDescription);
+        double innerRight = width - style.BorderRightWidth, innerBottom = height - style.BorderBottomWidth;
+        OfficeClipPath ring = OfficeClipPath.Path(width, height, new[] {
+            OfficePathCommand.MoveTo(0D, 0D), OfficePathCommand.LineTo(width, 0D), OfficePathCommand.LineTo(width, height),
+            OfficePathCommand.LineTo(0D, height), OfficePathCommand.Close(),
+            OfficePathCommand.MoveTo(style.BorderLeftWidth, style.BorderTopWidth), OfficePathCommand.LineTo(innerRight, style.BorderTopWidth),
+            OfficePathCommand.LineTo(innerRight, innerBottom), OfficePathCommand.LineTo(style.BorderLeftWidth, innerBottom), OfficePathCommand.Close()
+        }, OfficeFillRule.EvenOdd);
+        visuals.Add(new HtmlRenderPathClipGroup(x, y, ring, paint, visuals.Count, source: sourceDescription + ":border-image"));
     }
 
     private void AddBoxOutlinePaint(
