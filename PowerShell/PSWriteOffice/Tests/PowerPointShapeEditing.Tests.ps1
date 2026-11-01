@@ -89,7 +89,7 @@ Describe 'PowerPointShapeEditing workflows' {
         $placeholder.Text | Should -Be 'Status Update'
         $placeholderUpdate = Set-OfficePowerPointPlaceholder -Slide $slide -Type Title -Text 'Status Update v2' -PassThru
         $placeholderUpdate.Text | Should -Be 'Status Update v2'
-        $layoutPlaceholders = Get-OfficePowerPointLayoutPlaceholder -Slide $slide
+        $layoutPlaceholders = Get-OfficePowerPointPlaceholder -FromLayout -Slide $slide
         $layoutPlaceholders.Count | Should -BeGreaterThan 0
 
         $slide2 | Should -Not -BeNullOrEmpty
@@ -230,7 +230,7 @@ Describe 'PowerPointShapeEditing workflows' {
         $layoutIndex = $selectedLayout.LayoutIndex
         $slide = $presentation.AddSlide($layoutMaster, $layoutIndex)
 
-        $layoutPlaceholders = Get-OfficePowerPointLayoutPlaceholder -Slide $slide
+        $layoutPlaceholders = Get-OfficePowerPointPlaceholder -FromLayout -Slide $slide
         $layoutPlaceholders.Count | Should -BeGreaterThan 0
 
         $layoutPlaceholder = $layoutPlaceholders | Where-Object { $_.PlaceholderType } | Select-Object -First 1
@@ -259,10 +259,10 @@ Describe 'PowerPointShapeEditing workflows' {
         $reloaded = Open-OfficePowerPoint -Path $path
         try {
             $reloadedSlide = Get-OfficePowerPointSlide -Document $reloaded -Slide 1
-            $reloadedLayoutPlaceholders = Get-OfficePowerPointLayoutPlaceholder -Slide $reloadedSlide
+            $reloadedLayoutPlaceholders = Get-OfficePowerPointPlaceholder -FromLayout -Slide $reloadedSlide
             if ($layoutPlaceholder) {
                 $reloadedLayoutPlaceholders.Count | Should -BeGreaterThan 0
-                $reloadedLayoutPlaceholder = Get-OfficePowerPointLayoutPlaceholder -Slide $reloadedSlide -PlaceholderType $layoutPlaceholderType -Index $layoutPlaceholder.PlaceholderIndex
+                $reloadedLayoutPlaceholder = Get-OfficePowerPointPlaceholder -FromLayout -Slide $reloadedSlide -Type $layoutPlaceholderType -Index $layoutPlaceholder.PlaceholderIndex
                 $reloadedLayoutPlaceholder | Should -Not -BeNullOrEmpty
                 $reloadedLayoutPlaceholder.Bounds | Should -Not -BeNullOrEmpty
                 [math]::Abs($reloadedLayoutPlaceholder.Bounds.Left.ToPoints() - 48) | Should -BeLessThan 0.1

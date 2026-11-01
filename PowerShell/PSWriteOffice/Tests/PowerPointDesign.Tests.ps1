@@ -36,7 +36,7 @@ Describe 'PowerPointDesign workflows' {
             $textBox = Add-OfficePowerPointTextBox -Slide $slide -Text 'Hello from native handles' -X 80 -Y 150 -Width 240 -Height 60 -PassThru
             $textBox.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointTextBox'
             $textBox.Text | Should -Be 'Hello from native handles'
-            $layoutPlaceholders = @(Get-OfficePowerPointLayoutPlaceholder -Slide $slide)
+            $layoutPlaceholders = @(Get-OfficePowerPointPlaceholder -FromLayout -Slide $slide)
             $layoutPlaceholders.Count | Should -BeGreaterThan 0
             $placeholder = Get-OfficePowerPointPlaceholder -Slide $slide -Type Title
             $placeholder.Text | Should -Be 'Native Slide'
@@ -203,31 +203,30 @@ Describe 'PowerPointDesign workflows' {
         }
     }
 
-    It 'previews and renders OfficeIMO designer deck plans with native handles' {
+    It 'composes designed slides directly and reports their native layout summaries' {
         $path = Join-Path $TestDrive 'PowerPointDesignerDeck.pptx'
-        $plan = New-OfficePowerPointDeckPlan
-        $plan.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointDeckPlan'
-        Add-OfficePowerPointPlanSection -Plan $plan -Title 'Reliability Showcase' -Subtitle 'From script to polished deck'
-        Add-OfficePowerPointPlanProcess -Plan $plan -Title 'Delivery Flow' -Steps @(
-            [PSCustomObject]@{ Number = '01'; Title = 'Author'; Body = 'Describe the story once.' }
-            [PSCustomObject]@{ Number = '02'; Title = 'Render'; Body = 'Let OfficeIMO compose the layout.' }
-            [PSCustomObject]@{ Number = '03'; Title = 'Validate'; Body = 'Inspect and test the package.' }
-        )
-        Add-OfficePowerPointPlanCardGrid -Plan $plan -Title 'Proof Points' -Cards @(
-            [PSCustomObject]@{ Title = 'Useful'; Items = @('Semantic input', 'Readable output') }
-            [PSCustomObject]@{ Title = 'Fast'; Items = @('One cmdlet bridge', 'Deterministic seed') }
-        )
-
-        $preview = @(Add-OfficePowerPointDesignerDeck -Plan $plan -AccentColor '#008C95' -Seed 'designer-test' -Purpose 'technical service brief' -Preview -PassThru)
-        $preview.Count | Should -BeGreaterThan 0
-
-        $presentation = New-OfficePowerPoint -Path $path
+        $presentation = New-OfficePowerPoint -Path $path -Theme Modern -Accent '#008C95' -Seed 'designer-test' `
+            -Purpose 'technical service brief' -Style TechnicalMap -LayoutStrategy ContentFirst
         try {
-            $renderedSlides = @(Add-OfficePowerPointDesignerDeck -Presentation $presentation -Plan $plan -AccentColor '#008C95' -Seed 'designer-test' -Purpose 'technical service brief' -Name 'Designer Test' -LayoutStrategy ContentFirst -PassThru)
+            $renderedSlides = @(
+                PowerPointSlide -Document $presentation -Title 'Reliability Showcase' -Subtitle 'From script to polished deck' -Layout Title -PassThru
+                PowerPointSlide -Document $presentation -Title 'Delivery Flow' -PassThru {
+                    PowerPointStep 'Author' 'Describe the story once.'
+                    PowerPointStep 'Render' 'Compose the layout.'
+                    PowerPointStep 'Validate' 'Inspect and test the package.'
+                }
+                PowerPointSlide -Document $presentation -Title 'Proof Points' -PassThru {
+                    PowerPointCard 'Useful' -Items 'Semantic input', 'Readable output'
+                    PowerPointCard 'Fast' -Items 'One content block', 'Deterministic seed'
+                }
+            )
             $renderedSlides.Count | Should -BeGreaterThan 2
             foreach ($renderedSlide in $renderedSlides) {
                 $renderedSlide.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointSlide'
             }
+            $summary = @(Get-OfficePowerPointSlide -Document $presentation -Summary)
+            $summary.Count | Should -Be $renderedSlides.Count
+            ($summary | Where-Object { $_.ShapeCount -gt 0 }).Count | Should -Be $renderedSlides.Count
             Save-OfficePowerPoint -Document $presentation
         } finally {
             Close-OfficePowerPoint -Document $presentation
@@ -247,26 +246,6 @@ Describe 'PowerPointDesign workflows' {
                 $reloaded.Dispose()
             }
         }
-    }
-
-    It 'rejects designer plan data arrays that contain only null values' {
-        $mapper = [PSWriteOffice.Cmdlets.PowerPoint.AddOfficePowerPointPlanProcessCommand].Assembly.GetType('PSWriteOffice.Services.PowerPoint.PowerPointDesignerDataMapper')
-        $method = $mapper.GetMethod('ToProcessSteps', [System.Reflection.BindingFlags] 'Public,Static')
-
-        try {
-            $method.Invoke($null, (, [object[]] @($null)))
-            throw 'Expected mapper to reject all-null process data.'
-        } catch {
-            $_.Exception.InnerException.Message | Should -Be 'Process steps require at least one item.'
-        }
-    }
-
-    It 'normalizes blank optional designer colors to null' {
-        $mapper = [PSWriteOffice.Cmdlets.PowerPoint.AddOfficePowerPointPlanProcessCommand].Assembly.GetType('PSWriteOffice.Services.PowerPoint.PowerPointDesignerDataMapper')
-        $method = $mapper.GetMethod('ToCards', [System.Reflection.BindingFlags] 'Public,Static')
-
-        $cards = $method.Invoke($null, (, [object[]] @([PSCustomObject]@{ Title = 'Blank color'; Items = @('Still valid'); AccentColor = '   ' })))
-        $cards[0].AccentColor | Should -BeNullOrEmpty
     }
 
     It 'supports PowerPoint charts from object data' {
