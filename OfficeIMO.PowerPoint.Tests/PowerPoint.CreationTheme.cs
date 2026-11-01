@@ -186,4 +186,53 @@ public sealed class PowerPointCreationThemeTests {
         Assert.Equal("Second master", saved.GetTheme(1).Name);
         Assert.Empty(saved.ValidateDocument());
     }
+
+    [Fact]
+    public void ApplyThemeOnLoadedDeckKeepsMasterAndLayoutContent() {
+        using var stream = new MemoryStream();
+        using (var author = PowerPointDocument.Create()) {
+            author.AddSlide();
+            author.Save(stream);
+        }
+
+        stream.Position = 0;
+        using (var package = DocumentFormat.OpenXml.Packaging.PresentationDocument.Open(stream, true)) {
+            var master = package.PresentationPart!.SlideMasterParts.First();
+            master.SlideMaster.CommonSlideData!.ShapeTree!.Append(BrandShape(99U, "MasterBrand"));
+            master.SlideMaster.CommonSlideData.Background!.BackgroundProperties!.RemoveAllChildren<A.SolidFill>();
+            master.SlideMaster.CommonSlideData.Background.BackgroundProperties.PrependChild(new A.SolidFill(new A.RgbColorModelHex { Val = "ABCDEF" }));
+            master.SlideMaster.Save();
+            var layout = master.SlideLayoutParts.First(part => part.SlideLayout.CommonSlideData!.Name == "Title and Content");
+            layout.SlideLayout.CommonSlideData!.ShapeTree!.Append(BrandShape(98U, "LayoutBrand"));
+            layout.SlideLayout.Save();
+        }
+
+        stream.Position = 0;
+        using var loaded = PowerPointDocument.Load(stream);
+        string layoutsBefore = string.Concat(loaded.OpenXmlDocument.PresentationPart!.SlideMasterParts.First()
+            .SlideLayoutParts.Select(part => part.SlideLayout.OuterXml));
+        loaded.ApplyTheme(CustomTheme);
+        loaded.ApplyTheme(CustomTheme.WithName("Second pass"));
+
+        Assert.False(loaded.OwnsLayoutTheme);
+        using var saved = PowerPointDocument.Load(new MemoryStream(loaded.ToBytes()));
+        var savedMaster = saved.OpenXmlDocument.PresentationPart!.SlideMasterParts.First();
+        Assert.Contains(savedMaster.SlideMaster.Descendants<DocumentFormat.OpenXml.Presentation.NonVisualDrawingProperties>(),
+            shape => shape.Name == "MasterBrand");
+        Assert.Equal("ABCDEF", savedMaster.SlideMaster.CommonSlideData!.Background!.BackgroundProperties!
+            .GetFirstChild<A.SolidFill>()!.GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
+        Assert.Equal(layoutsBefore, string.Concat(savedMaster.SlideLayoutParts.Select(part => part.SlideLayout.OuterXml)));
+        Assert.Equal("123456", savedMaster.ThemePart!.Theme.ThemeElements!.ColorScheme!.Accent1Color!
+            .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
+        Assert.Equal("Second pass", saved.GetTheme().Name);
+        Assert.Contains("lnSpc", savedMaster.SlideMaster.TextStyles!.TitleStyle!.OuterXml);
+        Assert.Empty(saved.ValidateDocument());
+    }
+
+    private static DocumentFormat.OpenXml.Presentation.Shape BrandShape(uint id, string name) => new(
+        new DocumentFormat.OpenXml.Presentation.NonVisualShapeProperties(
+            new DocumentFormat.OpenXml.Presentation.NonVisualDrawingProperties { Id = id, Name = name },
+            new DocumentFormat.OpenXml.Presentation.NonVisualShapeDrawingProperties(),
+            new DocumentFormat.OpenXml.Presentation.ApplicationNonVisualDrawingProperties()),
+        new DocumentFormat.OpenXml.Presentation.ShapeProperties());
 }
