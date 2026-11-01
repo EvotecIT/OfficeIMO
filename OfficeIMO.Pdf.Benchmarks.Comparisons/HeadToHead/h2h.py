@@ -38,7 +38,7 @@ PEER_FIXTURES = {
     "peer-pdfpecker-invoice": "PdfPecker/tests/PdfPecker.Tests/Golden/complex/invoice.html",
     "peer-pdfpecker-flex-grid": "PdfPecker/tests/PdfPecker.Tests/Golden/complex/flex-grid.html",
     "peer-pdfpecker-report": "PdfPecker/tests/PdfPecker.Tests/Golden/complex/report.html",
-    "peer-peachpdf-tables": "PeachPDF/src/PeachPDF.TestHarness/tables.htm",
+    "peer-peachpdf-tables": "PeachPDF/src/harness/PeachPDF.TestHarness/tables.htm",
 }
 COLR_FONT = "PeachPDF/assets/fonts/NotoColorEmoji-Subset.ttf"
 
@@ -111,7 +111,7 @@ def command_corpus(args):
             '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>COLR font</title><style>'
             f'@font-face{{font-family:Colr;src:url(data:font/ttf;base64,{encoded})}}'
             '@page{size:A4;margin:18mm}body{font-family:Arial,sans-serif}p{font-family:Colr,sans-serif;font-size:40pt}</style>'
-            '</head><body><h1>Web font with colour glyphs</h1><p>😀 🎉 🚀 ❤️ 👍</p></body></html>', encoding="utf-8")
+            '</head><body><h1>Web font with colour glyphs</h1><p>😀 🚀 🔥 🌈 👍 ❤ ⭐</p></body></html>', encoding="utf-8")
         provenance["peer-colr-font"] = "peer"
     (out / "provenance.json").write_text(json.dumps(provenance, indent=1, sort_keys=True))
     print(f"{len(provenance)} documents in {out}")
@@ -203,7 +203,15 @@ def compare_page(left, right):
     blurred, _ = mismatch_pixels(blurred_a, blurred_b, 40)
     union = ImageChops.lighter(ink_pixels(blurred_a), ink_pixels(blurred_b)).histogram()[255]
     total = a.size[0] * a.size[1]
-    return {"exact": exact / total, "ink": min(1.0, blurred / max(union, 1)), "union": union / total}
+    # A constant page offset is one defect, not a page of them, so also score the best small shift.
+    best = (blurred, 0, 0)
+    for dy in range(-12, 13, 2):
+        for dx in range(-8, 9, 4):
+            shifted, _ = mismatch_pixels(blurred_a, ImageChops.offset(blurred_b, dx, dy), 40)
+            if shifted < best[0]:
+                best = (shifted, dx, dy)
+    return {"exact": exact / total, "ink": min(1.0, blurred / max(union, 1)), "union": union / total,
+            "shifted": min(1.0, best[0] / max(union, 1)), "dx": best[1], "dy": best[2]}
 
 
 def page_ink(path):
@@ -290,6 +298,9 @@ def command_analyze(args):
                     # Missing or surplus pages count in full where they hold ink.
                     inks = [s["ink"] for s in scores] + [1.0 for page in extra if page_ink(page) > 0.001]
                     row["inkDiff"] = statistics.mean(inks) if inks else None
+                    shifted = [s["shifted"] for s in scores] + [1.0 for page in extra if page_ink(page) > 0.001]
+                    row["shiftedDiff"] = statistics.mean(shifted) if shifted else None
+                    row["pageShift"] = [statistics.median(s[key] for s in scores) for key in ("dx", "dy")] if scores else None
                     row["exactDiff"] = statistics.mean(s["exact"] for s in scores) if scores else None
                     row["worstPage"] = max(range(len(scores)), key=lambda i: scores[i]["ink"]) + 1 if scores else None
                     row["pageDelta"] = len(pages) - len(reference_pages)
@@ -305,16 +316,16 @@ def fmt(value, pattern="{:.0f}", missing="—"):
 
 
 def write_tables(run_dir, rows):
-    lines = ["| Document | Engine | Pages | First ms | First CPU ms | Warm ms | Warm CPU ms | Alloc MB | Peak MB | Par docs/s | KB | Ink diff | Exact diff | Text recall | Text order |",
-             "|---|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|"]
+    lines = ["| Document | Engine | Pages | First ms | First CPU ms | Warm ms | Warm CPU ms | Alloc MB | Peak MB | Par docs/s | KB | Ink diff | Shifted ink diff | Exact diff | Text recall | Text order |",
+             "|---|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|"]
     for row in rows:
         if row["status"] != "Passed":
-            lines.append(f"| {row['document']} | {row['engine']} | **{row['status'][:70]}** |" + " |" * 12)
+            lines.append(f"| {row['document']} | {row['engine']} | **{row['status'][:70]}** |" + " |" * 13)
             continue
         lines.append("| " + " | ".join([
             row["document"], row["engine"], fmt(row.get("pages")), fmt(row.get("firstMs")), fmt(row.get("firstCpuMs")), fmt(row.get("warmMs"), "{:.1f}"), fmt(row.get("warmCpuMs"), "{:.1f}"),
             fmt(row.get("allocMb"), "{:.1f}"), fmt(row.get("peakMb")), fmt(row.get("docsPerSecond"), "{:.1f}"), fmt(row.get("outputKb")),
-            fmt(row.get("inkDiff"), "{:.1%}"), fmt(row.get("exactDiff"), "{:.2%}"), fmt(row.get("textRecall"), "{:.1%}"), fmt(row.get("textOrder"), "{:.1%}")]) + " |")
+            fmt(row.get("inkDiff"), "{:.1%}"), fmt(row.get("shiftedDiff"), "{:.1%}"), fmt(row.get("exactDiff"), "{:.2%}"), fmt(row.get("textRecall"), "{:.1%}"), fmt(row.get("textOrder"), "{:.1%}")]) + " |")
     (run_dir / "results.md").write_text("\n".join(lines) + "\n")
 
 
@@ -339,7 +350,8 @@ def command_sheet(args):
                 pages = sorted((raster / engine / document).glob("*.png"), key=lambda p: int(re.search(r"(\d+)\.png$", p.name).group(1)))
                 row = by[(document, engine)]
                 ink = row.get("inkDiff")
-                label = f"{document} p{page} | {engine} | {row.get('pages', 'FAILED')}pp" + (f" | ink {ink:.0%}" if ink is not None else "")
+                moved = row.get("shiftedDiff")
+                label = f"{document} p{page} | {engine} | {row.get('pages', 'FAILED')}pp" + (f" | ink {ink:.0%} shifted {moved:.0%}" if ink is not None else "")
                 draw.text((column * (width + 8) + 4, 6), label, fill="black")
                 x = column * (width + 8)
                 if page <= len(pages):
