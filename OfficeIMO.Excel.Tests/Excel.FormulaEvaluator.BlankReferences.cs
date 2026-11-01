@@ -26,10 +26,10 @@ namespace OfficeIMO.Tests {
                 ($"ISNUMBER({reference})", "0"),
                 ("ISBLANK(D1)", "0"),
                 ($"IFERROR({reference},UNKNOWN())", "0"),
-                ($"ISBLANK(IFERROR({reference},77))", "0"),
-                ($"IFERROR({reference},77)&\"x\"", "0x"),
-                ($"ISBLANK(IF(TRUE,{reference},7))", "0"),
-                ($"IF(TRUE,{reference},7)&\"x\"", "0x"),
+                ($"ISBLANK(IFERROR({reference},77))", "1"),
+                ($"IFERROR({reference},77)&\"x\"", "x"),
+                ($"ISBLANK(IF(TRUE,{reference},7))", "1"),
+                ($"IF(TRUE,{reference},7)&\"x\"", "x"),
                 ($"SUM({reference},2)", "2"),
                 ($"AVERAGE({reference},2)", "2"),
                 ($"TEXT({reference},\"0\")", "0"),
@@ -37,8 +37,8 @@ namespace OfficeIMO.Tests {
                 ($"COUNTA({reference})", "0"),
                 ($"COUNT({reference})", "0"),
                 ($"COUNTBLANK({reference})", "1"),
-                ($"IFS(TRUE,{reference})&\"x\"", "0x"),
-                ($"SWITCH(1,1,{reference})&\"x\"", "0x"),
+                ($"IFS(TRUE,{reference})&\"x\"", "x"),
+                ($"SWITCH(1,1,{reference})&\"x\"", "x"),
                 ("CHOOSE(2,10,,20)", "0"),
                 ("IF(TRUE,,7)", "0"),
                 ("IF(FALSE,7)", "0")
@@ -64,6 +64,7 @@ namespace OfficeIMO.Tests {
             (string Formula, string Expected)[] cases = {
                 ($"SQRT({reference})", "0"),
                 ($"ABS({reference})", "0"),
+                ($"VALUE({reference})", "0"),
                 ($"ROUND(10.4,{reference})", "10"),
                 ($"DAY(DATE(2026,11,{reference}))", "31"),
                 ($"LEFT(\"ab\",{reference})", ""),
@@ -110,7 +111,7 @@ namespace OfficeIMO.Tests {
         [InlineData("INDEX(H1:H2,1)")]
         [InlineData("OFFSET(H1,0,0)")]
         [InlineData("EmptyKey")]
-        public void FormulaEvaluator_BlankLookupKeysUseNumericZeroAcrossSearchFamilies(string key) {
+        public void FormulaEvaluator_BlankLookupKeysRespectLegacyAndModernSearchSemantics(string key) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Keys");
             document.SetNamedRange("EmptyKey", "Keys!$H$1", save: false);
@@ -132,19 +133,19 @@ namespace OfficeIMO.Tests {
             }
             (string Formula, string Expected)[] cases = {
                 ($"MATCH({key},A1:A3,0)", "3"),
-                ($"XMATCH({key},A1:A3)", "3"),
+                ($"XMATCH({key},A1:A3)", "1"),
                 ($"VLOOKUP({key},A1:B3,2,FALSE)", "200"),
                 ($"HLOOKUP({key},D1:F2,2,FALSE)", "200"),
-                ($"XLOOKUP({key},A1:A3,B1:B3)", "200"),
+                ($"XLOOKUP({key},A1:A3,B1:B3)", "100"),
                 ($"IFERROR(MATCH({key},A1:A2,0),77)", "77"),
-                ($"IFERROR(XMATCH({key},A1:A2),77)", "77"),
+                ($"IFERROR(XMATCH({key},A1:A2),77)", "1"),
                 ($"IFERROR(VLOOKUP({key},A1:B2,2,FALSE),77)", "77"),
                 ($"IFERROR(HLOOKUP({key},D1:E2,2,FALSE),77)", "77"),
-                ($"IFERROR(XLOOKUP({key},A1:A2,B1:B2),77)", "77"),
-                ($"XMATCH({key},J1:J3,0,2)", "2"),
-                ($"XMATCH({key},L1:L3,0,-2)", "2"),
-                ($"XLOOKUP({key},J1:J3,B1:B3,,0,2)", "500"),
-                ($"XLOOKUP({key},L1:L3,B1:B3,,0,-2)", "500"),
+                ($"IFERROR(XLOOKUP({key},A1:A2,B1:B2),77)", "100"),
+                ($"XMATCH({key},J1:J3,0,2)", "#N/A"),
+                ($"XMATCH({key},L1:L3,0,-2)", "#N/A"),
+                ($"XLOOKUP({key},J1:J3,B1:B3,,0,2)", "#N/A"),
+                ($"XLOOKUP({key},L1:L3,B1:B3,,0,-2)", "#N/A"),
                 ("MATCH(0,A1:A5,0)", "3"),
                 ("MATCH(\"0\",A1:A5,0)", "4"),
                 ("MATCH(FALSE,A1:A5,0)", "5")

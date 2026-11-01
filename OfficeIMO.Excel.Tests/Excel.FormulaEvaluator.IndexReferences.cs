@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData("whole_column", "SUM(INDEX(A1:B6,0,1))", "170")]
         [InlineData("whole_row", "SUM(INDEX(A1:B6,3,0))", "20")]
-        [InlineData("implicit_row", "SUM(INDEX(A1:B6,3))", "20")]
+        [InlineData("omitted_column", "SUM(INDEX(A1:B6,3))", "#REF!")]
         [InlineData("empty_column", "SUM(INDEX(A1:B6,3,))", "20")]
         [InlineData("whole_matrix", "SUM(INDEX(A1:B6,0,0))", "170")]
         [InlineData("nested_reference", "SUM(INDEX(INDEX(A1:B6,0,0),0,1))", "170")]

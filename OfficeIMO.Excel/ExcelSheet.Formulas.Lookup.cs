@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (tokens.Count < 3 || tokens.Count > 4
-                || !TryResolveFormulaArgument(tokens[0], out var lookupValue)
+                || !TryResolveLookupArgument(tokens[0], out var lookupValue)
                 || lookupValue.IsUnresolvedFormula
                 || !TryGetLookupPositionArgument(tokens[2], out int resultIndex, out FormulaArgumentValue indexError)) {
                 return false;
@@ -39,6 +39,7 @@ namespace OfficeIMO.Excel {
             if (lookupValue.IsError) { result = lookupValue; return true; }
             if (indexError.IsError) { result = indexError; return true; }
             if (modeValue.IsError) { result = modeValue; return true; }
+            lookupValue = NormalizeLookupResult(lookupValue);
             bool vertical = function == "VLOOKUP", approximate = modeValue.Number != 0d;
             if (resultIndex < 1 || resultIndex > (vertical ? source.Columns : source.Rows)) {
                 result = FormulaArgumentValue.Error(resultIndex < 1 ? "#VALUE!" : "#REF!");
@@ -52,7 +53,7 @@ namespace OfficeIMO.Excel {
                 result = failure.IsError ? failure : FormulaArgumentValue.Error("#N/A");
                 return true;
             }
-            result = NormalizeLookupResult(vertical ? source.At(position - 1, resultIndex - 1) : source.At(resultIndex - 1, position - 1));
+            result = (vertical ? source.At(position - 1, resultIndex - 1) : source.At(resultIndex - 1, position - 1)).AsScalarValue();
             return !result.IsUnresolvedFormula;
         }
 
@@ -68,7 +69,7 @@ namespace OfficeIMO.Excel {
             selected = null!;
             int remainingCellBudget = MaxResolvedFormulaRangeCells;
             if (tokens.Count < 3 || tokens.Count > 6
-                || !TryResolveFormulaArgument(tokens[0], out var lookupValue)
+                || !TryResolveLookupArgument(tokens[0], out var lookupValue)
                 || !TryResolveLookupSource(tokens[1], ref remainingCellBudget, out FormulaLookupSource lookupValues)
                 || !TryResolveLookupSource(tokens[2], ref remainingCellBudget, out FormulaLookupSource returnValues)) {
                 return false;
@@ -110,7 +111,7 @@ namespace OfficeIMO.Excel {
             if (searchFailure.IsError) { selected = LookupScalarSource(searchFailure); return true; }
             if (tokens.Count >= 4 && tokens[3].Length > 0) {
                 if (!TryResolveFormulaArgument(tokens[3], out FormulaArgumentValue fallback) || fallback.IsUnresolvedFormula) return false;
-                selected = LookupScalarSource(NormalizeLookupResult(fallback));
+                selected = LookupScalarSource(fallback);
                 return true;
             }
 
@@ -128,6 +129,11 @@ namespace OfficeIMO.Excel {
             if (!TryResolveFormulaValueArgument(token, out FormulaArgumentValue value)) return false;
             if (value.IsError) { error = value; return true; }
             return value.Number.HasValue && TryGetWholeNumber(value.Number.Value, out number);
+        }
+
+        private bool TryResolveLookupArgument(string token, out FormulaArgumentValue value) {
+            if (string.IsNullOrWhiteSpace(token)) { value = default; return true; }
+            return TryResolveFormulaArgument(token, out value);
         }
 
         // Row/column positions coerce numeric text and truncate fractions. Modes

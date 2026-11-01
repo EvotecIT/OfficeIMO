@@ -6,7 +6,7 @@ Uses a separate hidden Excel instance and closes every owned workbook. Normal
 tests consume the checked-in cached results without requiring Office automation.
 #>
 [CmdletBinding()]
-param()
+param([switch] $LookupExpansion)
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $oracleDirectory = Join-Path $repositoryRoot 'OfficeIMO.TestAssets/Documents/ExcelFormulaCorpus'
@@ -86,18 +86,125 @@ function Set-OracleCell($sheet, [int] $row, [int] $column, $value, [switch] $For
     } finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($cell) }
 }
 
+function New-LookupExpansionOracle($application, $workbooks, [string] $directory, $process) {
+    $inputPath = Join-Path $directory 'lookup-conformance-input.xlsx'
+    $outputPath = Join-Path $directory 'lookup-conformance-windows.xlsx'
+    $catalogPath = Join-Path $directory 'lookup-conformance.cases.json'
+    $cases = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json
+    $workbook = $sheets = $report = $null
+    $closed = $false
+    function Get-LookupSnapshot($report) {
+        $range = $report.UsedRange
+        try {
+            $cells = $range.Value2
+            $values = for ($row = $cells.GetLowerBound(0); $row -le $cells.GetUpperBound(0); $row++) {
+                for ($column = $cells.GetLowerBound(1); $column -le $cells.GetUpperBound(1); $column++) {
+                    $value = $cells.GetValue($row, $column)
+                    if ($null -ne $value) {
+                        [ordered]@{ row = $row; column = $column; type = $value.GetType().FullName; value = $value }
+                    }
+                }
+            }
+            $values | ConvertTo-Json -Depth 4 -Compress
+        } finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($range) }
+    }
+    try {
+        $workbook = $workbooks.Open($inputPath, 0, $false)
+        $application.Calculation = -4135
+        $sheets = $workbook.Worksheets
+        $report = $sheets.Item('Report')
+        foreach ($item in $cases) {
+            $cell = $report.Range('A' + $item.Row)
+            try { $cell.Formula2 = '=' + $item.Formula }
+            finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($cell) }
+        }
+        $application.CalculateFullRebuild()
+        $before = Get-LookupSnapshot $report
+        $workbook.SaveAs($outputPath, 51)
+        $workbook.Close($false)
+        $closed = $true
+        foreach ($owned in @($report, $sheets, $workbook)) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($owned) }
+        $workbook = $sheets = $report = $null
+        $workbook = $workbooks.Open($outputPath, 0, $false)
+        $closed = $false
+        $sheets = $workbook.Worksheets
+        $report = $sheets.Item('Report')
+        $application.CalculateFullRebuild()
+        $after = Get-LookupSnapshot $report
+        if ($before -cne $after) { throw 'Native lookup results changed after save/reopen.' }
+        $date1904 = $workbook.Date1904
+        $workbook.Save()
+        $workbook.Close($false)
+        $closed = $true
+        return [ordered]@{
+            producer = 'Microsoft Excel, Windows COM Formula2'
+            version = $application.Version
+            build = $application.Build
+            fileVersion = (Get-Item -LiteralPath $process.Path).VersionInfo.FileVersion
+            executableSha256 = (Get-FileHash -LiteralPath $process.Path).Hash.ToLowerInvariant()
+            generatedUtc = [DateTime]::UtcNow.ToString('o')
+            countryCode = $application.International(1)
+            countrySetting = $application.International(2)
+            decimalSeparator = $application.International(3)
+            listSeparator = $application.International(5)
+            date1904 = $date1904
+            cases = $cases.Count
+            sourceFormulaCells = 1
+            saveReopenResultsStable = $true
+            regeneration = 'pwsh -STA -File Build/Verification/New-ExcelFormulaConformanceOracle.ps1 -LookupExpansion'
+            generatorSha256 = (Get-FileHash -LiteralPath $PSCommandPath).Hash.ToLowerInvariant()
+            catalogSha256 = (Get-FileHash -LiteralPath $catalogPath).Hash.ToLowerInvariant()
+            inputSha256 = (Get-FileHash -LiteralPath $inputPath).Hash.ToLowerInvariant()
+            outputSha256 = (Get-FileHash -LiteralPath $outputPath).Hash.ToLowerInvariant()
+        }
+    } finally {
+        if ($null -ne $workbook -and -not $closed) { $workbook.Close($false) }
+        foreach ($owned in @($report, $sheets, $workbook)) {
+            if ($null -ne $owned) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($owned) }
+        }
+    }
+}
+
 $application = $null
 $workbooks = $null
 $records = @()
+$lookupRecord = $null
+$lookupProcess = $null
+$ownsApplication = $false
+$previousExcelIds = @(Get-Process -Name EXCEL -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Id)
 try {
     $application = New-Object -ComObject Excel.Application
+    $ownsApplication = $true
+    if ($LookupExpansion) {
+        Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public static class ExcelOracleWindow {
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
+}
+'@
+        [uint32] $excelProcessId = 0
+        [void][ExcelOracleWindow]::GetWindowThreadProcessId([IntPtr]$application.Hwnd, [ref]$excelProcessId)
+        if ($excelProcessId -eq 0 -or $previousExcelIds -contains $excelProcessId) {
+            $ownsApplication = $false
+            throw 'Excel returned an existing or unidentified instance; preserve it.'
+        }
+        $lookupProcess = Get-Process -Id $excelProcessId
+    }
     $application.Visible = $false
     $application.DisplayAlerts = $false
     $application.AutomationSecurity = 3
-    $application.UseSystemSeparators = $false
-    $application.DecimalSeparator = '.'
-    $application.ThousandsSeparator = ','
+    if (-not $LookupExpansion) {
+        $application.UseSystemSeparators = $false
+        $application.DecimalSeparator = '.'
+        $application.ThousandsSeparator = ','
+    }
     $workbooks = $application.Workbooks
+    if ($LookupExpansion) {
+        $application.EnableEvents = $false
+        $lookupRecord = New-LookupExpansionOracle $application $workbooks $oracleDirectory $lookupProcess
+        return
+    }
     foreach ($date1904 in @($false, $true)) {
         $workbook = $null
         $sheets = $null
@@ -185,8 +292,19 @@ try {
         workbooks = $records
     } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $oracleDirectory 'function-conformance.provenance.json') -Encoding utf8
 } finally {
-    if ($null -ne $application) { $application.Quit() }
+    if ($null -ne $application -and $ownsApplication) { $application.Quit() }
     foreach ($owned in @($workbooks, $application)) {
         if ($null -ne $owned) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($owned) }
+    }
+    if ($LookupExpansion -and $null -ne $lookupRecord) {
+        [GC]::Collect()
+        [GC]::WaitForPendingFinalizers()
+        [GC]::Collect()
+        [GC]::WaitForPendingFinalizers()
+        if (-not $lookupProcess.HasExited) { [void]$lookupProcess.WaitForExit(10000) }
+        $lookupProcess.Refresh()
+        if (-not $lookupProcess.HasExited) { throw 'Owned Excel instance did not exit after releasing COM references.' }
+        $lookupRecord.ownedExcelExitVerified = $true
+        $lookupRecord | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $oracleDirectory 'lookup-conformance.provenance.json') -Encoding utf8
     }
 }

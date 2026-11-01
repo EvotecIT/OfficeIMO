@@ -72,7 +72,7 @@ namespace OfficeIMO.Excel {
 
         private static bool LookupValuesEqual(FormulaArgumentValue left, FormulaArgumentValue right) {
             if (left.IsError || right.IsError || left.IsUnresolvedFormula || right.IsUnresolvedFormula) return false;
-            if (left.IsBoolean != right.IsBoolean || left.Number.HasValue != right.Number.HasValue) return false;
+            if (left.HasValue != right.HasValue || left.IsBoolean != right.IsBoolean || left.Number.HasValue != right.Number.HasValue) return false;
             if (left.Number.HasValue) return left.Number.Value == right.Number!.Value;
             return string.Equals(left.Text ?? string.Empty, right.Text ?? string.Empty, StringComparison.OrdinalIgnoreCase);
         }

@@ -50,20 +50,26 @@ namespace OfficeIMO.Excel {
             }
 
             if (!candidate.IsError || !shouldUseFallback(candidate.ErrorCode ?? "#VALUE!")) {
-                result = NormalizeLookupResult(candidate);
+                result = candidate.AsScalarValue();
                 return true;
             }
 
-            return TryResolveFormulaValueArgument(tokens[1], out result);
+            if (!TryResolveFormulaBranchArgument(tokens[1], out result)) return false;
+            result = result.AsScalarValue();
+            return true;
         }
 
-        // Value-producing branches coerce an empty reference to zero. Reference-
-        // producing functions keep it empty until their consumer chooses a context.
+        // Numeric operands coerce blank references; selected branches preserve
+        // their types until their consumer applies its own conversion.
         private bool TryResolveFormulaValueArgument(string token, out FormulaArgumentValue result) {
-            if (string.IsNullOrWhiteSpace(token)) { result = new FormulaArgumentValue(0d, "0"); return true; }
-            if (!TryResolveFormulaArgument(token, out result) || result.IsUnresolvedFormula) return false;
+            if (!TryResolveFormulaBranchArgument(token, out result)) return false;
             result = NormalizeLookupResult(result);
             return true;
+        }
+
+        private bool TryResolveFormulaBranchArgument(string token, out FormulaArgumentValue result) {
+            if (string.IsNullOrWhiteSpace(token)) { result = new FormulaArgumentValue(0d, "0"); return true; }
+            return TryResolveFormulaArgument(token, out result) && !result.IsUnresolvedFormula;
         }
 
         private bool TryEvaluateIfValue(string args, out FormulaArgumentValue result) {
@@ -72,7 +78,7 @@ namespace OfficeIMO.Excel {
             if (tokens.Count < 2 || tokens.Count > 3 || !TryEvaluateCondition(tokens[0], out bool condition, out FormulaArgumentValue error)) return false;
             if (error.IsError) { result = error; return true; }
             if (!condition && tokens.Count == 2) { result = FormulaArgumentValue.Boolean(false); return true; }
-            if (!TryResolveFormulaValueArgument(tokens[condition ? 1 : 2], out result)) {
+            if (!TryResolveFormulaBranchArgument(tokens[condition ? 1 : 2], out result)) {
                 return false;
             }
 
@@ -96,7 +102,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                return TryResolveFormulaValueArgument(tokens[index + 1], out result);
+                return TryResolveFormulaBranchArgument(tokens[index + 1], out result);
             }
 
             return false;
@@ -130,11 +136,11 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                return TryResolveFormulaValueArgument(tokens[index + 1], out result);
+                return TryResolveFormulaBranchArgument(tokens[index + 1], out result);
             }
 
             return hasDefault
-                && TryResolveFormulaValueArgument(tokens[tokens.Count - 1], out result);
+                && TryResolveFormulaBranchArgument(tokens[tokens.Count - 1], out result);
         }
 
         private bool TryEvaluateChooseValue(string args, out FormulaArgumentValue result) {

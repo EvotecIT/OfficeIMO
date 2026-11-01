@@ -1,0 +1,22 @@
+{
+  "producer": "Microsoft Excel, Windows COM Formula2",
+  "version": "16.0",
+  "build": 20527.0,
+  "fileVersion": "16.0.20527.20088",
+  "executableSha256": "63c67292ddab6ebe0571181ebe77fee37d42639f7fabb327021dee03baa9bc20",
+  "generatedUtc": "2026-11-01T19:59:27.1265938Z",
+  "countryCode": 1.0,
+  "countrySetting": 48.0,
+  "decimalSeparator": ".",
+  "listSeparator": ";",
+  "date1904": false,
+  "cases": 171,
+  "sourceFormulaCells": 1,
+  "saveReopenResultsStable": true,
+  "regeneration": "pwsh -STA -File Build/Verification/New-ExcelFormulaConformanceOracle.ps1 -LookupExpansion",
+  "generatorSha256": "469e1229977f9f98f92687f0aeec2648c61d9d51d9ac5d6e67dc954f208f77f4",
+  "catalogSha256": "017f699e5f2458098b857a5d8b94bdd5330d8939a1458d872b86309ffe5ba7ee",
+  "inputSha256": "4720329d26907d8e3e97e92dec1acd4fcf40dc72ea4745650461eec25e3911a9",
+  "outputSha256": "77945df1904327a58302aea727beb66598e32777d4241d7a9e7a7041ac495831",
+  "ownedExcelExitVerified": true
+}

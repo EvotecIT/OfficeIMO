@@ -7,16 +7,16 @@ namespace OfficeIMO.Excel {
             out int position, out FormulaArgumentValue failure, bool sortedApproximate = false) {
             position = 0;
             failure = default;
-            // Lookup arguments use value semantics. Keep source cells typed,
-            // but treat a key referring to an empty cell like a numeric zero key.
-            lookupValue = NormalizeLookupResult(lookupValue);
+            if (Math.Abs(searchMode) == 2 && matchMode == 2) {
+                failure = FormulaArgumentValue.Error("#VALUE!");
+                return false;
+            }
             bool ordered = Math.Abs(searchMode) == 2 || matchMode == -1 || matchMode == 1;
             if (ordered && LookupValueKind(lookupValue) == 1 && !TryGetArraySortKeyKind(lookupValue, out _)) {
                 failure = FormulaArgumentValue.UnresolvedFormula();
                 return false;
             }
             if (Math.Abs(searchMode) == 2) {
-                if (matchMode == 2) { failure = FormulaArgumentValue.UnresolvedFormula(); return false; }
                 return TryFindBinaryLookupPosition(lookupValue, values, matchMode, searchMode, out position, out failure);
             }
             Regex? wildcard = matchMode == 2 && !lookupValue.Number.HasValue && lookupValue.Text != null
@@ -30,7 +30,8 @@ namespace OfficeIMO.Excel {
             FormulaArgumentValue best = default;
             for (int index = start; index != end; index += step) {
                 FormulaArgumentValue candidate = values[index];
-                if (candidate.IsError || candidate.IsUnresolvedFormula) { failure = candidate; return false; }
+                if (candidate.IsUnresolvedFormula) { failure = candidate; return false; }
+                if (candidate.IsError) continue;
                 bool exact = wildcard != null
                     ? !candidate.Number.HasValue && candidate.Text != null && wildcard.IsMatch(candidate.Text)
                     : LookupValuesEqual(candidate, lookupValue);
@@ -66,27 +67,40 @@ namespace OfficeIMO.Excel {
             out int position, out FormulaArgumentValue failure) {
             position = 0;
             failure = default;
-            int lower = 0, upper = values.Count - 1;
-            while (lower <= upper) {
+            // Search in ascending value order, reversing the source index for a
+            // descending vector. The lower bound selects the native duplicate
+            // boundary and leaves adjacent candidates for approximate modes.
+            int lower = 0, upper = values.Count;
+            int previousPosition = 0, nextPosition = 0;
+            FormulaArgumentValue previous = default, next = default;
+            while (lower < upper) {
                 int middle = lower + (upper - lower) / 2;
-                FormulaArgumentValue candidate = values[middle];
+                int index = searchMode == 2 ? middle : values.Count - 1 - middle;
+                FormulaArgumentValue candidate = values[index];
                 if (candidate.IsError || candidate.IsUnresolvedFormula) { failure = candidate; return false; }
-                if (LookupValuesEqual(candidate, lookupValue)) { position = middle + 1; return true; }
                 if (LookupValueKind(candidate) == 1 && !TryGetArraySortKeyKind(candidate, out _)) {
                     failure = FormulaArgumentValue.UnresolvedFormula();
                     return false;
                 }
                 int comparison = CompareLookupValues(candidate, lookupValue);
-                if (matchMode != 0 && LookupValueKind(candidate) == LookupValueKind(lookupValue)
-                    && (matchMode < 0 ? comparison < 0 : comparison > 0)) position = middle + 1;
-                if ((searchMode == 2 ? comparison : -comparison) < 0) lower = middle + 1;
-                else upper = middle - 1;
+                if (comparison < 0) {
+                    previous = candidate;
+                    previousPosition = index + 1;
+                    lower = middle + 1;
+                } else {
+                    next = candidate;
+                    nextPosition = index + 1;
+                    upper = middle;
+                }
             }
+            if (nextPosition != 0 && LookupValuesEqual(next, lookupValue)) position = nextPosition;
+            else if (matchMode < 0 && previousPosition != 0 && LookupValueKind(previous) == LookupValueKind(lookupValue)) position = previousPosition;
+            else if (matchMode > 0 && nextPosition != 0 && LookupValueKind(next) == LookupValueKind(lookupValue)) position = nextPosition;
             return position != 0;
         }
 
         private static int LookupValueKind(FormulaArgumentValue value) =>
-            value.IsBoolean ? 2 : value.Number.HasValue || !value.HasValue ? 0 : 1;
+            !value.HasValue ? 3 : value.IsBoolean ? 2 : value.Number.HasValue ? 0 : 1;
 
         private static int CompareLookupValues(FormulaArgumentValue left, FormulaArgumentValue right) {
             int kind = LookupValueKind(left), otherKind = LookupValueKind(right);

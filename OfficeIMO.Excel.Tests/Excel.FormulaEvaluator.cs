@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_FormulaEvaluator_DistinguishesArrayResultsFromTypedLookupShapeErrors() {
+        public void Test_FormulaEvaluator_CalculatesTypedLookupShapeErrors() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.IndexMatchUnsupported.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
@@ -80,9 +80,10 @@ namespace OfficeIMO.Tests {
                 ExcelFormulaInspection inspection = sheet.InspectFormulas();
 
                 Assert.Equal(3, inspection.TotalFormulas);
-                Assert.Equal(2, inspection.SupportedFormulas);
-                Assert.False(inspection.Formulas.Single(formula => formula.CellReference == "A4").IsSupportedByOfficeIMO);
-                Assert.Equal(2, document.Calculate());
+                Assert.Equal(3, inspection.SupportedFormulas);
+                Assert.True(inspection.Formulas.Single(formula => formula.CellReference == "A4").IsSupportedByOfficeIMO);
+                Assert.Equal(3, document.Calculate());
+                AssertFormulaCache(sheet, 4, 1, "#REF!");
                 AssertFormulaCache(sheet, 5, 1, "#N/A");
                 AssertFormulaCache(sheet, 6, 1, "2");
             }

@@ -1409,14 +1409,17 @@ numeric text and Boolean values and truncate positive fractions. Invalid text
 positions return `#VALUE!`; discrete match/search modes retain their own
 supported values. Lookup keys preserve the distinction between numbers,
 numeric-looking text and Booleans.
-An empty referenced lookup key uses numeric zero for the search; empty text and
-Boolean keys keep their types, and source keys are not coerced by that rule.
+An empty referenced lookup key uses numeric zero in `MATCH`, `VLOOKUP` and
+`HLOOKUP`. `XMATCH` and `XLOOKUP` retain a blank key and match blank source
+cells separately from numeric zero and empty text. Boolean keys keep their type.
+Linear searches skip error-valued source keys; an error in the lookup argument
+or selected return cell remains a typed error.
 
 | Family | Calculation contract |
 | --- | --- |
 | `VLOOKUP`, `HLOOKUP` | Exact search with `FALSE`; approximate search with `TRUE` or an omitted fourth argument over ascending keys. An explicitly empty fourth argument means exact search. Approximate searches select the last duplicate at the matching boundary. |
 | `MATCH` | Exact mode `0`, ascending approximate mode `1` (the default), and descending approximate mode `-1`. An explicitly empty match argument means exact search. |
-| `XMATCH`, `XLOOKUP` | Exact, next smaller, next larger and wildcard match modes; forward/reverse linear search and ascending/descending binary search. Binary search resolves visited cells without first materializing the lookup and return arrays. Its inputs must be sorted in the requested direction. |
+| `XMATCH`, `XLOOKUP` | Exact, next smaller, next larger and wildcard match modes; forward/reverse linear search and ascending/descending binary search. Binary search resolves visited cells without first materializing the lookup and return arrays. Its inputs must be sorted in the requested direction. Exact binary matches select the first duplicate in ascending order and the last physical duplicate in descending order. |
 | Wildcards | Exact legacy lookup modes and modern match mode `2` recognize `*`, `?` and tilde escapes. Modern exact mode `0` treats these characters literally. |
 | Array inputs/results | Ranges, rectangular literal arrays and supported generated arrays can supply lookup inputs. `XLOOKUP` can select an entire matching row or column from a wider return array. |
 
@@ -1424,7 +1427,7 @@ Ordered text search uses the qualified case-insensitive ASCII letter-and-digit
 profile shared with array `SORT`. Locale-dependent punctuation and Unicode
 ordering remain unevaluated; exact and wildcard searches do not require sorting.
 Wildcard matching uses linear search; combining wildcard match mode with binary
-search remains unevaluated.
+search returns typed `#VALUE!`.
 Invalid shapes return typed errors; unsupported signatures and resource limits
 remain unevaluated inside error handlers.
 
@@ -1436,15 +1439,28 @@ from a whole-column or whole-row reference resolves only its selected cell.
 For a multi-cell worksheet result, author an explicit fixed range with
 `SetArrayFormula(...)` or a dynamic anchor with `SetDynamicArrayFormula(...)`;
 the existing shape, spill-blocker and dependency rules apply.
+Omitting the column argument for a two-dimensional range returns `#REF!`;
+an explicitly empty column selects the whole row. A two-dimensional literal
+array with an omitted column also selects the whole row.
 
 Error-valued conditions and selectors also propagate through `IF`, `IFS`,
 `SWITCH` and `CHOOSE`. Text helpers preserve operand errors instead of treating
 their codes as text, and `SUMPRODUCT` preserves errors in its supported numeric
 vectors. `TEXTBEFORE`/`TEXTAFTER` evaluate an explicit fallback only when needed.
 `IF` permits an omitted false branch, which returns Boolean `FALSE`; explicitly
-empty selected `IF` or `CHOOSE` arguments return numeric zero. Selected blank
-references in `IF`, `IFS`, `SWITCH`, `IFERROR` and `IFNA` produce value zero,
-while `CHOOSE` retains the selected reference for its consumer.
+empty selected `IF` or `CHOOSE` arguments return numeric zero. `IF`, `IFS`,
+`SWITCH` and `CHOOSE` retain a selected reference for its consumer. `IFERROR`,
+`IFNA`, `VLOOKUP` and `HLOOKUP` return a value: a selected blank still gives
+`TRUE` to `ISBLANK` and empty text to concatenation, but `COUNT` includes it
+as zero. A blank reference selected by `INDEX`, `OFFSET` or `XLOOKUP` is
+skipped by `COUNT`. Both forms cache numeric zero as a cell result.
+
+The [native Excel lookup corpus](../OfficeIMO.TestAssets/Documents/ExcelFormulaCorpus/lookup-conformance.provenance.json)
+qualifies 171 formulas, 193 typed result cells and 10 spill ranges after
+save/reopen. Normal regression tests calculate fresh uncached inputs and compare
+them with the independent Excel results. Regenerate the reference with
+`pwsh -STA -File Build/Verification/New-ExcelFormulaConformanceOracle.ps1 -LookupExpansion`
+on Windows with desktop Excel installed; Excel is used only to regenerate this fixture.
 
 `XLOOKUP` retains empty optional argument positions: an empty fallback uses
 `#N/A`, an empty match mode uses exact matching, and an empty search mode scans

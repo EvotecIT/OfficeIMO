@@ -166,6 +166,14 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (TryResolveFormulaArgument(trimmed, out var argumentValue)) {
+                    if (argumentValue.SourceCellKind == null) {
+                        argumentValue = NormalizeLookupResult(argumentValue);
+                        if (!argumentValue.Number.HasValue && !argumentValue.IsError
+                            && TryParseValueFunctionNumber(argumentValue.Text ?? string.Empty, out double scalarNumber)) {
+                            argumentValue = new FormulaArgumentValue(scalarNumber, argumentValue.Text,
+                                isUnevaluatedFormulaCache: argumentValue.IsUnevaluatedFormulaCache);
+                        }
+                    }
                     values.Add(argumentValue);
                     continue;
                 }

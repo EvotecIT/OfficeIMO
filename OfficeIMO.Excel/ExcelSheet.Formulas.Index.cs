@@ -78,6 +78,7 @@ namespace OfficeIMO.Excel {
                 else if (differentSheets) error = FormulaArgumentValue.Error("#VALUE!");
                 else if (areaError.IsError) error = areaError;
                 else if (invalidArea) error = FormulaArgumentValue.Error(area < 1 ? "#VALUE!" : "#REF!");
+                else if (!error.IsError && tokens.Count == 2 && sourceRows > 1 && sourceColumns > 1) error = FormulaArgumentValue.Error("#REF!");
                 if (error.IsError) return true;
                 sheet = selectedSheet;
                 r1 = baseR1 + row; c1 = baseC1 + column;

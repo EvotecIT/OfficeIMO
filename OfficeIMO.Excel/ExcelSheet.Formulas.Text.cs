@@ -198,11 +198,12 @@ namespace OfficeIMO.Excel {
             }
 
             if (function == "VALUE") {
-                if (tokens.Count != 1
-                    || !TryResolveTextArgument(tokens[0], out string text)) {
-                    return false;
-                }
-                if (_formulaReferenceError.IsError) return true;
+                if (tokens.Count != 1 || !TryResolveFormulaArgument(tokens[0], out FormulaArgumentValue value)
+                    || value.IsUnresolvedFormula) return false;
+                if (value.IsError) { result = value; return true; }
+                if (!value.HasValue) { result = new FormulaArgumentValue(0d, "0"); return true; }
+                string text = FormulaValueToText(value);
+                if (value.IsBoolean || text.Length == 0) { result = FormulaArgumentValue.Error("#VALUE!"); return true; }
                 if (!TryParseValueFunctionNumber(text, out double number)) return false;
 
                 result = new FormulaArgumentValue(number, InvariantNumberText.Get(number));
@@ -410,7 +411,7 @@ namespace OfficeIMO.Excel {
             int maxTokens = function == "XMATCH" ? 4 : 3;
             if (tokens.Count < 2
                 || tokens.Count > maxTokens
-                || !TryResolveFormulaArgument(tokens[0], out FormulaArgumentValue lookupValue)
+                || !TryResolveLookupArgument(tokens[0], out FormulaArgumentValue lookupValue)
                 || lookupValue.IsUnresolvedFormula) {
                 return false;
             }
@@ -443,6 +444,7 @@ namespace OfficeIMO.Excel {
                 result = FormulaArgumentValue.Error("#N/A");
                 return true;
             }
+            if (function == "MATCH") lookupValue = NormalizeLookupResult(lookupValue);
             int lookupMode = function == "MATCH" ? -matchMode : matchMode;
             if (function == "MATCH" && matchMode == 0 && !lookupValue.Number.HasValue) lookupMode = 2;
             if (lookupValue.IsError) { result = lookupValue; return true; }

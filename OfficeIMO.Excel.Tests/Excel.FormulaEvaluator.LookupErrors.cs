@@ -63,6 +63,8 @@ namespace OfficeIMO.Tests {
         [InlineData("XMATCH(1,A1:A2,0,NA())", "#N/A")]
         [InlineData("XMATCH(1,A1:A2,NA())", "#N/A")]
         [InlineData("XMATCH(1,A1:A2,NA(),2)", "#N/A")]
+        [InlineData("XMATCH(\"A1\",A1:A2,2,2)", "#VALUE!")]
+        [InlineData("XLOOKUP(\"A1\",A1:A2,A1:A2,,2,-2)", "#VALUE!")]
         [InlineData("XLOOKUP(1,A1:A2,B1:B2,,NA())", "#N/A")]
         [InlineData("XLOOKUP(1,A1:A2,B1:B2,,NA(),2)", "#N/A")]
         [InlineData("XLOOKUP(1,A1:A2,B1:B2,,0,NA())", "#N/A")]
@@ -96,11 +98,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
-        [InlineData("INDEX(B1:B2,2)")]
-        [InlineData("VLOOKUP(2,A1:B2,2,FALSE)")]
-        [InlineData("HLOOKUP(1,A1:B3,3,FALSE)")]
-        [InlineData("XLOOKUP(2,A1:A2,B1:B2)")]
-        public void Test_FormulaEvaluator_SelectedBlankLookupIsZeroAndFallbackIsLazy(string formula) {
+        [InlineData("INDEX(B1:B2,2)", "0")]
+        [InlineData("VLOOKUP(2,A1:B2,2,FALSE)", "1")]
+        [InlineData("HLOOKUP(1,A1:B3,3,FALSE)", "1")]
+        [InlineData("XLOOKUP(2,A1:A2,B1:B2)", "0")]
+        public void Test_FormulaEvaluator_SelectedBlankLookupRetainsContextAndFallbackIsLazy(string formula, string count) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Lookup");
             sheet.CellValue(1, 1, 1d);
@@ -108,10 +110,16 @@ namespace OfficeIMO.Tests {
             sheet.CellFormula(1, 4, formula);
             sheet.CellFormula(2, 4, "IFERROR(D1,UNKNOWN())");
             sheet.CellFormula(3, 4, "D1+1");
-            Assert.Equal(3, document.Calculate());
+            sheet.CellFormula(4, 4, $"ISBLANK({formula})");
+            sheet.CellFormula(5, 4, $"{formula}&\"x\"");
+            sheet.CellFormula(6, 4, $"COUNT({formula})");
+            Assert.Equal(6, document.Calculate());
             AssertFormulaCache(sheet, 1, 4, "0");
             AssertFormulaCache(sheet, 2, 4, "0");
             AssertFormulaCache(sheet, 3, 4, "1");
+            AssertFormulaCache(sheet, 4, 4, "1");
+            AssertFormulaCache(sheet, 5, 4, "x");
+            AssertFormulaCache(sheet, 6, 4, count);
         }
 
         [Theory]
