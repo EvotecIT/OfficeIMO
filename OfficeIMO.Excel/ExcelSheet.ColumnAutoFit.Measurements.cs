@@ -152,6 +152,17 @@ namespace OfficeIMO.Excel {
             AutoFitTextContext textContext,
             HashSet<AutoFitMeasurementKey> uniqueMeasurements,
             List<AutoFitMeasurement> measurements) {
+            if (!TryGetDateAutoFitSample(cell, textContext, out string sample)) return false;
+
+            if (uniqueMeasurements.Add(new AutoFitMeasurementKey(targetIndex, styleIndex, sample, null))) {
+                measurements.Add(new AutoFitMeasurement(targetIndex, styleIndex, sample, null));
+            }
+
+            return true;
+        }
+
+        private static bool TryGetDateAutoFitSample(Cell cell, AutoFitTextContext textContext, out string sample) {
+            sample = string.Empty;
             var dataType = cell.DataType?.Value;
             if (dataType != null && dataType != DocumentFormat.OpenXml.Spreadsheet.CellValues.Number) {
                 return false;
@@ -162,12 +173,8 @@ namespace OfficeIMO.Excel {
             string raw = cell.CellValue?.InnerText ?? string.Empty;
             if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
                 || !ExcelNumberFormatDisplay.IsDateNumberFormat(numberFormatId, formatCode)
-                || !ExcelNumberFormatDisplay.TryGetDateSample(numberFormatId, formatCode, out string sample, value)) {
+                || !ExcelNumberFormatDisplay.TryGetDateSample(numberFormatId, formatCode, out sample, value)) {
                 return false;
-            }
-
-            if (uniqueMeasurements.Add(new AutoFitMeasurementKey(targetIndex, styleIndex, sample, null))) {
-                measurements.Add(new AutoFitMeasurement(targetIndex, styleIndex, sample, null));
             }
 
             return true;
@@ -346,17 +353,13 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class AutoFitParallelState {
-            internal AutoFitParallelState(int columnCount) {
+            internal AutoFitParallelState(int columnCount, AutoFitWidthMeasurer measurer) {
                 Widths = new double[columnCount];
-                StyleCache = new Dictionary<uint, ExcelTextMeasurer.Style>();
-                TextWidthCache = new Dictionary<(uint styleIndex, string text), float>();
-                CharWidthCache = new Dictionary<uint, Dictionary<char, float>>();
+                Measurer = measurer;
             }
 
             internal double[] Widths { get; }
-            internal Dictionary<uint, ExcelTextMeasurer.Style> StyleCache { get; }
-            internal Dictionary<(uint styleIndex, string text), float> TextWidthCache { get; }
-            internal Dictionary<uint, Dictionary<char, float>> CharWidthCache { get; }
+            internal AutoFitWidthMeasurer Measurer { get; }
         }
     }
 }

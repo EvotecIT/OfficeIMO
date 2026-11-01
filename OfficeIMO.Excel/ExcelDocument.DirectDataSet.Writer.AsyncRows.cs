@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using DocumentFormat.OpenXml.Spreadsheet;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,7 +17,13 @@ namespace OfficeIMO.Excel {
                 int maximumRows,
                 DirectSharedStringTable? sharedStrings,
                 ExcelTabularStylePlan? declaredStyles,
-                CancellationToken ct) {
+                CancellationToken ct,
+                Stylesheet? autoFitStyles = null) {
+                ct.ThrowIfCancellationRequested();
+                if (autoFitStyles != null) {
+                    return await WriteAutoFitWorksheetRows(archive, sheet, dateTimeOffsetWriteStrategy, dateSystem,
+                        columnWritePlan, rows, writeRow, maximumRows, sharedStrings, declaredStyles, autoFitStyles, ct).ConfigureAwait(false);
+                }
                 var entry = archive.CreateEntry(
                     "xl/worksheets/sheet" + InvariantNumberText.Get(sheet.Index) + ".xml",
                     CompressionLevel.Fastest);
@@ -28,6 +35,19 @@ namespace OfficeIMO.Excel {
                 WriteDeclaredColumns(writer, sheet.ColumnWidths, declaredStyles);
                 writer.Write("<sheetData>");
 
+                int count = await WriteAsyncSheetData(writer, sheet, dateTimeOffsetWriteStrategy, dateSystem,
+                    columnWritePlan, rows, writeRow, maximumRows, sharedStrings, declaredStyles, ct).ConfigureAwait(false);
+                writer.Write("</sheetData>");
+                WriteAsyncWorksheetEnd(writer, sheet);
+                await writer.FlushAsync().ConfigureAwait(false);
+                ct.ThrowIfCancellationRequested();
+                return count;
+            }
+
+            private static async Task<int> WriteAsyncSheetData<T>(TextWriter writer, DirectDataSetSheetModel sheet,
+                Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem,
+                DirectColumnWritePlan columnWritePlan, IAsyncEnumerable<T> rows, Action<ExcelTabularRowWriter, T> writeRow,
+                int maximumRows, DirectSharedStringTable? sharedStrings, ExcelTabularStylePlan? declaredStyles, CancellationToken ct) {
                 int columnCount = sheet.Table.ColumnCount;
                 string[] cellReferencePrefixes = CreateCellReferencePrefixes(columnCount);
                 string?[]? styleAttributes = columnWritePlan.StyleAttributes;
@@ -88,12 +108,13 @@ namespace OfficeIMO.Excel {
                     await enumerator.DisposeAsync().ConfigureAwait(false);
                 }
 
-                writer.Write("</sheetData>");
-                if (sheet.HasTable) writer.Write("<tableParts count=\"1\"><tablePart r:id=\"rId1\"/></tableParts>");
-                writer.Write("</worksheet>");
-                await writer.FlushAsync().ConfigureAwait(false);
                 ct.ThrowIfCancellationRequested();
                 return rowCount;
+            }
+
+            private static void WriteAsyncWorksheetEnd(TextWriter writer, DirectDataSetSheetModel sheet) {
+                if (sheet.HasTable) writer.Write("<tableParts count=\"1\"><tablePart r:id=\"rId1\"/></tableParts>");
+                writer.Write("</worksheet>");
             }
         }
     }

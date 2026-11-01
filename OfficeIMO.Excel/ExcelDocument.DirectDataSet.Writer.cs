@@ -249,13 +249,14 @@ namespace OfficeIMO.Excel {
                     "</Properties>");
             }
 
-            private static void WriteStyles(ZipArchive archive, DirectStylePlan stylePlan, OfficeTheme? theme = null) {
+            private static void WriteStyles(ZipArchive archive, DirectStylePlan stylePlan, OfficeTheme? theme = null) =>
+                WriteTextEntry(archive, "xl/styles.xml", "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + CreateStylesXml(stylePlan, theme));
+
+            private static string CreateStylesXml(DirectStylePlan stylePlan, OfficeTheme? theme = null) {
                 if (stylePlan.TabularStyles != null) {
-                    WriteTextEntry(archive, "xl/styles.xml", "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + stylePlan.TabularStyles.Stylesheet.OuterXml);
-                    return;
+                    return stylePlan.TabularStyles.Stylesheet.OuterXml;
                 }
                 var builder = new StringBuilder(1024 + stylePlan.CustomNumberFormats.Count * 160);
-                builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
                 builder.Append("<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">");
                 builder.Append("<numFmts count=\"");
                 builder.Append((2 + stylePlan.CustomNumberFormats.Count).ToString(CultureInfo.InvariantCulture));
@@ -290,7 +291,7 @@ namespace OfficeIMO.Excel {
                 builder.Append("<cellStyles count=\"1\"><cellStyle name=\"Normal\" xfId=\"0\" builtinId=\"0\"/></cellStyles>");
                 builder.Append("<tableStyles count=\"0\" defaultTableStyle=\"TableStyleMedium2\" defaultPivotStyle=\"PivotStyleLight16\"/>");
                 builder.Append("</styleSheet>");
-                WriteTextEntry(archive, "xl/styles.xml", builder.ToString());
+                return builder.ToString();
             }
 
             private static void WriteSharedStrings(ZipArchive archive, DirectSharedStringTable sharedStrings, CancellationToken ct = default) {
