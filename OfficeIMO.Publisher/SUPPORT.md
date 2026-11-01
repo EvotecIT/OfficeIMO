@@ -355,6 +355,41 @@ correspondence, unsupported preserved-field changes, labels/list semantics,
 broader producer/mixed-script profiles, general reflow and repair-free opening
 remain outside this qualification.
 
+### Complete text and formatting replacement
+
+The `sourceEditing.completeTextFormattingReplacement` qualification covers
+same-count paragraph edits in ordinary stories and fixed table cells. An existing
+nonempty multi-run paragraph can change its complete text, supported visible
+formatting and run count. Each requested run rewrites every distinct native body
+definition through the character codec. Output is admitted only when those
+complete rewritten definitions are byte-identical. This provides correspondence
+without assigning new text arbitrarily to old character ranges.
+
+Visible font, size, color, emphasis, decoration and baseline settings are explicit
+replacement values. Nullable language and pair-kerning thresholds retain their
+source fields when unspecified; an explicit value can resolve a supported native
+difference. Unknown companions and other opaque fields still must agree. Public
+background, paragraph-indent overrides and links cannot change or vary across
+the replacement. Existing paragraph formatting uses its original paragraph
+definition; CR typing uses the existing last-source-run/last-requested-run edit
+rule rather than the complete body rewrite.
+
+Six native outputs replace three source runs with one, two or four runs in
+ordinary stories and first table cells. The one-run controls preserve common
+unspecified language/kerning fields. Native open, export, save and reopen retain
+requested text and supported formatting. All 120 initial/resaved native page
+pairs match at 144 dpi, and all 114 untouched neighboring pages match the
+independent source PDFs. Six source-built PSWriteOffice conversions also retain
+the replacement through the shared workflow. Managed rendering uses scoped exact
+font faces; native decoration weights and whole-page pixel parity remain outside
+this contract.
+
+Conflicting opaque definitions and unspecified language or kerning disagreements
+refuse saving, including with an Allow loss policy. Labels, empty-body/typing
+reshapes, paragraph-count changes, alternate unsupported native carriers and
+broader producer/style profiles remain separate limits. Native repair status is
+unassessed; this source-editing qualification does not promote native creation.
+
 When ranges no longer fit the original allocation, the codec can append aligned
 formatting pages and directory pages, relocate enlarged BTE indexes and resources,
 and retire unused pages. Superseded known pages/indexes and relocated resource

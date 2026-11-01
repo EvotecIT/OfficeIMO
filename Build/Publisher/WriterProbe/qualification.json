@@ -17851,6 +17851,299 @@
         "Source-built PS7 conversion and PS5.1 syntax do not qualify packaged installation or native lifecycle cmdlets."
       ]
     },
+    "completeTextFormattingReplacement": {
+      "sourceCommit": "44e5694ca5203a25ab303fb487313e1a430e7ecd",
+      "contract": "Same-count, nonempty, unlabelled multi-run paragraph replacements may change complete text, visible formatting and run count when all source native body definitions produce identical bytes after canonical rewriting.",
+      "ownership": "Existing Publisher native paragraph planner and character-style codec; unchanged ReplaceStoryParagraphs/ReplaceTableCellParagraphs APIs, no production dependency or runtime application requirement.",
+      "correspondence": "Complete native body coverage; rewrite every distinct contributing PC definition for each requested run and require exact byte agreement. Preserve unspecified language/kerning and all opaque residue; original PP and separate last-run CR ownership remain.",
+      "nativeCases": [
+        {
+          "name": "body2",
+          "source": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextRunSegmentation/native-textrunsegmentation.pub",
+          "sourceSha256": "f557637ebdca16e8efc37da659ff1571b044bd8ff5c5a7c134ea5f6d95394fe0",
+          "inputSha256": "96006a7f171841ccc4a2f0ab1f6f7b214118348d851014f1732c741ae3889fcd",
+          "nativeResavedSha256": "f47a86226c404d63108106f76dc06f6457b4a05ab8003ac79cb184e60108199d",
+          "pages": 20,
+          "originalRuns": 3,
+          "requestedRuns": 2,
+          "languageAndKerning": "Explicit1033 and6pt",
+          "nativeVersion": {
+            "name": "Microsoft Publisher",
+            "version": "16.0",
+            "executableVersion": "16.0.20527.20088",
+            "automationSecurity": 3
+          },
+          "status": "OpenedExportedResavedAndReopened",
+          "operations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred."
+        },
+        {
+          "name": "body4",
+          "source": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextRunSegmentation/native-textrunsegmentation.pub",
+          "sourceSha256": "f557637ebdca16e8efc37da659ff1571b044bd8ff5c5a7c134ea5f6d95394fe0",
+          "inputSha256": "19d92661131b41857fb7357efcf2222548bb72ce5287c8dd9ba97021b0b48f4f",
+          "nativeResavedSha256": "df65abe2c90a2fd5680dc994722b63848b504f25420b847dd710ccbca384936b",
+          "pages": 20,
+          "originalRuns": 3,
+          "requestedRuns": 4,
+          "languageAndKerning": "Explicit1033 and6pt",
+          "nativeVersion": {
+            "name": "Microsoft Publisher",
+            "version": "16.0",
+            "executableVersion": "16.0.20527.20088",
+            "automationSecurity": 3
+          },
+          "status": "OpenedExportedResavedAndReopened",
+          "operations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred."
+        },
+        {
+          "name": "cell2",
+          "source": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableRunSegmentation/native-tablerunsegmentation.pub",
+          "sourceSha256": "baa93ef30010626dd04d09b0752fb70c53ec2c566d2fa48f20c35040a5b345f3",
+          "inputSha256": "59d83dc9a203a4b4d77928fe784bcabe6ee3fcc11bec487b0c2745b1b4e50732",
+          "nativeResavedSha256": "f2583ddb48b212591c5d9c2d05c645571175a80ac685b80b06975abd8b315762",
+          "pages": 20,
+          "originalRuns": 3,
+          "requestedRuns": 2,
+          "languageAndKerning": "Explicit1033 and6pt",
+          "nativeVersion": {
+            "name": "Microsoft Publisher",
+            "version": "16.0",
+            "executableVersion": "16.0.20527.20088",
+            "automationSecurity": 3
+          },
+          "status": "OpenedExportedResavedAndReopened",
+          "operations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred."
+        },
+        {
+          "name": "cell4",
+          "source": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableRunSegmentation/native-tablerunsegmentation.pub",
+          "sourceSha256": "baa93ef30010626dd04d09b0752fb70c53ec2c566d2fa48f20c35040a5b345f3",
+          "inputSha256": "28160a93d9f0ee278e8242a8a88d27b71f84f4f93a97b24202581b1c17cd4b65",
+          "nativeResavedSha256": "ccf7f34db60c2ad22d902a5598929d88883fb019c5e81027d2313b4178c1c979",
+          "pages": 20,
+          "originalRuns": 3,
+          "requestedRuns": 4,
+          "languageAndKerning": "Explicit1033 and6pt",
+          "nativeVersion": {
+            "name": "Microsoft Publisher",
+            "version": "16.0",
+            "executableVersion": "16.0.20527.20088",
+            "automationSecurity": 3
+          },
+          "status": "OpenedExportedResavedAndReopened",
+          "operations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred."
+        },
+        {
+          "name": "body1",
+          "source": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextRunSegmentation/native-textrunsegmentation.pub",
+          "sourceSha256": "f557637ebdca16e8efc37da659ff1571b044bd8ff5c5a7c134ea5f6d95394fe0",
+          "inputSha256": "40504b7f16e4e82cd15fbadcea29129720fd7515401cbc881f29d5f3f7aa89fc",
+          "nativeResavedSha256": "6cc9418fb4669efd9091ee158389d4d19310c0e9dda2068b22b04a0bed0ed526",
+          "pages": 20,
+          "originalRuns": 3,
+          "requestedRuns": 1,
+          "languageAndKerning": "Preserved unspecified common source fields",
+          "nativeVersion": {
+            "name": "Microsoft Publisher",
+            "version": "16.0",
+            "executableVersion": "16.0.20527.20088",
+            "automationSecurity": 3
+          },
+          "status": "OpenedExportedResavedAndReopened",
+          "operations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred."
+        },
+        {
+          "name": "cell1",
+          "source": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableRunSegmentation/native-tablerunsegmentation.pub",
+          "sourceSha256": "baa93ef30010626dd04d09b0752fb70c53ec2c566d2fa48f20c35040a5b345f3",
+          "inputSha256": "980803fe668e6f7887c20acbd61cd3323fb787e01efac2152ce204b73b7b53c9",
+          "nativeResavedSha256": "b29fb3fe3fdaa905f22111406d27049e6f1ede4f2ca2c3dafdbd9c5c6b3ed7ac",
+          "pages": 20,
+          "originalRuns": 3,
+          "requestedRuns": 1,
+          "languageAndKerning": "Preserved unspecified common source fields",
+          "nativeVersion": {
+            "name": "Microsoft Publisher",
+            "version": "16.0",
+            "executableVersion": "16.0.20527.20088",
+            "automationSecurity": 3
+          },
+          "status": "OpenedExportedResavedAndReopened",
+          "operations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred."
+        }
+      ],
+      "comparison": {
+        "dpi": 144,
+        "nativeInitialResavedPixelPairs": 120,
+        "managedInitialReloadedPixelPairs": 120,
+        "untouchedSourceNeighborPages": 114,
+        "nativeInitialResavedInventoriesEqual": true,
+        "nativePdfRequestedFontsSizesColorsBoldItalic": true,
+        "decorationObservation": "Native and managed output visually inspected: alternating green italic single-strike Arial12 and blue bold single-underline TimesNewRoman14; decoration-weight differences remain.",
+        "fonts": [
+          {
+            "family": "Arial",
+            "file": "arial.ttf",
+            "style": "Regular",
+            "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+          },
+          {
+            "family": "Arial",
+            "file": "ariali.ttf",
+            "style": "Italic",
+            "sha256": "86b32db9a06f9694e2a3760c42e5117bcdc5cc1255bb5186ca8ce0305e22f288"
+          },
+          {
+            "family": "Times New Roman",
+            "file": "timesbd.ttf",
+            "style": "Bold",
+            "sha256": "54fbe2c70af7c85a97bed0573227e3ccc4b2486012e3ca2a40c6bc77065846f5"
+          }
+        ]
+      },
+      "tests": [
+        {
+          "report": "restored-broad",
+          "passed": 1023,
+          "failed": 0
+        },
+        {
+          "report": "publisher-net8.0",
+          "passed": 1023,
+          "failed": 0
+        },
+        {
+          "report": "publisher-net472",
+          "passed": 1023,
+          "failed": 0
+        },
+        {
+          "report": "reader",
+          "passed": 93,
+          "failed": 0
+        }
+      ],
+      "negativeProof": {
+        "baseline": "Four public changed-text/run-count save failures; two opaque disagreement controls already refuse.",
+        "regressionCases": 10,
+        "agreementMutant": "Removing only rewritten-output byte equality causes four negative failures: two opaque companion disagreements and two unspecified LCID/kerning disagreements. Six positive cases pass.",
+        "sourceRestored": true,
+        "neighborPreservation": "Exact text and native PC/PP bytes at every UTF16 position including CR; identical adjacent native ranges may coalesce.",
+        "unrelatedCompoundStreamsPreserved": true,
+        "exactReloadNoop": true
+      },
+      "consumers": {
+        "readerPublisherTests": 93,
+        "readerNetstandard20Build": true,
+        "sourcePSNet80Build": true,
+        "psRuntime": "7.6.9",
+        "workflowConversions": 6,
+        "workflowPagesEach": 20,
+        "nativeResavedPublicMetadataEqual": true,
+        "publicConsumerCases": 6,
+        "publicConsumerAPIOnly": true
+      },
+      "review": {
+        "mode": "Independent read-only local review",
+        "baseCommit": "8a10661991c583451902702a989489f7323801fa",
+        "headCommit": "44e5694ca5203a25ab303fb487313e1a430e7ecd",
+        "scope": "Native same-count changed-text/run-count source correspondence, opaque preservation, canonical visible rewrite, nullable metadata, CR/PP ownership and table transport.",
+        "result": "No actionable P0-P3 findings; accept as shaped subject to native/consumer proof and documentation, now supplied.",
+        "boundary": "current",
+        "targetedConfirmationUsed": false
+      },
+      "limits": [
+        "No paragraph-count topology, empty-body/typing reshape, labels, ambiguous preserved fields, unsupported alternate native carriers or broader producer profiles qualified.",
+        "Native repair unassessed. No native template-free product creation or earlier-generation lifecycle acceptance inferred.",
+        "Native/managed whole-page pixel parity, decoration weights, broader scripts/providers and PowerShell5.1 remain unqualified."
+      ],
+      "sourceBindings": [
+        {
+          "path": "OfficeIMO.Publisher.Tests/PublisherTextFormattingReplacementTests.cs",
+          "sha256": "defa7e09c38f5141880b0db2e25397636c6530d771114c0007483e8b32a4a1df"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillCharacterStyleWriter.Extended.cs",
+          "sha256": "5fdef1cbfae49e0e7d680d2157a3a35e73a7d19dfe37690bcad2144913636a59"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillCharacterStyleWriter.cs",
+          "sha256": "6ec181ffbb96a34b32d0f86afb9192a91d20283366f3c28849a845ab145bcddb"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Eligibility.cs",
+          "sha256": "0f905575cefc4c27837eb748dc30c768902d141650eb2f58b6845733d782632d"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Replacement.cs",
+          "sha256": "20017510a0736989f96325274bb383aca8918e5e49d6706906dc9b983c4cec6b"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.cs",
+          "sha256": "26495b1b3487b142d28dd06d8e975743b80fc082017792aa0bf53c32c8d97abe"
+        }
+      ]
+    },
     "implicitFrameColumnGap": {
       "schema": "officeimo.publisher.implicit-frame-column-gap.v1",
       "sourceCommit": "1d233dcb4fd45c9c2a23994c231e0fba1afe0695",

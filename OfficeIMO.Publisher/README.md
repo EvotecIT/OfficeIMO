@@ -93,8 +93,17 @@ native CR typing for a nonempty replacement with unchanged formatting.
 Visible-run formatting leaves destination CR typing intact. Native reload can
 expose separate runs with identical visible formatting when native source
 boundaries or opaque metadata remain distinct.
-Requests preserving neither text nor complete formatting, empty replacement runs
-and unsupported source definitions refuse output. A changed story
+With the paragraph count unchanged, an existing nonempty multi-run paragraph can
+also replace its complete text and formatting while splitting or merging runs.
+Every contributing native body definition is rewritten with each requested run's
+supported visible formatting; saving requires all rewritten definitions to agree
+byte for byte. Unspecified language and automatic pair-kerning values preserve
+their native fields and must agree across the source body. Explicit values can
+replace supported differences. Opaque fields, background, paragraph-indent
+overrides and links must remain unambiguous; destination CR typing follows the
+existing last-run edit rule. This profile excludes labels, empty replacement runs
+and unsupported native definitions. Other requests preserving neither text nor
+complete formatting refuse output. A changed story
 can use one existing frame or a complete resolved chain of ordinary, visible,
 untransformed document-page frames. Native links, ownership and frame identities
 remain fixed. Known chained Quill layouts are supported; formatting and directory
@@ -564,7 +573,12 @@ text replacement uses unchanged complete paragraph/run formatting with a uniform
 native definition per corresponding run. Formatting and run segmentation changes
 use retained ordered run text or complete paragraph text with preserved fields at
 each position. Matching native templates must agree, including the destination
-CR role. A single empty source run can supply its complete CR
+CR role. With the paragraph count unchanged, a nonempty multi-run paragraph can
+also replace its complete text and formatting with a different run count when
+all contributing native body definitions agree after supported formatting is
+rewritten. Unspecified language and kerning preserve their source fields; opaque
+and unsupported preserved fields must agree. The paragraph and CR keep their
+existing ownership. A single empty source run can supply its complete CR
 typing for a nonempty replacement with unchanged formatting. Matching stays
 within the edited cell. Unknown
 native partition records, arbitrary count-changing rewrites of nonuniform cell
