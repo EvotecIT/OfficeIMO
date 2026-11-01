@@ -203,6 +203,7 @@ internal static partial class MarkdownReader {
         out int endIndex,
         out MarkdownSyntaxNode? syntaxNode) {
         var effectiveState = state ?? new MarkdownReaderState();
+        EnsureNestingDepthAvailable(effectiveState, options);
         if (effectiveState.CaptureSyntaxTree) {
             return TryParseSourceBackedNestedListBlock(
                 lines,
@@ -220,6 +221,8 @@ internal static partial class MarkdownReader {
         var tempDoc = MarkdownDocument.Create();
         int previousMarkerIndentOffset = effectiveState.ListMarkerIndentOffset;
         effectiveState.ListMarkerIndentOffset = CountLeadingIndentColumns(lines[startIndex] ?? string.Empty);
+        // The list parser re-enters on this shared state rather than on a nested state.
+        effectiveState.NestedBlockDepth++;
         try {
             if (parser.TryParse(lines, ref idx, options, tempDoc, effectiveState) &&
                 tempDoc.Blocks.Count == 1 &&
@@ -230,6 +233,7 @@ internal static partial class MarkdownReader {
                 return true;
             }
         } finally {
+            effectiveState.NestedBlockDepth--;
             effectiveState.ListMarkerIndentOffset = previousMarkerIndentOffset;
         }
 
@@ -253,9 +257,14 @@ internal static partial class MarkdownReader {
         var nestedDocument = MarkdownDocument.Create();
         int previousMarkerIndentOffset = state.ListMarkerIndentOffset;
         bool previousRelativeListMarkerIndent = state.UseRelativeListMarkerIndent;
+        bool sourceRemapIsDiscarded = state.DiscardsNestedListSourceRemap;
         bool requiresSourceRemap = false;
         state.ListMarkerIndentOffset = CountLeadingIndentColumns(lines[startIndex] ?? string.Empty);
         state.UseRelativeListMarkerIndent = true;
+        state.NestedBlockDepth++;
+        // This pass only finds the list's extent when the list will be parsed again for its
+        // source mapping, so inner lists must not remap too: each level would double the work.
+        state.DiscardsNestedListSourceRemap = sourceRemapIsDiscarded || state.SourceLineAbsoluteNumbers != null;
         try {
             bool parsedNestedList;
             using (nestedDocument.DeferObjectTreeBinding(completeBindingOnDispose: false)) {
@@ -265,8 +274,9 @@ internal static partial class MarkdownReader {
             if (parsedNestedList &&
                 nestedDocument.Blocks.Count == 1 &&
                 nestedDocument.Blocks[0] is IMarkdownListBlock parsed) {
-                requiresSourceRemap = state.SourceLineAbsoluteNumbers != null ||
-                    !IsDirectSourceBackedNestedList(lines, startIndex, idx, options);
+                requiresSourceRemap = !sourceRemapIsDiscarded &&
+                    (state.SourceLineAbsoluteNumbers != null ||
+                     !IsDirectSourceBackedNestedList(lines, startIndex, idx, options));
                 if (!requiresSourceRemap) {
                     var parsedObject = (MarkdownObject)parsed;
                     var firstLine = lines[startIndex] ?? string.Empty;
@@ -292,6 +302,8 @@ internal static partial class MarkdownReader {
                 }
             }
         } finally {
+            state.NestedBlockDepth--;
+            state.DiscardsNestedListSourceRemap = sourceRemapIsDiscarded;
             state.ListMarkerIndentOffset = previousMarkerIndentOffset;
             state.UseRelativeListMarkerIndent = previousRelativeListMarkerIndent;
         }

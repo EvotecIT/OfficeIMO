@@ -33,6 +33,45 @@ public sealed class MarkdownAllSeverityBatch12SecurityTests {
             BuildNestedDetails(2), options).Blocks);
     }
 
+    [Theory]
+    [InlineData(8, 4, false)]
+    [InlineData(800, 64, false)]
+    [InlineData(800, 64, true)]
+    public void MarkdownReader_RejectsListsBeyondConfiguredNestingDepth(int levels, int maximumDepth, bool syntaxTree) {
+        string markdown = BuildNestedList(levels);
+        var options = new MarkdownLoadOptions { MaxNestingDepth = maximumDepth };
+
+        InvalidDataException exception = RunOnSmallStack(() => Assert.Throws<InvalidDataException>(() => {
+            if (syntaxTree) {
+                MarkdownReader.ParseWithSyntaxTree(markdown, options);
+            } else {
+                MarkdownDocument.Parse(markdown, options);
+            }
+        }));
+
+        Assert.Contains($"MaxNestingDepth ({maximumDepth})", exception.Message, StringComparison.Ordinal);
+        Assert.Single(MarkdownDocument.Parse(BuildNestedList(3), options).Blocks);
+    }
+
+    [Fact]
+    public void MarkdownReader_DeepListInQuoteKeepsItsNestingAndSourceLines() {
+        const int levels = 48;
+        string markdown = string.Concat(BuildNestedList(levels).Split('\n')
+            .Where(line => line.Length > 0).Select(line => "> " + line + "\n"));
+
+        MarkdownParseInfo parsed = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        IMarkdownBlock block = Assert.Single(parsed.Document.Blocks);
+        int depth = 1;
+        var list = (UnorderedListBlock)Assert.IsType<QuoteBlock>(block).ChildBlocks[0];
+        while (list.Items[0].NestedBlocks.Count > 0) {
+            list = (UnorderedListBlock)list.Items[0].NestedBlocks[0];
+            depth++;
+        }
+        Assert.Equal(levels, depth);
+        Assert.Equal(levels, list.SourceSpan?.StartLine);
+    }
+
     [Fact]
     public void MarkdownReader_DeeplyBracketedLinkKeepsOnlyTheInnermostLink() {
         const int depth = 5_000;
@@ -95,6 +134,15 @@ public sealed class MarkdownAllSeverityBatch12SecurityTests {
             StringComparison.Ordinal);
         Assert.Equal(2, CountOccurrences(shell,
             "omdSpreadsheetSafeCell(omdCellText(c))"));
+    }
+
+    private static string BuildNestedList(int levels) {
+        var markdown = new StringBuilder();
+        for (int level = 0; level < levels; level++) {
+            markdown.Append(' ', level * 2).Append("- item\n");
+        }
+
+        return markdown.ToString();
     }
 
     // A stack overflow ends the process, so parsing runs at a typical worker stack size.
