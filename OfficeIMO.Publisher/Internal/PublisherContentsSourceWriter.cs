@@ -4,7 +4,8 @@ namespace OfficeIMO.Publisher.Internal;
 internal static class PublisherContentsSourceWriter {
     internal static byte[]? Rewrite(byte[] source, PublisherContents contents, IReadOnlyDictionary<uint, uint> alignments,
         IReadOnlyDictionary<uint, string> pictureNames, IReadOnlyDictionary<uint, uint?> masterAssignments,
-        PublisherParseContext context, long maximumBytes, IReadOnlyDictionary<uint, bool>? storyHyphenation = null) {
+        PublisherParseContext context, long maximumBytes, IReadOnlyDictionary<uint, bool>? storyHyphenation = null,
+        IReadOnlyDictionary<uint, IReadOnlyList<uint>>? frameWraps = null) {
         var data = new PublisherBinaryData(source, "Contents");
         var blocks = new PublisherBlockReader(data, context);
         var edits = new List<PublisherNativeStreamEdit>();
@@ -21,6 +22,26 @@ internal static class PublisherContentsSourceWriter {
             PublisherBlock[] prior = shape.Fields.Where(field => field.Id == 0x35).ToArray();
             if (prior.Length > 1 || prior.Any(field => field.Type != 0x20 || field.Value > 2)) return null;
             shapeChanges.Add(pair.Key, new Dictionary<byte, byte[]> { [0x35] = PublisherOplWriter.UInt32(0x35, pair.Value, 0x20) });
+        }
+        if (frameWraps != null) foreach (var pair in frameWraps) {
+            context.Token.ThrowIfCancellationRequested();
+            if (!contents.Shapes.TryGetValue(pair.Key, out PublisherSourceShape? shape) || shape.Chunk.Kind != 1
+                || !shape.Value(0x27).HasValue || !contents.ObjectPages.TryGetValue(pair.Key, out uint owner)) return null;
+            PublisherBlock[] counts = shape.Fields.Where(field => field.Id == 0x46).ToArray();
+            PublisherBlock[] lists = shape.Fields.Where(field => field.Id == 0x47).ToArray();
+            if (counts.Length > 1 || counts.Any(field => field.Type != 0x20 || field.Value != shape.WrapObjects.Count)
+                || lists.Length > 1 || lists.Any(field => field.Type != 0xA0)) return null;
+            if (pair.Value.Count > context.Options.Limits.MaxItems) throw new InvalidDataException("Publisher text-wrap item limit exceeded.");
+            var seen = new HashSet<uint>(); var references = new byte[pair.Value.Count][];
+            for (int index = 0; index < references.Length; index++) {
+                context.Record(); uint id = pair.Value[index];
+                if (id == pair.Key || !seen.Add(id) || !contents.Shapes.ContainsKey(id)
+                    || !contents.ObjectPages.TryGetValue(id, out uint otherOwner) || otherOwner != owner) return null;
+                references[index] = PublisherOplWriter.UInt32(0, id, 0x68);
+            }
+            if (!shapeChanges.TryGetValue(pair.Key, out var changes)) shapeChanges.Add(pair.Key, changes = new());
+            changes.Add(0x46, references.Length == 0 ? Array.Empty<byte>() : PublisherOplWriter.UInt32(0x46, checked((uint)references.Length), 0x20));
+            changes.Add(0x47, references.Length == 0 ? Array.Empty<byte>() : PublisherOplWriter.Nested(0x47, 0xA0, references));
         }
         int trailer = data.Offset(data.U32(0x1A));
         IReadOnlyList<PublisherBlock>? sections = null, slots = null;

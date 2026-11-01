@@ -35,7 +35,7 @@ public sealed partial class PublisherDocument {
         PublisherTextFrame? frame = Pages.Concat(MasterPages).SelectMany(page => page.TextFrames).SingleOrDefault(item => item.Id == frameId);
         if (frame == null || !frame.TextStart.HasValue)
             throw new NotSupportedException("The object is not a text frame with resolved story placement.");
-        Commit(model.SetBounds(frame, x, y, width, height).Project(cancellationToken), cancellationToken);
+        Commit(model.SetBounds(frame, x, y, width, height, cancellationToken).Project(cancellationToken), cancellationToken);
     }
 
     private void Commit(PublisherDocument candidate, CancellationToken token) {

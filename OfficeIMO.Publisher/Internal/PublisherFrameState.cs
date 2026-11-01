@@ -49,6 +49,10 @@ internal sealed class PublisherFrameState {
     internal PublisherFrameState WithLayout(int columns, double spacing, OfficeTextPadding padding, OfficeTextVerticalAlignment alignment) =>
         new(Id, StoryId, PageId, X, Y, Width, Height, PageTransform, HasAnchor, TransformAvailable, Hidden, Drawable,
             CanEditBounds, SupportsContinuation, columns, spacing, padding, alignment, WrapObjectIds, EditRange, IsAuthored, LayoutEditLimitation);
+
+    internal PublisherFrameState WithWrapObjects(IReadOnlyList<uint> objects) =>
+        new(Id, StoryId, PageId, X, Y, Width, Height, PageTransform, HasAnchor, TransformAvailable, Hidden, Drawable,
+            CanEditBounds, SupportsContinuation, ColumnCount, ColumnSpacing, Padding, VerticalAlignment, objects, EditRange, IsAuthored, LayoutEditLimitation);
 }
 
 /// <summary>Qualified edit envelope in page points. Native generation limits are translated by the importer.</summary>

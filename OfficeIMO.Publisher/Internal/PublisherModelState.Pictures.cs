@@ -6,9 +6,9 @@ internal sealed partial class PublisherModelState {
     internal PublisherModelState SetPictureCrop(uint pictureId, OfficeImageSourceCrop crop) =>
         WithPublication(_publication.SetCrop(_publication.EditablePicture(pictureId), crop));
 
-    internal PublisherModelState SetPictureBounds(uint pictureId, double x, double y, double width, double height) {
+    internal PublisherModelState SetPictureBounds(uint pictureId, double x, double y, double width, double height, CancellationToken token) {
         PublisherPicture picture = _publication.EditablePicture(pictureId);
-        return WithPublication(_publication.SetBounds(picture, x, y, width, height));
+        return WithPublication(_publication.SetBounds(picture, x, y, width, height), token);
     }
 
     internal PublisherModelState ReplacePictureImage(uint pictureId, byte[] bytes, CancellationToken token) {

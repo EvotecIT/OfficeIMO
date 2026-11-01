@@ -16,8 +16,6 @@ internal sealed partial class PublisherPublicationState {
             order[index] = id;
         }
         if (page.ObjectIds.SequenceEqual(order)) return this;
-        if (Text.Frames.Values.Any(frame => frame.PageId == pageId && frame.WrapObjectIds.Count != 0))
-            throw new NotSupportedException("Object ordering with native text-wrap exclusion lists is not qualified.");
         return WithPages(Pages.Select(item => item.Id == pageId ? item.WithObjectOrder(order) : item), NextObjectId);
     }
 }

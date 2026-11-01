@@ -2,6 +2,7 @@ namespace OfficeIMO.Publisher.Internal;
 
 internal sealed partial class PublisherNativeWriter {
     private readonly Dictionary<uint, IReadOnlyList<uint>> _objectOrders = new();
+    private readonly Dictionary<uint, IReadOnlyList<uint>> _frameWraps = new();
 
     private static bool SameObjectSet(IReadOnlyList<uint> a, IReadOnlyList<uint> b) =>
         a.Count == b.Count && new HashSet<uint>(a).SetEquals(b);
@@ -44,21 +45,42 @@ internal sealed partial class PublisherNativeWriter {
             _token.ThrowIfCancellationRequested();
             PublisherPageState before = _baseline.Pages[index], after = _current.Pages[index];
             if (before.ObjectIds.SequenceEqual(after.ObjectIds)) continue;
-            if (HasUnqualifiedWrapCrossing(_imported.Contents, _baseline, before, after.ObjectIds, _token)) {
-                Reject("Contents/page/" + before.Id, "Object ordering across native wrapping artwork and text frames is not qualified.");
-                return;
-            }
             foreach (uint id in before.ObjectIds) {
                 _token.ThrowIfCancellationRequested();
                 if (Binding(id) == null) return;
                 PublisherEscherShape shape = _artwork[id];
-                if (shape.IsGroup || shape.HasPublicationGroupParent
-                    || _baseline.Text.Frames.TryGetValue(id, out PublisherFrameState? frame) && frame.WrapObjectIds.Count != 0) {
-                    Reject("Contents/page/" + before.Id, "Object ordering with grouped artwork or native text-wrap exclusion lists is not qualified.");
+                if (shape.IsGroup || shape.HasPublicationGroupParent) {
+                    Reject("Contents/page/" + before.Id, "Object ordering with grouped artwork is not qualified.");
                     return;
                 }
             }
             _objectOrders.Add(before.Id, after.ObjectIds);
+        }
+    }
+
+    private void CompareWrapRelationships() {
+        var context = new PublisherParseContext(new PublisherReadOptions { Limits = _sourceLimits }, _token);
+        for (int index = 0; index < _baseline.Pages.Count; index++) {
+            _token.ThrowIfCancellationRequested();
+            PublisherPageState before = _baseline.Pages[index], after = _current.Pages[index];
+            if (!PublisherWrapRelationships.GeometryChanged(_baseline, before, _current, after)) continue;
+            if (PublisherWrapRelationships.TryCompute(_baseline, before, context, out var original)
+                && PublisherWrapRelationships.Matches(_baseline, original)
+                && PublisherWrapRelationships.TryCompute(_current, after, context, out var expected)) {
+                if (!PublisherWrapRelationships.Matches(_current, expected)) {
+                    Reject("Contents/page/" + before.Id, "Current frame exclusions do not match qualified wrap geometry and stacking."); return;
+                }
+                foreach (var pair in expected) {
+                    if (!_baseline.Text.Frames[pair.Key].WrapObjectIds.SequenceEqual(pair.Value)) _frameWraps.Add(pair.Key, pair.Value);
+                }
+            } else if (!before.ObjectIds.SequenceEqual(after.ObjectIds)) {
+                if (_baseline.Text.Frames.Values.Any(frame => frame.PageId == before.Id && frame.WrapObjectIds.Count > 0)
+                    || HasUnqualifiedWrapCrossing(_imported.Contents, _baseline, before, after.ObjectIds, _token)) {
+                    Reject("Contents/page/" + before.Id, "Object ordering requires unqualified native wrap relationships."); return;
+                }
+            } else if (before.ObjectIds.Count > 1 && before.ObjectIds.Any(_baseline.Text.Frames.ContainsKey)) {
+                Reject("Contents/page/" + before.Id, "Changed geometry has unqualified native wrap relationships."); return;
+            }
         }
     }
 

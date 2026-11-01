@@ -54,8 +54,8 @@ internal sealed partial class PublisherModelState {
         return WithPublication(_publication.WithText(_publication.Text.ReplaceStory(replacement)));
     }
 
-    internal PublisherModelState SetBounds(PublisherTextFrame frame, double x, double y, double width, double height) {
-        return WithPublication(_publication.WithText(_publication.Text.SetBounds(frame.Id, x, y, width, height)));
+    internal PublisherModelState SetBounds(PublisherTextFrame frame, double x, double y, double width, double height, CancellationToken token) {
+        return WithPublication(_publication.WithText(_publication.Text.SetBounds(frame.Id, x, y, width, height)), token);
     }
 
     internal PublisherModelState SetStoryAutomaticHyphenation(uint storyId, bool enabled) {
@@ -78,6 +78,6 @@ internal sealed partial class PublisherModelState {
         return WithPublication(_publication.AddLinkedTextFrame(previousFrameId, pageId, x, y, width, height, out frameId));
     }
 
-    private PublisherModelState WithPublication(PublisherPublicationState publication) =>
-        new(publication, _decoded, _sourceReport, _imported);
+    private PublisherModelState WithPublication(PublisherPublicationState publication, CancellationToken token = default) =>
+        new(RefreshWraps(publication, token), _decoded, _sourceReport, _imported);
 }

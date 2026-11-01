@@ -24,6 +24,7 @@ internal sealed partial class PublisherNativeWriter {
         }
         CompareMasterAssignments();
         CompareObjectOrders();
+        CompareWrapRelationships();
         if (!MapEqual(_baseline.Text.Chains, _current.Text.Chains, (a, b) => a.SequenceEqual(b))
             || !MapEqual(_baseline.Text.TableStories, _current.Text.TableStories, (a, b) => ReferenceEquals(a, b)
                 || a.Segments.Count == b.Segments.Count && (_quillBytes != null || a.Segments.Zip(b.Segments, StoryEqual).All(value => value)))
@@ -111,7 +112,8 @@ internal sealed partial class PublisherNativeWriter {
         if (a.Id != b.Id || a.StoryId != b.StoryId || a.PageId != b.PageId || a.HasAnchor != b.HasAnchor
             || a.TransformAvailable != b.TransformAvailable || a.Hidden != b.Hidden || a.Drawable != b.Drawable
             || a.CanEditBounds != b.CanEditBounds || a.SupportsContinuation != b.SupportsContinuation || a.IsAuthored != b.IsAuthored
-            || a.LayoutEditLimitation != b.LayoutEditLimitation || a.EditRange != b.EditRange || !a.WrapObjectIds.SequenceEqual(b.WrapObjectIds)) {
+            || a.LayoutEditLimitation != b.LayoutEditLimitation || a.EditRange != b.EditRange
+            || !a.WrapObjectIds.SequenceEqual(b.WrapObjectIds) && (!_frameWraps.TryGetValue(a.Id, out var wraps) || !wraps.SequenceEqual(b.WrapObjectIds))) {
             Reject("Contents/object/" + a.Id, "A frame input other than its bounds or layout changed."); return;
         }
         FrameLayout(a, b);

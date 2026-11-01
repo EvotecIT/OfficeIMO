@@ -9,7 +9,7 @@ public sealed partial class PublisherDocument {
     public void SetShapeBounds(uint shapeId, double x, double y, double width, double height, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PublisherModelState model = _model ?? throw new NotSupportedException("This publication has no editable native model.");
-        Commit(model.SetShapeBounds(shapeId, x, y, width, height).Project(cancellationToken), cancellationToken);
+        Commit(model.SetShapeBounds(shapeId, x, y, width, height, cancellationToken).Project(cancellationToken), cancellationToken);
     }
 
     /// <summary>Replaces the supported shape's basic solid fill and outline. Null colors disable that paint; stroke width is in points and opacities must be between zero and one.</summary>

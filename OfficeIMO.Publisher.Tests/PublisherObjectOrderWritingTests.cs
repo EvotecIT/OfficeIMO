@@ -115,26 +115,19 @@ public sealed class PublisherObjectOrderWritingTests {
         Assert.Same(page, d.Pages[0]); Assert.Equal(source, d.ToPubBytes());
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void Native_wrap_crossings_require_qualification_even_when_reference_lists_are_empty(bool wrappingDisabled) {
-        string control = wrappingDisabled ? "WrapObjectOrderNone" : "WrapObjectOrderReversed";
+    [Fact]
+    public void Explicitly_disabled_wrap_keeps_empty_relationships_during_order_changes() {
+        string control = "WrapObjectOrderNone";
         byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture(
             "NativeComparison/" + control + "/native-" + control.ToLowerInvariant() + ".pub"));
         var d = PublisherDocument.Load(source); var page = d.Pages[0];
         uint[] before = page.ObjectIds.ToArray(), desired = before.AsEnumerable().Reverse().ToArray();
         Assert.All(page.TextFrames, frame => Assert.Empty(frame.WrapObjectIds));
-        if (wrappingDisabled) {
-            d.SetPageObjectOrder(page.Id, desired);
-            var loaded = PublisherDocument.Load(d.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
-            Assert.Equal(desired, loaded.Pages[0].ObjectIds);
-            Assert.All(loaded.Pages[0].TextFrames, frame => Assert.Empty(frame.WrapObjectIds));
-            Assert.Equal(before, page.ObjectIds);
-        } else {
-            Assert.Throws<NotSupportedException>(() => d.SetPageObjectOrder(page.Id, desired));
-            Assert.Same(page, d.Pages[0]); Assert.Equal(source, d.ToPubBytes());
-        }
+        d.SetPageObjectOrder(page.Id, desired);
+        var loaded = PublisherDocument.Load(d.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Equal(desired, loaded.Pages[0].ObjectIds);
+        Assert.All(loaded.Pages[0].TextFrames, frame => Assert.Empty(frame.WrapObjectIds));
+        Assert.Equal(before, page.ObjectIds);
     }
 
     [Fact]

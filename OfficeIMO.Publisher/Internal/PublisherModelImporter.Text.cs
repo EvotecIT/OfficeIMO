@@ -45,9 +45,11 @@ internal static partial class PublisherModelImporter {
         foreach (PublisherEscherShape shape in artwork.Shapes) {
             context.Token.ThrowIfCancellationRequested();
             double[] distances = new[] { 0x384, 0x385, 0x386, 0x387 }.Select(property => (double)unchecked((int)(shape.Property(property) ?? 0))).ToArray();
+            bool negative = distances.Any(value => value < 0), tight = shape.Properties.Any(property => property.PropertyId == 0x383);
+            source.Shapes.TryGetValue(shape.Id, out PublisherSourceShape? native);
             margins.Add(shape.Id, new PublisherWrapInfo(new OfficeTextPadding(Math.Max(0, distances[0]) / 12700D, Math.Max(0, distances[1]) / 12700D,
-                Math.Max(0, distances[2]) / 12700D, Math.Max(0, distances[3]) / 12700D), distances.Any(value => value < 0),
-                shape.Properties.Any(property => property.PropertyId == 0x383)));
+                Math.Max(0, distances[2]) / 12700D, Math.Max(0, distances[3]) / 12700D), negative, tight,
+                PublisherWrapRelationships.ReadMode(native, shape, pictures.ContainsKey(shape.Id), negative, tight)));
             if (frames.ContainsKey(shape.Id) || pictures.TryGetValue(shape.Id, out PublisherPicture? picture) && picture.CanEdit) continue;
             owners.TryGetValue(shape.Id, out uint? owner);
             PublisherPageState? page = owner.HasValue && pages.TryGetValue(owner.Value, out PublisherPageState? found) ? found : null;

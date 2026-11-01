@@ -37,6 +37,17 @@ internal sealed partial class PublisherTextState {
     internal bool IsTableStory(uint storyId) => _tableStories.Contains(storyId);
     internal int AuthoredFrameCount => Frames.Values.Count(frame => frame.IsAuthored);
 
+    internal PublisherTextState WithFrameWraps(IReadOnlyDictionary<uint, IReadOnlyList<uint>> relationships) {
+        var frames = Frames.ToDictionary(pair => pair.Key, pair => pair.Value);
+        bool changed = false;
+        foreach (var pair in relationships) {
+            PublisherFrameState frame = frames[pair.Key];
+            if (frame.WrapObjectIds.SequenceEqual(pair.Value)) continue;
+            frames[pair.Key] = frame.WithWrapObjects(pair.Value); changed = true;
+        }
+        return changed ? new PublisherTextState(this, frames: frames) : this;
+    }
+
     internal PublisherTextState ReplaceStory(PublisherTextStory story) {
         var stories = Stories.ToDictionary(item => item.Key, item => item.Value); stories[story.Id] = story;
         return new PublisherTextState(this, stories: stories);
@@ -86,7 +97,10 @@ internal sealed partial class PublisherTextState {
 }
 
 /// <summary>Imported wrap intent. Placement comes from the current frame/picture when that object has a semantic owner.</summary>
-internal sealed record PublisherWrapInfo(OfficeTextPadding Margins, bool NegativeMargins, bool Tight);
+internal sealed record PublisherWrapInfo(OfficeTextPadding Margins, bool NegativeMargins, bool Tight,
+    PublisherNativeWrapMode NativeMode = PublisherNativeWrapMode.Unknown);
+
+internal enum PublisherNativeWrapMode { Unknown, None, RectangularBoth }
 
 /// <summary>Immutable wrap placement for object kinds whose editable geometry has not yet been migrated.</summary>
 internal sealed record PublisherImportedWrapObject(uint? PageId, double X, double Y, double Width, double Height,

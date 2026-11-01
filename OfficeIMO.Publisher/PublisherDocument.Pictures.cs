@@ -69,6 +69,6 @@ public sealed partial class PublisherDocument {
         if (!Finite(x + width)) throw new ArgumentOutOfRangeException(nameof(width));
         if (!Finite(y + height)) throw new ArgumentOutOfRangeException(nameof(height));
         var model = _model ?? throw new NotSupportedException("This publication has no editable model.");
-        Commit(model.SetPictureBounds(pictureId, x, y, width, height).Project(cancellationToken), cancellationToken);
+        Commit(model.SetPictureBounds(pictureId, x, y, width, height, cancellationToken).Project(cancellationToken), cancellationToken);
     }
 }

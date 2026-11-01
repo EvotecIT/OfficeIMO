@@ -9,9 +9,6 @@ internal sealed partial class PublisherModelState {
         if (_imported != null && _imported.Artwork.Shapes.Any(shape => selected.Contains(shape.Id)
             && (shape.IsGroup || shape.HasPublicationGroupParent)))
             throw new NotSupportedException("Ordering grouped native artwork is not qualified.");
-        if (_imported != null && PublisherNativeWriter.HasUnqualifiedWrapCrossing(_imported.Contents, _publication,
-            _publication.Pages.Single(item => item.Id == pageId), page.ObjectIds, token))
-            throw new NotSupportedException("Ordering across native wrapping artwork and text frames is not qualified.");
-        return WithPublication(publication);
+        return WithPublication(publication, token);
     }
 }

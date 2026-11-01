@@ -3,8 +3,8 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Publisher.Internal;
 
 internal sealed partial class PublisherModelState {
-    internal PublisherModelState SetShapeBounds(uint id, double x, double y, double width, double height) =>
-        WithPublication(_publication.SetShapeBounds(id, x, y, width, height));
+    internal PublisherModelState SetShapeBounds(uint id, double x, double y, double width, double height, CancellationToken token) =>
+        WithPublication(_publication.SetShapeBounds(id, x, y, width, height), token);
 
     internal PublisherModelState SetShapePaint(uint id, OfficeColor? fill, OfficeColor? stroke,
         double strokeWidth, double fillOpacity, double strokeOpacity) =>
