@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Email;
 /// $options = New-OfficeEmailMailboxReaderOptions -MessageOptions $messageOptions -MaxMessageCount 5000
 /// Get-OfficeEmailMailbox -Path .\Archive.mbox -Options $options -AsResult</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeEmailMailboxReaderOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeEmailMailboxReaderOptions", DefaultParameterSetName = "Options")]
 [OutputType(typeof(EmailMailboxReaderOptions))]
 public sealed class NewOfficeEmailMailboxReaderOptionsCommand : PSCmdlet {
     /// <summary>Bounded policy applied independently to each message.</summary>

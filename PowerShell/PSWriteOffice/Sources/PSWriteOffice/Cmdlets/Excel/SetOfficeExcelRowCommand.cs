@@ -26,7 +26,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///   <code>$workbook | Set-OfficeExcelRow -Sheet 'Review' -Row 2 -Values 'Identity', 'Ready'</code>
 ///   <para>Selects the worksheet by name without opening a DSL scope.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeExcelRow")]
+[Cmdlet(VerbsCommon.Set, "OfficeExcelRow", DefaultParameterSetName = "Default")]
 [Alias("ExcelRow")]
 public sealed class SetOfficeExcelRowCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>Worksheet to modify outside a DSL context.</summary>

@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Access;
 ///   <summary>Streams native or modeled table rows as PowerShell objects.</summary>
 ///   <code>$database | Get-OfficeAccessRow -TableName Contacts | Export-Csv ./contacts.csv -NoTypeInformation</code>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeAccessRow")]
+[Cmdlet(VerbsCommon.Get, "OfficeAccessRow", DefaultParameterSetName = "Document")]
 [OutputType(typeof(PSObject))]
 public sealed class GetOfficeAccessRowCommand : PSCmdlet {
     /// <summary>Live database document.</summary>

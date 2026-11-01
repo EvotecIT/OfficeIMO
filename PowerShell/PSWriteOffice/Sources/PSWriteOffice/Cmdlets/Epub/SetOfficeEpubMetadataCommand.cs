@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Epub;
 ///   <summary>Updates the primary title, language or creator through the package model.</summary>
 ///   <code>$book | Set-OfficeEpubMetadata -Title "Operations handbook"</code>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeEpubMetadata")]
+[Cmdlet(VerbsCommon.Set, "OfficeEpubMetadata", DefaultParameterSetName = "Default")]
 [OutputType(typeof(EpubPublication))]
 public sealed class SetOfficeEpubMetadataCommand : OfficeDocumentCmdlet<EpubPublication> {
     /// <summary>New primary title.</summary>

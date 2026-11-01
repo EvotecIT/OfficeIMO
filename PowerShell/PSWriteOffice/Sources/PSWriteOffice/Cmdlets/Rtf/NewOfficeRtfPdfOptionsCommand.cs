@@ -10,7 +10,7 @@ namespace PSWriteOffice.Cmdlets.Rtf;
 ///   <code>$options = New-OfficeRtfPdfOptions -IncludeImages -IncludeTables -IncludeHeaderFooters -MaximumSystemFontFamilies 32
 /// Export-OfficeDocumentPdf -InputPath .\Report.rtf -Path .\Report.pdf -RtfOptions $options</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeRtfPdfOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeRtfPdfOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(RtfToPdfOptions))]
 public sealed class NewOfficeRtfPdfOptionsCommand : PSCmdlet {
     /// <summary>Underlying low-level OfficeIMO PDF options.</summary>

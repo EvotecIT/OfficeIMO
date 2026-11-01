@@ -27,7 +27,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <code>$markdown = $data | ConvertTo-OfficeMarkdown -DisableAutoAlign</code>
 ///   <para>Forces left-aligned columns instead of auto-aligned output.</para>
 /// </example>
-[Cmdlet(VerbsData.ConvertTo, "OfficeMarkdown")]
+[Cmdlet(VerbsData.ConvertTo, "OfficeMarkdown", DefaultParameterSetName = "Default")]
 [OutputType(typeof(string), typeof(MarkdownDocument))]
 public sealed class ConvertToOfficeMarkdownCommand : PSCmdlet
 {

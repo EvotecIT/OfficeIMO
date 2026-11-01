@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <summary>Write a service inventory.</summary>
 /// <code>Get-Service | Select-Object Name, Status, StartType | Export-OfficeWord -Path ./Services.docx -Title 'Services'</code>
 /// </example>
-[Cmdlet(VerbsData.Export, "OfficeWord", SupportsShouldProcess = true)]
+[Cmdlet(VerbsData.Export, "OfficeWord", SupportsShouldProcess = true, DefaultParameterSetName = "Path")]
 [OutputType(typeof(FileInfo))]
 public sealed class ExportOfficeWordCommand : OfficeCmdlet {
     private readonly List<object?> _input = new();

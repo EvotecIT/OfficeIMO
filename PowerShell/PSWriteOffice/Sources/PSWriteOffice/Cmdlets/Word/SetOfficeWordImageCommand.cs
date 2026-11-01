@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// $doc | Save-OfficeWord -Path .\Report-Images.docx</code>
 ///   <para>Gets OfficeIMO image objects from an open document, applies thin image metadata and layout updates, and saves the document.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeWordImage")]
+[Cmdlet(VerbsCommon.Set, "OfficeWordImage", DefaultParameterSetName = "Default")]
 [Alias("WordImageStyle")]
 [OutputType(typeof(WordImage))]
 public sealed class SetOfficeWordImageCommand : PSCmdlet

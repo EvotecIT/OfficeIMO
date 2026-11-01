@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// Export-OfficeDocumentPdf -InputPath .\Report.md -Path .\Report.pdf -MarkdownOptions $options</code>
 ///   <para>Builds a typed options object through ordinary PowerShell parameters; no hashtable or .NET construction is required.</para>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeMarkdownPdfOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeMarkdownPdfOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(MarkdownPdfExportOptions))]
 public sealed class NewOfficeMarkdownPdfOptionsCommand : PSCmdlet, IMarkdownPdfOptionSource {
     /// <summary>Existing Markdown PDF options to clone and override.</summary>

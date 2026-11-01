@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.OpenDocument;
 ///     Set-OfficeOpenDocumentCell -Row 0 -Column 0 -Value 'Status'
 /// }</code>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeOpenDocumentSheet")]
+[Cmdlet(VerbsCommon.Add, "OfficeOpenDocumentSheet", DefaultParameterSetName = "Default")]
 [OutputType(typeof(OdsSheet))]
 public sealed class AddOfficeOpenDocumentSheetCommand : PSCmdlet {
     /// <summary>OpenDocument spreadsheet. Omit inside New-OfficeOpenDocument -Content.</summary>

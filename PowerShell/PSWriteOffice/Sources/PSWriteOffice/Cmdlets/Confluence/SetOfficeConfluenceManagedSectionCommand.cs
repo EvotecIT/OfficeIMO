@@ -10,7 +10,7 @@ namespace PSWriteOffice.Cmdlets.Confluence;
 /// <code>$result = Set-OfficeConfluenceManagedSection -ExistingBody $storage -SectionId daily-report -Replacement $html -AppendIfMissing</code>
 /// <para>Returns before/after hashes and the updated body without contacting Confluence.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeConfluenceManagedSection")]
+[Cmdlet(VerbsCommon.Set, "OfficeConfluenceManagedSection", DefaultParameterSetName = "ExistingBody")]
 [OutputType(typeof(ConfluenceManagedSectionResult), typeof(string))]
 public sealed class SetOfficeConfluenceManagedSectionCommand : PSCmdlet
 {

@@ -17,7 +17,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// Get-OfficeWordDocumentProperty -Path .\QuarterlyReport.docx -Name Title, ReleaseStatus</code>
 ///   <para>Writes document metadata during composition and reads it back for proof.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeWordDocumentProperty")]
+[Cmdlet(VerbsCommon.Set, "OfficeWordDocumentProperty", DefaultParameterSetName = "Default")]
 [OutputType(typeof(WordDocument))]
 public sealed class SetOfficeWordDocumentPropertyCommand : PSCmdlet
 {

@@ -7,7 +7,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// <example><summary>Read UTF-16 text with four-column tabs.</summary><prefix>PS&gt; </prefix>
 /// <code>$options = New-OfficeTextPdfOptions -EncodingName utf-16 -TabSize 4
 /// Export-OfficeDocumentPdf -InputPath .\Report.txt -Path .\Report.pdf -TextOptions $options</code></example>
-[Cmdlet(VerbsCommon.New, "OfficeTextPdfOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeTextPdfOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(PdfTextImportOptions))]
 public sealed class NewOfficeTextPdfOptionsCommand : PSCmdlet {
     /// <summary>Explicit encoding; otherwise use a Unicode BOM or strict UTF-8.</summary>

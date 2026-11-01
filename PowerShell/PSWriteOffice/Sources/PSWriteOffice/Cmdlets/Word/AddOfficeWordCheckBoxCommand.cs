@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>Add-OfficeWordParagraph { Add-OfficeWordCheckBox -Checked -Alias 'Approved' }</code>
 ///   <para>Creates a checked checkbox content control.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordCheckBox")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordCheckBox", DefaultParameterSetName = "Default")]
 [Alias("WordCheckBox")]
 [OutputType(typeof(WordCheckBox))]
 public sealed class AddOfficeWordCheckBoxCommand : PSCmdlet
