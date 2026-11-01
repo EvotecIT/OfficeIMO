@@ -204,7 +204,8 @@ namespace OfficeIMO.Excel {
             return name;
         }
 
-        private bool TryEvaluateArrayValue(string expression, int depth, out FormulaArrayValue array) {
+        private bool TryEvaluateArrayValue(string expression, int depth, out FormulaArrayValue array,
+            bool preserveScalarValue = false) {
             array = null!;
             if (!HasSufficientFormulaExecutionStack() || depth >= 32 || expression.Length > MaxSupportedFormulaLength) return false;
             if (expression.TrimStart().StartsWith("{", StringComparison.Ordinal)) {
@@ -257,9 +258,11 @@ namespace OfficeIMO.Excel {
                 return true;
             }
             if (call == null || !ExcelFormulaCapabilities.IsArrayFunction(function)) {
-                if (call == null && TryResolveDefinedNameArray(expression, depth, out array)) return true;
+                if (call == null && TryResolveDefinedNameArray(expression, depth, out array, preserveScalarValue)) return true;
                 if (!TryResolveFormulaArgument(expression, out FormulaArgumentValue scalar) || scalar.IsUnresolvedFormula) return false;
-                array = new FormulaArrayValue(1, 1, new[] { scalar.HasValue ? scalar : new FormulaArgumentValue(0, null) });
+                // SUMPRODUCT retains blank scalar arguments, including named expressions.
+                // Array-producing calls still apply their ordinary element conversion.
+                array = new FormulaArrayValue(1, 1, new[] { scalar.HasValue || preserveScalarValue ? scalar : new FormulaArgumentValue(0, null) });
                 return true;
             }
             var args = SplitFormulaArguments(call!.Arguments);

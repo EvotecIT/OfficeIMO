@@ -870,5 +870,25 @@
   {
     "Row": 2171,
     "Formula": "SUMPRODUCT(Data!F6,{1;2})"
+  },
+  {
+    "Row": 2181,
+    "Formula": "SUMPRODUCT(BlankExpression,2)"
+  },
+  {
+    "Row": 2191,
+    "Formula": "SUMPRODUCT(BlankAlias,2)"
+  },
+  {
+    "Row": 2201,
+    "Formula": "ISBLANK(BlankExpression)"
+  },
+  {
+    "Row": 2211,
+    "Formula": "SUMPRODUCT(BlankReference,2)"
+  },
+  {
+    "Row": 2221,
+    "Formula": "SUMPRODUCT(BlankExpression)"
   }
 ]

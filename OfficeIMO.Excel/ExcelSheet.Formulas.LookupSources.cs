@@ -47,16 +47,8 @@ namespace OfficeIMO.Excel {
                 source = new FormulaLookupSource(1, 1, (_, _) => referenceError, referenceError);
                 return true;
             }
-            // SUMPRODUCT distinguishes a blank scalar argument from a zero
-            // materialized by ordinary array-value conversion.
-            if (preserveScalarValue && !IsSupportedArrayExpression(token)) {
-                if (budget < 1 || !TryResolveFormulaArgument(token, out FormulaArgumentValue scalar)
-                    || scalar.IsUnresolvedFormula) return false;
-                budget--;
-                source = LookupScalarSource(scalar);
-                return true;
-            }
-            if (!TryEvaluateArrayValue(token, 0, out FormulaArrayValue array) || array.Values.Length > budget) return false;
+            if (!TryEvaluateArrayValue(token, 0, out FormulaArrayValue array, preserveScalarValue)
+                || array.Values.Length > budget) return false;
             budget -= array.Values.Length;
             FormulaArgumentValue error = array.Values.Length == 1 && array.Values[0].IsError
                 && !token.TrimStart().StartsWith("{", StringComparison.Ordinal) ? array.Values[0] : default;

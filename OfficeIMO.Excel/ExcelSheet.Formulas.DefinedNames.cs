@@ -51,14 +51,15 @@ namespace OfficeIMO.Excel {
                 ? context.GetDefinedNames(this, _excelDocument.CaptureFormulaInputMutationVersion())
                 : new FormulaDefinedNameResolutionCatalog(this);
 
-        private bool TryResolveDefinedNameArray(string token, int depth, out FormulaArrayValue array) {
+        private bool TryResolveDefinedNameArray(string token, int depth, out FormulaArrayValue array,
+            bool preserveScalarValue = false) {
             array = null!;
             if (!TrySplitQualifiedReference(token, out _, out string name) || !IsFormulaDefinedNameToken(name)
                 || !TryGetDefinedNameReference(GetFormulaDefinedNameCatalog(), token, out ExcelSheet sheet,
                     out string expression, out string identity)) return false;
             var active = (_formulaEvaluationGuardState ??= new FormulaEvaluationGuardState()).ActiveDefinedNames;
             if (active.Count >= MaxFormulaDefinedNameExpansionDepth || !active.Add(identity)) return false;
-            try { return sheet.TryEvaluateArrayValue(expression, depth + 1, out array); }
+            try { return sheet.TryEvaluateArrayValue(expression, depth + 1, out array, preserveScalarValue); }
             finally { active.Remove(identity); }
         }
 
