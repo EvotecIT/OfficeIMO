@@ -317,21 +317,21 @@ public sealed partial class PdfReadPage {
                 action.Get<PdfName>("S")?.Name == "URI" &&
                 TryGetString(action.Items.TryGetValue("URI", out var uriObject) ? uriObject : null, out string? uri) &&
                 Guard.IsUriAction(uri, cancellationToken)) {
-                result.Add(new PdfLinkAnnotation(uri!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2));
+                result.Add(new PdfLinkAnnotation(uri!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2) { SourceObjectNumber = (item as PdfReference)?.ObjectNumber });
                 continue;
             }
 
             if (action != null &&
                 action.Get<PdfName>("S")?.Name == "GoTo" &&
                 TryReadLinkDestination(action.Items.TryGetValue("D", out var actionDestination) ? actionDestination : null, out string? actionDestinationName, out int? actionDestinationPageObjectNumber, out double? actionDestinationTop, out PdfOpenActionDestinationMode? actionDestinationMode, out double? actionDestinationLeft, out double? actionDestinationBottom, out double? actionDestinationRight)) {
-                result.Add(new PdfLinkAnnotation(null, actionDestinationName, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, destinationPageObjectNumber: actionDestinationPageObjectNumber, destinationTop: actionDestinationTop, destinationMode: actionDestinationMode, destinationLeft: actionDestinationLeft, destinationBottom: actionDestinationBottom, destinationRight: actionDestinationRight));
+                result.Add(new PdfLinkAnnotation(null, actionDestinationName, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, destinationPageObjectNumber: actionDestinationPageObjectNumber, destinationTop: actionDestinationTop, destinationMode: actionDestinationMode, destinationLeft: actionDestinationLeft, destinationBottom: actionDestinationBottom, destinationRight: actionDestinationRight) { SourceObjectNumber = (item as PdfReference)?.ObjectNumber });
                 continue;
             }
 
             if (action != null &&
                 action.Get<PdfName>("S")?.Name == "Named" &&
                 TryGetNameOrString(action.Items.TryGetValue("N", out var namedActionObject) ? namedActionObject : null, out string? namedAction)) {
-                result.Add(new PdfLinkAnnotation(null, null, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, namedAction: namedAction));
+                result.Add(new PdfLinkAnnotation(null, null, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, namedAction: namedAction) { SourceObjectNumber = (item as PdfReference)?.ObjectNumber });
                 continue;
             }
 
@@ -339,12 +339,12 @@ public sealed partial class PdfReadPage {
                 action.Get<PdfName>("S")?.Name == "GoToR" &&
                 TryReadFileSpecification(action.Items.TryGetValue("F", out var remoteFileObject) ? remoteFileObject : null, out string? remoteFile)) {
                 TryReadRemoteDestination(action.Items.TryGetValue("D", out var remoteDestinationObject) ? remoteDestinationObject : null, out string? remoteDestinationName, out int? remoteDestinationPageNumber, out double? remoteDestinationTop, out PdfOpenActionDestinationMode? remoteDestinationMode, out double? remoteDestinationLeft, out double? remoteDestinationBottom, out double? remoteDestinationRight);
-                result.Add(new PdfLinkAnnotation(null, null, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, remoteFile: remoteFile, remoteDestinationName: remoteDestinationName, remoteDestinationPageNumber: remoteDestinationPageNumber, remoteDestinationTop: remoteDestinationTop, remoteDestinationMode: remoteDestinationMode, remoteDestinationLeft: remoteDestinationLeft, remoteDestinationBottom: remoteDestinationBottom, remoteDestinationRight: remoteDestinationRight));
+                result.Add(new PdfLinkAnnotation(null, null, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, remoteFile: remoteFile, remoteDestinationName: remoteDestinationName, remoteDestinationPageNumber: remoteDestinationPageNumber, remoteDestinationTop: remoteDestinationTop, remoteDestinationMode: remoteDestinationMode, remoteDestinationLeft: remoteDestinationLeft, remoteDestinationBottom: remoteDestinationBottom, remoteDestinationRight: remoteDestinationRight) { SourceObjectNumber = (item as PdfReference)?.ObjectNumber });
                 continue;
             }
 
             if (TryReadLinkDestination(annotation.Items.TryGetValue("Dest", out var directDestination) ? directDestination : null, out string? directDestinationName, out int? directDestinationPageObjectNumber, out double? directDestinationTop, out PdfOpenActionDestinationMode? directDestinationMode, out double? directDestinationLeft, out double? directDestinationBottom, out double? directDestinationRight)) {
-                result.Add(new PdfLinkAnnotation(null, directDestinationName, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, destinationPageObjectNumber: directDestinationPageObjectNumber, destinationTop: directDestinationTop, destinationMode: directDestinationMode, destinationLeft: directDestinationLeft, destinationBottom: directDestinationBottom, destinationRight: directDestinationRight));
+                result.Add(new PdfLinkAnnotation(null, directDestinationName, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, destinationPageObjectNumber: directDestinationPageObjectNumber, destinationTop: directDestinationTop, destinationMode: directDestinationMode, destinationLeft: directDestinationLeft, destinationBottom: directDestinationBottom, destinationRight: directDestinationRight) { SourceObjectNumber = (item as PdfReference)?.ObjectNumber });
             }
         }
 

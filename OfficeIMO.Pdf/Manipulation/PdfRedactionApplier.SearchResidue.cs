@@ -12,9 +12,16 @@ internal static partial class PdfRedactionApplier {
         PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
         PdfRedactionSearchCriteria[] criteria = GetSearchCriteria(plan);
         if (criteria.Length == 0) return Array.Empty<PdfRedactionVerificationIssue>();
+        readOptions = PdfLoadOptions.WithArtifactText(readOptions);
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         var issues = new List<PdfRedactionVerificationIssue>();
         Inspect(document, pdf, historical: false);
+        if (PdfRedactionNavigation.Search(document.Objects, document.CatalogDictionary, criteria, cancellationToken).DestinationMatch)
+            issues.Add(new PdfRedactionVerificationIssue("SearchResidue", "Destination", "A saved navigation destination still holds searched text."));
+        // Do not attest retained compressed containers using a live-object projection alone.
+        // Normalized output has no such containers; unproven historical inputs remain findings.
+        if (!PdfSyntax.CanNormalizeRedactionObjectGraph(pdf, document, cancellationToken))
+            issues.Add(new PdfRedactionVerificationIssue("SearchResidue", "CompressedSource", "Retained compressed source bytes have no proven residue sweep."));
         foreach (int end in PdfSyntax.GetHistoricalRevisionEnds(pdf, document, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
             var revision = new byte[end];
@@ -26,11 +33,35 @@ internal static partial class PdfRedactionApplier {
         void Inspect(PdfReadDocument current, byte[] bytes, bool historical) {
             HashSet<PdfObject> excluded = FindExcludedSearchObjects(current.Objects, current.Pages.Select(static page => page.ObjectNumber).ToArray(), criteria, cancellationToken);
             HashSet<int> contentStreams = GetPageContentStreamNumbers(current.Objects);
+            if (plan.IsSearchDriven) {
+                for (int index = 0; index < current.Pages.Count; index++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    PdfRedactionSearchCriteria[] pageCriteria = criteria.Where(criterion => criterion.CoversAllPages || criterion.PageNumbers.Contains(index + 1)).ToArray();
+                    if (pageCriteria.Length == 0) continue;
+                    PdfReadPage page = current.Pages[index];
+                    if (pageCriteria.Any(criterion => criterion.Matches(page.ExtractText(cancellationToken))) ||
+                        page.GetTextSpansIncludingHiddenOptionalContent().Any(span => pageCriteria.Any(criterion => criterion.Matches(span.Text))))
+                        issues.Add(new PdfRedactionVerificationIssue("SearchResidue", "Page:" + (index + 1).ToString(CultureInfo.InvariantCulture),
+                            "A saved page still paints searched text."));
+                }
+            }
             var visited = new HashSet<PdfObject>();
+            var containerBudget = new PdfDecodedStreamBudget(current.ReadOptions.Limits);
             foreach (PdfIndirectObject item in current.Objects.Values) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (excluded.Contains(item.Value)) continue;
                 PdfObject inspected = item.Value;
+                if (inspected is PdfStream container && container.Dictionary.Get<PdfName>("Type")?.Name == "ObjStm") {
+                    foreach (var member in PdfSyntax.ReadRedactionObjectStreamMembers(container, current.Objects, current.ReadOptions.Limits, containerBudget, cancellationToken)) {
+                        if (current.Objects.TryGetValue(member.Number, out PdfIndirectObject? live) &&
+                            live.SourceOffset == item.SourceOffset && excluded.Contains(live.Value)) continue;
+                        if (SearchObjectHolds(current.Objects, member.Value, criteria, current.ReadOptions.Limits,
+                            new HashSet<PdfObject>(), excluded, followReferences: false, cancellationToken: cancellationToken))
+                            issues.Add(new PdfRedactionVerificationIssue("SearchResidue", "CompressedMember", "A retained compressed PDF member still holds searched text."));
+                    }
+                    inspected = container.Dictionary;
+                }
+                if (inspected is PdfStream crossReferences && crossReferences.Dictionary.Get<PdfName>("Type")?.Name == "XRef") inspected = crossReferences.Dictionary;
                 // Selected marks may deliberately keep another painted occurrence. The glyph/placement verifier
                 // owns that content; the generic sweep still checks its dictionaries and every other holder.
                 if (!plan.IsSearchDriven && inspected is PdfStream selectedStream &&
@@ -66,7 +97,7 @@ internal static partial class PdfRedactionApplier {
             plan.RequestedSearchCriteria.Where(static value => value.StartsWith("literal:", StringComparison.Ordinal)).Select(static value => value.Substring(8)),
             plan.RequestedSearchCriteria.Where(static value => value.StartsWith("regex:", StringComparison.Ordinal))
                 .Select(value => new Regex(value.Substring(6), plan.SearchRegexOptions, plan.SearchRegexTimeout)),
-            plan.SearchPageNumbers.Count == 0, plan.SearchPageNumbers);
+            plan.SearchMatchCase, plan.SearchPageNumbers.Count == 0, plan.SearchPageNumbers);
         return requested is null ? Array.Empty<PdfRedactionSearchCriteria>() : new[] { requested };
     }
 
@@ -100,12 +131,18 @@ internal static partial class PdfRedactionApplier {
                 bool cmap = ContainsOrdinal(content, "begincmap");
                 if (contentStream || stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Form" || stream.Dictionary.Items.ContainsKey("PatternType") || cmap) {
                     bool found = false;
-                    PdfContentStreamInterpreter.Interpret(content, limits.MaxContentOperations,
-                        operation => {
-                            // A font's repertoire is not retained text. Only actual string data outside its code mappings counts.
-                            if (cmap && operation.Name is "endbfchar" or "endbfrange" or "endcodespacerange" or "endcidchar" or "endcidrange") return;
-                            found |= operation.Operands.Any(OperandHolds);
-                        }, maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands);
+                    try {
+                        PdfContentStreamInterpreter.Interpret(content, limits.MaxContentOperations,
+                            operation => {
+                                // A font's repertoire is not retained text. Only actual string data outside its code mappings counts.
+                                if (cmap && operation.Name is "endbfchar" or "endbfrange" or "endcodespacerange" or "endcidchar" or "endcidrange") return;
+                                found |= operation.Operands.Any(OperandHolds);
+                            }, maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands);
+                    } catch (FormatException) {
+                        // A sniffed stream can contain arbitrary bytes rather than PDF operands.
+                        // Inspect the entire payload, including valid strings after the bad token.
+                        return found || SearchTextHolds(content, criteria) || PdfRedactionVerification.ContainsSearchedPdfString(data, criteria, cancellationToken);
+                    }
                     return found;
                 }
                 // Binary image/font payloads are not text-bearing streams. Their string dictionaries were checked above.
@@ -176,23 +213,33 @@ internal static partial class PdfRedactionApplier {
         }
     }
 
-    /// <summary>Finds catalog/page XMP and trailer Info that must be removed independently of the optional cleanup policy.</summary>
+    /// <summary>Finds matching metadata owned anywhere in the live graph, respecting excluded page data.</summary>
     internal static (List<PdfDictionary> Owners, bool Info) SearchMetadataHolders(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? catalog,
-        string? trailer, IReadOnlyList<int> pages, PdfRedactionSearchCriteria[] criteria, PdfReadLimits limits) {
+        string? trailer, IReadOnlyList<int> pages, PdfRedactionSearchCriteria[] criteria, PdfReadLimits limits,
+        CancellationToken cancellationToken = default) {
         var owners = new List<PdfDictionary>();
         if (criteria.Length == 0) return (owners, false);
-        Check(catalog);
-        for (int index = 0; index < pages.Count; index++) {
-            if (!criteria.Any(criterion => criterion.CoversAllPages || criterion.PageNumbers.Contains(index + 1))) continue;
-            if (objects.TryGetValue(pages[index], out PdfIndirectObject? page)) Check(page.Value as PdfDictionary);
+        HashSet<PdfObject> excluded = FindExcludedSearchObjects(objects, pages.ToArray(), criteria, cancellationToken);
+        var visited = new HashSet<PdfObject>();
+        var matches = new Dictionary<PdfObject, bool>();
+        var pending = new Stack<PdfObject>();
+        if (catalog is not null) pending.Push(catalog);
+        while (pending.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfObject? value = PdfObjectLookup.Resolve(objects, pending.Pop());
+            if (value is null || excluded.Contains(value) || !visited.Add(value)) continue;
+            if (value is PdfArray array) { foreach (PdfObject item in array.Items) pending.Push(item); continue; }
+            PdfDictionary? owner = value as PdfDictionary ?? (value as PdfStream)?.Dictionary;
+            if (owner is null) continue;
+            if (owner.Items.TryGetValue("Metadata", out PdfObject? metadata) && PdfObjectLookup.Resolve(objects, metadata) is PdfObject holder) {
+                if (!matches.TryGetValue(holder, out bool holds))
+                    matches[holder] = holds = SearchObjectHolds(objects, holder, criteria, limits, new HashSet<PdfObject>(), cancellationToken: cancellationToken);
+                if (holds) owners.Add(owner);
+            }
+            foreach (PdfObject child in owner.Items.Values) pending.Push(child);
         }
-        PdfReference? info = PdfSyntax.ReadTrailerReference(trailer, "Info", limits);
-        bool removeInfo = info is not null && SearchObjectHolds(objects, info, criteria, limits, new HashSet<PdfObject>());
+        PdfReference? info = PdfSyntax.ReadTrailerReference(trailer, "Info", limits, cancellationToken);
+        bool removeInfo = info is not null && SearchObjectHolds(objects, info, criteria, limits, new HashSet<PdfObject>(), cancellationToken: cancellationToken);
         return (owners, removeInfo);
-
-        void Check(PdfDictionary? owner) {
-            if (owner is not null && owner.Items.TryGetValue("Metadata", out PdfObject? metadata) &&
-                SearchObjectHolds(objects, metadata, criteria, limits, new HashSet<PdfObject>())) owners.Add(owner);
-        }
     }
 }

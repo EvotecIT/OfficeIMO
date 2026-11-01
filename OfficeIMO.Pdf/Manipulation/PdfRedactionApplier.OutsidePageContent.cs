@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfRedactionApplier {
     private static readonly string[] AlternateTextKeys = { "Alt", "ActualText", "E", "TU" };
 
-    private static PdfRedactionSearchCriteria[] GetSearchCriteria(IEnumerable<PdfRedactionArea> areas) =>
+    internal static PdfRedactionSearchCriteria[] GetSearchCriteria(IEnumerable<PdfRedactionArea> areas) =>
         areas.Select(static area => area.SearchCriteria).OfType<PdfRedactionSearchCriteria>().Distinct().ToArray();
 
     // Tagged alternate text repeats wording outside the page content. Search marks remove the entries

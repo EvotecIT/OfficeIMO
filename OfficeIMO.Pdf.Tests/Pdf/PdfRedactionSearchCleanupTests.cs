@@ -34,9 +34,9 @@ public class PdfRedactionSearchCleanupTests {
             searched.Findings, criteria, searched.SourceSha256,
             searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase);
 
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => PdfRedactionApplier.Apply(source, plan));
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfRedactionApplier.Apply(source, plan));
 
-        Assert.Contains("logical text work limit", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("FullRewrite.ProofFailed.RedactionResidue", exception.Plan.BlockerCodes);
     }
 
     [Fact]

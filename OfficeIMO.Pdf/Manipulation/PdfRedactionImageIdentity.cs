@@ -13,7 +13,7 @@ internal static class PdfRedactionImageIdentity {
         StringBuilder identity,
         PdfImagePlacement placement,
         PdfStream? imageStream,
-        Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<int, PdfIndirectObject> objects, Func<PdfDictionary, string, bool>? includeEntry = null) {
         identity.Append(":render:")
             .Append(placement.Opacity.ToString("R", CultureInfo.InvariantCulture))
             .Append(':').Append((int)placement.EffectiveBlendMode)
@@ -26,8 +26,8 @@ internal static class PdfRedactionImageIdentity {
             .Append(':').Append(placement.RequireExactProjection ? '1' : '0');
         AppendColor(identity, placement.ImageMaskColor);
         AppendClip(identity, placement.ClipPath);
-        AppendEffectiveColorSpace(identity, placement, imageStream, objects);
-        AppendFillPattern(identity, placement, objects);
+        AppendEffectiveColorSpace(identity, placement, imageStream, objects, includeEntry);
+        AppendFillPattern(identity, placement, objects, includeEntry);
 
         identity.Append(":stream:");
         if (imageStream is null) {
@@ -35,7 +35,7 @@ internal static class PdfRedactionImageIdentity {
             return;
         }
 
-        AppendHashedObjectGraph(identity, imageStream, objects);
+        AppendHashedObjectGraph(identity, imageStream, objects, includeEntry);
     }
 
     internal static void AppendClip(StringBuilder identity, PdfPageClipPath? clipPath) {
@@ -70,13 +70,13 @@ internal static class PdfRedactionImageIdentity {
     internal static void AppendObjectGraph(
         StringBuilder identity,
         PdfObject? value,
-        Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<int, PdfIndirectObject> objects, Func<PdfDictionary, string, bool>? includeEntry = null) {
         if (value is null) {
             identity.Append("none");
             return;
         }
 
-        AppendHashedObjectGraph(identity, value, objects);
+        AppendHashedObjectGraph(identity, value, objects, includeEntry);
     }
 
     private static void AppendColor(StringBuilder identity, OfficeColor color) =>
@@ -85,12 +85,13 @@ internal static class PdfRedactionImageIdentity {
     private static void AppendHashedObjectGraph(
         StringBuilder identity,
         PdfObject value,
-        Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<int, PdfIndirectObject> objects, Func<PdfDictionary, string, bool>? includeEntry = null) {
         using var fingerprint = new PdfObjectGraphFingerprint(
             objects,
             MaximumDepth,
             MaximumNodes,
-            includeDictionaryKey: static key => !string.Equals(key, "Length", StringComparison.Ordinal));
+            includeDictionaryKey: static key => !string.Equals(key, "Length", StringComparison.Ordinal),
+            includeDictionaryEntry: includeEntry);
         fingerprint.AppendRoot(value);
         AppendText(identity, 'H', Convert.ToBase64String(fingerprint.Complete()));
     }
@@ -99,7 +100,7 @@ internal static class PdfRedactionImageIdentity {
         StringBuilder identity,
         PdfImagePlacement placement,
         PdfStream? imageStream,
-        Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<int, PdfIndirectObject> objects, Func<PdfDictionary, string, bool>? includeEntry = null) {
         if (imageStream is null) return;
         PdfObject? declaration = imageStream.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpace)
             ? colorSpace
@@ -111,13 +112,13 @@ internal static class PdfRedactionImageIdentity {
         PdfDictionary? resources = placement.InlineImageResources ?? placement.EffectiveResources;
         if (!TryGetResource(resources, "ColorSpace", name.Name, objects, out PdfObject? resource)) return;
         identity.Append(":effective-color-space:");
-        AppendHashedObjectGraph(identity, resource, objects);
+        AppendHashedObjectGraph(identity, resource, objects, includeEntry);
     }
 
     private static void AppendFillPattern(
         StringBuilder identity,
         PdfImagePlacement placement,
-        Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<int, PdfIndirectObject> objects, Func<PdfDictionary, string, bool>? includeEntry = null) {
         if (!placement.FillPattern.HasValue) return;
         PdfPagePatternSelection pattern = placement.FillPattern.Value;
         identity.Append(":fill-pattern:");
@@ -135,7 +136,7 @@ internal static class PdfRedactionImageIdentity {
             .Append(transform.F.ToString("R", CultureInfo.InvariantCulture));
 
         if (!TryGetResource(placement.EffectiveResources, "Pattern", pattern.Name, objects, out PdfObject? resource)) return;
-        AppendHashedObjectGraph(identity, resource, objects);
+        AppendHashedObjectGraph(identity, resource, objects, includeEntry);
     }
 
     private static bool TryGetResource(

@@ -44,12 +44,20 @@ internal static partial class PdfRedactionApplier {
             throw new InvalidOperationException("The reviewed redaction plan belongs to different source PDF bytes.");
         }
         if (plan.Areas.Count == 0) {
-            _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.Redact, readOptions, cancellationToken: effectiveOptions.CancellationToken);
+            PdfMutationPlan mutationPlan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.Redact, readOptions, cancellationToken: effectiveOptions.CancellationToken);
             generatedGrowth = default;
             appliedImageMatches = Array.Empty<PdfRedactionMatch>();
             IReadOnlyList<PdfRedactionVerificationIssue> residue = FindSearchResidue(pdf, plan, readOptions, effectiveOptions.CancellationToken);
             if (residue.Count > 0) throw new InvalidOperationException("The PDF still holds searched text outside live search matches.");
-            return (byte[])pdf.Clone();
+            PdfReadDocument unchanged = PdfReadDocument.Open(pdf, readOptions, effectiveOptions.CancellationToken);
+            if (!PdfSyntax.RequiresRedactionNormalization(unchanged) || unchanged.Security.HasEncryption) return (byte[])pdf.Clone();
+            var (normalized, trailer) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, effectiveOptions.CancellationToken);
+            int catalog = FindCatalogObjectNumber(normalized, trailer);
+            NormalizeUndefinedRedactionReferences(normalized, effectiveOptions.CancellationToken);
+            PdfObjectGraphPruner.PruneUnreachableObjects(normalized, catalog, effectiveOptions.CancellationToken);
+            byte[] classic = RewriteAllObjects(normalized, catalog, unchanged.UncheckedMetadata, pdf, mutationPlan, GetSearchCriteria(plan), effectiveOptions.CancellationToken);
+            RequireClassicRedactionOutput(classic, readOptions, mutationPlan, effectiveOptions.CancellationToken);
+            return classic;
         }
         string[] fieldNames = plan.Areas.Select(static area => area.OriginalLabel).Where(static label => label?.StartsWith("field:", StringComparison.Ordinal) == true).Select(static label => label!.Substring("field:".Length)).Distinct(StringComparer.Ordinal).ToArray();
         byte[] working = pdf;
@@ -253,12 +261,13 @@ internal static partial class PdfRedactionApplier {
         Guard.NotNull(areas, nameof(areas));
         PdfRedactionApplyOptions effectiveOptions = applyOptions ?? new PdfRedactionApplyOptions();
         effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
+        PdfMutationPlan? mutationPlan = null;
         if (mutationOperation == PdfMutationOperation.ModifyPageContent &&
             (mutationScope == RedactionMutationScope.Text || mutationScope == RedactionMutationScope.Images) &&
             !paintMarks) {
             PdfMutationPlanner.RequireCatalogPreservingPageContentRewrite(pdf, readOptions, effectiveOptions.CancellationToken);
         } else {
-            _ = PdfMutationPlanner.RequireFullRewrite(pdf, mutationOperation, readOptions, cancellationToken: effectiveOptions.CancellationToken);
+            mutationPlan = PdfMutationPlanner.RequireFullRewrite(pdf, mutationOperation, readOptions, cancellationToken: effectiveOptions.CancellationToken);
         }
 
         var capturedAreas = new List<PdfRedactionArea>();
@@ -297,8 +306,9 @@ internal static partial class PdfRedactionApplier {
             throw new ArgumentException("PDF does not contain a readable catalog.", nameof(pdf));
         }
 
-        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, effectiveOptions.CancellationToken);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, PdfLoadOptions.WithArtifactText(readOptions), effectiveOptions.CancellationToken);
         effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
+        if (mutationOperation == PdfMutationOperation.Redact) NormalizeUndefinedRedactionReferences(objects, effectiveOptions.CancellationToken);
         Dictionary<int, PdfStream> sourceStreams = document.Objects
             .Where(static item => item.Value.Value is PdfStream)
             .ToDictionary(static item => item.Key, static item => (PdfStream)item.Value.Value);
@@ -309,9 +319,12 @@ internal static partial class PdfRedactionApplier {
         effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         PdfRedactionSearchCriteria[] textSearch = mutationScope == RedactionMutationScope.All ? GetSearchCriteria(areaArray) : Array.Empty<PdfRedactionSearchCriteria>();
         var searchedMetadata = SearchMetadataHolders(objects, (PdfDictionary)objects[catalogObjectNumber].Value, trailerRaw,
-            document.Pages.Select(static page => page.ObjectNumber).ToArray(), textSearch, limits);
+            document.Pages.Select(static page => page.ObjectNumber).ToArray(), textSearch, limits, effectiveOptions.CancellationToken);
         foreach (PdfDictionary owner in searchedMetadata.Owners) owner.Items.Remove("Metadata");
         bool cleanupChanged = searchedMetadata.Owners.Count > 0 || searchedMetadata.Info;
+        var navigation = PdfRedactionNavigation.Search(objects, (PdfDictionary)objects[catalogObjectNumber].Value, textSearch, effectiveOptions.CancellationToken);
+        foreach (PdfDictionary title in navigation.Titles) title.Items["Title"] = new PdfStringObj(string.Empty);
+        cleanupChanged |= navigation.Titles.Count > 0;
         cleanupChanged = ApplyCleanupPolicy(objects, catalogObjectNumber, effectiveOptions.CleanupScope) || cleanupChanged;
         cleanupChanged = RemoveAlternateTextHoldingMatches(objects, areaArray, limits) || cleanupChanged;
         if (mutationScope == RedactionMutationScope.All) {
@@ -321,7 +334,8 @@ internal static partial class PdfRedactionApplier {
                 .Where(static match => match.Kind == PdfRedactionMatchKind.ImagePlacement && match.RequiresRemoval)
                 .Select(static match => match.ObjectNumber).OfType<int>(), areaArray, limits, sourceStreamIdentities) || cleanupChanged;
         }
-        if (!mutation.HasChanges && !cleanupChanged) {
+        if (!mutation.HasChanges && !cleanupChanged &&
+            !(mutationOperation == PdfMutationOperation.Redact && !document.Security.HasEncryption && PdfSyntax.RequiresRedactionNormalization(document))) {
             generatedGrowth = default;
             appliedImageMatches = mutation.AppliedImageMatches;
             return pdf.ToArray();
@@ -331,7 +345,9 @@ internal static partial class PdfRedactionApplier {
         generatedGrowth = BuildGeneratedOutputGrowth(objects, sourceStreams, document.Objects, sourceStreamIdentities, mutation.GeneratedPageContentBytes);
         appliedImageMatches = mutation.AppliedImageMatches;
         PdfMetadata metadata = (effectiveOptions.CleanupScope & PdfRedactionCleanupScope.Metadata) != 0 || searchedMetadata.Info ? new PdfMetadata() : document.UncheckedMetadata;
-        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, metadata, pdf, textSearch, effectiveOptions.CancellationToken);
+        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, metadata, pdf, mutationPlan, textSearch, effectiveOptions.CancellationToken);
+        if (mutationOperation == PdfMutationOperation.Redact && !document.Security.HasEncryption && PdfSyntax.RequiresRedactionNormalization(document))
+            RequireClassicRedactionOutput(rewritten, readOptions, mutationPlan!, effectiveOptions.CancellationToken);
         return sourceEncryption?.Protect(rewritten,
             generatedReadOptions: PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, rewritten, generatedGrowth),
             cancellationToken: effectiveOptions.CancellationToken) ?? rewritten;
@@ -477,7 +493,7 @@ internal static partial class PdfRedactionApplier {
                     ref nextObjectNumber) || pageChanged;
             }
             if ((mutationScope & RedactionMutationScope.Paths) != 0 && options.RemoveIntersectingPaths && underlayAreas.Length > 0) pageChanged = RemoveIntersectingPathObjects(objects, pageDictionary, underlayAreas, limits, sourceStreamIdentities, ref nextObjectNumber) || pageChanged;
-            if ((mutationScope & RedactionMutationScope.Annotations) != 0) pageChanged = RemoveMatchedAnnotations(objects, pageDictionary, currentMatches, formFieldObjectNumbers) || pageChanged;
+            if ((mutationScope & RedactionMutationScope.Annotations) != 0) pageChanged = RemoveMatchedAnnotations(objects, pageDictionary, currentMatches, formFieldObjectNumbers, options.CancellationToken) || pageChanged;
 
             PdfRedactionArea[] paintAreas = paintMarks
                 ? BuildPrivacyAppearanceAreas(SelectPaintAreas(currentAreas, currentMatches, options), readPage.GetGeometry(), options)
@@ -677,160 +693,6 @@ internal static partial class PdfRedactionApplier {
          AreSameRedactionCoordinate(left.D, right.D) &&
          AreSameRedactionCoordinate(left.E, right.E) &&
          AreSameRedactionCoordinate(left.F, right.F));
-
-    private static bool RemoveMatchedAnnotations(
-        Dictionary<int, PdfIndirectObject> objects,
-        PdfDictionary pageDictionary,
-        IReadOnlyList<PdfRedactionMatch> matches,
-        HashSet<int> formFieldObjectNumbers) {
-        PdfRedactionMatch[] annotationMatches = matches
-            .Where(match => match.Kind == PdfRedactionMatchKind.Annotation)
-            .ToArray();
-        if (annotationMatches.Length == 0 ||
-            !pageDictionary.Items.TryGetValue("Annots", out PdfObject? annotsObject) ||
-            PdfObjectLookup.Resolve(objects, annotsObject) is not PdfArray annotations) {
-            return false;
-        }
-
-        var annotationObjectNumbers = new HashSet<int>(annotationMatches
-            .Where(match => match.ObjectNumber.HasValue)
-            .Select(match => match.ObjectNumber!.Value));
-        var popupObjectNumbers = new HashSet<int>();
-        bool changed = false;
-        for (int i = annotations.Items.Count - 1; i >= 0; i--) {
-            PdfObject item = annotations.Items[i];
-            PdfReference? reference = item as PdfReference;
-            PdfDictionary? annotation = PdfObjectLookup.Resolve(objects, item) as PdfDictionary;
-            if (annotation is null) {
-                continue;
-            }
-
-            bool removeAnnotation =
-                (reference is not null && annotationObjectNumbers.Contains(reference.ObjectNumber)) ||
-                MatchesAnnotationRedaction(objects, annotation, annotationMatches);
-            if (!removeAnnotation) {
-                continue;
-            }
-
-            AddPopupObjectNumber(annotation, popupObjectNumbers);
-            if (reference is not null) {
-                annotationObjectNumbers.Add(reference.ObjectNumber);
-                bool remainsOwnedByFormField =
-                    string.Equals(TryReadName(objects, annotation, "Subtype"), "Widget", StringComparison.OrdinalIgnoreCase) &&
-                    (formFieldObjectNumbers.Contains(reference.ObjectNumber) ||
-                     annotation.Items.TryGetValue("Parent", out PdfObject? parentObject) &&
-                     PdfObjectLookup.Resolve(objects, parentObject) is PdfDictionary);
-                if (!remainsOwnedByFormField) {
-                    objects.Remove(reference.ObjectNumber);
-                }
-            }
-
-            annotations.Items.RemoveAt(i);
-            changed = true;
-        }
-
-        RemovePopupReferences(objects, annotations, annotationObjectNumbers, popupObjectNumbers, ref changed);
-
-        if (!changed) {
-            return false;
-        }
-
-        if (annotations.Items.Count == 0) {
-            pageDictionary.Items.Remove("Annots");
-        }
-
-        return true;
-    }
-
-    internal static bool TryReadFieldRectangle(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, out double x, out double y, out double width, out double height) =>
-        TryReadRect(objects, widget, out x, out y, out width, out height);
-
-    private static bool MatchesAnnotationRedaction(
-        Dictionary<int, PdfIndirectObject> objects,
-        PdfDictionary annotation,
-        PdfRedactionMatch[] annotationMatches) {
-        if (!TryReadRect(objects, annotation, out double x, out double y, out double width, out double height)) {
-            return false;
-        }
-
-        string? subtype = TryReadName(objects, annotation, "Subtype");
-        for (int i = 0; i < annotationMatches.Length; i++) {
-            PdfRedactionMatch match = annotationMatches[i];
-            if (!string.IsNullOrEmpty(match.Subtype) &&
-                !string.Equals(match.Subtype, subtype, StringComparison.OrdinalIgnoreCase)) {
-                continue;
-            }
-
-            if (AreClose(match.X, x) &&
-                AreClose(match.Y, y) &&
-                AreClose(match.Width, width) &&
-                AreClose(match.Height, height)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static void AddPopupObjectNumber(PdfDictionary annotation, HashSet<int> popupObjectNumbers) {
-        if (annotation.Items.TryGetValue("Popup", out PdfObject? popupObject) &&
-            popupObject is PdfReference popupReference) {
-            popupObjectNumbers.Add(popupReference.ObjectNumber);
-        }
-    }
-
-    private static void RemovePopupReferences(
-        Dictionary<int, PdfIndirectObject> objects,
-        PdfArray annotations,
-        HashSet<int> removedAnnotationObjectNumbers,
-        HashSet<int> popupObjectNumbers,
-        ref bool changed) {
-        for (int i = annotations.Items.Count - 1; i >= 0; i--) {
-            PdfObject item = annotations.Items[i];
-            PdfReference? reference = item as PdfReference;
-            PdfDictionary? annotation = PdfObjectLookup.Resolve(objects, item) as PdfDictionary;
-            if (annotation is null) {
-                continue;
-            }
-
-            bool removePopup =
-                (reference is not null && popupObjectNumbers.Contains(reference.ObjectNumber)) ||
-                IsPopupForRemovedAnnotation(annotation, removedAnnotationObjectNumbers);
-            if (!removePopup) {
-                continue;
-            }
-
-            if (reference is not null) {
-                objects.Remove(reference.ObjectNumber);
-            }
-
-            annotations.Items.RemoveAt(i);
-            changed = true;
-        }
-
-        for (int i = 0; i < annotations.Items.Count; i++) {
-            if (PdfObjectLookup.Resolve(objects, annotations.Items[i]) is not PdfDictionary annotation ||
-                !annotation.Items.TryGetValue("Popup", out PdfObject? popupObject) ||
-                popupObject is not PdfReference popupReference ||
-                (!removedAnnotationObjectNumbers.Contains(popupReference.ObjectNumber) &&
-                !popupObjectNumbers.Contains(popupReference.ObjectNumber))) {
-                continue;
-            }
-
-            annotation.Items.Remove("Popup");
-            changed = true;
-        }
-    }
-
-    private static bool IsPopupForRemovedAnnotation(PdfDictionary annotation, HashSet<int> removedAnnotationObjectNumbers) {
-        if (!string.Equals(annotation.Get<PdfName>("Subtype")?.Name, "Popup", StringComparison.OrdinalIgnoreCase)) {
-            return false;
-        }
-
-        return annotation.Items.TryGetValue("Parent", out PdfObject? parentObject) &&
-            parentObject is PdfReference parentReference &&
-            removedAnnotationObjectNumbers.Contains(parentReference.ObjectNumber);
-    }
 
     private static string? TryReadName(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {
         return dictionary.Items.TryGetValue(key, out PdfObject? value) &&
@@ -1189,41 +1051,6 @@ internal static partial class PdfRedactionApplier {
 
     private static bool SameReference(PdfReference left, PdfReference right) =>
         left.ObjectNumber == right.ObjectNumber && left.Generation == right.Generation;
-
-    private static byte[] RewriteAllObjects(
-        Dictionary<int, PdfIndirectObject> objects,
-        int catalogObjectNumber,
-        PdfMetadata metadata,
-        byte[] sourcePdf,
-        PdfRedactionSearchCriteria[]? searchCriteria = null,
-        System.Threading.CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        int[] sourceIds = objects.Keys.OrderBy(id => id).ToArray();
-        var numberMap = new Dictionary<int, int>(sourceIds.Length);
-        for (int i = 0; i < sourceIds.Length; i++) {
-            if ((i & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
-            numberMap[sourceIds[i]] = i + 1;
-        }
-
-        var context = new PdfPageExtractor.SerializationContext(numberMap, pagesObjectId: 0, new Dictionary<int, Dictionary<string, PdfObject>>(), objects);
-        var rewritten = new List<byte[]>(sourceIds.Length + 1);
-        foreach (int sourceId in sourceIds) {
-            cancellationToken.ThrowIfCancellationRequested();
-            rewritten.Add(PdfPageExtractor.SerializeIndirectObject(numberMap[sourceId], objects[sourceId].Value, context));
-        }
-
-        cancellationToken.ThrowIfCancellationRequested();
-        int infoId = rewritten.Count + 1;
-        PdfDictionary info = PdfInfoDictionaryBuilder.BuildDictionary(metadata);
-        // Generated producer metadata must not reintroduce a short searched value either.
-        foreach (string key in info.Items.Keys.ToArray()) {
-            if (info.Items[key] is PdfStringObj text && searchCriteria?.Any(criterion => criterion.Matches(text.Value)) == true) info.Items.Remove(key);
-        }
-        rewritten.Add(PdfPageExtractor.SerializeIndirectObject(infoId, info, context));
-
-        PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
-        return PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId, fileVersion, cancellationToken);
-    }
 
     private static int FindCatalogObjectNumber(Dictionary<int, PdfIndirectObject> objects, string? trailerRaw) {
         PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw);

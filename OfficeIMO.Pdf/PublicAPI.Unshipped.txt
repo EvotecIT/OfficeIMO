@@ -22,5 +22,6 @@ OfficeIMO.Pdf.PdfTextStampOptions.EmbedFont.get -> bool
 OfficeIMO.Pdf.PdfTextStampOptions.EmbedFont.set -> void
 static OfficeIMO.Pdf.PdfStandardEncryptionOptions.ForPermissions(string! ownerPassword, OfficeIMO.Pdf.PdfStandardPermissions allowedPermissions) -> OfficeIMO.Pdf.PdfStandardEncryptionOptions!
 OfficeIMO.Pdf.PdfRedactionMatchKind.FormField = 4 -> OfficeIMO.Pdf.PdfRedactionMatchKind
+OfficeIMO.Pdf.PdfRedactionMatchKind.BookmarkTitle = 5 -> OfficeIMO.Pdf.PdfRedactionMatchKind
 OfficeIMO.Pdf.PdfDocumentPages.BookmarkPageRanges(int level, params string![]! bookmarkTitles) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfBookmarkPageRange!>!
 OfficeIMO.Pdf.PdfDocumentPages.BookmarkPageRanges(int level, System.Threading.CancellationToken cancellationToken, params string![]! bookmarkTitles) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfBookmarkPageRange!>!

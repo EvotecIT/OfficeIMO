@@ -223,9 +223,12 @@ public sealed class PdfLinkAnnotation {
     /// <summary>Rectangle height in page user-space units.</summary>
     public double Height => Y2 - Y1;
 
+    /// <summary>Source identity used to exclude a reviewed annotation removal from preservation checks.</summary>
+    internal int? SourceObjectNumber { get; init; }
+
     internal PdfLinkAnnotation WithPageNumber(int pageNumber) =>
-        new PdfLinkAnnotation(Uri, DestinationName, Contents, X1, Y1, X2, Y2, pageNumber, DestinationPageNumber, DestinationPageObjectNumber, DestinationTop, DestinationMode, DestinationLeft, DestinationBottom, DestinationRight, NamedAction, RemoteFile, RemoteDestinationName, RemoteDestinationPageNumber, RemoteDestinationTop, RemoteDestinationMode, RemoteDestinationLeft, RemoteDestinationBottom, RemoteDestinationRight);
+        new PdfLinkAnnotation(Uri, DestinationName, Contents, X1, Y1, X2, Y2, pageNumber, DestinationPageNumber, DestinationPageObjectNumber, DestinationTop, DestinationMode, DestinationLeft, DestinationBottom, DestinationRight, NamedAction, RemoteFile, RemoteDestinationName, RemoteDestinationPageNumber, RemoteDestinationTop, RemoteDestinationMode, RemoteDestinationLeft, RemoteDestinationBottom, RemoteDestinationRight) { SourceObjectNumber = SourceObjectNumber };
 
     internal PdfLinkAnnotation WithDestinationPageNumber(int? destinationPageNumber) =>
-        new PdfLinkAnnotation(Uri, DestinationName, Contents, X1, Y1, X2, Y2, PageNumber, destinationPageNumber, DestinationPageObjectNumber, DestinationTop, DestinationMode, DestinationLeft, DestinationBottom, DestinationRight, NamedAction, RemoteFile, RemoteDestinationName, RemoteDestinationPageNumber, RemoteDestinationTop, RemoteDestinationMode, RemoteDestinationLeft, RemoteDestinationBottom, RemoteDestinationRight);
+        new PdfLinkAnnotation(Uri, DestinationName, Contents, X1, Y1, X2, Y2, PageNumber, destinationPageNumber, DestinationPageObjectNumber, DestinationTop, DestinationMode, DestinationLeft, DestinationBottom, DestinationRight, NamedAction, RemoteFile, RemoteDestinationName, RemoteDestinationPageNumber, RemoteDestinationTop, RemoteDestinationMode, RemoteDestinationLeft, RemoteDestinationBottom, RemoteDestinationRight) { SourceObjectNumber = SourceObjectNumber };
 }

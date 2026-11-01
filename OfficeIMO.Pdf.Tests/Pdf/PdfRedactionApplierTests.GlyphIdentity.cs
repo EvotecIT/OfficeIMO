@@ -224,6 +224,45 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Contains("A harmless picture", raw, StringComparison.Ordinal);
         }
 
+        private byte[] BuildAlternateTextAndNoteSource(string body) => BuildPdf(new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, System.Text.Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (" + body + ") Tj ET")),
+            "6 0 obj\n<< /Type /StructTreeRoot /K [7 0 R] >>\nendobj",
+            "7 0 obj\n<< /Type /StructElem /S /P /P 6 0 R /Alt (the SECRET alt) >>\nendobj"
+        }, rootObjectNumber: 1);
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void AlternateTextAndAnnotationsFollowTheCaseRuleOfBodySearch(bool matchCase) {
+            byte[] bytes = PdfEncoding.Latin1GetBytes(PdfEncoding.Latin1GetString(BuildAlternateTextAndNoteSource("Alpha secret Omega"))
+                .Replace("/Contents 5 0 R", "/Contents 5 0 R /Annots [<< /Type /Annot /Subtype /Text /Rect [400 100 420 120] /Contents (The SECRET note) >>]"));
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions { MatchCase = matchCase }.AddLiteral("secret"));
+
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            string raw = PdfEncoding.Latin1GetString(result.Pdf) + DecodeAllStreams(result.Pdf);
+            Assert.DoesNotContain("secret", raw, StringComparison.Ordinal);
+            Assert.Equal(matchCase, raw.Contains("the SECRET alt", StringComparison.Ordinal));
+            Assert.Equal(matchCase, raw.Contains("The SECRET note", StringComparison.Ordinal));
+        }
+
+        [Theory]
+        [InlineData(true, "redaction-search-no-matches")]
+        [InlineData(false, "redaction-search-unplanned-residue")]
+        public void SearchWithNoPageMatchReadsAlternateTextUnderTheSearchCaseRule(bool matchCase, string expectedFinding) {
+            PdfDocument source = PdfDocument.Load(BuildAlternateTextAndNoteSource("Alpha public Omega"));
+
+            PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions { MatchCase = matchCase }.AddLiteral("secret"));
+
+            Assert.Contains(plan.Findings, finding => finding.Code == expectedFinding);
+        }
+
         [Fact]
         public void SelectionMustBelongToTheDocumentItIsAppliedTo() {
             PdfDocument first = PdfDocument.Load(BuildTextContentRedactionSource(SingleSpaced));
