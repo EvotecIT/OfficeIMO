@@ -87,5 +87,5 @@ public sealed class OfficeRichTextParagraph {
     internal static OfficeRichTextRun CopyRun(OfficeRichTextRun run) => new OfficeRichTextRun(
         run.Text, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily,
         run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle,
-        run.Baseline, run.ParagraphIndent) { LanguageId = run.LanguageId, LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName };
+        run.Baseline, run.ParagraphIndent) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold, LanguageId = run.LanguageId, LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName };
 }

@@ -64,7 +64,7 @@ public sealed class OfficeDrawingRichText : OfficeDrawingElement {
         var plainText = new StringBuilder();
         for (int i = 0; i < runs.Count; i++) {
             OfficeRichTextRun run = runs[i] ?? throw new ArgumentException("Rich text runs cannot contain null entries.", nameof(runs));
-            copiedRuns.Add(new OfficeRichTextRun(run.Text, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily, run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle, run.Baseline, run.ParagraphIndent) { LanguageId = run.LanguageId, LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName });
+            copiedRuns.Add(new OfficeRichTextRun(run.Text, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily, run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle, run.Baseline, run.ParagraphIndent) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold, LanguageId = run.LanguageId, LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName });
             plainText.Append(run.Text);
         }
 

@@ -1,0 +1,57 @@
+{
+  "schema": "officeimo.publisher.native-pair-kerning-fixture.v1",
+  "source": "../TextHyphenation/native-texthyphenation.pub",
+  "sourceSha256": "50aa7ed69016d9fdcbc1b4df31bdaa708c24f60c0aa5afadd18d8f7f18888ab0",
+  "derivation": "Source-derived controls: rewrite only direct FDPC field 0x18/type0x22 with thresholdPoints*12700 using the shared OPL/formatting-page and compound writers. Microsoft Publisher then saves and reopens each candidate. The retained files are native-resaved outputs, not independent native creation.",
+  "reproduction": "Set every direct FDPC threshold to 0, 8, 12 or 14 points without changing text, page lengths, endpoints or other compound streams; run Invoke-NativePublisherOperation -Operation Validate -Stage Full for each candidate.",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-threshold-0.pub",
+      "sha256": "c7271ed31a313a19bf63c2bb2cb246e0c9410d6e4d20ff4906da268621613cb5",
+      "thresholdPoints": 0
+    },
+    {
+      "name": "native-threshold-0.pdf",
+      "sha256": "7acffbc8d7e4d1aaeb7940e941579588edc04ebb42480f57592cce156b146a20",
+      "thresholdPoints": 0
+    },
+    {
+      "name": "native-threshold-8.pub",
+      "sha256": "0861ce0f7028af10330a2fe83fc28b35040ed6785c25abb4b53794de5a970688",
+      "thresholdPoints": 8
+    },
+    {
+      "name": "native-threshold-8.pdf",
+      "sha256": "33fabb88fb88a20df8e83928f76dcbcdd41672107be4a02ce4e5fa91e8031050",
+      "thresholdPoints": 8
+    },
+    {
+      "name": "native-threshold-12.pub",
+      "sha256": "a43f640c82f796663517c788183e51d484a23a65ef204bd77603235d67ef6ad8",
+      "thresholdPoints": 12
+    },
+    {
+      "name": "native-threshold-12.pdf",
+      "sha256": "8c360bc75d5b9781b713311b173c87a027918ec10bc9cd9542dc02b3cb343977",
+      "thresholdPoints": 12
+    },
+    {
+      "name": "native-threshold-14.pub",
+      "sha256": "523fff91025c262033c6f73c027152ac0aad543165e14eccd4e4a97c1964b620",
+      "thresholdPoints": 14
+    },
+    {
+      "name": "native-threshold-14.pdf",
+      "sha256": "1d148a2d436309e947c66a0a4e8fa93139ffb8c60a690cd987cf8ab4304d058a",
+      "thresholdPoints": 14
+    }
+  ],
+  "observed": "All sampled native frame getters report the stored threshold before and after save. With Arial12, threshold0 and14 outputs agree; threshold8 and12 outputs agree; the groups differ in six of15 pages. This qualifies an inclusive size>=threshold activation boundary, with zero disabled.",
+  "limits": "Rendering controls retain native automatic hyphenation, dictionaries and the observed application profile. Managed rich-text rendering does not yet apply this threshold. Repair-free opening, other producers, inherited style defaults and mixed baselines are not established."
+}

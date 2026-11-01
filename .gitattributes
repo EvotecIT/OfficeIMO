@@ -26,6 +26,9 @@ OfficeIMO.Access.Tests/Fixtures/**/manifest.json text eol=lf diff
 
 # Native Publisher producer reports are bound to raw-byte provenance hashes.
 OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/**/native-*.json -text -whitespace
+# Reference payloads include ASCII-only PDFs whose stream/xref offsets are byte-bound.
+OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/**/*.pdf -text -diff
+OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/**/*.pub -text -diff
 
 # DjVu inputs and decoded/text references have manifest-bound producer bytes.
 OfficeIMO.DjVu.Tests/Fixtures/** -text -whitespace

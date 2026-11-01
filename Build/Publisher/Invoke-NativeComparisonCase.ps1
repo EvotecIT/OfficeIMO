@@ -236,6 +236,9 @@ function Get-NativeShapeInventory {
         $text = $null
         $font = $null
         $languageId = $null
+        $pairKerningThreshold = $null
+        $manualKerning = $null
+        $fontSizePoints = $null
         $nextLink = $false
         $previousLink = $false
         $frameLayout = $null
@@ -249,6 +252,11 @@ function Get-NativeShapeInventory {
             $text = [string]$range.Text
             $font = [string]$range.Font.Name
             $languageId = [int]$range.LanguageID
+            $fontProperties = $range.Font
+            $objects.Add($fontProperties)
+            $pairKerningThreshold = [double]$fontProperties.AutomaticPairKerningThreshold
+            $manualKerning = [double]$fontProperties.Kerning
+            $fontSizePoints = [double]$fontProperties.Size
             $nextLink = $frame.HasNextLink -eq -1
             $previousLink = $frame.HasPreviousLink -eq -1
             $frameLayout = [pscustomobject]@{
@@ -285,6 +293,9 @@ function Get-NativeShapeInventory {
             text = $text
             font = $font
             languageId = $languageId
+            automaticPairKerningThresholdPoints = $pairKerningThreshold
+            manualKerningPoints = $manualKerning
+            fontSizePoints = $fontSizePoints
             nextLink = $nextLink
             previousLink = $previousLink
             frameLayout = $frameLayout

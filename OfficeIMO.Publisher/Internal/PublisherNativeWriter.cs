@@ -171,8 +171,8 @@ internal sealed partial class PublisherNativeWriter {
         }
         void Fixed(double prior, double value, ushort property, double scale) {
             if (prior == value) return;
-            double scaled = value * scale;
-            if (scaled < 0 || scaled > int.MaxValue || scaled != Math.Round(scaled)) {
+            double scaled = Math.Round(value * scale);
+            if (scaled < 0 || scaled > int.MaxValue || value != scaled / scale) {
                 Reject("Contents/object/" + id, "The solid paint value has no exact native scalar representation."); return;
             }
             Scalar(property, (uint)scaled);

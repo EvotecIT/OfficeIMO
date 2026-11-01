@@ -70,7 +70,7 @@ still consume the image-processing byte budget.
 | Document pages | Native order, physical size and page clipping, including empty physical pages | Master and utility roles follow the ordered native reference array and its role boundaries; malformed boundaries are rejected |
 | Master pages | Recovered definitions applied to referring pages | Missing references report omission; nested master inheritance is unassessed |
 | Text | UTF-16 stories, styled paragraphs, referenced native style values, explicit reciprocal links or complete native story/frame catalog bindings, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; source style pairs and use ranges are retained internally, while names, builtin selectors and auxiliary inheritance metadata remain unassessed |
-| Character formatting | Native font names, size, referenced color, bold/italic, strikethrough, superscript/subscript and none, single, words-only, double, dotted, dashed and wavy underlines | Native underline weight, long-dash, compound and unknown patterns use the closest shared pattern with `PUB_TEXT_UNDERLINE_APPROXIMATED`. Font availability, exact metrics and decoration geometry remain separate rendering limits |
+| Character formatting | Native font names, size, referenced color, bold/italic, strikethrough, superscript/subscript, pair-kerning threshold metadata and none, single, words-only, double, dotted, dashed and wavy underlines | Shared rendering does not yet apply the native kerning threshold. Native underline weight, long-dash, compound and unknown patterns use the closest shared pattern with `PUB_TEXT_UNDERLINE_APPROXIMATED`. Font availability, exact metrics and decoration geometry remain separate rendering limits |
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs; complete tabbed lines follow recovered center/right paragraph alignment | Numbering sequences, additional per-stop alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval. Native font metrics and exact tabbed-line positions remain separate rendering limits |
 | Tables | `PublisherPage.Tables` exposes current tracks, spans, styled paragraphs, text and placement; qualified anchor-cell text edits preserve complete story partitions, and qualified bounds edits scale tracks proportionally; master tables remain on their master | Separate `CanEditCellText`/`CanEditBounds` and limitation properties identify supported operations. Unavailable frame geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`; individual cell borders, fills and padding are unassessed |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
@@ -610,6 +610,42 @@ the two baseline page-one comparisons retain a native hyphenation and column-bre
 difference. Every edited output matches its independent control. Native column
 balancing, general layout parity, repair-free opening and generic public native
 creation remain unqualified.
+
+### Native pair-kerning metadata
+
+`OfficeRichTextRun.AutomaticPairKerningThreshold` exposes a recovered native
+threshold in points. `WithAutomaticPairKerningThreshold(double?)` returns an
+independent run for explicit source edits. Zero disables native pair kerning;
+null leaves the selected native definition unchanged when saving. A missing
+stored threshold remains null rather than being replaced with an assumed
+application default. Direct and selected-style values use the existing native
+style resolver; broader style-default producer profiles remain unqualified.
+
+The scalar writer accepts finite values from 0 through 999.5 points that are
+exactly representable in 1/12700-point units. It preserves other OPL fields,
+complete stories, neighboring stories and compound streams. The same explicit
+request handling covers retained body runs and typing CRs in the qualified
+ordinary-story and table-cell edit profiles. Unrecognized source token types or
+out-of-range source values remain opaque, report
+`PUB_TEXT_KERNING_UNASSESSED`, and refuse explicit threshold rewriting even when
+loss is allowed. An unspecified replacement preserves them.
+
+The [TextPairKerning controls](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextPairKerning/provenance.json)
+are source-derived edits of the independent hyphenation specimen, followed by
+native save/reopen. With Arial 12 pt, native thresholds 8 and 12 produce the same
+pages; thresholds 0 and 14 produce the same pages. The groups differ on six of
+15 pages. These controls establish inclusive activation at font size equal to
+the threshold, with zero disabled. Native save removes the 14-point field in
+this observed default profile. Six public source edits additionally retain
+native getters at 0, 8, 8.2, 12.5, 14 and 999.5 points at native Single precision.
+The 8.2-point case also retains the requested font size through native save and
+reopen. All 67 native initial/resaved page pairs agree at 144 dpi across eleven
+Full validation runs of these ten inputs.
+
+Shared run snapshots and linked-flow paragraph projections retain the metadata.
+Shared rich-text measurement and glyph rendering do not yet apply it. Native
+repair-free opening, other application defaults, inherited-default activation,
+mixed baselines and managed/native kerning geometry remain unqualified.
 
 The `nativeLanguageFeasibility` record isolates the language-dependent native
 layout gap. Scratch variants adding character property `0x12` with language ID

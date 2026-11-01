@@ -108,5 +108,5 @@ public sealed partial class OfficeDrawing {
     private static OfficeRichTextRun TintRichTextRun(OfficeRichTextRun run, OfficeColor tint) => new OfficeRichTextRun(
         run.Text, run.FontSize, WithTint(run.Color, tint), run.Bold, run.Italic, run.Underline,
         run.FontFamily, run.Strikethrough, run.BackgroundColor.HasValue ? WithTint(run.BackgroundColor.Value, tint) : null,
-        run.UnderlineStyle, run.StrikethroughStyle, run.Baseline, run.ParagraphIndent) { LanguageId = run.LanguageId, LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName };
+        run.UnderlineStyle, run.StrikethroughStyle, run.Baseline, run.ParagraphIndent) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold, LanguageId = run.LanguageId, LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName };
 }

@@ -65,8 +65,7 @@ internal static partial class PublisherQuillParagraphWriter {
             // A retained empty CR must survive even when other paragraphs are
             // newly authored; uniform formatting does not establish its identity.
             if (retainedEmpty is { } retained) {
-                terminator = runs[0].LanguageId is uint language && retained.Run.LanguageId != language
-                    ? PublisherQuillCharacterStyleWriter.RewriteLanguage(retained.Bytes, language, context) : retained.Bytes;
+                terminator = PublisherQuillCharacterStyleWriter.RewriteExplicitAttributes(retained.Bytes, retained.Run, runs[0], context);
             }
             else if (runs.Count == 0) terminator = Copy(ending);
             else {

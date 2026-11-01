@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.Internal;
 
-/// <summary>Compares projected text and visual style templates; explicit language requests are separate from opaque source correspondence.</summary>
+/// <summary>Compares projected text and visual style templates; explicit native attribute requests are separate from opaque source correspondence.</summary>
 internal static class PublisherTextComparison {
     internal static IEqualityComparer<OfficeRichTextParagraph> Paragraphs { get; } = new ParagraphComparer();
     /// <summary>Matches editable visual formatting while allowing run text to change. Native language and other source-token differences are checked by template correspondence.</summary>
@@ -14,8 +14,8 @@ internal static class PublisherTextComparison {
     internal static bool StoryEqual(PublisherTextStory a, PublisherTextStory b) => ReferenceEquals(a, b)
         || a.Id == b.Id && a.Text == b.Text && a.HasFinalParagraphTerminator == b.HasFinalParagraphTerminator
         && a.Paragraphs.Count == b.Paragraphs.Count && a.Paragraphs.Zip(b.Paragraphs, (before, after) =>
-            ParagraphEqual(before, after) && !before.Runs.Zip(after.Runs, PublisherQuillCharacterStyleWriter.HasLanguageChange).Any(value => value)
-            && (before.Label == null || after.Label == null || !PublisherQuillCharacterStyleWriter.HasLanguageChange(before.Label.Run, after.Label.Run))).All(value => value);
+            ParagraphEqual(before, after) && !before.Runs.Zip(after.Runs, PublisherQuillCharacterStyleWriter.HasExplicitAttributeChange).Any(value => value)
+            && (before.Label == null || after.Label == null || !PublisherQuillCharacterStyleWriter.HasExplicitAttributeChange(before.Label.Run, after.Label.Run))).All(value => value);
     internal static bool ParagraphEqual(OfficeRichTextParagraph a, OfficeRichTextParagraph b) => ReferenceEquals(a, b)
         || ParagraphFormattingEqual(a, b)
         && a.Runs.Count == b.Runs.Count && a.Runs.Zip(b.Runs, RunEqual).All(value => value);

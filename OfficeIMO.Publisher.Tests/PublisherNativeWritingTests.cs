@@ -144,6 +144,32 @@ public sealed class PublisherNativeWritingTests {
     }
 
     [Theory]
+    [InlineData("8.2", true)]
+    [InlineData("0.00001", false)]
+    public void Stroke_width_uses_exact_native_point_values_and_refuses_off_grid_requests(string widthText, bool representable) {
+        double width = double.Parse(widthText, System.Globalization.CultureInfo.InvariantCulture);
+        byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/Rectangle/native-rectangle.pub"));
+        PublisherDocument document = PublisherDocument.Load(source);
+        PublisherShape shape = Assert.Single(document.Pages[0].Shapes);
+        PublisherNativeShapeBinding binding = Artwork(Compound(source)).Shapes.Single(item => item.Id == shape.Id).NativeBinding!;
+        Assert.Single(binding.Properties, slot => slot.Id == 0x01CB && (slot.RawOperationId & 0xC000) == 0);
+        OfficeShape prior = shape.CreateShape();
+        document.SetShapePaint(shape.Id, prior.FillColor, prior.StrokeColor, width, prior.FillOpacity ?? 1, prior.StrokeOpacity ?? 1);
+        if (!representable) {
+            Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+            return;
+        }
+        byte[] output = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        AssertPreservedStorage(source, output);
+        PublisherShape saved = Assert.Single(PublisherDocument.Load(output).Pages[0].Shapes);
+        Assert.Equal(8.2, saved.CreateShape().StrokeWidth);
+        Assert.Equal((prior.FillColor, prior.StrokeColor, prior.FillOpacity, prior.StrokeOpacity),
+            (saved.CreateShape().FillColor, saved.CreateShape().StrokeColor, saved.CreateShape().FillOpacity, saved.CreateShape().StrokeOpacity));
+        PublisherNativePropertySlot slot = Assert.Single(Artwork(Compound(output)).Shapes.Single(item => item.Id == shape.Id).NativeBinding!.Properties, value => value.Id == 0x01CB);
+        Assert.Equal(104140U, slot.Value.Original);
+    }
+
+    [Theory]
     [InlineData("missing-opacity")]
     [InlineData("visibility")]
     [InlineData("alpha")]

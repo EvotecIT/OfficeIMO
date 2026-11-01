@@ -130,7 +130,7 @@ internal sealed partial class PublisherNativeWriter {
                 if (b.Runs[index].Text.Length == 0
                     || !RunPreservedFormattingEqual(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index])) return false;
                 extended |= PublisherQuillCharacterStyleWriter.HasExtendedChanges(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index])
-                    || PublisherQuillCharacterStyleWriter.HasLanguageChange(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index]);
+                    || PublisherQuillCharacterStyleWriter.HasExplicitAttributeChange(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index]);
             }
         }
         return true;

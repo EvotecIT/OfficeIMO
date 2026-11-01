@@ -50,7 +50,7 @@ internal sealed class PublisherQuillStyles {
             style.Italic ?? DefaultCharacter.Italic ?? false, fontFamily: family,
             strikethrough: style.Strikethrough ?? DefaultCharacter.Strikethrough ?? false,
             underlineStyle: style.UnderlineStyle ?? DefaultCharacter.UnderlineStyle ?? OfficeTextDecorationStyle.None,
-            baseline: style.Baseline ?? DefaultCharacter.Baseline ?? OfficeTextBaseline.Normal) { LanguageId = style.LanguageId };
+            baseline: style.Baseline ?? DefaultCharacter.Baseline ?? OfficeTextBaseline.Normal) { AutomaticPairKerningThreshold = style.AutomaticPairKerningThreshold, LanguageId = style.LanguageId };
     }
     internal PublisherQuillStoryStyles BindStory(uint id, int ordinal, int start, string raw, int textOffset) {
         int end = checked(start + raw.Length);
@@ -94,6 +94,7 @@ internal sealed class PublisherQuillStyles {
 internal sealed class PublisherCharacterStyle {
     public uint? LanguageId { get; internal set; }
     public double? Size { get; internal set; }
+    public double? AutomaticPairKerningThreshold { get; internal set; }
     public uint? Font { get; internal set; }
     public uint? Color { get; internal set; }
     public bool? Bold { get; internal set; }
@@ -105,7 +106,8 @@ internal sealed class PublisherCharacterStyle {
         Size = Size ?? fallback.Size, Font = Font ?? fallback.Font, Color = Color ?? fallback.Color,
         Bold = Bold ?? fallback.Bold, Italic = Italic ?? fallback.Italic, Strikethrough = Strikethrough ?? fallback.Strikethrough,
         UnderlineStyle = UnderlineStyle ?? fallback.UnderlineStyle,
-        Baseline = Baseline ?? fallback.Baseline, LanguageId = LanguageId ?? fallback.LanguageId
+        Baseline = Baseline ?? fallback.Baseline, LanguageId = LanguageId ?? fallback.LanguageId,
+        AutomaticPairKerningThreshold = AutomaticPairKerningThreshold ?? fallback.AutomaticPairKerningThreshold
     };
 }
 internal sealed class PublisherCharacterRange {

@@ -308,3 +308,11 @@ separate native character boundaries from visible run boundaries. Table edits
 use the first/final cells with unchanged neighbors. Reload proof compares text
 and effective formatting per position; native records may retain multiple
 visibly identical runs.
+
+`TextPairKerning` contains four source-derived controls made from the independent
+`TextHyphenation` publication. Only the direct native threshold field is changed
+before native save/reopen. Thresholds 0, 8, 12 and 14 points distinguish disabled,
+below-size, equal-size and above-size kerning in Arial 12 pt. Publisher removes
+the observed 14-point default when saving. These files qualify scalar recovery
+and source editing; managed threshold-aware rendering remains open. Their
+provenance records the exact source and retained file hashes.

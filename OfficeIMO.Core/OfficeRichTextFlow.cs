@@ -117,7 +117,7 @@ internal sealed class OfficeRichTextFlow {
                 runs.Add(new OfficeRichTextRun(run.Text.Substring(left - position, right - left),
                     run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily,
                     run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle,
-                    run.Baseline, indent) { LanguageId = run.LanguageId, LinkUri = run.LinkUri });
+                    run.Baseline, indent) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold, LanguageId = run.LanguageId, LinkUri = run.LinkUri });
             }
             position = next;
         }
@@ -128,7 +128,7 @@ internal sealed class OfficeRichTextFlow {
             foreach (OfficeRichTextRun run in source.Runs)
                 runs.Add(new OfficeRichTextRun(string.Empty, run.FontSize, run.Color, run.Bold, run.Italic,
                     run.Underline, run.FontFamily, run.Strikethrough, run.BackgroundColor,
-                    run.UnderlineStyle, run.StrikethroughStyle, run.Baseline) { LanguageId = run.LanguageId });
+                    run.UnderlineStyle, run.StrikethroughStyle, run.Baseline) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold, LanguageId = run.LanguageId });
         }
         var margins = new OfficeTextPadding(source.Margins.Left, start == 0 ? source.Margins.Top : 0,
             source.Margins.Right, complete ? source.Margins.Bottom : 0);

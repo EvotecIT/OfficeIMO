@@ -48,7 +48,7 @@ public sealed partial class OfficeDrawing {
                 characters += value.Length;
                 var copy = OfficeRichTextParagraph.CopyRun(label.Run);
                 runs.Add(new OfficeRichTextRun(value, copy.FontSize, copy.Color, copy.Bold, copy.Italic, copy.Underline, copy.FontFamily,
-                    copy.Strikethrough, copy.BackgroundColor, copy.UnderlineStyle, copy.StrikethroughStyle, copy.Baseline) { LanguageId = copy.LanguageId, LinkUri = copy.LinkUri, LinkDestinationName = copy.LinkDestinationName });
+                    copy.Strikethrough, copy.BackgroundColor, copy.UnderlineStyle, copy.StrikethroughStyle, copy.Baseline) { AutomaticPairKerningThreshold = copy.AutomaticPairKerningThreshold, LanguageId = copy.LanguageId, LinkUri = copy.LinkUri, LinkDestinationName = copy.LinkDestinationName });
             }
             foreach (OfficeRichTextRun run in paragraph.Runs) {
                 if (runs.Count >= OfficeTextLayoutEngine.MaximumLayoutTextRuns || run.Text.Length > OfficeTextLayoutEngine.MaximumLayoutTextCharacters - characters)

@@ -95,6 +95,10 @@ internal sealed partial class PublisherQuillStyleReader {
                     if (field.Type == 0x22 && field.Value <= ushort.MaxValue) result.LanguageId = field.Value;
                     else _context.Add("PUB_TEXT_LANGUAGE_UNASSESSED", "The native character language token is outside the qualified 16-bit scalar profile and remains opaque.", OfficeConversionLossKind.Unassessed, "Quill/language");
                     break;
+                case 0x18:
+                    if (field.Type == 0x22 && field.Value <= 12700 * 999.5D) result.AutomaticPairKerningThreshold = field.Value / 12700D;
+                    else _context.Add("PUB_TEXT_KERNING_UNASSESSED", "The native pair-kerning threshold is outside the qualified scalar profile and remains opaque.", OfficeConversionLossKind.Unassessed, "Quill/kerning");
+                    break;
                 case 0x1E: result.UnderlineStyle = ReadUnderline(field.Value); break;
                 case 0x0C: case 0x39:
                     if (field.Value == 0 || field.Value > 12700 * 1000) throw new InvalidDataException("Invalid Publisher font size.");

@@ -12,6 +12,11 @@ internal static partial class PublisherQuillCharacterStyleWriter {
         OfficeRichTextRun before, OfficeRichTextRun after, PublisherParseContext context, PublisherQuillWriteResources? resources) {
         var blocks = new PublisherBlockReader(source, context);
         var changes = new SortedDictionary<byte, byte[]>();
+        if (HasKerningChange(before, after)) {
+            byte[]? field = KerningField(fields, after.AutomaticPairKerningThreshold!.Value);
+            if (field == null) return null;
+            changes.Add(0x18, field);
+        }
         // Unspecified language keeps source overrides; it is not a request to
         // clear native inheritance or rewrite the opaque companion field.
         if (after.LanguageId is uint language && before.LanguageId != language) {
