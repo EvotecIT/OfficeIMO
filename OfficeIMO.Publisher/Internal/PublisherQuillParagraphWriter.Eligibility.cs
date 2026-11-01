@@ -29,6 +29,7 @@ internal static partial class PublisherQuillParagraphWriter {
             OfficeRichTextParagraph a = before.Paragraphs[reshape ? 0 : paragraph], b = after.Paragraphs[paragraph];
             bool empty = b.Runs.Count == 0 || b.Runs.Count == 1 && b.Runs[0].Text.Length == 0;
             bool content = !empty && !PublisherTextComparison.ParagraphTexts.Equals(a, b) && PublisherTextComparison.ParagraphContent.Equals(a, b);
+            if (!reshape && a.Runs.Count > 1 && a.Runs.Count != b.Runs.Count && CanReplaceText(a, b)) { extended = true; continue; }
             if (a.Runs.Count < 1 || !empty && !content && a.Runs.Count != 1 && a.Runs.Count != b.Runs.Count
                 || a.Label != null || b.Label != null) return false;
             if (content && a.Runs.Count > 1) { extended = true; continue; }

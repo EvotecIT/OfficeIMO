@@ -9,29 +9,29 @@ internal static partial class PublisherQuillCharacterStyleWriter {
         || before.StrikethroughStyle != after.StrikethroughStyle || before.Baseline != after.Baseline;
 
     private static SortedDictionary<byte, byte[]>? ExtendedFields(PublisherBinaryData source, IReadOnlyList<PublisherBlock> fields,
-        OfficeRichTextRun before, OfficeRichTextRun after, PublisherParseContext context, PublisherQuillWriteResources? resources) {
+        OfficeRichTextRun before, OfficeRichTextRun after, PublisherParseContext context, PublisherQuillWriteResources? resources, bool replaceFormatting) {
         var blocks = new PublisherBlockReader(source, context);
         var changes = new SortedDictionary<byte, byte[]>();
-        if (HasKerningChange(before, after)) {
+        if (HasKerningChange(before, after) || replaceFormatting && after.AutomaticPairKerningThreshold.HasValue) {
             byte[]? field = KerningField(fields, after.AutomaticPairKerningThreshold!.Value);
             if (field == null) return null;
             changes.Add(0x18, field);
         }
         // Unspecified language keeps source overrides; it is not a request to
         // clear native inheritance or rewrite the opaque companion field.
-        if (after.LanguageId is uint language && before.LanguageId != language) {
+        if (after.LanguageId is uint language && (replaceFormatting || before.LanguageId != language)) {
             if (!LanguageFieldIsQualified(fields)) return null;
             changes.Add(0x12, UInt32(0x12, language));
         }
-        if (before.Italic != after.Italic) {
+        if (replaceFormatting || before.Italic != after.Italic) {
             if (!Flag(3) || fields.Any(field => field.Id == 0x38)) return null;
             changes.Add(3, Boolean(3, after.Italic));
         }
-        if (before.StrikethroughStyle != after.StrikethroughStyle) {
+        if (replaceFormatting || before.StrikethroughStyle != after.StrikethroughStyle) {
             if (!Flag(0x10) || after.StrikethroughStyle is not (OfficeTextDecorationStyle.None or OfficeTextDecorationStyle.Single)) return null;
             changes.Add(0x10, Boolean(0x10, after.Strikethrough));
         }
-        if (before.UnderlineStyle != after.UnderlineStyle) {
+        if (replaceFormatting || before.UnderlineStyle != after.UnderlineStyle) {
             if (!Scalar(0x1E, 0x12)) return null;
             ushort value = after.UnderlineStyle switch {
                 OfficeTextDecorationStyle.None => 0, OfficeTextDecorationStyle.Single => 1, OfficeTextDecorationStyle.Words => 2,
@@ -41,15 +41,15 @@ internal static partial class PublisherQuillCharacterStyleWriter {
             if (value == ushort.MaxValue) return null;
             changes.Add(0x1E, UInt16(0x1E, value));
         }
-        if (before.Baseline != after.Baseline) {
+        if (replaceFormatting || before.Baseline != after.Baseline) {
             if (!Scalar(0x0F, 0x12)) return null;
             changes.Add(0x0F, UInt16(0x0F, (ushort)after.Baseline));
         }
-        if (before.FontFamily != after.FontFamily) {
+        if (replaceFormatting || before.FontFamily != after.FontFamily) {
             if (resources == null || !FontField() || !resources.Font(after.FontFamily, out uint index)) return null;
             changes.Add(0x24, Nested(0x24, 0x8A, ScriptIds.Select(id => Nested(id, 0x88, FontIndex((ushort)index))).ToArray()));
         }
-        if (before.Color != after.Color) {
+        if (replaceFormatting || before.Color != after.Color) {
             if (resources == null || !ColorFields() || !resources.Color(after.Color, out uint index)) return null;
             changes.Add(0x44, Nested(0x44, 0x8A, UInt32(0, index)));
             changes.Add(0x58, Nested(0x58, 0x8A, UInt16(0, 1), UInt32(1, index), UInt32(2, 100000)));

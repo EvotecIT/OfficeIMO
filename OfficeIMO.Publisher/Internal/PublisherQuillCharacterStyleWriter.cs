@@ -5,15 +5,24 @@ namespace OfficeIMO.Publisher.Internal;
 /// <summary>Changes supported direct character fields, retaining every unrelated source token verbatim.</summary>
 internal static partial class PublisherQuillCharacterStyleWriter {
     internal static byte[]? Rewrite(PublisherBinaryData source, PublisherQuillSourceSpan span,
-        OfficeRichTextRun before, OfficeRichTextRun after, PublisherParseContext context, PublisherQuillWriteResources? resources = null) {
-        bool size = before.FontSize != after.FontSize, bold = before.Bold != after.Bold;
-        if (!size && !bold && !HasExtendedChanges(before, after) && !HasExplicitAttributeChange(before, after)) {
+        OfficeRichTextRun before, OfficeRichTextRun after, PublisherParseContext context, PublisherQuillWriteResources? resources = null) =>
+        RewriteCore(source, span, before, after, context, resources, false);
+
+    /// <summary>Replaces supported visible settings when old characters have no positional correspondence; nullable attributes remain preserve requests.</summary>
+    internal static byte[]? RewriteReplacement(PublisherBinaryData source, PublisherQuillSourceSpan span,
+        OfficeRichTextRun before, OfficeRichTextRun after, PublisherParseContext context, PublisherQuillWriteResources? resources) =>
+        RewriteCore(source, span, before, after, context, resources, true);
+
+    private static byte[]? RewriteCore(PublisherBinaryData source, PublisherQuillSourceSpan span,
+        OfficeRichTextRun before, OfficeRichTextRun after, PublisherParseContext context, PublisherQuillWriteResources? resources, bool replaceFormatting) {
+        bool size = replaceFormatting || before.FontSize != after.FontSize, bold = replaceFormatting || before.Bold != after.Bold;
+        if (!replaceFormatting && !size && !bold && !HasExtendedChanges(before, after) && !HasExplicitAttributeChange(before, after)) {
             var copy = new byte[span.Length];
             Buffer.BlockCopy(source.Bytes, span.Offset, copy, 0, span.Length);
             return copy;
         }
         var fields = new PublisherBlockReader(source, context).Chunk(span.Offset, span.Offset + span.Length);
-        SortedDictionary<byte, byte[]>? extended = ExtendedFields(source, fields, before, after, context, resources);
+        SortedDictionary<byte, byte[]>? extended = ExtendedFields(source, fields, before, after, context, resources, replaceFormatting);
         if (extended == null) return null;
         PublisherBlock[] sizes = fields.Where(field => field.Id == 0x0C).ToArray();
         PublisherBlock[] bolds = fields.Where(field => field.Id == 2).ToArray();

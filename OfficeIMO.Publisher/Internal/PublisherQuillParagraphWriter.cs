@@ -37,6 +37,21 @@ internal static partial class PublisherQuillParagraphWriter {
             OfficeRichTextParagraph oldParagraph = before.Paragraphs[paragraphIndex], newParagraph = after.Paragraphs[paragraphIndex];
             bool resegment = !PublisherTextComparison.ParagraphTexts.Equals(oldParagraph, newParagraph)
                 && PublisherTextComparison.ParagraphContent.Equals(oldParagraph, newParagraph);
+            if (oldRuns.Count > 1 && oldRuns.Count != newRuns.Count && CanReplaceText(oldParagraph, newParagraph)) {
+                if (!TryPlanReplacementRanges(data, context, characters, originalPosition, oldParagraph, newParagraph, token, resources, out var replacement)) return false;
+                PublisherQuillStyleUse? originalCr = FindCharacter(checked(originalPosition + oldLength), 1);
+                if (originalCr == null) return false;
+                foreach (var range in replacement) AppendRange(pc, checked(position + range.AbsoluteEnd), range.Style);
+                position = checked(position + newRuns.Sum(r => r.Text.Length) * 2 + 2);
+                byte[]? ending = PublisherQuillCharacterStyleWriter.Rewrite(data, originalCr.Value.DirectDefinition,
+                    oldRuns[oldRuns.Count - 1], newRuns[newRuns.Count - 1], context, resources);
+                byte[]? paragraphStyle = PublisherQuillParagraphStyleWriter.Rewrite(data, paragraph.DirectDefinition, oldParagraph, newParagraph, context);
+                if (ending == null || paragraphStyle == null) return false;
+                AppendRange(pc, position, ending);
+                pp.Add(new PublisherQuillFormattingRange(position, paragraphStyle));
+                originalPosition = checked(originalPosition + oldLength + 1);
+                continue;
+            }
             // Preserve the established uniform single-run path. New interval
             // mapping covers merges and native boundaries that it cannot map.
             if (resegment && (oldRuns.Count > 1 || FindCharacter(originalPosition, Math.Max(1, oldLength)) == null)) {
