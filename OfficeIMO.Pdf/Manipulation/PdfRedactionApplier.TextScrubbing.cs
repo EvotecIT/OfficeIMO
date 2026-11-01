@@ -289,7 +289,7 @@ internal static partial class PdfRedactionApplier {
             return Array.Empty<TextObjectRewrite>();
         }
 
-        return EnumerateTextObjectSpans(content, limits)
+        TextObjectRewrite[] rewrites = EnumerateTextObjectSpans(content, limits)
             .Where(span => targetsByIndex.ContainsKey(span.Index))
             .Select(span => {
                 List<RedactionTextTarget> selectedTargets = targetsByIndex[span.Index];
@@ -317,6 +317,7 @@ internal static partial class PdfRedactionApplier {
                 return new TextObjectRewrite(span.Index, span.Length, replacement);
             })
             .ToArray();
+        return ClearAlternateTextAroundRewrites(content, rewrites, limits);
     }
 
     private static List<RedactionTextObject> CollectTextObjects(

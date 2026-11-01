@@ -2278,7 +2278,7 @@ Console.WriteLine(redacted.Evidence.Summary);
 
 `Evidence.Items` records a verified-absent, residual, or inconclusive outcome for every reviewed match. The report also exposes source/output hashes, residual matches, verification details, and affected page numbers. A UI can pass those page numbers to the existing page renderer for before/after previews without making rendering part of the redaction contract.
 
-Redaction search, matching, and verification include artifact text, including painted headers and footers, regardless of `PdfLoadOptions.IncludeArtifactText`. Ordinary reading still omits artifacts by default. Page limits also apply to artifact text. Unsupported glyph mappings produce a blocked plan rather than verified removal.
+Redaction search, matching, and verification include artifact text, including painted headers and footers, regardless of `PdfLoadOptions.IncludeArtifactText`. Ordinary reading still omits artifacts by default. Page limits also apply to artifact text. Unsupported glyph mappings produce a blocked plan rather than verified removal. Removing content also clears `ActualText` and `Alt` from the marked-content section around it, and a search is blocked while its term remains in a comment or after `%%EOF`.
 
 `MatchCase` applies to every copy a search reaches, including alternate text, annotations, form values and metadata, so a copy in different case stays when `MatchCase` is true.
 

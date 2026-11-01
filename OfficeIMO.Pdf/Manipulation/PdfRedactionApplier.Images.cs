@@ -46,7 +46,7 @@ internal static partial class PdfRedactionApplier {
 
                 byte[] contentBytes = StreamDecoder.DecodeRequired(stream, objects, maximumDecodedStreamBytes);
                 string content = PdfEncoding.Latin1GetString(contentBytes);
-                string scrubbed = RemoveImageInvocations(content, wholeImageTargets, pageXObjects, objects, contentState, out IReadOnlyList<ImageRedactionTarget> removedTargets);
+                string scrubbed = RemoveImageInvocations(content, wholeImageTargets, pageXObjects, objects, contentState, limits, out IReadOnlyList<ImageRedactionTarget> removedTargets);
                 if (string.Equals(content, scrubbed, StringComparison.Ordinal)) {
                     continue;
                 }
@@ -176,6 +176,7 @@ internal static partial class PdfRedactionApplier {
         int maximumDecodedStreamBytes = limits.MaxDecodedStreamBytes;
         bool changed = false;
         string rewrittenContent = content;
+        var changedInvocations = new HashSet<string>(StringComparer.Ordinal);
         ImageResourceInvocation[] invocations = ExtractImageResourceInvocations(content, graphicsState);
         for (int invocationIndex = invocations.Length - 1; invocationIndex >= 0; invocationIndex--) {
             ImageResourceInvocation invocation = invocations[invocationIndex];
@@ -202,6 +203,7 @@ internal static partial class PdfRedactionApplier {
                 try {
                     if (ScrubImageForm(objects, resources, reference, formStream, targets, invocationTransform, referenceCounts, activeForms, removedMatches, limits, ref nextObjectNumber).HasChanges) {
                         rewrittenContent = ReplaceInvocationResourceName(rewrittenContent, invocation, resourceName);
+                        changedInvocations.Add(resourceName);
                         changed = true;
                     }
                 } finally {
@@ -225,13 +227,16 @@ internal static partial class PdfRedactionApplier {
                     changed = true;
                 }
 
-                changed = ScrubImageForm(objects, resources, reference, formStream, targets, invocationTransform, referenceCounts, activeForms, removedMatches, limits, ref nextObjectNumber).HasChanges || changed;
+                if (ScrubImageForm(objects, resources, reference, formStream, targets, invocationTransform, referenceCounts, activeForms, removedMatches, limits, ref nextObjectNumber).HasChanges) {
+                    changedInvocations.Add(invocation.Name);
+                    changed = true;
+                }
             } finally {
                 activeForms.Remove(activeObjectNumber);
             }
         }
 
-        return new ImagePixelRewriteContentResult(changed, rewrittenContent);
+        return new ImagePixelRewriteContentResult(changed, ClearAlternateTextAroundInvocations(rewrittenContent, changedInvocations, limits));
     }
 
     private static ImagePixelRewriteContentResult ScrubImageForm(
@@ -257,7 +262,7 @@ internal static partial class PdfRedactionApplier {
         PdfDictionary formXObjects = EnsureResourceXObjects(objects, formResources);
         Matrix2D formTransform = ApplyFormMatrix(invocationTransform, formStream.Dictionary);
         string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream, objects, maximumDecodedStreamBytes));
-        string scrubbed = RemoveImageInvocations(formContent, targets, formXObjects, objects, new ImageContentGraphicsState(formTransform), out IReadOnlyList<ImageRedactionTarget> removedTargets);
+        string scrubbed = RemoveImageInvocations(formContent, targets, formXObjects, objects, new ImageContentGraphicsState(formTransform), limits, out IReadOnlyList<ImageRedactionTarget> removedTargets);
         bool changed = false;
 
         if (!string.Equals(formContent, scrubbed, StringComparison.Ordinal)) {
@@ -286,6 +291,7 @@ internal static partial class PdfRedactionApplier {
         PdfDictionary? xObjects,
         Dictionary<int, PdfIndirectObject> objects,
         ImageContentGraphicsState graphicsState,
+        PdfReadLimits limits,
         out IReadOnlyList<ImageRedactionTarget> removedTargets) {
         var ranges = new List<RemovalRange>();
         var removed = new List<ImageRedactionTarget>();
@@ -389,7 +395,7 @@ internal static partial class PdfRedactionApplier {
         }
 
         removedTargets = removed.AsReadOnly();
-        return RemoveRanges(content, ranges);
+        return RemoveRanges(content, ranges, limits);
     }
 
     private static bool TryGetImageTarget(
@@ -704,18 +710,13 @@ internal static partial class PdfRedactionApplier {
         return changed;
     }
 
-    private static string RemoveRanges(string content, List<RemovalRange> ranges) {
+    private static string RemoveRanges(string content, List<RemovalRange> ranges, PdfReadLimits limits) {
         if (ranges.Count == 0) {
             return content;
         }
 
-        ranges.Sort((left, right) => right.Start.CompareTo(left.Start));
-        var builder = new System.Text.StringBuilder(content);
-        for (int i = 0; i < ranges.Count; i++) {
-            builder.Remove(ranges[i].Start, ranges[i].End - ranges[i].Start);
-        }
-
-        return builder.ToString();
+        return RewriteTextObjectSpans(content, 0, ClearAlternateTextAroundRewrites(content,
+            ranges.Select(static range => new TextObjectRewrite(range.Start, range.End - range.Start, string.Empty)).ToArray(), limits));
     }
 
     private static void SkipWhiteSpace(string content, ref int index) {

@@ -78,10 +78,12 @@ internal static partial class PdfRedactionApplier {
         int maximumDecodedStreamBytes = limits.MaxDecodedStreamBytes;
         bool changed = false;
         string rewrittenContent = content;
+        var changedInvocations = new HashSet<string>(StringComparer.Ordinal);
         ImageResourceInvocation[] invocations = ExtractImageResourceInvocations(content, graphicsState);
         for (int invocationIndex = invocations.Length - 1; invocationIndex >= 0; invocationIndex--) {
             ImageResourceInvocation invocation = invocations[invocationIndex];
             Matrix2D invocationTransform = invocation.Transform;
+            string paintedName = invocation.Name;
             if (TryGetImageXObject(objects, xObjects, invocation.Name, out PdfReference imageReference, out PdfStream imageStream)) {
                 if (!TryFindImageTarget(invocation.Name, imageReference.ObjectNumber, invocationTransform, targets, removedMatches, out ImageRedactionTarget target) ||
                     !CanRewriteImagePlacementPixels(invocationTransform)) {
@@ -96,6 +98,7 @@ internal static partial class PdfRedactionApplier {
                     xObjects.Items[resourceName] = imageReference;
                     imageStream = (PdfStream)objects[imageReference.ObjectNumber].Value;
                     rewrittenContent = ReplaceInvocationResourceName(rewrittenContent, invocation, resourceName);
+                    paintedName = resourceName;
                     changed = true;
                 } else if (IsCurrentlySharedReference(objects, referenceCounts, imageReference) &&
                     PdfObjectLookup.TryGet(objects, imageReference, out PdfIndirectObject? sourceIndirect)) {
@@ -107,6 +110,7 @@ internal static partial class PdfRedactionApplier {
 
                 if (TryRewriteImageStreamPixels(objects, resources, invocation.Name, imageReference, imageStream, target, invocationTransform, options, limits, hasEffectiveOutputIntentColorTransform, ref nextObjectNumber)) {
                     AddRemovedImageTargets(new[] { target }, removedMatches, null);
+                    changedInvocations.Add(paintedName);
                     changed = true;
                 }
 
@@ -132,6 +136,7 @@ internal static partial class PdfRedactionApplier {
                     ImagePixelRewriteContentResult repeatedResult = RewriteImagePixelsInForm(objects, resources, formReference, formStream, targets, options, invocationTransform, referenceCounts, activeForms, removedMatches, limits, hasEffectiveOutputIntentColorTransform, ref nextObjectNumber);
                     if (repeatedResult.HasChanges) {
                         rewrittenContent = ReplaceInvocationResourceName(rewrittenContent, invocation, resourceName);
+                        changedInvocations.Add(resourceName);
                         changed = true;
                     }
 
@@ -146,13 +151,16 @@ internal static partial class PdfRedactionApplier {
                     changed = true;
                 }
 
-                changed = RewriteImagePixelsInForm(objects, resources, formReference, formStream, targets, options, invocationTransform, referenceCounts, activeForms, removedMatches, limits, hasEffectiveOutputIntentColorTransform, ref nextObjectNumber).HasChanges || changed;
+                if (RewriteImagePixelsInForm(objects, resources, formReference, formStream, targets, options, invocationTransform, referenceCounts, activeForms, removedMatches, limits, hasEffectiveOutputIntentColorTransform, ref nextObjectNumber).HasChanges) {
+                    changedInvocations.Add(invocation.Name);
+                    changed = true;
+                }
             } finally {
                 activeForms.Remove(activeObjectNumber);
             }
         }
 
-        return new ImagePixelRewriteContentResult(changed, rewrittenContent);
+        return new ImagePixelRewriteContentResult(changed, ClearAlternateTextAroundInvocations(rewrittenContent, changedInvocations, limits));
     }
 
     private static ImagePixelRewriteContentResult RewriteImagePixelsInForm(

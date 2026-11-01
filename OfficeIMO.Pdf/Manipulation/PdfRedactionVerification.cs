@@ -208,6 +208,7 @@ internal static partial class PdfRedactionVerification {
         if (rewrittenPreflight.CanReadLogicalObjects) {
             issues.AddRange(PdfRedactionApplier.FindSearchResidue(redactedPdf, reviewedPlan, readOptions, options.CancellationToken));
             issues.AddRange(PdfRedactionApplier.FindRedactedContentOutsidePages(redactedPdf, reviewedPlan, readOptions, options.CancellationToken));
+            issues.AddRange(PdfRedactionApplier.FindAlternateTextAroundRemovedContent(redactedPdf, reviewedPlan, readOptions, options.CancellationToken));
         }
 
         if (hasResidualText) {

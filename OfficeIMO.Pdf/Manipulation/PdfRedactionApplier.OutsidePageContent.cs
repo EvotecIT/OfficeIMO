@@ -51,8 +51,7 @@ internal static partial class PdfRedactionApplier {
             string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal));
     }
 
-    // Marked content can carry text inline, beside the glyphs rather than in them. Only the property list goes;
-    // the section stays open so its matching EMC still balances.
+    // Marked content can carry text inline, beside the glyphs rather than in them.
     private static string RewriteMarkedContentHoldingMatches(string content, PdfRedactionSearchCriteria[] criteria, PdfReadLimits limits, out bool found) {
         var edits = new List<(int Start, int End)>();
         int previousEnd = 0;
@@ -69,7 +68,7 @@ internal static partial class PdfRedactionApplier {
         var builder = new StringBuilder(content.Length);
         int cursor = 0;
         foreach ((int start, int end) in edits) {
-            builder.Append(content, cursor, start - cursor).Append("/Span BMC");
+            builder.Append(content, cursor, start - cursor).Append(PlainMarkedContent);
             cursor = end;
         }
         return builder.Append(content, cursor, content.Length - cursor).ToString();

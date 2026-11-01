@@ -9,7 +9,7 @@ internal static partial class PdfRedactionApplier {
         Dictionary<int, int> referenceCounts = CountIndirectReferenceUsage(objects); PdfObject currentContents = contentsObject; bool changed = false;
         foreach (PdfReference reference in EnumerateContentReferences(objects, contentsObject).ToArray()) {
             if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) || indirect.Value is not PdfStream stream || stream.DecodingFailed) continue;
-            string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream, objects, GetMutationDecodeLimit(stream, limits, sourceStreamIdentities))); string scrubbed = ScrubIntersectingPaths(content, areas, graphicsStateLineWidths);
+            string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream, objects, GetMutationDecodeLimit(stream, limits, sourceStreamIdentities))); string scrubbed = ScrubIntersectingPaths(content, areas, graphicsStateLineWidths, limits);
             if (string.Equals(content, scrubbed, StringComparison.Ordinal)) continue;
             PdfReference target = reference;
             if (IsSharedReference(referenceCounts, reference)) { target = CloneIndirectObject(objects, reference, indirect, ref nextObjectNumber); ReplacePageContentReference(objects, page, currentContents, reference, target); currentContents = page.Items.TryGetValue("Contents", out PdfObject? updated) ? updated : currentContents; }
@@ -18,7 +18,7 @@ internal static partial class PdfRedactionApplier {
         return changed;
     }
 
-    private static string ScrubIntersectingPaths(string content, PdfRedactionArea[] areas, Dictionary<string, double> graphicsStateLineWidths) {
+    private static string ScrubIntersectingPaths(string content, PdfRedactionArea[] areas, Dictionary<string, double> graphicsStateLineWidths, PdfReadLimits limits) {
         var ranges = new List<RemovalRange>(); var args = new List<ImageContentOperand>(8); var stack = new Stack<(Matrix2D Transform, double LineWidth)>(); Matrix2D ctm = Matrix2D.Identity; double lineWidth = 1D;
         int pathStart = -1; double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue; int index = 0;
         while (index < content.Length) {
@@ -55,7 +55,7 @@ internal static partial class PdfRedactionApplier {
             }
             args.Clear();
         }
-        return RemoveRanges(content, ranges);
+        return RemoveRanges(content, ranges, limits);
     }
 
     private static void StartPath(List<ImageContentOperand> args, ref int pathStart) { if (pathStart < 0 && args.Count > 0) pathStart = args[0].Start; }
