@@ -26163,5 +26163,247 @@
       "Plain printable-ASCII contexts, recorded Arial binary and qualified source profiles only; exact device advances and broader fonts/providers/scripts/baselines/decorations remain open.",
       "Labelled fitting, column balancing, automatic hyphenation, broader linked-story profiles and the remaining PUB00-PUB06 native lifecycle remain open."
     ]
+  },
+  "nativeHyphenationSettings": {
+    "schema": "officeimo.publisher.native-hyphenation-settings.v1",
+    "sourceCommit": "8e040e49f651aa93b2a354b508ebe270a210bf9f",
+    "scope": "Read/edit/save native story automatic-hyphenation and paragraph suppression settings; generated managed display hyphens are separate.",
+    "storyFlag": {
+      "carrier": "Contents story catalog OplQsb field4",
+      "enabled": "qualified omitted default or type0x08",
+      "disabled": "type0x00",
+      "unavailable": "null for missing catalog/entry or unknown encoding",
+      "writer": "ordinary existing stories only; typed model edits preserve text and Quill"
+    },
+    "paragraphFlag": {
+      "carrier": "Quill paragraph field0x1C",
+      "suppressed": "type0x0A",
+      "allowed": "type0x02; native save normalizes to omission",
+      "unassessed": "nullable state stays distinct from false and retains opaque bytes; explicit boolean edits refuse unknown source encodings",
+      "writer": "existing paragraph-style codec and source correspondence"
+    },
+    "nativeRuleEvidence": {
+      "binaryVersion": "16.0.20527.20088",
+      "binarySha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed",
+      "schemaName": "FNoAutoHyph",
+      "logicalId": 540,
+      "descriptor": "0x140b6e920",
+      "qualifiedWireField": "0x1C",
+      "zoneGetter": "0x1403d6910",
+      "zoneGlobal": "0x140b4690a",
+      "zoneScope": "getter reads application-wide state; document carrier and cross-profile default unqualified",
+      "globalOptionsWritten": false
+    },
+    "controls": {
+      "paragraphCounterfactuals": 4,
+      "pagesPerControl": 15,
+      "suppressionChangedPages": 13,
+      "ineffectiveEncodings": [
+        "0x00",
+        "0x08"
+      ],
+      "qualifiedFalseEncoding": "0x02",
+      "qualifiedTrueEncoding": "0x0A",
+      "initialResavedPairs": 60,
+      "allPixelEqual": true,
+      "dpi": 144
+    },
+    "publicWriter": {
+      "cases": [
+        {
+          "case": "story-disabled",
+          "candidateSha256": "87201b5da44c754aca6033525bec527cce300e0bbdbf28bee333a62f2646e605",
+          "reference": "native-paragraph-suppressed.pdf"
+        },
+        {
+          "case": "story-enabled",
+          "candidateSha256": "90c37e959da953d05148a4f1cded76e193877a1265d06c3c8c67ad93ae216d1b",
+          "reference": "native-texthyphenation.pdf"
+        },
+        {
+          "case": "paragraph-suppressed",
+          "candidateSha256": "d71766a00f2e7c064b71da000df2cc9fce7a061a8301a42220ceb2aa313ce354",
+          "reference": "native-paragraph-suppressed.pdf"
+        },
+        {
+          "case": "paragraph-allowed",
+          "candidateSha256": "19e38112b811f83e97fc6713038d157f58ff37069f3acf6f388a58dd0c953cdc",
+          "reference": "native-texthyphenation.pdf"
+        }
+      ],
+      "operationsPerCase": 7,
+      "initialResavedPairs": 60,
+      "referencePairs": 60,
+      "allPixelsEqual": true,
+      "allInputBytesUnchanged": true,
+      "stableSourceOutputBytesMatchQualifiedInputs": true,
+      "dpi": 144
+    },
+    "fixtures": [
+      "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextHyphenation/provenance.json"
+    ],
+    "validation": {
+      "tests": [
+        {
+          "report": "stable-publisher-net10.0",
+          "passed": 1006,
+          "failed": 0
+        },
+        {
+          "report": "stable-publisher-net8.0",
+          "passed": 1006,
+          "failed": 0
+        },
+        {
+          "report": "platform-publisher-net472",
+          "passed": 1006,
+          "failed": 0
+        },
+        {
+          "report": "platform-publisher-net10.0",
+          "passed": 10,
+          "failed": 0
+        },
+        {
+          "report": "platform-publisher-net8.0",
+          "passed": 10,
+          "failed": 0
+        },
+        {
+          "report": "stable-core-net10.0",
+          "passed": 354,
+          "failed": 0
+        },
+        {
+          "report": "stable-core-net8.0",
+          "passed": 354,
+          "failed": 0
+        },
+        {
+          "report": "stable-core-net472",
+          "passed": 354,
+          "failed": 0
+        },
+        {
+          "report": "reader-all",
+          "passed": 93,
+          "failed": 0
+        }
+      ],
+      "readerNetstandard20NonincrementalBuild": "passed; zero warnings/errors",
+      "sourcePSWriteOfficeNet8Build": "passed; zero warnings/errors",
+      "powerShell": {
+        "storyId": 2,
+        "paragraphSuppression": true,
+        "nativeSetting": false,
+        "publisherSha256": "3a078db00734c6b6351f710da97bc8de966f9ac908b8642b8e573f372a8887e9",
+        "exactReloadNoop": true,
+        "coreSha256": "fed473f0298f5b8e50a979563f4d228e16ed1d65961529fc12a2eea5d5871ed1",
+        "sourceTextUnchanged": true,
+        "workflowPages": 15,
+        "runtime": "7.6.9"
+      },
+      "regressionControl": "unknown paragraph flag plus explicit false: failed IsPrepared guard before fix; both false/true pass after nullable-state correction",
+      "broadRegression": "empty native image-only catalog omits count and array; existing image tests failed before correction and full suites pass afterward"
+    },
+    "managedAutomaticHyphenationImplemented": false,
+    "repairFreeQualified": false,
+    "generalOpaquePreservationQualified": false,
+    "limits": [
+      "Managed generated display hyphens and source UTF-16 transport across linked frames remain open.",
+      "Application zone carrier/default and dictionary parity remain unqualified. Existing English patterns differ from native for words including creative.",
+      "No source-free native writer or additional producer-generation support is established by these setting edits.",
+      "PowerShell smoke uses the source-built PS7 module and existing conversion route plus engine API; no new Publisher cmdlets or PS5.1 qualification is claimed."
+    ],
+    "sourceFiles": [
+      {
+        "path": "OfficeIMO.Core/OfficeDrawing.ColorTint.cs",
+        "sha256": "4924acd6aa3d45127ba319f34c65233a30f8fa106c8ec1794590b37ca6c89e88"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextFlow.cs",
+        "sha256": "082ae4b3e0c982505a64143b297c147bf192585d0feb0b9c3cc0bf1b2a3fb507"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextParagraph.cs",
+        "sha256": "371591a1b74d3fbdcd64e68be1500e309e874ca4173ff5ce8be33f985b3f2d7f"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherStoryHyphenationTests.cs",
+        "sha256": "24394b7244fbd5378d742f8f36bd1bec115d393e4cbc08827b64c673bacb527d"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherContentsSourceWriter.cs",
+        "sha256": "c8dbeefc627e6555cb9d17ce1e7877d3415965b4f3f9f7dab1c6ba25a22fead4"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherModelState.cs",
+        "sha256": "4be7282cdaf915e9f042fa00bc50e14e2e81696476b1059f8d61bc20470c2e92"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeReader.cs",
+        "sha256": "3732fd7acb1d0e1f214a9e7538c867c74c1927f1dfbc56d377483aa9c99352de"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.Compare.cs",
+        "sha256": "069d2a628d8af61e79e24f7852b947d2c117ba5db359bdec5830f80c54c80c8d"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.FrameLayout.cs",
+        "sha256": "e830ae882243f8516450583f3a0d342d4aa30ac69beb502063b45d0d0b603411"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.Hyphenation.cs",
+        "sha256": "1a8bf3c404b6ed189ea243235ac1a0c8cb2a7adef3342e3d80ed400cc75430de"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.cs",
+        "sha256": "57578a6f1f64392aeef4aba7c07a66996adcc50a913182939f093a2735feb946"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherParagraphStyle.cs",
+        "sha256": "c6f56083cac8dec579eef28385b4f7925e1e291763e3e16915288b0c6d592fb2"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillKerningProjection.cs",
+        "sha256": "5f1af1db67d0d7d11993fa51039b8208976eabaa7417d583a85c4f4a950b83ad"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphStyleWriter.cs",
+        "sha256": "fcfa66ed3244b78cf4304d695b3674d890c2e6746ff9f27503ad094253894041"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillStyleReader.Paragraphs.cs",
+        "sha256": "3cf440a2fac0af5d198c4998bd0ce3502175ca95e07d6c17a56026c09ee6c190"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillTextReader.cs",
+        "sha256": "276a9eef168069aab9d8f46deb9973080954051da7eaed1fc4f889ab7abe6665"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherStoryEditor.cs",
+        "sha256": "5fbe974ba927d0fc8950ddcc16a29b8685f075d34f0581e2048ff53018bf63c1"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherStoryHyphenation.cs",
+        "sha256": "ed0a2ef36458989b841810b5bf91df068722683c66bb06878b774268e30ab523"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherTableStory.cs",
+        "sha256": "415fa288d1bd689b0ce1c3116fe8da6fd8fc455f95f0714d49bd06ca45164f46"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherTextComparison.cs",
+        "sha256": "0b389f2336443f5a20d2810e63fd2402143b6349bd76c7aadaa0eee407c04530"
+      },
+      {
+        "path": "OfficeIMO.Publisher/PublisherDocument.Editing.cs",
+        "sha256": "74ec543ae3eb743acc4744241957fe1c1896e6c24046b04c0e6037f12483c948"
+      },
+      {
+        "path": "OfficeIMO.Publisher/PublisherTextStory.cs",
+        "sha256": "30121994beed68b68828de3f2decacff71a30025304d5a4be648c9204d136ea9"
+      }
+    ]
   }
 }
