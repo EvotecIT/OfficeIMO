@@ -324,7 +324,7 @@ Describe 'ChartForgeX visual artifacts' {
         } | Out-Null
         New-OfficeExcel -Path $excelPath {
             Add-OfficeExcelSheet -Name Dashboard -Content {
-                $visual | Add-OfficeExcelVisual -Address B2 | Out-Null
+                $visual | Add-OfficeExcelImage -Address B2 | Out-Null
             }
         } | Out-Null
         New-OfficePowerPoint -Path $powerPointPath {

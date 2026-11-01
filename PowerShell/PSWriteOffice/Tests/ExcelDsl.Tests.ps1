@@ -2722,7 +2722,7 @@ Describe 'Excel DSL surface' {
                 Add-OfficeExcelConditionalColorScale -Range 'C2:C4' -StartColor '#FE9' -EndColor '#6A84'
                 Add-OfficeExcelConditionalIconSet -Range 'C2:C4'
                 Add-OfficeExcelChart -Table 'Sales' -Address A6 -Type ColumnClustered -Title 'Sales'
-                Add-OfficeExcelImage -Address 'I1' -Path $imagePath -WidthPixels 64 -HeightPixels 64
+                Add-OfficeExcelImage -Address 'I1' -Path $imagePath -Width 64px -Height 64px
                 Set-OfficeExcelHyperlink -Address 'A2' -Url 'https://example.org' -Display 'Example'
                 Add-OfficeExcelComment -Address 'B2' -Text 'Check sales' -Author Alice -Initials AA
                 $script:contextComments = @(Get-OfficeExcelComment -TextContains sales)
@@ -4303,8 +4303,8 @@ namespace PSWriteOffice.Tests {
                 Set-OfficeExcelCell -Address 'B1' -Value 'Host'
                 Set-OfficeExcelSmartHyperlink -Address 'A2' -Url 'https://datatracker.ietf.org/doc/html/rfc7208'
                 Set-OfficeExcelHostHyperlink -Address 'B2' -Url 'https://learn.microsoft.com/office/open-xml/'
-                Add-OfficeExcelImage -Address 'D2' -Path $imagePath -WidthPixels 32 -HeightPixels 32
-                Add-OfficeExcelImage -Address 'E2' -Path $imagePath -WidthPixels 24 -HeightPixels 24
+                Add-OfficeExcelImage -Address 'D2' -Path $imagePath -Width 32px -Height 32px
+                Add-OfficeExcelImage -Address 'E2' -Path $imagePath -Width 24px -Height 24px
             }
         } | Out-Null
 
@@ -4328,7 +4328,7 @@ namespace PSWriteOffice.Tests {
         $hyperlinks.Count | Should -Be 2
     }
 
-    It 'rejects local file URLs in both Excel image URL commands' {
+    It 'rejects local file URLs before inserting a worksheet image' {
         $path = Join-Path $TestDrive 'DslExcelFileUrlRejected.xlsx'
         $imagePath = New-TestOfficeImageFile -Directory $TestDrive
         $imageUrl = [System.Uri]::new($imagePath).AbsoluteUri
@@ -4336,8 +4336,7 @@ namespace PSWriteOffice.Tests {
 
         $document = Open-OfficeExcel -Path $path
         try {
-            { Add-OfficeExcelImageFromUrl -Document $document -Sheet 'Data' -Address 'A1' -Url $imageUrl } | Should -Throw '*HTTP or HTTPS*'
-            { Add-OfficeExcelImage -Document $document -Sheet 'Data' -Address 'B1' -Url $imageUrl } | Should -Throw '*HTTP or HTTPS*'
+            { Add-OfficeExcelImage -Document $document -Sheet 'Data' -Address 'A1' -Url $imageUrl } | Should -Throw '*HTTP or HTTPS*'
             $document['Data'].Images.Count | Should -Be 0
         } finally {
             $document | Close-OfficeExcel
@@ -4350,8 +4349,8 @@ namespace PSWriteOffice.Tests {
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Images' -Content {
-                Add-OfficeExcelImage -Range 'A1:C3' -Path $imagePath -Name 'RangeLogo' -AltText 'Logo pinned to report header' -Title 'Pinned logo' -Placement MoveAndSize
-                Add-OfficeExcelImage -Address 'E2' -Path $imagePath -ScalePercent 100 -Name 'ScaledLogo' -AltText 'Scaled logo' -RotationDegrees 12
+                Add-OfficeExcelImage -Address 'A1:C3' -Path $imagePath -Name 'RangeLogo' -AltText 'Logo pinned to report header' -Title 'Pinned logo' -Placement MoveAndSize
+                Add-OfficeExcelImage -Address 'E2' -Path $imagePath -Scale 100 -Name 'ScaledLogo' -AltText 'Scaled logo' -Rotation 12
             }
         } | Out-Null
 
@@ -4376,14 +4375,14 @@ namespace PSWriteOffice.Tests {
         $oneCellAnchor.SelectSingleNode(".//*[local-name()='xfrm']").GetAttribute('rot') | Should -Be '720000'
     }
 
-    It 'keeps a single-cell image Range as a two-cell anchor' {
+    It 'keeps an explicit same-cell range as a two-cell image anchor' {
         $path = Join-Path $TestDrive 'DslExcelSingleCellRangeImages.xlsx'
         $imagePath = New-TestOfficeImageFile -Directory $TestDrive
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Images' -Content {
-                Add-OfficeExcelImage -Range B2 -Path $imagePath -Name 'LocalRange' -Placement MoveOnly -EndOffsetXPixels 3 -EndOffsetYPixels 5
-                Add-OfficeExcelImage -Range D4 -Path $imagePath -Name 'FloatingRange' -Placement FreeFloating -EndOffsetXPixels 3 -EndOffsetYPixels 5
+                Add-OfficeExcelImage -Address B2:B2 -Path $imagePath -Name 'LocalRange' -Placement MoveOnly -EndOffsetX 3px -EndOffsetY 5px
+                Add-OfficeExcelImage -Address D4:D4 -Path $imagePath -Name 'FloatingRange' -Placement FreeFloating -EndOffsetX 3px -EndOffsetY 5px
             }
         } | Out-Null
 

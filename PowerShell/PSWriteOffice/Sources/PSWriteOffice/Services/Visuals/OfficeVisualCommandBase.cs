@@ -9,7 +9,7 @@ using PSWriteOffice.Foundation;
 namespace PSWriteOffice.Services.Visuals;
 
 /// <summary>Provides shared, typed ChartForgeX-to-OfficeIMO conversion parameters.</summary>
-public abstract class OfficeVisualCommandBase : PSCmdlet
+public abstract class OfficeVisualCommandBase : AsyncPSCmdlet
 {
     /// <summary>SVG fidelity policy used by OfficeIMO.ChartForgeX.</summary>
     [Parameter(ParameterSetName = "Visual")]

@@ -82,7 +82,7 @@ New-OfficeExcel -Path $path {
             Set-OfficeExcelChartStyle -StyleId 251 -ColorStyleId 10
 
         if (Test-Path $logoPath) {
-            ExcelImage -Path $logoPath -Address 'J1' -WidthPixels 140 -HeightPixels 52 -AltText 'PSWriteOffice operational dashboard logo'
+            ExcelImage -Path $logoPath -Address 'J1' -Width 140px -Height 52px -AltText 'PSWriteOffice operational dashboard logo'
         }
 
         ExcelHeaderFooter -HeaderCenter 'PSWriteOffice operational dashboard' -FooterRight 'Page &P of &N'

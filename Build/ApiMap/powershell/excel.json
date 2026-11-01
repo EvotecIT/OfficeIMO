@@ -6484,6 +6484,12 @@
               "pipeline": "none"
             },
             {
+              "name": "PointsPerPixel",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "MaximumSvgElements",
               "type": "int",
               "mandatory": false,
@@ -6491,7 +6497,7 @@
             },
             {
               "name": "MaximumSvgViewportDimension",
-              "type": "int",
+              "type": "double",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -6612,7 +6618,7 @@
           ]
         }
       ],
-      "notes": "Absorbs Add-OfficeExcelImageFromUrl (Url set) and Add-OfficeExcelVisual (Visual set: ChartForgeX artifacts, OfficeVisualSource, conversion results, SVG). -Address takes a cell (one-cell anchor) or a range such as A1:C15 (two-cell anchor; replaces -Range and -Row/-Column). Geometry takes lengths; without -Width/-Height/-Scale the image keeps its natural size.",
+      "notes": "Absorbs Add-OfficeExcelImageFromUrl (Url set) and Add-OfficeExcelVisual (Visual set: ChartForgeX artifacts, OfficeVisualSource, conversion results, SVG). -Address takes a cell (one-cell anchor) or a range such as A1:C15 (two-cell anchor; replaces -Range and -Row/-Column). Scale is a positive percentage. Geometry takes lengths; without -Width/-Height/-Scale the image keeps its natural size.",
       "examples": [
         {
           "title": "Add a logo",
@@ -16323,7 +16329,7 @@
         "SheetIndex": "Sheet"
       },
       "hint": "ExcelImage .\\logo.png -Address A1 -Width 3cm",
-      "reason": "Geometry takes lengths without unit suffixes; -Address takes a cell or range anchor; -LockAspectRatio is the default and -NoLockAspectRatio turns it off."
+      "reason": "Geometry takes typed lengths; -Address takes a cell or range anchor; -LockAspectRatio is the default and -NoLockAspectRatio turns it off."
     },
     {
       "old": "Add-OfficeExcelImageFromUrl",
