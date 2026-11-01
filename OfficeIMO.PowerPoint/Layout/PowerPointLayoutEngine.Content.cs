@@ -453,7 +453,8 @@ namespace OfficeIMO.PowerPoint {
             List<List<int>> chunks;
             while (true) {
                 chunks = Balance(Enumerable.Range(0, table.Rows.Count).ToList(), pages);
-                if (table.MaximumRows.HasValue || chunks.All(c => c.Sum(i => units[i]) <= limit)) break;
+                // A row taller than the limit takes a slide of its own, so this ends at one row per slide.
+                if (table.MaximumRows.HasValue || chunks.All(c => c.Sum(i => Math.Min(units[i], limit)) <= limit)) break;
                 pages++;
             }
 

@@ -78,6 +78,21 @@ public sealed class PowerPointLayoutTableTests {
     }
 
     [Fact]
+    public void WrappedRowsOnASlideWithRoomForOneRowStillPaginate() {
+        using var document = PowerPointDocument.Create();
+        document.SlideSize.Width = OfficeLength.Inches(5);
+        document.SlideSize.Height = OfficeLength.Inches(2);
+        string wrapped = string.Join(" ", Enumerable.Repeat("wrapped cell text", 20));
+        var table = new PowerPointLayoutTable(new[] { "Service", "Detail" },
+            Enumerable.Range(0, 4).Select(_ => (IReadOnlyList<string>)new[] { wrapped, wrapped }).ToArray());
+        var options = PowerPointCompositionOptions.FromDesign(PowerPointDeckDesign.FromBrand("#2563EB", "table-tiny"));
+        options.ApplyTheme = false;
+        var compose = System.Threading.Tasks.Task.Run(() => document.Compose(new PowerPointDeckPlan().AddContent("Services", new[] { table }), options));
+        Assert.True(compose.Wait(TimeSpan.FromSeconds(30)), "Table pagination did not finish.");
+        Assert.Equal(4, document.Slides.SelectMany(slide => slide.Tables).Sum(native => native.Rows - 1));
+    }
+
+    [Fact]
     public void SavedTableUsesItsAuthoredCaptionAsAlternativeText() {
         const string caption = "Service & owners <review>";
         using var document = PowerPointDocument.Create();
