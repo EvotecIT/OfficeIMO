@@ -191,7 +191,8 @@ public sealed class OfficeConverterBatchNamingTests {
         byte[] plan = JsonSerializer.SerializeToUtf8Bytes(new { Schema = "officeimo.conversion.batch.v2", ConfigurationSha256 = oldHash });
         File.WriteAllBytes(settings.ResumeFrom!, plan);
         string legacyOutput = Path.Combine(files.Output, "Sales.txt.pdf"); File.WriteAllText(legacyOutput, "Retain legacy artifact");
-        await Assert.ThrowsAsync<InvalidDataException>(() => OfficeConverter.ConvertAsync(settings));
+        InvalidDataException rejected = await Assert.ThrowsAsync<InvalidDataException>(() => OfficeConverter.ConvertAsync(settings));
+        Assert.Contains("new job destination and checkpoint", rejected.Message);
         Assert.Equal(plan, File.ReadAllBytes(settings.ResumeFrom!)); Assert.Equal("Retain legacy artifact", File.ReadAllText(legacyOutput));
         Assert.False(File.Exists(Path.Combine(files.Output, "Sales.pdf")));
         Assert.Empty(Directory.GetFiles(settings.ResumeFrom + ".state", "*.json", SearchOption.AllDirectories));

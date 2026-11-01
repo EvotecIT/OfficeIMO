@@ -24,12 +24,17 @@ internal static partial class OfficeBatchExecutor {
         string outputPhysicalRoot = OfficePathIdentity.ResolvePhysicalPath(settings.OutputDirectory);
         using var lease = OpenCheckpoint(settings);
         string configuration = settings.CheckpointDirectory == null ? string.Empty : CaptureConfiguration(settings);
+        RenderingFingerprints? fingerprints = null;
         if (settings.CheckpointDirectory != null) {
             string planPath = settings.ResumeFrom!;
             OfficeBatchCheckpointPlan? plan = ReadState(planPath, OfficeBatchStateJsonContext.Default.OfficeBatchCheckpointPlan);
-            if (plan != null && (plan.Schema != Schema || plan.ConfigurationSha256 != configuration))
+            if (plan != null && (plan.Schema != Schema || plan.ConfigurationSha256 != configuration || plan.FingerprintSalt?.Length != FingerprintSaltBytes * 2))
                 throw new InvalidDataException("Conversion settings or checkpoint compatibility changed. Select a new job destination and checkpoint; execution limits may be changed in place.");
-            if (plan == null) WriteState(planPath, new OfficeBatchCheckpointPlan(Schema, configuration), OfficeBatchStateJsonContext.Default.OfficeBatchCheckpointPlan);
+            if (plan == null) {
+                plan = new OfficeBatchCheckpointPlan(Schema, configuration, CreateFingerprintSalt());
+                WriteState(planPath, plan, OfficeBatchStateJsonContext.Default.OfficeBatchCheckpointPlan);
+            }
+            fingerprints = new RenderingFingerprints(settings, plan.FingerprintSalt!);
         }
         long discovered = 0, selected = 0, completed = 0, reused = 0, failed = 0, skipped = 0;
         bool cancelled = false;
@@ -78,7 +83,7 @@ internal static partial class OfficeBatchExecutor {
                         else {
                             string key = Hash(OfficePathIdentity.GetPathIdentityKey(input));
                             string receiptPath = Path.Combine(settings.CheckpointDirectory, "items", key.Substring(0, 2), key + ".json");
-                            item = await RunItemAsync(runner, settings, configuration, route, input, output, receiptPath, token, publicationGuard).ConfigureAwait(false);
+                            item = await RunItemAsync(runner, settings, configuration, fingerprints!, route, input, output, receiptPath, token, publicationGuard).ConfigureAwait(false);
                         }
                     }
                     if (item.Skipped) Interlocked.Increment(ref skipped);
@@ -115,7 +120,7 @@ internal static partial class OfficeBatchExecutor {
         }
     }
 
-    private static async Task<OfficeBatchItemReport> RunItemAsync(IOfficeConversionExecutor runner, OfficeBatchOptions settings, string configuration, OfficeConversionExecutionRoute route,
+    private static async Task<OfficeBatchItemReport> RunItemAsync(IOfficeConversionExecutor runner, OfficeBatchOptions settings, string configuration, RenderingFingerprints fingerprints, OfficeConversionExecutionRoute route,
         string input, string output, string receiptPath, CancellationToken token, IOfficePublicationGuard? publicationGuard) {
         string? inputHash = null;
         string? stagingPath = null;
@@ -137,7 +142,7 @@ internal static partial class OfficeBatchExecutor {
                     throw new ArgumentException("Checkpoint resources must remain inside the selected source root.");
             }
             string? resourceIdentity = resourceRoot == null ? null : await CaptureResourceIdentityAsync(resourceRoot, input, settings.MaximumInputBytes, token).ConfigureAwait(false);
-            configuration = Hash(configuration + CaptureRenderingConfiguration(settings, routeId) + resourceIdentity);
+            configuration = Hash(configuration + fingerprints.Get(routeId) + resourceIdentity);
             OfficeBatchReceipt? receipt = ReadState(receiptPath, OfficeBatchStateJsonContext.Default.OfficeBatchReceipt);
             if (receipt != null) {
                 if (receipt.Schema != Schema || receipt.ConfigurationSha256 != configuration ||
