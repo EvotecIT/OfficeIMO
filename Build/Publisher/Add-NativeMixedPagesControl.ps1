@@ -15,10 +15,12 @@ function Add-NativeMixedPagesControl {
     Unused path for the synthetic shared PNG.
     .PARAMETER Edited
     Authors changed first-page text, last-band paint/bounds and top-picture bounds.
+    .PARAMETER ReverseOrder
+    Reverses existing first/last-page shapes through native ZOrder without adding objects.
     .OUTPUTS
     The physical page count.
     #>
-    param($Document, $FirstPage, [string]$ImagePath, [switch]$Edited)
+    param($Document, $FirstPage, [string]$ImagePath, [switch]$Edited, [switch]$ReverseOrder)
 
     $middle = $Document.Pages.Add(1, 1)
     $objects.Add($middle)
@@ -68,6 +70,12 @@ function Add-NativeMixedPagesControl {
         $objects.Add($wrap)
         $wrap.Type = 0 # pbWrapTypeNone
         if ($wrap.Type -ne 0) { throw 'The mixed-order control requires wrapping disabled.' }
+    }
+    if ($ReverseOrder) {
+        # msoBringToFront (0) applied in the desired back-to-front order.
+        foreach ($shape in @($firstBand, $firstText, $firstImage, $background, $topImage, $lastBand, $lastImage, $lastText)) {
+            $shape.ZOrder(0)
+        }
     }
     return 3
 }

@@ -49,6 +49,6 @@ internal sealed partial class PublisherNativeWriter {
             if (contents == null) { Reject("Contents", "Source edits have an unsupported page relationship, shape, picture metadata or chunk-directory relocation profile."); return false; }
             streams.Add("Contents", contents);
         }
-        return true;
+        return PrepareObjectOrder(streams, context);
     }
 }

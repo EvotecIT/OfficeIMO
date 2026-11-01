@@ -91,7 +91,7 @@ internal sealed partial class PublisherPageProjector {
                 pageFrames.TryGetValue(page.Id, out List<PublisherTextFrame>? frames) ? frames : Array.Empty<PublisherTextFrame>(),
                 pageTables.TryGetValue(page.Id, out PublisherTable[]? tables) ? tables : Array.Empty<PublisherTable>(),
                 page.ObjectIds.Where(id => _publication.Pictures.ContainsKey(id)).Select(CurrentPictureSnapshot).ToArray(),
-                page.ObjectIds.Where(id => _publication.Shapes.ContainsKey(id)).Select(_publication.CurrentShape).ToArray(), page.HasNativeOrigin, page.MasterSide);
+                page.ObjectIds.Where(id => _publication.Shapes.ContainsKey(id)).Select(_publication.CurrentShape).ToArray(), page.ObjectIds, page.HasNativeOrigin, page.MasterSide);
             if (page.IsMaster) masters.Add(projectedPage); else pages.Add(projectedPage);
         }
         if (pages.Count == 0) throw new InvalidDataException("Publisher publication has no printable document pages.");

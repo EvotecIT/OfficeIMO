@@ -38,7 +38,7 @@ public sealed class PublisherMixedObjectOrderTests {
         Assert.Single(document.Images);
     }
 
-    private static uint[] Order(PublisherPage page) => PublisherNativeTests.Elements(page.CreateDrawing())
+    internal static uint[] Order(PublisherPage page) => PublisherNativeTests.Elements(page.CreateDrawing())
         .SelectMany(element => element.SourceElementIds ?? Array.Empty<string>())
         .Where(id => id.StartsWith("publisher-object-", StringComparison.Ordinal))
         .Select(id => uint.Parse(id.Substring("publisher-object-".Length), System.Globalization.CultureInfo.InvariantCulture))

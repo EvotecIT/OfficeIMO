@@ -7,7 +7,7 @@ public sealed class PublisherPage {
     private readonly OfficeDrawing _drawing;
     internal PublisherPage(uint id, string name, uint? masterPageId, double width, double height, OfficeDrawing drawing,
         IReadOnlyList<PublisherTextFrame> textFrames, IReadOnlyList<PublisherTable> tables, IReadOnlyList<PublisherPicture> pictures,
-        IReadOnlyList<PublisherShape> shapes, bool hasNativeOrigin = true, PublisherMasterPageSide? masterSide = null) {
+        IReadOnlyList<PublisherShape> shapes, IReadOnlyList<uint> objectIds, bool hasNativeOrigin = true, PublisherMasterPageSide? masterSide = null) {
         Id = id; Name = name; MasterPageId = masterPageId; _drawing = drawing;
         Width = width; Height = height;
         HasNativeOrigin = hasNativeOrigin;
@@ -16,6 +16,7 @@ public sealed class PublisherPage {
         Tables = Array.AsReadOnly(tables.ToArray());
         Pictures = Array.AsReadOnly(pictures.ToArray());
         Shapes = Array.AsReadOnly(shapes.ToArray());
+        ObjectIds = Array.AsReadOnly(objectIds.ToArray());
     }
     /// <summary>Stable publication page identifier, shared with the publication's object and story identity space.</summary>
     public uint Id { get; }
@@ -37,6 +38,8 @@ public sealed class PublisherPage {
     public IReadOnlyList<PublisherPicture> Pictures { get; }
     /// <summary>Vector artwork owned by this page, in drawing order. Text-capable artwork shares its ID and placement with its text frame; inherited artwork remains listed on the master.</summary>
     public IReadOnlyList<PublisherShape> Shapes { get; }
+    /// <summary>Owned object identifiers in back-to-front drawing order. Text-capable artwork appears once even when it also has a text-frame view. Applied master objects remain on the master page.</summary>
+    public IReadOnlyList<uint> ObjectIds { get; }
     /// <summary>Page width in points.</summary>
     public double Width { get; }
     /// <summary>Page height in points.</summary>

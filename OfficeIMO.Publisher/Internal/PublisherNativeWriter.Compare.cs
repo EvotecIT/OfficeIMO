@@ -23,6 +23,7 @@ internal sealed partial class PublisherNativeWriter {
             Reject("Contents", "Page/master topology, object ownership, order or object identities changed. Authored objects have no native records in this operation."); return;
         }
         CompareMasterAssignments();
+        CompareObjectOrders();
         if (!MapEqual(_baseline.Text.Chains, _current.Text.Chains, (a, b) => a.SequenceEqual(b))
             || !MapEqual(_baseline.Text.TableStories, _current.Text.TableStories, (a, b) => ReferenceEquals(a, b)
                 || a.Segments.Count == b.Segments.Count && (_quillBytes != null || a.Segments.Zip(b.Segments, StoryEqual).All(value => value)))
@@ -102,7 +103,7 @@ internal sealed partial class PublisherNativeWriter {
             && a.MasterAssignmentQualified == b.MasterAssignmentQualified
             && a.RegistrationX == b.RegistrationX && a.RegistrationY == b.RegistrationY
             && a.SupportsPlacementEditing == b.SupportsPlacementEditing && a.HasUnassessedBackground == b.HasUnassessedBackground
-            && a.FrameEditRange == b.FrameEditRange && a.ObjectIds.SequenceEqual(b.ObjectIds)).All(value => value);
+            && a.FrameEditRange == b.FrameEditRange && SameObjectSet(a.ObjectIds, b.ObjectIds)).All(value => value);
 
     private void CompareFrame(PublisherFrameState a, PublisherFrameState b) {
         _token.ThrowIfCancellationRequested();

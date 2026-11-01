@@ -147,7 +147,7 @@ internal sealed class PublisherEscherReader {
         }
         return result;
     }
-    private Dictionary<ushort, uint> ClientValues(PublisherEscherRecord record) {
+    internal Dictionary<ushort, uint> ClientValues(PublisherEscherRecord record) {
         _data.Range(record.Offset, 4, record.End);
         if (_data.U32(record.Offset) != record.Length || (record.Length - 4) % 6 != 0)
             throw new InvalidDataException("Invalid Publisher OfficeArt client record length.");

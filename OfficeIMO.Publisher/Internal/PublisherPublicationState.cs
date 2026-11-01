@@ -130,4 +130,6 @@ internal sealed class PublisherPageState {
         ObjectIds.Concat(new[] { id }).ToArray(), FrameEditRange, HasNativeOrigin, MasterSide, MasterAssignmentQualified);
     internal PublisherPageState WithMaster(uint? masterId) => new(Id, Name, IsMaster, Width, Height, masterId,
         RegistrationX, RegistrationY, SupportsPlacementEditing, HasUnassessedBackground, ObjectIds, FrameEditRange, HasNativeOrigin, MasterSide, MasterAssignmentQualified);
+    internal PublisherPageState WithObjectOrder(IReadOnlyList<uint> ids) => new(Id, Name, IsMaster, Width, Height, MasterPageId,
+        RegistrationX, RegistrationY, SupportsPlacementEditing, HasUnassessedBackground, ids, FrameEditRange, HasNativeOrigin, MasterSide, MasterAssignmentQualified);
 }

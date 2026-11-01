@@ -34,7 +34,7 @@ internal sealed partial class PublisherNativeWriter {
         writer.Compare();
         if (writer._diagnostics.Count != 0) return new PublisherNativePreparation(null, writer._diagnostics, writer._styleDependencies);
         PublisherNativeSource source = imported.NativeSource;
-        if (writer._patches.Count == 0 && writer._quillBytes == null && writer._shapeProperties.Count == 0 && writer._frameAlignments.Count == 0 && writer._imageStore == null && writer._masterAssignments.Count == 0 && writer._storyHyphenation.Count == 0) {
+        if (writer._patches.Count == 0 && writer._quillBytes == null && writer._shapeProperties.Count == 0 && writer._frameAlignments.Count == 0 && writer._imageStore == null && writer._masterAssignments.Count == 0 && writer._storyHyphenation.Count == 0 && writer._objectOrders.Count == 0) {
             if (source.ByteLength > maximumBytes) throw new InvalidDataException("Publisher native output byte limit exceeded.");
             token.ThrowIfCancellationRequested();
             return new PublisherNativePreparation(source.CopyBytes(), new[] { Finding("PUB_NATIVE_EXACT_COPY",
@@ -71,6 +71,9 @@ internal sealed partial class PublisherNativeWriter {
         byte[] output = source.Rewrite(streams, maximumBytes, token);
         token.ThrowIfCancellationRequested();
         var diagnostics = new List<OfficeConversionFidelityDiagnostic>(normalizations);
+        if (writer._objectOrders.Count > 0) diagnostics.Add(Finding("PUB_NATIVE_OBJECT_ORDER_UNQUALIFIED",
+            "Existing page objects were reordered as complete sibling OfficeArt records. Object identifiers, ownership, stories, image assets and unrelated records are retained. Grouped artwork and native wrap-exclusion lists are outside this profile; native repair-free opening and broader rendering fidelity remain unassessed.",
+            OfficeConversionLossKind.Unassessed, "Escher/EscherStm"));
         if (writer._storyHyphenation.Count > 0) diagnostics.Add(Finding("PUB_NATIVE_STORY_HYPHENATION_UNQUALIFIED",
             "Selected native story automatic-hyphenation flags changed without modifying source text or Quill formatting. Repair-free opening and opaque semantic preservation remain unassessed.",
             OfficeConversionLossKind.Unassessed, "Contents/stories"));
