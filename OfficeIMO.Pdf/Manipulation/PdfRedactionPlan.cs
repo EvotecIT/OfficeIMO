@@ -170,8 +170,7 @@ public sealed class PdfRedactionPlan {
             int pageNumber = pageIndex + 1;
             PdfRedactionArea[] pageAreas = reviewedAreas.Where(area => area.PageNumber == pageNumber).ToArray();
             PdfReadPage page = document.Pages[pageIndex];
-            IReadOnlyList<PdfTextSpan> spans = pageAreas.Any(static area => area.RequiresGlyphRewrite)
-                ? page.GetGlyphTextSpans(includeHiddenOptionalContent: true) : page.GetTextSpansIncludingHiddenOptionalContent(requireMappedText: true);
+            IReadOnlyList<PdfTextSpan> spans = GetIdentityTextSpans(page, pageAreas);
             result[pageIndex] = CreateTextObjectScopes(page, spans, pageAreas)
                 .Where(static scope => scope.HasReviewedIntersection)
                 .ToArray();
@@ -188,6 +187,12 @@ public sealed class PdfRedactionPlan {
         return labels;
     }
 
+    // Clearing a section's ActualText changes what a reader reports for the text left in it, not what the page paints.
+    private static IReadOnlyList<PdfTextSpan> GetIdentityTextSpans(PdfReadPage page, IReadOnlyList<PdfRedactionArea> pageAreas) =>
+        pageAreas.Any(static area => area.RequiresGlyphRewrite)
+            ? page.GetGlyphTextSpans(includeHiddenOptionalContent: true, ignoreActualText: true)
+            : page.GetTextSpansIncludingHiddenOptionalContent(requireMappedText: true, ignoreActualText: true);
+
     private static void AppendUnredactedTextIdentity(
         System.Text.StringBuilder identity,
         PdfReadDocument document,
@@ -195,8 +200,7 @@ public sealed class PdfRedactionPlan {
         IReadOnlyList<PdfRedactionArea> pageAreas,
         IReadOnlyList<PdfRedactionTextObjectScope> reviewedTextObjectScopes,
         IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects) {
-        IReadOnlyList<PdfTextSpan> spans = pageAreas.Any(static area => area.RequiresGlyphRewrite)
-            ? page.GetGlyphTextSpans(includeHiddenOptionalContent: true) : page.GetTextSpansIncludingHiddenOptionalContent(requireMappedText: true);
+        IReadOnlyList<PdfTextSpan> spans = GetIdentityTextSpans(page, pageAreas);
         var ignoredTextObjectKeys = new HashSet<PdfContentOrderKey>();
         PdfRedactionTextObjectScope[] currentTextObjectScopes = CreateTextObjectScopes(page, spans, pageAreas);
         int[] matchedScopeIndices = MatchReviewedTextObjectScopes(reviewedTextObjectScopes, currentTextObjectScopes);

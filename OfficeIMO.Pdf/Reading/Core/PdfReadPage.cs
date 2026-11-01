@@ -200,10 +200,10 @@ public sealed partial class PdfReadPage {
     }
 
     // Encoded redaction ranges must retain repeated and edge whitespace in glyph arrays.
-    internal IReadOnlyList<PdfTextSpan> GetGlyphTextSpans(bool includeHiddenOptionalContent = false,
+    internal IReadOnlyList<PdfTextSpan> GetGlyphTextSpans(bool includeHiddenOptionalContent = false, bool ignoreActualText = false,
         System.Threading.CancellationToken cancellationToken = default) {
         IReadOnlyList<PdfTextSpan> spans = GetTextSpans(_includeArtifactText, cancellationToken,
-            includeHiddenOptionalContent, preserveGlyphText: true, requireMappedText: true);
+            includeHiddenOptionalContent, preserveGlyphText: true, requireMappedText: true, ignoreActualText: ignoreActualText);
         var runOrdinals = new Dictionary<PdfContentOrderKey, int>();
         foreach (PdfTextSpan span in spans) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -234,7 +234,8 @@ public sealed partial class PdfReadPage {
         System.Threading.CancellationToken cancellationToken,
         bool includeHiddenOptionalContent = false,
         bool preserveGlyphText = false,
-        bool requireMappedText = false) {
+        bool requireMappedText = false,
+        bool ignoreActualText = false) {
         cancellationToken.ThrowIfCancellationRequested();
         _demandTextExtraction?.Invoke();
         var spans = new List<PdfTextSpan>();
@@ -263,6 +264,7 @@ public sealed partial class PdfReadPage {
                 pageHeight,
                 includeArtifactText: includeArtifactText,
                 preserveGlyphText: preserveGlyphText,
+                ignoreActualText: ignoreActualText,
                 requireMappedText: requireMappedText,
                 includeHiddenOptionalContent: includeHiddenOptionalContent,
                 pageContentBudget: pageContentBudget,
@@ -957,6 +959,7 @@ public sealed partial class PdfReadPage {
         bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0",
         TextContentParser.MarkedContentState? inheritedActualTextState = null,
         bool preserveGlyphText = false,
+        bool ignoreActualText = false,
         bool requireMappedText = false,
         Action<TextContentParser.DrawingActualTextScope>? onCompletedDrawingActualText = null,
         int initialStrokeLineCap = 0) {
@@ -1083,6 +1086,7 @@ public sealed partial class PdfReadPage {
             initialClipPath: initialClipPath,
             useLogicalTextFilters: useLogicalTextFilters,
             preserveGlyphText: preserveGlyphText,
+                ignoreActualText: ignoreActualText,
             requireMappedText: requireMappedText,
             includeArtifactText: includeArtifactText,
             maxOperations: _limits.MaxContentOperations,
@@ -1241,6 +1245,7 @@ public sealed partial class PdfReadPage {
                     initialFillColorResolved: invocation.FillColorResolved, initialStrokeColorResolved: invocation.StrokeColorResolved, initialStrokeDashIdentity: invocation.StrokeDashIdentity,
                     inheritedActualTextState: formActualTextState,
                     preserveGlyphText: preserveGlyphText,
+                ignoreActualText: ignoreActualText,
                     requireMappedText: requireMappedText,
                     onCompletedDrawingActualText: onCompletedDrawingActualText);
             } finally {

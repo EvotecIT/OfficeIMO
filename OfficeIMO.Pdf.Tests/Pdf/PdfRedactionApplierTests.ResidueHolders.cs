@@ -127,6 +127,19 @@ public partial class PdfRedactionApplierTests {
         Assert.Contains(report.Issues, static issue => issue.Feature == "RedactedContentOutsidePageContent" && issue.Marker == "AlternateText");
     }
 
+    [Theory]
+    [InlineData("BT /F1 12 Tf 72 700 Td (visible) Tj ET BT /F1 12 Tf 72 300 Td (bystander) Tj ET")]
+    [InlineData("BT /F1 12 Tf 72 700 Td (visible) Tj 0 -400 Td (bystander) Tj ET")]
+    public void ClearingActualTextKeepsPageIdentityOfTextItAlsoCovered(string body) {
+        PdfDocument source = PdfDocument.Load(BuildResidueHolderPdf("/Span<</ActualText(TOPSECRET)>>BDC " + body + " EMC"));
+        PdfRedactionPlan plan = source.Redactions.Plan(new[] { new PdfRedactionArea(1, 60, 690, 250, 30) });
+
+        PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+
+        Assert.Contains("(bystander)", Encoding.GetEncoding("ISO-8859-1").GetString(result.Pdf), StringComparison.Ordinal);
+        Assert.True(result.Evidence.IsVerified);
+    }
+
     [Fact]
     public void VerificationRejectsAlternateTextSectionThatLostPartOfItsContent() {
         const string survivor = "BT /F1 12 Tf 72 300 Td (kept) Tj ET";

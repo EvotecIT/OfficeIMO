@@ -100,7 +100,7 @@ internal static partial class PdfRedactionPlanner {
                     // A selection can name glyphs in hidden layers and artifacts, so resolve it against all of them.
                     glyphDocument ??= PdfReadDocument.Open(pdf, PdfLoadOptions.WithArtifactText(options), cancellationToken);
                     glyphSpans = glyphDocument.Pages[area.PageNumber - 1].GetGlyphTextSpans(
-                        includeHiddenOptionalContent: true, cancellationToken);
+                        includeHiddenOptionalContent: true, cancellationToken: cancellationToken);
                     glyphTextSpansByPage.Add(area.PageNumber, glyphSpans);
                 }
                 bool resolved = AddSelectedGlyphMatches(area, selection, glyphSpans, matches, cancellationToken);
