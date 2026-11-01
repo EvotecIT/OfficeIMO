@@ -377,6 +377,21 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
 
     /// <inheritdoc />
     public double Measure(string text, double fontSize) {
+        if (_variations != null || text.Length > MaximumMeasuredTextLength) return MeasureText(text, fontSize);
+        var key = (text, fontSize);
+        if (_measuredWidths.TryGetValue(key, out double measured)) return measured;
+        measured = MeasureText(text, fontSize);
+        if (_measuredWidths.Count < MaximumMeasuredTexts) _measuredWidths.TryAdd(key, measured);
+        return measured;
+    }
+
+    // Layout measures the same words repeatedly, for intrinsic sizes and again for line breaking.
+    private const int MaximumMeasuredTextLength = 128;
+    private const int MaximumMeasuredTexts = 8192;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<(string, double), double> _measuredWidths =
+        new System.Collections.Concurrent.ConcurrentDictionary<(string, double), double>();
+
+    private double MeasureText(string text, double fontSize) {
         var scale = ScaleFor(fontSize);
         var width = 0.0;
         double tracking = HorizontalTracking(fontSize);
@@ -528,16 +543,19 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     /// <summary>Collection index when the font was loaded from a TrueType collection.</summary>
     public int? CollectionIndex => _collectionIndex;
 
-    internal bool HasGlyphs(string value) {
-        return OfficeOpenTypeCmap.HasGlyphs(
-            value,
-            scalar => MapGlyph(scalar),
-            MapVariationGlyph,
-            HasPaintedNotdefMapping);
-    }
+    internal bool HasGlyphs(string value) =>
+        OfficeOpenTypeCmap.HasGlyphs(value, GlyphMapper, VariationGlyphMapper, PaintedNotdefTest);
 
     private int ReadMappedGlyph(string text, ref int index, out int scalar) =>
-        OfficeOpenTypeCmap.ReadMappedGlyph(text, ref index, scalarValue => MapGlyph(scalarValue), MapVariationGlyph, out scalar);
+        OfficeOpenTypeCmap.ReadMappedGlyph(text, ref index, GlyphMapper, VariationGlyphMapper, out scalar);
+
+    // Glyph mapping runs for every text check, so its delegates are created once.
+    private Func<int, int>? _glyphMapper;
+    private Func<int, int, int>? _variationGlyphMapper;
+    private Func<int, bool>? _paintedNotdefTest;
+    private Func<int, int> GlyphMapper => _glyphMapper ??= scalar => MapGlyph(scalar);
+    private Func<int, int, int> VariationGlyphMapper => _variationGlyphMapper ??= MapVariationGlyph;
+    private Func<int, bool> PaintedNotdefTest => _paintedNotdefTest ??= HasPaintedNotdefMapping;
 
     private int MapVariationGlyph(int scalar, int selector) => OfficeOpenTypeCmap.MapVariationSequence(
         _data,
@@ -546,7 +564,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _numGlyphs,
         scalar,
         selector,
-        mappedScalar => MapGlyph(mappedScalar));
+        GlyphMapper);
 
     private bool MatchesName(string? faceName) {
         if (string.IsNullOrWhiteSpace(faceName)) return true;
