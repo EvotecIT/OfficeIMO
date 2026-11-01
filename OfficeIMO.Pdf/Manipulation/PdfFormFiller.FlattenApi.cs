@@ -48,7 +48,7 @@ internal static partial class PdfFormFiller {
         var removableObjects = new HashSet<int>();
         for (int i = 0; i < fields.Items.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
-            CollectFlattenWidgets(objects, fields.Items[i], null, 0, ReadFieldQuadding(objects, acroForm, null), null, acroFormDefaultResources, acroFormDefaultAppearance, null, null, null, null, options, widgets, removableObjects, new HashSet<int>(), ref nextObjectNumber, source.ReadOptions.Limits.MaxDecodedTextCharacters, cancellationToken);
+            CollectFlattenWidgets(objects, fields.Items[i], null, 0, ReadFieldQuadding(objects, acroForm, null), null, acroFormDefaultResources, acroFormDefaultAppearance, null, null, null, null, options, NeedsAppearances(objects, acroForm), widgets, removableObjects, new HashSet<int>(), ref nextObjectNumber, source.ReadOptions.Limits.MaxDecodedTextCharacters, cancellationToken);
         }
 
         if (widgets.Count == 0) {
@@ -141,6 +141,7 @@ internal static partial class PdfFormFiller {
             inheritedName: null,
             inheritedChoiceOptions: null,
             options,
+            NeedsAppearances(objects, acroForm),
             widgets,
             removableObjects,
             ref nextObjectNumber, source.ReadOptions.Limits.MaxDecodedTextCharacters, cancellationToken);
@@ -172,4 +173,7 @@ internal static partial class PdfFormFiller {
         return RewriteAllObjects(objects, catalogObjectNumber, source, pdf, generatedGrowth, out outputReadOptions, cancellationToken);
     }
 
+    // NeedAppearances says stored appearances may be out of date, and viewers repaint from the value. Flattening freezes what they would show.
+    private static bool NeedsAppearances(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm) =>
+        acroForm.Items.TryGetValue("NeedAppearances", out PdfObject? value) && ResolveObject(objects, value) is PdfBoolean { Value: true };
 }

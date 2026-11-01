@@ -15,6 +15,7 @@ internal static partial class PdfFormFiller {
         string? inheritedName,
         PdfArray? inheritedChoiceOptions,
         PdfFormFillerOptions? options,
+        bool regenerateAppearances,
         Dictionary<int, FlattenWidgetState> widgets,
         HashSet<int> removableObjects,
         HashSet<int> visited,
@@ -80,7 +81,7 @@ internal static partial class PdfFormFiller {
                 }
 
                 appearanceObjectNumber = appearanceReference!.ObjectNumber;
-            } else if (TryGetNormalAppearanceReference(objects, field, out PdfReference? appearanceReference)) {
+            } else if (!(regenerateAppearances && appearanceValue is not null) && TryGetNormalAppearanceReference(objects, field, out PdfReference? appearanceReference)) {
                 appearanceObjectNumber = appearanceReference!.ObjectNumber;
             } else {
                 PdfDictionary? widgetAppearanceResources = TryReadNormalAppearanceResources(objects, field);
@@ -110,7 +111,7 @@ internal static partial class PdfFormFiller {
 
         for (int i = 0; i < kids.Items.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
-            CollectFlattenWidgets(objects, kids.Items[i], fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, appearanceValue, richAppearanceRuns, fullName, choiceOptions, options, widgets, removableObjects, visited, ref nextObjectNumber, maximumMeasurementCharacters, cancellationToken);
+            CollectFlattenWidgets(objects, kids.Items[i], fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, appearanceValue, richAppearanceRuns, fullName, choiceOptions, options, regenerateAppearances, widgets, removableObjects, visited, ref nextObjectNumber, maximumMeasurementCharacters, cancellationToken);
         }
     }
 

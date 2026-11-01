@@ -70,4 +70,15 @@ public partial class PdfFormFillerTests {
         PdfReadDocument output = PdfReadDocument.Open(flattened);
         Assert.Contains(output.Objects.Values, static item => item.Value is PdfStream form && form.Dictionary.Items.ContainsKey("OC"));
     }
+
+    [Fact]
+    public void FlattenFields_PaintsTheValueWhenNeedAppearancesMarksTheStoredAppearanceOutOfDate() {
+        byte[] input = BuildReviewFormPdf("/Fields [10 0 R] /NeedAppearances true", "/Annots [10 0 R]", string.Empty,
+            TextWidget(10, "Name", "72 700 272 720", "/F 4 /V (CURRENTVALUE) /AP << /N 12 0 R >>"), TextAppearance(12, "OLDAPPEARANCE"));
+
+        string text = PdfDocument.Load(PdfFormFiller.FlattenFields(input)).ExtractText();
+
+        Assert.Contains("CURRENTVALUE", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("OLDAPPEARANCE", text, StringComparison.Ordinal);
+    }
 }
