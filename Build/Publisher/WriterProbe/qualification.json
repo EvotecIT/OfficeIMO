@@ -24968,5 +24968,238 @@
       "Automatic hyphenation, dictionaries, generated display hyphens and source continuation remain open.",
       "Full PUB00-PUB06 lifecycle is incomplete."
     ]
+  },
+  "nativeCharacterDefaults": {
+    "schema": "officeimo.publisher.native-character-defaults.v1",
+    "sourceCommit": "850b6ac9b5edd62e326aabdb71af443ee56e3a7b",
+    "scope": "Selected modern STSH character snapshot defaults and native kerning boundary evidence; effective managed defaults and mixed-run shaping remain open.",
+    "reader": {
+      "selectedStyleOmission": "Kerning remains nullable rather than falling through to an explicit global threshold; strike, underline and baseline use the selected snapshot defaults.",
+      "directUnqualifiedThreshold": "An encoded unqualified threshold remains opaque and cannot borrow an unrelated inherited value.",
+      "publicApiChanged": false,
+      "byteExactUnmodifiedSave": true
+    },
+    "fixture": {
+      "provenance": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/StyleKerningDefaults/provenance.json",
+      "sourceDerived": true,
+      "independentlyAuthoredSource": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+      "nativeResaved": true,
+      "selected0": {
+        "thresholdPoints": 8,
+        "strikethrough": true,
+        "underline": "Single",
+        "baseline": "Superscript"
+      },
+      "selected1": {
+        "thresholdMetadata": null,
+        "nativeEffectiveThresholdPoints": 14,
+        "strikethrough": false,
+        "underline": "None",
+        "baseline": "Normal"
+      }
+    },
+    "nativeDefault": {
+      "points": 14,
+      "unitsPerPoint": 12700,
+      "storedUnits": 177800,
+      "field": "FpsKern",
+      "publicOmissionRemainsNull": true,
+      "managedEffectiveRenderingImplemented": false,
+      "rea": {
+        "packageVersion": "6.5.0",
+        "provider": "Ghidra 12.1.4",
+        "originalArtifactsUnmodified": true,
+        "mspub": {
+          "fileVersion": "16.0.20527.20088",
+          "sha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed",
+          "getterRva": "0x47fca0",
+          "setterRva": "0x489410",
+          "getterVariant": "VT_R4",
+          "setterMinimumPoints": 0.5,
+          "setterMaximumPoints": 999.9,
+          "scalarWriterQualifiedMaximumPoints": 999.5
+        },
+        "ptxt9": {
+          "fileVersion": "16.0.20527.20016",
+          "sha256": "6597f92367dcb44a3ae6d957012abf503d8a7ce8d0ce1ffab36c564223bcd7e4",
+          "getterRva": "0x2f10",
+          "characterInitializerRva": "0xde20",
+          "serializationRva": "0x97540",
+          "characterFormatBytes": 1848,
+          "kerningFieldOffset": "0x6fc",
+          "fontObjectCharacterStateOffset": "0x28",
+          "getterFieldOffset": "0x724",
+          "ambiguityFlagOffset": "0xe5c",
+          "ambiguousValue": -9999999
+        },
+        "evidenceBundles": [
+          {
+            "sha256": "585665157bf5f40ec111d746eedfbfb68325870063c3247a19b9703ecc4b5bcc",
+            "records": 6
+          },
+          {
+            "sha256": "3ef17224cdb0e56f03163da9916740df08c2d2fc18d3fd6db6b581ddd00afd5c",
+            "records": 9
+          }
+        ]
+      },
+      "runtime": {
+        "mode": "Capture-only qualified Python Frida 17.19 route; no argument/result mutation.",
+        "getterType": 4,
+        "getterPoints": 14,
+        "delegateModule": "PTXT9.DLL",
+        "delegateRva": "0x2f10",
+        "pairedCalls": 1,
+        "errors": 0,
+        "sourceUnchanged": true,
+        "processHandlesClosed": true,
+        "initialAdmissionFailure": "The first replay did not invoke the getter and asserted before inventory; no native absence conclusion was drawn. The qualified replay explicitly reads the getter and checks after inventory."
+      }
+    },
+    "mixedRunBoundaries": {
+      "newControls": 8,
+      "settingsBothDirections": true,
+      "reset": [
+        "soft line break",
+        "tab",
+        "font size change",
+        "face change"
+      ],
+      "retainedFromPriorControls": [
+        "color change",
+        "space"
+      ],
+      "paragraphResetFromPriorControls": true,
+      "nativeManagedParity": false,
+      "requiredSharedWork": "Shape a complete qualified font context and paint slices from that same glyph plan, including kerning across color boundaries. Do not emulate this with per-run threshold overrides."
+    },
+    "fontCacheObservation": {
+      "captureOnly": true,
+      "profiles": 4,
+      "pairedCalls": 3113,
+      "errors": 0,
+      "activeCallsAtTeardown": 0,
+      "conclusion": "Main regular-Arial 12-point descriptor fields do not distinguish disabled/enabled kerning. Word 2 remains unbound; no kerning flag or font-cache bug is inferred."
+    },
+    "nativeValidation": {
+      "completedFullRuns": 17,
+      "qualifiedOperations": 119,
+      "initialResaved144DpiPagePairs": 17,
+      "allPairsEqual": true,
+      "sourceUnchanged": true,
+      "repairFreeQualified": false
+    },
+    "tests": {
+      "regression": "Selected_style_omissions_keep_native_character_defaults_instead_of_global_explicit_values",
+      "before": {
+        "Passed": 1,
+        "Failed": 1
+      },
+      "focusedAfter": {
+        "Passed": 19
+      },
+      "fullPublisher": [
+        {
+          "target": "net10.0",
+          "outcomes": {
+            "Passed": 985
+          }
+        },
+        {
+          "target": "net472",
+          "outcomes": {
+            "Passed": 985
+          }
+        },
+        {
+          "target": "net8.0",
+          "outcomes": {
+            "Passed": 985
+          }
+        }
+      ]
+    },
+    "portability": {
+      "readerNetStandard20": "PASS",
+      "sourcePSWriteOfficeNet80": "PASS",
+      "powerShellRuntime": "7.6.9",
+      "powerShellCases": [
+        {
+          "sourceByteExact": true,
+          "pdfTextRecovered": true,
+          "selected": 0,
+          "baseline": "Superscript",
+          "strikethrough": true,
+          "underline": "Single",
+          "nullableThreshold": 8.0
+        },
+        {
+          "sourceByteExact": true,
+          "pdfTextRecovered": true,
+          "selected": 1,
+          "baseline": "Normal",
+          "strikethrough": false,
+          "underline": "None",
+          "nullableThreshold": null
+        }
+      ],
+      "sourcePublisherAssemblySha256": "c0a7d9f78f9a316e0160e16c7eb7114ebec619418f9c277203459c72f1ded137",
+      "smokeHarnessCorrection": "Run the conversion workflow before direct type use to load its engine; no product change was needed."
+    },
+    "localReview": {
+      "required": false,
+      "reason": "Narrow snapshot-decoding fix with independent native getter/artifact controls, reproduced failure and full multi-target tests. Shared rendering scope is unchanged."
+    },
+    "sourceFiles": [
+      {
+        "path": "Docs/ROADMAP.md",
+        "gitBlobSha256": "4b72bac4bbb1e0a44259d3f833bf7125219b722094a4c23d7941b80c972b812b"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/StyleKerningDefaults/native-selected-0.pdf",
+        "gitBlobSha256": "c264050ce2c66bae9dc2d909a53f67a2f8d9e9a2daef09031ea2d27dc6207a72"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/StyleKerningDefaults/native-selected-0.pub",
+        "gitBlobSha256": "b3f85a6c989c78b4d13018cfc5a726662c20bd50f34785f7a873e19b6845781f"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/StyleKerningDefaults/native-selected-1.pdf",
+        "gitBlobSha256": "ef1f70a81c4a39ae5e40c4273877868b9e88e6a5a1babcb994ef374e5ba12009"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/StyleKerningDefaults/native-selected-1.pub",
+        "gitBlobSha256": "7d1d609f3b705c6e1b5c7cd157ef40c4eabc1b401a4b700b2a890eda91c2c616"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/StyleKerningDefaults/provenance.json",
+        "gitBlobSha256": "369e167a9adb41bdb8ec5fc6e6ab71b9f78470fd7acbb6b37a6371c361675215"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/README.md",
+        "gitBlobSha256": "1ff030a467cce29dfa097cb63e39d32beed98f9c34bc1864120bbb9b07e4c46c"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherKerningWritingTests.cs",
+        "gitBlobSha256": "9f17ed623aa86e9e5096571d359c7dc4e393cd8609a6f4e532a0697026e9b373"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillStyleReader.cs",
+        "gitBlobSha256": "0fae42d7dab75c4e00ea2ce81209d265723457a6a31927676a765ce18ae187c4"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillStyles.cs",
+        "gitBlobSha256": "cd00380f532d539926dae30042cd50a47149a177a88f6b910242162ad3c7f35d"
+      },
+      {
+        "path": "OfficeIMO.Publisher/SUPPORT.md",
+        "gitBlobSha256": "686b3af873330d1915194d05aeee6b04e4f7eb92f9f426d6b5cb0f7fb5c87b15"
+      }
+    ],
+    "limits": [
+      "Native omitted-default rendering requires retained source-definition correspondence, including unspecified edits and merged source ranges.",
+      "Same-font mixed-run shaping/painting is not implemented; mixed scripts and baseline context boundaries remain unqualified.",
+      "Native repair-free opening, generic template-free native writing and full PUB00-PUB06 lifecycle remain open."
+    ]
   }
 }
