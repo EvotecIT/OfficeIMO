@@ -26405,5 +26405,311 @@
         "sha256": "30121994beed68b68828de3f2decacff71a30025304d5a4be648c9204d136ea9"
       }
     ]
+  },
+  "generatedHyphenation": {
+    "sourceCommit": "1da046531f4e45250efd3b2608d12eebbb13792d",
+    "contract": "Source-preserving generated display hyphens in the shared rich-text breaker and qualified Publisher scene projection.",
+    "languages": {
+      "englishLCIDs": [
+        9,
+        1033
+      ],
+      "germanLCIDs": [
+        7,
+        1031
+      ],
+      "resources": "Existing versioned Core en-US/de-DE patterns; no host culture lookup.",
+      "unsupported": "Unknown, unsupported regional and mixed word languages do not select a dictionary."
+    },
+    "layout": {
+      "zonePoints": 18,
+      "zoneScope": "Observed native application-option profile; no recovered file carrier or global option mutation.",
+      "generatedSuffix": "Last source-prefix style; zero UTF-16 source characters consumed.",
+      "continuation": "Original-word source-indexed opportunities survive differently sized/scaled regions; selected suffixes survive native line replay.",
+      "settings": "Enabled native story and qualified unsuppressed paragraph only; generic drawing defaults unchanged.",
+      "languagePreservation": "Scene-only effective direct or selected/global native language for unspecified imported replacements; explicit run language wins.",
+      "diagnostic": "PUB_HYPHENATION_LAYOUT_APPROXIMATED"
+    },
+    "nativeBoundary": {
+      "provenance": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextHyphenation/provenance.json#linkedHyphenBoundary",
+      "origin": "Public existing-frame height edit of independently authored native corpus; source-derived, not source-free creation.",
+      "candidateSha256": "37364aa7a82d0f79598f8d89a34b9e3d7b57ccf708523a9187541163e1f31eda",
+      "status": "OpenedExportedResavedAndReopened",
+      "qualifiedOperations": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "nativeVersion": {
+        "name": "Microsoft Publisher",
+        "version": "16.0",
+        "executableVersion": "16.0.20527.20088",
+        "automationSecurity": 3
+      },
+      "pages": 15,
+      "initialResavedPixelPairsEqual": 15,
+      "dpi": 144,
+      "sourceUnchanged": true,
+      "endingFrame": {
+        "page": 15,
+        "sourceStart": 37,
+        "sourceLength": 18,
+        "display": "order across publi-"
+      },
+      "continuation": {
+        "page": 14,
+        "sourceStart": 55,
+        "displayStartsWith": "cation"
+      },
+      "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred."
+    },
+    "managedComparisons": {
+      "cases": [
+        {
+          "case": "enabled-corpus",
+          "matchingLineTextPages": 5,
+          "totalPages": 15,
+          "maxGlyphXDifferencePoints": 0.3240203857421875,
+          "maxGlyphYDifferencePoints": 0.10296630859375
+        },
+        {
+          "case": "suppressed-corpus",
+          "matchingLineTextPages": 15,
+          "totalPages": 15,
+          "maxGlyphXDifferencePoints": 0.4799957275390625,
+          "maxGlyphYDifferencePoints": 0.10296630859375
+        },
+        {
+          "case": "disabled-corpus",
+          "matchingLineTextPages": 15,
+          "totalPages": 15,
+          "maxGlyphXDifferencePoints": 0.4799957275390625,
+          "maxGlyphYDifferencePoints": 0.10296630859375
+        },
+        {
+          "case": "linked-boundary",
+          "matchingLineTextPages": 5,
+          "totalPages": 15,
+          "maxGlyphXDifferencePoints": 0.3240203857421875,
+          "maxGlyphYDifferencePoints": 0.10296630859375
+        }
+      ],
+      "finalSourceAll30PagePairsEqualToPriorExport": true,
+      "invariantHostAll15PagePairsEqual": true,
+      "dpi": 144,
+      "exactSourceNoop": true,
+      "dictionaryCounterexamples": [
+        "creative: native crea-tive versus Core cre-ative",
+        "extraordinary: native and Core preferred breaks differ"
+      ],
+      "limits": "Matching line text and bounded glyph-coordinate differences do not establish whole-corpus pixel parity."
+    },
+    "validation": {
+      "tests": [
+        {
+          "report": "language-final-publisher-net10.0",
+          "sourceCommit": "1da046531f4e45250efd3b2608d12eebbb13792d",
+          "passed": 1012,
+          "failed": 0
+        },
+        {
+          "report": "language-final-publisher-net8.0",
+          "sourceCommit": "1da046531f4e45250efd3b2608d12eebbb13792d",
+          "passed": 1012,
+          "failed": 0
+        },
+        {
+          "report": "language-final-publisher-net472",
+          "sourceCommit": "1da046531f4e45250efd3b2608d12eebbb13792d",
+          "passed": 1012,
+          "failed": 0
+        },
+        {
+          "report": "final-core-net10.0",
+          "sourceCommit": "8d0c0e291f81cebbb08818412816dd3f5297df3c",
+          "passed": 388,
+          "failed": 0
+        },
+        {
+          "report": "final-core-net8.0",
+          "sourceCommit": "8d0c0e291f81cebbb08818412816dd3f5297df3c",
+          "passed": 388,
+          "failed": 0
+        },
+        {
+          "report": "final-core-net472",
+          "sourceCommit": "8d0c0e291f81cebbb08818412816dd3f5297df3c",
+          "passed": 388,
+          "failed": 0
+        },
+        {
+          "report": "language-reader-all",
+          "sourceCommit": "1da046531f4e45250efd3b2608d12eebbb13792d",
+          "passed": 93,
+          "failed": 0
+        },
+        {
+          "report": "core-invariant",
+          "sourceCommit": "8d0c0e291f81cebbb08818412816dd3f5297df3c",
+          "passed": 14,
+          "failed": 0
+        }
+      ],
+      "readerNetstandard20NonincrementalBuild": "passed; zero warnings/errors",
+      "sourcePSWriteOfficeNet8Build": "passed; zero warnings/errors",
+      "powerShell": {
+        "publisherSha256": "f7cf538f17c3b31ef9ea14db6874cf4adfbfa5968d61473241490c3de13289e0",
+        "runtime": "7.6.9",
+        "cases": [
+          {
+            "case": "native-texthyphenation",
+            "sourceTextUnchanged": true,
+            "generatedDisplayHyphen": true,
+            "exactNoop": true,
+            "pages": 15
+          },
+          {
+            "case": "native-linked-hyphen-boundary",
+            "sourceTextUnchanged": true,
+            "generatedDisplayHyphen": true,
+            "exactNoop": true,
+            "pages": 15
+          }
+        ],
+        "coreSha256": "e1a80f35faf1d4b265d8750be0e1428b775c202f63d899fb2ed0ef914dac13e9"
+      },
+      "regressions": [
+        "Public SVG baseline lacked generated suffix; corrected SVG/PDF render enabled/suppressed/disabled behavior without source changes.",
+        "Invariant host baseline silently lost explicit English opportunities; exact LCID mapping restores all15page output pairs.",
+        "Unspecified imported language baseline failed rendering before save; public render/save/reload and English/French body/cell scene checks pass after effective-language correction."
+      ]
+    },
+    "localReview": {
+      "candidate": "8d0c0e291f81cebbb08818412816dd3f5297df3c",
+      "fullPasses": 1,
+      "targetedConfirmations": 1,
+      "remainingFindings": "none reported",
+      "disposition": "accept bounded approximation; no new runtime dependency/public configuration API",
+      "laterPrimaryCorrection": "Effective retained-language projection at sourceCommit validated by baseline regression, sibling inspection and final affected matrix; not independently rereviewed."
+    },
+    "limits": [
+      "No template-free native product writer acceptance inferred.",
+      "No new legacy generation lifecycle qualification.",
+      "Native dictionary equivalence, other zone/font/script profiles, broad native layout parity, repair-free opening and general opaque preservation remain open."
+    ],
+    "sourceBindings": [
+      {
+        "path": "Docs/ROADMAP.md",
+        "sha256": "5561c32338e2e0a5f18030709339bb518ae20482b84e8fcdec1dbb662436edf5"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawing.ColorTint.cs",
+        "sha256": "35ee16d40914e6d8aa287af5a5fd9adf2db1ca286861400d0dce5dcc4c4c1391"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.Paragraphs.cs",
+        "sha256": "57fb54231e246bffc3397b22bda3bf2ea3112644947354ff08d636e9d8427f9d"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextFlow.cs",
+        "sha256": "053425624b936f7ff2a5f4bbeaad73013ddbd8bfced853e200438979e0770dd9"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextFlowPlan.cs",
+        "sha256": "885e23eb3bdd32fc87243300556dfc004961618d97d8874a7d78388867ebd592"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextHyphenation.cs",
+        "sha256": "b0e4862c0366c4786fe9bf0b2d37e5eaea1e55a35a19446f3796f24b43241ea7"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextLine.cs",
+        "sha256": "3b3201a76f41e67da95aacfa9584794cab6465d5898580bf7316d8a6fd242051"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextParagraph.cs",
+        "sha256": "5b3a63aa8e5766328c91e0e5eac3125c513313786ae499a9523df49c22236681"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextRun.cs",
+        "sha256": "53f177ee4d44670a99aba5b63a894277070539e6815ae58ad91f12adc8547d14"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextSegment.cs",
+        "sha256": "fe8d194e61e68c0b68d5cee3782c40fdb07fa95f041b0f0dac1edde8164a974c"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextLayoutEngine.RichText.Context.cs",
+        "sha256": "b19ee1ae286b41664cb25d9030a3cb723401a9ca3c097ad900406b64cdad7323"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextLayoutEngine.RichText.Hyphenation.cs",
+        "sha256": "16e6b103d730231422e19aa458d63c1e58d7d7971d5daff545e687472cb283b4"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextLayoutEngine.RichText.NativeFlow.cs",
+        "sha256": "0d51a26859aaa25eeaf6b1d9d255fbcb84d7b74c02d177a6f3326ec9fb2a5aeb"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextLayoutEngine.RichText.Runs.cs",
+        "sha256": "1bb8d8f84b53b9453cd3faaa65eab5fe9933d95009bb43a7982d64dfe1d94f77"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextLayoutEngine.RichText.cs",
+        "sha256": "89fe71cbaa572a79221a48113073a00355de5173799d8de2ce6a00cd38cdc887"
+      },
+      {
+        "path": "OfficeIMO.Drawing.Tests/Drawing.RichText.Hyphenation.cs",
+        "sha256": "f4d3555539a04da9907d1d3fc6629e0084393bfe618707903ba16eca1172f03b"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextHyphenation/native-linked-hyphen-boundary.pdf",
+        "sha256": "3b254941f6593267b684fec2a22b0cbb1bf670cd99c827066a158db6ce420cb0"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextHyphenation/native-linked-hyphen-boundary.pub",
+        "sha256": "311ad4d9dbb3f971f17316950d9875863b71e47ffbf2399d96070cbb59eb1435"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextHyphenation/provenance.json",
+        "sha256": "b11357c8db4f8a53192c8778cb2e3f87f5f7fa3b131a26785ffdafbc37be1eaf"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherHyphenationRenderingTests.cs",
+        "sha256": "8d1f7ecd876829e257052f6296863179dd8707bd49e45dc994073981e5e3b4ce"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherHyphenationProjection.cs",
+        "sha256": "93f5fe8b95c58d3ba2caf2cb4ace93d5143c0f0d469863bd15c754c4d96c7141"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.cs",
+        "sha256": "edd4b837ffcf382f19989c519b26164956bbcd843e108f7865de939b21b22b27"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillKerningProjection.cs",
+        "sha256": "25e0d370a422796ca30365280769a3f21fed722b77ebf46d9f13a8b1d82e21e8"
+      },
+      {
+        "path": "OfficeIMO.Publisher/PublisherDocument.Editing.cs",
+        "sha256": "280f97342a8c2f9c3fa6ff543e8f36a552373064275417393fa79c435d8540f3"
+      },
+      {
+        "path": "OfficeIMO.Publisher/PublisherTextStory.cs",
+        "sha256": "45da50a95ce2745b160787ab881baa7797e3ceed3d413283ad7e6feec8975d37"
+      },
+      {
+        "path": "OfficeIMO.Publisher/README.md",
+        "sha256": "2fb5dc61018c5ef0e7d22292de7e8afbec9275e5da8d68fb10ec492a0daa7486"
+      },
+      {
+        "path": "OfficeIMO.Publisher/SUPPORT.md",
+        "sha256": "ea226df9e014a3042c2a66e1520ad378762c20af02f6bf857d65e589658d4571"
+      }
+    ]
   }
 }
