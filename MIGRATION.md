@@ -949,7 +949,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 | `Get-OfficePowerPointNotes` | `Get-OfficePowerPointNotes` (`Document` set) | Kept | `-Presentation` &rarr; `-Document`<br>`-Index` &rarr; `-Slide` |   |
 | `Get-OfficePowerPointPlaceholder` | `Get-OfficePowerPointPlaceholder` (`Slide` set) | Kept | `-PlaceholderType` &rarr; `-Type` |   |
 | `Get-OfficePowerPointSection` | `Get-OfficePowerPointSection` (`Document` set) | Kept | `-Presentation` &rarr; `-Document` |   |
-| `Get-OfficePowerPointShape` | `Get-OfficePowerPointShape` (`All` set) | Kept | `-Presentation` &rarr; `-Document`<br>`-Index` &rarr; `-Slide`<br>`-ShapeIndex` &rarr; `-Index` |   |
+| `Get-OfficePowerPointShape` | `Get-OfficePowerPointShape` (`All` set) | Kept | `-Presentation` &rarr; `-Document`<br>`-Index` &rarr; `-Slide`<br>`-ShapeIndex` &rarr; `-Index` | `Get-OfficePowerPointShape -Document $deck -Slide 1 -Index 1   # SlideIndex and ShapeIndex are also 1-based` |
 | `Get-OfficePowerPointSlide` | `Get-OfficePowerPointSlide` (`Document` set) | Kept | `-Presentation` &rarr; `-Document`<br>`-Index` &rarr; `-Slide` |   |
 | `Get-OfficePowerPointSlideSummary` | `Get-OfficePowerPointSlide` (`Document \| Path` set) | Merged | `-Presentation` &rarr; `-Document`<br>`-Index` &rarr; `-Slide`<br>`-Slide` (same name, changed) | `Get-OfficePowerPointSlide -Path .\Deck.pptx -Summary` |
 | `Get-OfficePowerPointTheme` | `Get-OfficePowerPointTheme` (`Document` set) | Kept | `-Presentation` &rarr; `-Document` |   |

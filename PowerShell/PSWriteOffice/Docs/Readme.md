@@ -772,9 +772,6 @@ Exports one or more Word pages through the format-neutral OfficeIMO image pipeli
 ### [Find-OfficeExcel](Find-OfficeExcel.md)
 Finds text in worksheet values.
 
-### [Find-OfficePowerPointShape](Find-OfficePowerPointShape.md)
-Finds PowerPoint shapes by text, name, kind, or slide.
-
 ### [Find-OfficeVisioStencil](Find-OfficeVisioStencil.md)
 Searches OfficeIMO Visio stencil catalogs.
 
@@ -998,7 +995,7 @@ Gets native slide placeholders or metadata from the selected slide's template la
 Reads sections from a live presentation, optionally matching a PowerShell wildcard pattern.
 
 ### [Get-OfficePowerPointShape](Get-OfficePowerPointShape.md)
-Reads shape summaries from a slide or presentation.
+Gets editable shape summaries, with optional text, name, kind and position filters.
 
 ### [Get-OfficePowerPointSlide](Get-OfficePowerPointSlide.md)
 Gets editable slides from a live document, or detached slide summaries from files.
@@ -1305,6 +1302,9 @@ Creates a themed presentation, returning a live document or saving a completed c
 
 ### [New-OfficePowerPointDeckPlan](New-OfficePowerPointDeckPlan.md)
 Creates a semantic PowerPoint deck plan for designer rendering.
+
+### [New-OfficePowerPointHtmlOptions](New-OfficePowerPointHtmlOptions.md)
+Creates native PowerPoint-to-HTML settings for Convert-OfficeDocument.
 
 ### [New-OfficePowerPointImageOptions](New-OfficePowerPointImageOptions.md)
 Creates discoverable slide selection and rendering settings for Export-OfficePowerPointImage.
@@ -1660,8 +1660,8 @@ Updates a template layout placeholder's geometry, text margins and text style.
 ### [Set-OfficePowerPointNotes](Set-OfficePowerPointNotes.md)
 Sets speaker notes on a native slide or in the current slide content block.
 
-### [Set-OfficePowerPointPlaceholderText](Set-OfficePowerPointPlaceholderText.md)
-Sets text in a slide placeholder.
+### [Set-OfficePowerPointPlaceholder](Set-OfficePowerPointPlaceholder.md)
+Replaces a native slide placeholder with plain text or rich paragraph content.
 
 ### [Set-OfficePowerPointShapeLayout](Set-OfficePowerPointShapeLayout.md)
 Aligns, distributes, or arranges PowerPoint shapes using OfficeIMO layout helpers.
