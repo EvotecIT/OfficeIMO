@@ -22,6 +22,7 @@ internal static class HtmlSemanticDocumentBuilder {
 
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles =
             HtmlComputedStyleEngine.Compute(document, mediaContext, limits);
+        (document, styles) = RemoveHiddenElements(document, styles);
         var sections = new List<HtmlSemanticSection>();
         var resources = new List<HtmlSemanticResource>();
         foreach (HtmlGenericSectionProjection projection in HtmlGenericDocumentProjector.CreateSections(document)) {
@@ -66,6 +67,36 @@ internal static class HtmlSemanticDocumentBuilder {
             rootTables.AsReadOnly(),
             resourceOccurrences,
             DeduplicateResources(resources));
+    }
+
+    // Adapters read both the semantic blocks and their source elements, so hidden content has to leave the
+    // document they share. Removal runs on a copy, keeping the cascade computed for the authored tree.
+    private static (IHtmlDocument Document, IReadOnlyDictionary<IElement, HtmlComputedStyle> Styles) RemoveHiddenElements(
+        IHtmlDocument document,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        List<IElement> elements = document.All.ToList();
+        if (!elements.Any(element => IsHidden(element, document, styles))) return (document, styles);
+
+        IHtmlDocument visible = HtmlDocumentParser.CloneDocument(document);
+        List<IElement> copies = visible.All.ToList();
+        var visibleStyles = new Dictionary<IElement, HtmlComputedStyle>(styles.Count);
+        var hidden = new List<IElement>();
+        for (int index = 0; index < elements.Count; index++) {
+            if (styles.TryGetValue(elements[index], out HtmlComputedStyle? style)) visibleStyles[copies[index]] = style;
+            if (IsHidden(elements[index], document, styles)) hidden.Add(copies[index]);
+        }
+        foreach (IElement element in hidden) element.Remove();
+        return (visible, visibleStyles);
+    }
+
+    private static bool IsHidden(IElement element, IHtmlDocument document, IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        if (HtmlGenericDocumentProjector.IsIgnoredElement(element) || document.Body?.Contains(element) != true) return false;
+        styles.TryGetValue(element, out HtmlComputedStyle? style);
+        string display = (style?.GetValue("display") ?? string.Empty).Trim();
+        if (display.Equals("none", StringComparison.OrdinalIgnoreCase)) return true;
+        return element.HasAttribute("hidden")
+            && !string.Equals(element.GetAttribute("hidden")?.Trim(), "until-found", StringComparison.OrdinalIgnoreCase)
+            && (style == null || !(style.IsSpecifiedValue("display") || style.IsInheritedValue("display")));
     }
 
     private static HtmlSemanticBlock BuildBlock(
@@ -248,9 +279,16 @@ internal static class HtmlSemanticDocumentBuilder {
         ICollection<HtmlSemanticRun> runs,
         InlineState state,
         bool skipNestedLists,
+        ref bool pendingBlockBreak,
         bool isRoot = false) {
         if (node is IText text) {
             if (text.Data.Length == 0) return;
+            if (pendingBlockBreak) {
+                // Whitespace between blocks is markup formatting, not content.
+                if (string.IsNullOrWhiteSpace(text.Data)) return;
+                pendingBlockBreak = false;
+                if (runs.Count > 0) runs.Add(CreateLineBreakRun(state, state.Location));
+            }
             runs.Add(new HtmlSemanticRun(text.Data, state.Hyperlink, state.Bold, state.Italic,
                 state.Underline, state.UnderlineStyle, state.Strikethrough, state.StrikethroughStyle,
                 state.Superscript, state.Subscript,
@@ -266,27 +304,29 @@ internal static class HtmlSemanticDocumentBuilder {
             return;
         }
 
+        bool isBlock = !isRoot && BlockBoundaryElements.Contains(element.LocalName);
+        pendingBlockBreak |= isBlock;
         styles.TryGetValue(element, out HtmlComputedStyle? style);
         InlineState nested = state.With(element, style, HtmlSemanticSourceLocation.FromElement(element));
         foreach (INode child in element.ChildNodes) {
             AppendRuns(child, styles, runs, nested, skipNestedLists, ref pendingBlockBreak);
         }
+        pendingBlockBreak |= isBlock;
     }
+
+    private static HtmlSemanticRun CreateLineBreakRun(InlineState state, HtmlSemanticSourceLocation? location) =>
+        new HtmlSemanticRun("\n", state.Hyperlink, state.Bold, state.Italic,
+            state.Underline, state.UnderlineStyle, state.Strikethrough, state.StrikethroughStyle,
+            state.Superscript, state.Subscript,
+            state.Style, location, isLineBreak: true, state.DataAttributes, state.BackgroundColor);
 
     private static HtmlSemanticRun CopyRun(HtmlSemanticRun run, string text) =>
         new HtmlSemanticRun(text, run.Hyperlink, run.Bold, run.Italic, run.Underline, run.UnderlineStyle,
             run.Strikethrough, run.StrikethroughStyle, run.Superscript, run.Subscript,
             run.Style, run.SourceLocation, run.IsLineBreak,
-        ref bool pendingBlockBreak,
             run.DataAttributes, run.BackgroundColor);
 
     private static IReadOnlyList<HtmlSemanticRun> NormalizeRuns(
-            if (pendingBlockBreak) {
-                // Whitespace between blocks is markup formatting, not content.
-                if (string.IsNullOrWhiteSpace(text.Data)) return;
-                pendingBlockBreak = false;
-                if (runs.Count > 0) runs.Add(CreateLineBreakRun(state, state.Location));
-            }
         IReadOnlyList<HtmlSemanticRun> source,
         bool preserveWhitespace,
         bool preserveLines) {
@@ -304,22 +344,13 @@ internal static class HtmlSemanticDocumentBuilder {
             }
             var builder = new StringBuilder(run.Text.Length);
             foreach (char character in run.Text) {
-        bool isBlock = !isRoot && BlockBoundaryElements.Contains(element.LocalName);
-        pendingBlockBreak |= isBlock;
                 bool lineBreak = character == '\r' || character == '\n';
                 if (lineBreak && preserveLines) {
                     while (builder.Length > 0 && builder[builder.Length - 1] == ' ') builder.Length--;
                     if (builder.Length > 0 || result.Count > 0) builder.Append('\n');
                     hasVisibleText = false;
-        pendingBlockBreak |= isBlock;
                     pendingSpace = false;
                 } else if (char.IsWhiteSpace(character)) {
-    private static HtmlSemanticRun CreateLineBreakRun(InlineState state, HtmlSemanticSourceLocation? location) =>
-        new HtmlSemanticRun("\n", state.Hyperlink, state.Bold, state.Italic,
-            state.Underline, state.UnderlineStyle, state.Strikethrough, state.StrikethroughStyle,
-            state.Superscript, state.Subscript,
-            state.Style, location, isLineBreak: true, state.DataAttributes, state.BackgroundColor);
-
                     pendingSpace = hasVisibleText;
                 } else {
                     if (pendingSpace && builder.Length == 0 && result.Count > 0

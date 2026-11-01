@@ -34,6 +34,28 @@ public sealed class HtmlExcelGenericContentTests {
         }));
     }
 
+    [Theory]
+    [InlineData("<style>.h{display:none}</style><p>a<span class=h>SECRET</span>b</p>", "ab")]
+    [InlineData("<p>ab</p><p hidden>SECRET</p>", "ab")]
+    [InlineData("<style>.h{display:none}</style><p>ab</p><div class=h><p>SECRET</p></div>", "ab")]
+    public void HiddenContentIsNotImportedAndNoTitleRowIsInvented(string html, string expected) {
+        using ExcelDocument workbook = Import(html);
+        ExcelSheet sheet = Assert.Single(workbook.Sheets);
+
+        Assert.Equal(expected, Assert.Single(sheet.EnumerateCells()).Value);
+    }
+
+    [Fact]
+    public void HiddenTableCellLeavesTheVisibleCellsInPlace() {
+        using ExcelDocument workbook = Import("<table><tr><td hidden>SECRET</td><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></table>");
+        ExcelSheet sheet = workbook.Sheets[0];
+
+        Assert.True(sheet.TryGetCellText(1, 1, out string first));
+        Assert.True(sheet.TryGetCellText(1, 2, out string second));
+        Assert.Equal(("a", "b"), (first, second));
+        Assert.DoesNotContain(sheet.EnumerateCells(), cell => Equals(cell.Value, "SECRET"));
+    }
+
     private static ExcelDocument Import(string html) =>
         HtmlConversionDocument.Parse(html)
             .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic })
