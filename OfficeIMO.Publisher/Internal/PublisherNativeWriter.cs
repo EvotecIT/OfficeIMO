@@ -29,6 +29,7 @@ internal sealed partial class PublisherNativeWriter {
         if (imported?.NativeSource == null || imported.Baseline == null)
             return new PublisherNativePreparation(null, new[] { Finding("PUB_NATIVE_SOURCE_REQUIRED",
                 "Native preparation requires an imported source and its semantic baseline. Source-free authoring is not a native writer.", OfficeConversionLossKind.Failure, "Contents") });
+        current = NormalizeEmptyStories(current, imported.Baseline, sourceLimits.MaxTextCharacters, token, out var normalizations);
         var writer = new PublisherNativeWriter(current, imported, sourceLimits, maximumBytes, token);
         writer.Compare();
         if (writer._diagnostics.Count != 0) return new PublisherNativePreparation(null, writer._diagnostics, writer._styleDependencies);
@@ -37,7 +38,7 @@ internal sealed partial class PublisherNativeWriter {
             if (source.ByteLength > maximumBytes) throw new InvalidDataException("Publisher native output byte limit exceeded.");
             token.ThrowIfCancellationRequested();
             return new PublisherNativePreparation(source.CopyBytes(), new[] { Finding("PUB_NATIVE_EXACT_COPY",
-                "The semantic model is unchanged. Original native bytes are copied exactly; native validity and signatures are not reassessed.", OfficeConversionLossKind.None, "Contents") });
+                "The native representation is unchanged. Original native bytes are copied exactly; native validity and signatures are not reassessed.", OfficeConversionLossKind.None, "Contents") }.Concat(normalizations));
         }
         if (!source.CanRewrite(sourceLimits, token)) {
             writer.Reject("Contents", "Edited output is unavailable for an invalid directory tree, nonempty active-content carriers, signatures or protected storage.");
@@ -69,7 +70,7 @@ internal sealed partial class PublisherNativeWriter {
         }
         byte[] output = source.Rewrite(streams, maximumBytes, token);
         token.ThrowIfCancellationRequested();
-        var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+        var diagnostics = new List<OfficeConversionFidelityDiagnostic>(normalizations);
         if (writer._storyHyphenation.Count > 0) diagnostics.Add(Finding("PUB_NATIVE_STORY_HYPHENATION_UNQUALIFIED",
             "Selected native story automatic-hyphenation flags changed without modifying source text or Quill formatting. Repair-free opening and opaque semantic preservation remain unassessed.",
             OfficeConversionLossKind.Unassessed, "Contents/stories"));

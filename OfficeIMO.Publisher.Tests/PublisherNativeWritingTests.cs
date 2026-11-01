@@ -186,7 +186,6 @@ public sealed class PublisherNativeWritingTests {
     }
 
     [Theory]
-    [InlineData("empty-story")]
     [InlineData("background-format")]
     [InlineData("page")]
     [InlineData("master")]
@@ -204,7 +203,6 @@ public sealed class PublisherNativeWritingTests {
             : PublisherDocument.Load(PublisherNativeTests.Fixture(file));
         PublisherPage page = document.Pages[0];
         switch (mutation) {
-            case "empty-story": document.ReplaceStoryParagraphs(document.TextStories[0].Id, Array.Empty<OfficeRichTextParagraph>()); break;
             case "background-format":
                 OfficeRichTextParagraph originalParagraph = document.TextStories[0].Paragraphs[0];
                 OfficeRichTextRun run = originalParagraph.Runs[0];

@@ -8,6 +8,7 @@ internal static partial class PublisherQuillParagraphWriter {
     internal static bool CanRewriteStory(PublisherTextStory before, PublisherTextStory after, out bool extended) {
         extended = false;
         if (before.Id != after.Id || before.Paragraphs.Count == 0 || after.Paragraphs.Count == 0) return false;
+        if (CanClearStory(before, after)) { extended = true; return true; }
         bool reshape = before.Paragraphs.Count != after.Paragraphs.Count;
         if (reshape && before.Paragraphs.Any(paragraph => paragraph.Runs.Count != 1 || paragraph.Label != null
             || !ParagraphFormattingEqual(before.Paragraphs[0], paragraph)

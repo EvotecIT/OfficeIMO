@@ -18,6 +18,7 @@ internal static partial class PublisherQuillParagraphWriter {
         out List<PublisherQuillFormattingRange> pc, out List<PublisherQuillFormattingRange> pp, PublisherQuillWriteResources? resources = null,
         PublisherQuillStyles? typingStyles = null) {
         pc = new(); pp = new();
+        if (CanClearStory(before, after)) return TryPlanClear(data, context, binding, before, outputTextOffset, token, pc, pp);
         if (before.Paragraphs.Count != after.Paragraphs.Count) {
             if (TryPlanTopology(data, context, binding, before, after, outputTextOffset, token, pc, pp, resources, typingStyles)) return true;
             pc.Clear(); pp.Clear();
