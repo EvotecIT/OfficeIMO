@@ -7,6 +7,9 @@ namespace OfficeIMO.Excel {
             out int position, out FormulaArgumentValue failure, bool sortedApproximate = false) {
             position = 0;
             failure = default;
+            // Lookup arguments use value semantics. Keep source cells typed,
+            // but treat a key referring to an empty cell like a numeric zero key.
+            lookupValue = NormalizeLookupResult(lookupValue);
             bool ordered = Math.Abs(searchMode) == 2 || matchMode == -1 || matchMode == 1;
             if (ordered && LookupValueKind(lookupValue) == 1 && !TryGetArraySortKeyKind(lookupValue, out _)) {
                 failure = FormulaArgumentValue.UnresolvedFormula();

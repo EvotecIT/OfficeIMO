@@ -100,6 +100,55 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
+        [InlineData("H1")]
+        [InlineData("INDEX(H1:H2,1)")]
+        [InlineData("OFFSET(H1,0,0)")]
+        [InlineData("EmptyKey")]
+        public void FormulaEvaluator_BlankLookupKeysUseNumericZeroAcrossSearchFamilies(string key) {
+            using var document = ExcelDocument.Create();
+            var sheet = document.AddWorksheet("Keys");
+            document.SetNamedRange("EmptyKey", "Keys!$H$1", save: false);
+            sheet.CellValue(2, 1, 5d);
+            sheet.CellValue(3, 1, 0d);
+            sheet.CellValue(4, 1, "0");
+            sheet.CellValue(5, 1, false);
+            sheet.CellValue(1, 2, 100d);
+            sheet.CellValue(2, 2, 500d);
+            sheet.CellValue(3, 2, 200d);
+            sheet.CellValue(1, 5, 5d);
+            sheet.CellValue(1, 6, 0d);
+            sheet.CellValue(2, 4, 100d);
+            sheet.CellValue(2, 5, 500d);
+            sheet.CellValue(2, 6, 200d);
+            for (int row = 1; row <= 3; row++) {
+                sheet.CellValue(row, 10, (row - 2) * 5d);
+                sheet.CellValue(row, 12, (2 - row) * 5d);
+            }
+            (string Formula, string Expected)[] cases = {
+                ($"MATCH({key},A1:A3,0)", "3"),
+                ($"XMATCH({key},A1:A3)", "3"),
+                ($"VLOOKUP({key},A1:B3,2,FALSE)", "200"),
+                ($"HLOOKUP({key},D1:F2,2,FALSE)", "200"),
+                ($"XLOOKUP({key},A1:A3,B1:B3)", "200"),
+                ($"IFERROR(MATCH({key},A1:A2,0),77)", "77"),
+                ($"IFERROR(XMATCH({key},A1:A2),77)", "77"),
+                ($"IFERROR(VLOOKUP({key},A1:B2,2,FALSE),77)", "77"),
+                ($"IFERROR(HLOOKUP({key},D1:E2,2,FALSE),77)", "77"),
+                ($"IFERROR(XLOOKUP({key},A1:A2,B1:B2),77)", "77"),
+                ($"XMATCH({key},J1:J3,0,2)", "2"),
+                ($"XMATCH({key},L1:L3,0,-2)", "2"),
+                ($"XLOOKUP({key},J1:J3,B1:B3,,0,2)", "500"),
+                ($"XLOOKUP({key},L1:L3,B1:B3,,0,-2)", "500"),
+                ("MATCH(0,A1:A5,0)", "3"),
+                ("MATCH(\"0\",A1:A5,0)", "4"),
+                ("MATCH(FALSE,A1:A5,0)", "5")
+            };
+            for (int index = 0; index < cases.Length; index++) sheet.CellFormula(index + 1, 14, cases[index].Formula);
+            Assert.Equal(cases.Length, document.Calculate());
+            for (int index = 0; index < cases.Length; index++) AssertFormulaCache(sheet, index + 1, 14, cases[index].Expected);
+        }
+
+        [Theory]
         [InlineData(false)]
         [InlineData(true)]
         public void FormulaEvaluator_ArrayBlankOutputsReplaceCachesWithNumericZero(bool dynamic) {

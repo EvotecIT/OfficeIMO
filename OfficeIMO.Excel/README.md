@@ -1409,6 +1409,8 @@ numeric text and Boolean values and truncate positive fractions. Invalid text
 positions return `#VALUE!`; discrete match/search modes retain their own
 supported values. Lookup keys preserve the distinction between numbers,
 numeric-looking text and Booleans.
+An empty referenced lookup key uses numeric zero for the search; empty text and
+Boolean keys keep their types, and source keys are not coerced by that rule.
 
 | Family | Calculation contract |
 | --- | --- |
