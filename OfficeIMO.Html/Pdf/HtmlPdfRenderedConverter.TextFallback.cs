@@ -62,18 +62,18 @@ internal static partial class HtmlPdfRenderedConverter {
         CancellationToken cancellationToken) {
         if (webFonts.FidelityPolicy != HtmlRenderFidelityPolicy.AllowDiagnosedLoss
             || !RequiresUnicodeFont(text)
-            || IsPaintable(text, webFonts, createRuns)) return text;
+            || IsPaintable(text, visual, webFonts, createRuns)) return text;
         var retained = new StringBuilder(text.Length);
         foreach (string element in OfficeTextElements.Enumerate(text)) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!RequiresUnicodeFont(element) || IsPaintable(element, webFonts, createRuns)) {
+            if (!RequiresUnicodeFont(element) || IsPaintable(element, visual, webFonts, createRuns)) {
                 retained.Append(element);
                 continue;
             }
             // A base character without its emoji modifiers still says more than a box.
             string baseScalar = element.Substring(0, ScalarLength(element, 0));
             string replacement = new[] { baseScalar }.Concat(UnpaintableTextReplacements)
-                .First(candidate => IsPaintable(candidate, webFonts, createRuns));
+                .First(candidate => IsPaintable(candidate, visual, webFonts, createRuns));
             retained.Append(replacement);
             string codePoints = string.Join(" ", ScalarNames(element));
             string family = visual.Font.FamilyName ?? string.Empty;
@@ -81,7 +81,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 webFonts.Diagnostics.Add(
                     "OfficeIMO.Html.Pdf",
                     HtmlPdfDiagnosticCodes.UnavailableTextGlyphReplaced,
-                    "No available font covers " + codePoints + "; a simpler or replacement glyph was painted and the source text kept for extraction.",
+                    "No available font can paint " + codePoints + "; a simpler or replacement glyph was painted and the source text kept for extraction.",
                     HtmlDiagnosticSeverity.Warning,
                     visual.Source ?? "html-text",
                     family,
@@ -95,10 +95,19 @@ internal static partial class HtmlPdfRenderedConverter {
 
     private static bool IsPaintable(
         string text,
+        HtmlRenderText visual,
         RegisteredWebFonts webFonts,
-        Func<string, PdfCore.PdfTextRun[]> createRuns) =>
-        PdfCore.PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
+        Func<string, PdfCore.PdfTextRun[]> createRuns) {
+        OfficeFontStyle style = (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
+            | (visual.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
+        foreach (OfficeFontFallbackRun run in webFonts.Faces.PlanFallbackRuns(text, visual.Font.FamilyName, style)) {
+            if (webFonts.Faces.TryResolveFaceForText(run.Text, run.FamilyRequest, style, out OfficeFontFace? face)
+                && face?.Program is OfficeTrueTypeFont program
+                && program.ContainsUnpaintableColorGlyph(run.Text)) return false;
+        }
+        return PdfCore.PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
             createRuns(text), webFonts.Options, PdfCore.PdfStandardFont.Helvetica).Count == 0;
+    }
 
     private static IEnumerable<string> ScalarNames(string text) {
         for (int index = 0; index < text.Length; index += ScalarLength(text, index)) {

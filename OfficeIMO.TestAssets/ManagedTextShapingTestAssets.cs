@@ -164,6 +164,55 @@ internal static partial class ManagedTextShapingTestAssets {
             baseGlyphHeight: baseGlyphHeight);
     }
 
+    /// <summary>A COLR v1 base glyph: glyph 2 in solid palette red, then glyph 3 moved up with a red-to-blue gradient.</summary>
+    internal static byte[] CreateColrV1Font(int scalar) {
+        var table = new byte[117];
+        WriteUInt16(table, 0, 1);
+        WriteUInt32(table, 14, 34); // BaseGlyphList
+        WriteUInt32(table, 18, 44); // LayerList
+        WriteUInt32(table, 34, 1);
+        WriteUInt16(table, 38, 1);
+        WriteUInt32(table, 40, 22); // PaintColrLayers at 56
+        WriteUInt32(table, 44, 2);
+        WriteUInt32(table, 48, 18); // layer 0 at 62
+        WriteUInt32(table, 52, 29); // layer 1 at 73
+        table[56] = 1;
+        table[57] = 2;
+        WritePaintGlyph(table, 62, 6, 2);
+        table[68] = 2; // PaintSolid
+        WriteUInt16(table, 71, 0x4000);
+        table[73] = 14; // PaintTranslate
+        table[76] = 7;
+        WriteUInt16(table, 79, 100);
+        WritePaintGlyph(table, 80, 6, 3);
+        table[86] = 4; // PaintLinearGradient
+        table[89] = 16;
+        WriteUInt16(table, 103, 2); // ColorLine stops
+        WriteUInt16(table, 109, 0x4000);
+        WriteUInt16(table, 111, 0x4000);
+        WriteUInt16(table, 113, 1);
+        WriteUInt16(table, 115, 0x4000);
+        return CreateFontFromCmap(
+            CreateFormat12Cmap(new[] { scalar }),
+            glyphCount: 4,
+            distinctSecondGlyph: true,
+            colr: table,
+            cpal: CreateCpalV1());
+    }
+
+    private static void WritePaintGlyph(byte[] table, int offset, int childOffset, int glyphId) {
+        table[offset] = 10;
+        table[offset + 3] = checked((byte)childOffset);
+        WriteUInt16(table, offset + 4, checked((ushort)glyphId));
+    }
+
+    /// <summary>A mapped glyph whose only artwork is a bitmap strike, as in CBDT and sbix emoji fonts.</summary>
+    internal static byte[] CreateBitmapOnlyColorFont(int scalar) => CreateFontFromCmap(
+        CreateFormat12Cmap(new[] { scalar }),
+        glyphCount: 2,
+        blankGlyphIds: new[] { 1 },
+        additionalTables: new[] { ("CBDT", new byte[8]) });
+
     internal static byte[] CreateColorLigatureFont(int firstScalar, int secondScalar, string featureTag = "liga") {
         byte[] colr = CreateColrV0();
         WriteUInt16(colr, 14, 3);

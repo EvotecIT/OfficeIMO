@@ -72,4 +72,50 @@ public sealed class HtmlPdfFontCoverageTests {
         Assert.Contains("A−B", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.True(PdfCore.PdfDiagnostics.Analyze(pdf).EmbeddedFontCount >= 1);
     }
+
+    [Fact]
+    public void HtmlPdf_ColrV1GlyphPaintsItsLayersAndReportsFlattenedGradient() {
+        byte[] font = ManagedTextShapingTestAssets.CreateColrV1Font('A');
+
+        HtmlPdfRenderRequestResult result = RenderWithWebFont(font, "A");
+
+        OfficeColor[] fills = DrawingTestTraversal.Elements(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).Render.Drawing(1))
+            .OfType<OfficeDrawingShape>()
+            .Select(shape => shape.Shape.FillColor ?? OfficeColor.Transparent)
+            .ToArray();
+        Assert.Contains(fills, color => color.R == 255 && color.G == 0 && color.B == 0);
+        Assert.Contains(fills, color => color.R is > 120 and < 135 && color.G == 0 && color.B is > 120 and < 135);
+        Assert.Contains(result.Output.Report.Warnings, item => item.Code == HtmlPdfDiagnosticCodes.ColorGlyphApproximated);
+    }
+
+    [Fact]
+    public void HtmlPdf_BitmapOnlyColorGlyphReportsReplacementInsteadOfPaintingBlank() {
+        const int emoji = 0x1F600;
+        string text = char.ConvertFromUtf32(emoji);
+
+        HtmlPdfRenderRequestResult result = RenderWithWebFont(ManagedTextShapingTestAssets.CreateBitmapOnlyColorFont(emoji), text);
+
+        Assert.Contains(result.Output.Report.Warnings, item => item.Code == HtmlPdfDiagnosticCodes.UnavailableTextGlyphReplaced
+            && item.Message.Contains("U+1F600", StringComparison.Ordinal));
+        Assert.Contains(text, PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlPdf_ColorFlagLigatureIsNotSplitIntoItsRegionalIndicators() {
+        string flag = char.ConvertFromUtf32(0x1F1F5) + char.ConvertFromUtf32(0x1F1F1);
+        byte[] font = ManagedTextShapingTestAssets.CreateColorLigatureFont(0x1F1F5, 0x1F1F1);
+
+        HtmlPdfRenderRequestResult result = RenderWithWebFont(font, flag);
+
+        Assert.Contains(DrawingTestTraversal.Elements(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).Render.Drawing(1))
+            .OfType<OfficeDrawingShape>(), shape => shape.Shape.FillColor?.B == 255);
+        Assert.Contains(flag, PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    private static HtmlPdfRenderRequestResult RenderWithWebFont(byte[] font, string text) {
+        string html = "<style>@font-face{font-family:Scoped;src:url(data:font/ttf;base64," + Convert.ToBase64String(font)
+            + ")}</style><p style='font-family:Scoped;font-size:40px'>" + text + "</p>";
+        return HtmlConversionDocument.Parse(html).RenderToPdfResult(
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlToPdfOptions()));
+    }
 }

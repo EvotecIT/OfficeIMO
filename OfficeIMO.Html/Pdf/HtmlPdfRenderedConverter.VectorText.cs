@@ -68,6 +68,7 @@ internal static partial class HtmlPdfRenderedConverter {
                         (face.Program is OfficeTrueTypeFont colorFont && colorFont.HasColorGlyphs) ||
                         !webFonts.Slots.ContainsKey(run.FamilyName))) ||
                 ContainsColorGlyph(face.Program, run.Text);
+            ReportApproximatedColorGlyphs(webFonts, visual, face.Program, run.Text);
         }
         if (!requiresOutlines) {
             foreach (OutlinedFontRun run in resolvedRuns) {
@@ -435,6 +436,30 @@ internal static partial class HtmlPdfRenderedConverter {
             if (program.TryGetGlyphMetrics(scalar, out int glyphId, out _) && colorProgram.HasColorGlyph(glyphId)) return true;
         }
         return false;
+    }
+
+    private static void ReportApproximatedColorGlyphs(
+        RegisteredWebFonts webFonts,
+        HtmlRenderText visual,
+        IOfficeFontProgram program,
+        string text) {
+        if (program is not IOfficeColorFontProgram colorProgram) return;
+        for (int index = 0; index < text.Length; index += ScalarLength(text, index)) {
+            if (!program.TryGetGlyphMetrics(char.ConvertToUtf32(text, index), out int glyphId, out _)
+                || !colorProgram.IsColorGlyphApproximated(glyphId)) continue;
+            string family = visual.Font.FamilyName ?? string.Empty;
+            if (webFonts.ReportedUnpaintableText.Add("color\0" + family)) {
+                webFonts.Diagnostics.Add(
+                    "OfficeIMO.Html.Pdf",
+                    HtmlPdfDiagnosticCodes.ColorGlyphApproximated,
+                    "A COLR v1 glyph used gradients or blend modes; its layers were painted in flat colors.",
+                    HtmlDiagnosticSeverity.Warning,
+                    visual.Source ?? "html-text",
+                    family,
+                    OfficeConversionLossKind.Approximation);
+            }
+            return;
+        }
     }
 
     private static OfficeTextShapingResult? ShapeOutlinedRun(
