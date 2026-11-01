@@ -26711,5 +26711,181 @@
         "sha256": "ea226df9e014a3042c2a66e1520ad378762c20af02f6bf857d65e589658d4571"
       }
     ]
+  },
+  "labelledFirstLineFitting": {
+    "sourceCommit": "192174b30d65c07fa9458efce0d5e5c07fcc1504",
+    "contract": "An unobstructed native Publisher frame can admit its first labelled line above its height; later lines fit normally. A rejected horizontal marker does not gain admission through the height exception.",
+    "ownership": "Existing Core paragraph/text-area placement and flow; no new public API or runtime dependency.",
+    "corpus": {
+      "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextLabelFitting/provenance.json",
+      "origin": "Independently authored native publication without seed; a renderer qualification, not product native-creation acceptance.",
+      "pages": 8,
+      "frames": 23,
+      "body": "Arial12",
+      "marker": "Explicit Arial star at12/24pt",
+      "spacing": "Exact18pt and multiple1.19",
+      "heightsPoints": [
+        6,
+        12,
+        18,
+        35,
+        36
+      ],
+      "linked": "Three frames read in a different order from physical placement; marker is not repeated and consumes no source characters.",
+      "nativeVersion": {
+        "name": "Microsoft Publisher",
+        "version": "16.0",
+        "executableVersion": "16.0.20527.20088",
+        "automationSecurity": 3
+      },
+      "candidateSha256": "f72ba7cb3313e1d646c2b6018a40d06234230b2ff53832e264a3a2adbb47123d",
+      "status": "OpenedExportedResavedAndReopened",
+      "qualifiedOperations": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "producerInitialPixelPairsEqual": 8,
+      "initialResavedPixelPairsEqual": 8,
+      "resavedTextAssignmentsEqual": 23,
+      "dpi": 144,
+      "sourceUnchanged": true,
+      "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred."
+    },
+    "managed": {
+      "beforeMatchingFrameAssignments": 11,
+      "finalMatchingFrameAssignments": 23,
+      "totalFrames": 23,
+      "visibleNonWhitespaceGlyphTextMatchesAll8Pages": true,
+      "maxGlyphOriginXDifferencePoints": 0.122833251953125,
+      "maxGlyphOriginYDifferencePoints": 0.1529541015625,
+      "finalSourceOutputPixelPairsEqualToInspectedCandidate": 8,
+      "scopedFontSha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a",
+      "exactSourceNoop": true,
+      "limits": "Finite explicit Arial star profile. Managed glyph pixels/device quantization are not identical to native."
+    },
+    "validation": {
+      "tests": [
+        {
+          "report": "guard-final-publisher-net10.0",
+          "passed": 1013,
+          "failed": 0
+        },
+        {
+          "report": "guard-final-publisher-net8.0",
+          "passed": 1013,
+          "failed": 0
+        },
+        {
+          "report": "guard-final-publisher-net472",
+          "passed": 1013,
+          "failed": 0
+        },
+        {
+          "report": "guard-final-core-net10.0",
+          "passed": 388,
+          "failed": 0
+        },
+        {
+          "report": "guard-final-core-net8.0",
+          "passed": 388,
+          "failed": 0
+        },
+        {
+          "report": "guard-final-core-net472",
+          "passed": 388,
+          "failed": 0
+        },
+        {
+          "report": "guard-reader",
+          "passed": 93,
+          "failed": 0
+        }
+      ],
+      "sourcePSWriteOfficeNet8Build": "passed; zero warnings/errors",
+      "readerNetstandard20NonincrementalBuild": "passed; zero warnings/errors",
+      "powerShell": {
+        "firstSourceLength": 11,
+        "exactNoop": true,
+        "coreSha256": "00363f7bdf25c41e6fac8cc4a022a821d057cfc9ee6a57cccd726b1c9345428a",
+        "pages": 8,
+        "workflowSucceeded": true,
+        "publisherSha256": "767e438dc41bca46e38aa24e3bd0503811e041ea42cd2177fa5e6c31dd5ad6a9",
+        "runtime": "7.6.9"
+      },
+      "regression": "Public exact-line fixture test failed on missing first assigned line before fix; corrected regression also verifies raster/PDF overhang and unchanged full source/no-op bytes.",
+      "broadRegression": "Existing label-only admission/retry test failed after unconditional height exception; preserving usable-label eligibility fixes it without weakening the test.",
+      "portableTestScope": "Shipped Carlito substitution qualifies exact allocations/overhang only; exact Arial geometry is separate public-consumer/native evidence."
+    },
+    "review": {
+      "mode": "Focused primary review with direct native controls and failing public/existing broad regressions; no additional independent subagent pass for the two fitting guards.",
+      "siblings": "Both paragraph/text-area placement paths; strict generic/table/exclusion callers; original flow source consumption and label-only horizontal rejection inspected."
+    },
+    "limits": [
+      "Other marker fonts and numbering sequences, scripts and broader layout profiles remain unqualified.",
+      "No repair-free opening, general opaque preservation, native template-free product writer or earlier-generation lifecycle acceptance inferred."
+    ],
+    "sourceBindings": [
+      {
+        "path": "Build/Publisher/Add-NativeLabelFittingControl.ps1",
+        "sha256": "8fc8e2aecc10af25dc306c602c111cab1f000adc7f3e7828796062c9da6c7eaf"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "sha256": "8e1027b2cd8aed705e6f6f29d1c795be3c8d705517e88d7768274c69d04d6cca"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+        "sha256": "0e8e417120e8efa0530c533e34a94baddee282ab430c67f3f5338e013900343d"
+      },
+      {
+        "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+        "sha256": "68b340a1b0e3181195a82e8b57d8640c29e53a9041086f095ffd66c1f69ee139"
+      },
+      {
+        "path": "Docs/ROADMAP.md",
+        "sha256": "19438778076c12fd9632f779c552f469ba64ad2c1e7a3e1702d41094149a576d"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.Paragraphs.cs",
+        "sha256": "401998ffdef7be6e6ee740acf2bbd8e7bd3f3227ee3d1425dbd812e043196122"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.TextArea.cs",
+        "sha256": "3734b6d683f4cc692ab61330743413ff0657f2572a622a31ac6c8afa72027646"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextLabelFitting/native-textlabelfitting.json",
+        "sha256": "7e765a047750b1e137d4efde37c82e32d2b49d697a3cc88647fa944fe767859c"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextLabelFitting/native-textlabelfitting.pdf",
+        "sha256": "10025a65c239650760530bc122feee03c081f8459b53419e201ece2b187c1b2c"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextLabelFitting/native-textlabelfitting.pub",
+        "sha256": "f72ba7cb3313e1d646c2b6018a40d06234230b2ff53832e264a3a2adbb47123d"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextLabelFitting/provenance.json",
+        "sha256": "5b68b5d1e8c09c1aadbcd718cdc52b62239c724e59bcadd1314739401a09cf17"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherNativeComparison.LabelFitting.cs",
+        "sha256": "30fc8755c31a513a05f255bcdf5b0b4f1a2ff990b662f947c6514092d9a84a2e"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherNativeComparisonTests.cs",
+        "sha256": "c26473dc58d90e318481c147fee02616aa653cedf493a58ef4561b5789699456"
+      },
+      {
+        "path": "OfficeIMO.Publisher/SUPPORT.md",
+        "sha256": "44fef2ce8c3ffcf5c487d5e645c63fd8cfeac09d8d4ceeb2ba73de464e4ba6f9"
+      }
+    ]
   }
 }
