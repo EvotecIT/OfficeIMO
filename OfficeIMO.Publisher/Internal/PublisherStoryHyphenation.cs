@@ -35,7 +35,11 @@ internal static class PublisherStoryHyphenation {
                     new Dictionary<byte, byte[]> { [4] = new byte[] { 4, enabled ? (byte)8 : (byte)0 } }, context);
                 entries.Add(PublisherOplWriter.Nested(entry.Id, entry.Type, body.Skip(4).ToArray()));
                 changed.Add(id);
-            } else entries.Add(data.Bytes.AsSpan(entry.Offset - 2, entry.Length + 2).ToArray());
+            } else {
+                var retained = new byte[entry.Length + 2];
+                Buffer.BlockCopy(data.Bytes, entry.Offset - 2, retained, 0, retained.Length);
+                entries.Add(retained);
+            }
         }
         if (changed.Count != changes.Count) return null;
         byte[] replacement = PublisherOplWriter.Rewrite(data, catalog.Chunk.Offset, data.Offset(data.U32(catalog.Chunk.Offset)),
