@@ -60,4 +60,21 @@ public sealed class WordTableMergedStructureTests {
         Assert.Single(package.MainDocumentPart!.Document!.Descendants<BookmarkStart>());
         Assert.Empty(new OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(package));
     }
+
+    [Fact]
+    public void EmptiedTablesRowsAndCellsAreNotSaved() {
+        using WordDocument document = WordDocument.Create();
+        CreateTable(document, 1, 1).Rows[0].Remove();
+        WordTable cellless = CreateTable(document, 2, 1);
+        cellless.Rows[1].Cells[0].Remove();
+        WordTable paragraphless = CreateTable(document, 1, 1);
+        foreach (WordParagraph paragraph in paragraphless.Rows[0].Cells[0].Paragraphs.ToList()) paragraph.Remove();
+
+        using var package = WordprocessingDocument.Open(new MemoryStream(Save(document)), false);
+        Table[] tables = package.MainDocumentPart!.Document!.Body!.Elements<Table>().ToArray();
+        Assert.Equal(2, tables.Length);
+        Assert.Single(tables[0].Elements<TableRow>());
+        Assert.All(tables.SelectMany(table => table.Descendants<TableCell>()),
+            cell => Assert.IsType<Paragraph>(cell.ChildElements.Last()));
+    }
 }

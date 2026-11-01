@@ -130,6 +130,7 @@ namespace OfficeIMO.Word {
         private void PreSaving() {
             EnsureStyleDefinitionsInitialized();
             MoveSectionProperties();
+            RepairEmptyTableStructure();
             // Keep tblGrid consistent for online viewers without changing authoring semantics.
             NormalizeTablesForOnline();
             SaveNumbering();
