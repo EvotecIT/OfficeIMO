@@ -121,24 +121,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlTextFaceMetrics? ResolveTextFaceMetrics(string text, HtmlRenderBoxStyle style) {
         if (text.Length == 0) {
             IOfficeFontProgram? strut = ResolveTextFaceProgram(text, style);
-            if (strut is IOfficeFontBaselineMetrics baseline) return Metrics(strut, baseline);
+            if (strut is IOfficeFontBaselineMetrics baseline) return Metrics(strut, baseline, style.Font.Size);
         } else {
-            var metrics = new List<HtmlTextFaceMetrics>();
-            foreach (OfficeFontFallbackRun run in _fonts.PlanFallbackRuns(text, style.Font.FamilyName, style.FontDescriptor)) {
+            IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, style.Font.FamilyName, style.FontDescriptor);
+            var metrics = new HtmlTextFaceMetrics[runs.Count];
+            for (int index = 0; index < metrics.Length; index++) {
+                OfficeFontFallbackRun run = runs[index];
                 if (!_fonts.TryResolveFaceForText(run.Text, run.FamilyName, style.FontDescriptor, style.Font.Size, out OfficeFontFace? face)
                     || face?.Program is not IOfficeFontBaselineMetrics baseline) {
                     return _options.FallbackTextFaceMetrics?.Invoke(text, style.Font, style.FontDescriptor);
                 }
-                metrics.Add(Metrics(face.Program, baseline));
+                metrics[index] = Metrics(face.Program, baseline, style.Font.Size);
             }
             HtmlTextFaceMetrics? combined = HtmlTextFaceMetrics.Combine(metrics);
             if (combined.HasValue) return combined;
         }
         return _options.FallbackTextFaceMetrics?.Invoke(text, style.Font, style.FontDescriptor);
 
-        HtmlTextFaceMetrics Metrics(IOfficeFontProgram program, IOfficeFontBaselineMetrics baseline) =>
-            new(program.LineHeight(style.Font.Size), baseline.BaselineOffset(style.Font.Size),
-                program.LineSpacingRatio * style.Font.Size);
+        static HtmlTextFaceMetrics Metrics(IOfficeFontProgram program, IOfficeFontBaselineMetrics baseline, double size) =>
+            new(program.LineHeight(size), baseline.BaselineOffset(size), program.LineSpacingRatio * size);
     }
 
     private IOfficeFontProgram? ResolveTextFaceProgram(string text, HtmlRenderBoxStyle style) =>

@@ -545,24 +545,27 @@ public sealed partial class OfficeFontFaceCollection {
         face = null;
         if (string.IsNullOrEmpty(text) || string.IsNullOrWhiteSpace(familyNames)) return false;
         FallbackSelection selection = GetFallbackSelection(familyNames!.Trim(), descriptor);
+        bool cacheable = text!.Length <= MaximumCachedPlanLength;
+        if (cacheable && selection.FacesForText.TryGetValue(text, out face)) return face != null;
+        face = SelectFaceForText(text, selection);
+        if (cacheable && selection.FacesForText.Count < MaximumCachedSelections) selection.FacesForText.TryAdd(text, face);
+        return face != null;
+    }
+
+    private static OfficeFontFace? SelectFaceForText(string text, FallbackSelection selection) {
         IReadOnlyList<OfficeFontFace> candidates = selection.Candidates;
         HashSet<string> explicitlySelectedFaces = selection.ExplicitlySelectedFaces;
         foreach (OfficeFontFace candidate in candidates) {
             bool explicitlySelected = explicitlySelectedFaces.Contains(candidate.ResourceFamilyName);
-            if (CoversPlannedText(candidate, text!, requireUnicodeRange: !explicitlySelected)) {
-                face = candidate;
-                return true;
-            }
+            if (CoversPlannedText(candidate, text, requireUnicodeRange: !explicitlySelected)) return candidate;
         }
-        if (OfficeMissingSpaceMetrics.ContainsEmSpace(text!)) {
+        if (OfficeMissingSpaceMetrics.ContainsEmSpace(text)) {
             foreach (OfficeFontFace candidate in candidates) {
                 bool explicitlySelected = explicitlySelectedFaces.Contains(candidate.ResourceFamilyName);
-                if (!CoversPlannedText(candidate, text!, requireUnicodeRange: !explicitlySelected, allowSpaceSynthesis: true)) continue;
-                face = candidate;
-                return true;
+                if (CoversPlannedText(candidate, text, requireUnicodeRange: !explicitlySelected, allowSpaceSynthesis: true)) return candidate;
             }
         }
-        return false;
+        return null;
     }
 
     internal IOfficeFontProgram? ResolveForText(string text, string? familyNames, OfficeFontStyle style, out OfficeFontStyle resolvedStyle) {

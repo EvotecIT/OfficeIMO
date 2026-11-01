@@ -78,5 +78,7 @@ public sealed partial class OfficeFontFaceCollection {
             new ConcurrentDictionary<string, (string Family, OfficeFontFace? Face)>(StringComparer.Ordinal);
         internal ConcurrentDictionary<string, IReadOnlyList<OfficeFontFallbackRun>> Plans { get; } =
             new ConcurrentDictionary<string, IReadOnlyList<OfficeFontFallbackRun>>(StringComparer.Ordinal);
+        internal ConcurrentDictionary<string, OfficeFontFace?> FacesForText { get; } =
+            new ConcurrentDictionary<string, OfficeFontFace?>(StringComparer.Ordinal);
     }
 }

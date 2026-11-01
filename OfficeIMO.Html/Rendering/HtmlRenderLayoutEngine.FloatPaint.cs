@@ -67,9 +67,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<HtmlRenderVisual>? groupChildren = visual.StackingContext == null
             && visual.PaintPhase == HtmlRenderPaintPhase.Content ? GetFlowPaintChildren(visual) : null;
         if (groupChildren != null) {
-            HtmlRenderVisual[] children = groupChildren.Select(child => FilterFlowPaint(child, phase, projectionIdentities))
-                .Where(child => child != null).Cast<HtmlRenderVisual>().ToArray();
-            if (children.Length == 0) return null;
+            var filtered = new List<HtmlRenderVisual>(groupChildren.Count);
+            for (int index = 0; index < groupChildren.Count; index++) {
+                HtmlRenderVisual? child = FilterFlowPaint(groupChildren[index], phase, projectionIdentities);
+                if (child != null) filtered.Add(child);
+            }
+            if (filtered.Count == 0) return null;
+            HtmlRenderVisual[] children = filtered.ToArray();
             HtmlRenderVisual fragment = visual is HtmlRenderLogicalTextGroup text
                 ? visual.CopyStackingContextTo(text.ProjectPaint(children, 0D, 0D, visual.PaintOrder,
                     ownsLogicalText: phase == HtmlRenderPaintPhase.Content))
