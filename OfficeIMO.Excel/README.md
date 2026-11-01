@@ -1392,6 +1392,19 @@ Unsupported inputs and resource limits remain unevaluated inside `IFERROR`,
 `IFNA` and error predicates, preserving existing caches. Completed supported
 lookup searches return typed `#N/A` when no match exists.
 
+`INDEX`, `VLOOKUP`, `HLOOKUP`, `MATCH`, `XMATCH` and `XLOOKUP` preserve typed
+errors in supported position and mode arguments. For example,
+`IFERROR(INDEX(Products!B2:B200,MATCH(A2,Products!A2:A200,0)),"Unknown")`
+returns `Unknown` for a missing product, and dependent `COUNTIFS`/`SUMIFS`
+formulas can use that result. `IFNA` catches only `#N/A`; `IFERROR` catches any
+evaluated error and preserves the fallback's number, text or Boolean type.
+Out-of-range positive lookup positions return `#REF!`; negative `INDEX`
+positions and nonpositive `VLOOKUP`/`HLOOKUP` positions return `#VALUE!`.
+A selected blank cell returns zero. Position and mode arguments use the
+integral numeric subset; array-returning `INDEX` zero selectors, approximate
+`VLOOKUP`/`HLOOKUP`, wildcard/binary lookup modes and unsupported operands
+remain unevaluated, including inside error handlers.
+
 `XLOOKUP` retains empty optional argument positions: an empty fallback uses
 `#N/A`, an empty match mode uses exact matching, and an empty search mode scans
 from the first item. The [fresh Excel reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-xlookup-optional-v16.113.3.json)

@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel {
 
         private bool TryEvaluateLookupValue(string function, string args, out FormulaArgumentValue result) {
             result = default;
-            var tokens = SplitFormulaArguments(args, preserveEmpty: function == "XLOOKUP");
+            var tokens = SplitFormulaArguments(args, preserveEmpty: true);
             if (function == "XLOOKUP") {
                 return TryEvaluateXLookupValue(tokens, out result);
             }
@@ -26,8 +26,10 @@ namespace OfficeIMO.Excel {
             if (tokens.Count != 4
                 || !TryResolveFormulaArgument(tokens[0], out var lookupValue)
                 || lookupValue.IsUnresolvedFormula
-                || !TryGetWholeNumberArgument(tokens[2], out int resultIndex)
-                || !IsExactLookupMode(tokens[3])) {
+                || !TryGetLookupIntegerArgument(tokens[2], out int resultIndex, out FormulaArgumentValue indexError)
+                || !TryResolveFormulaArgument(tokens[3], out FormulaArgumentValue modeValue)
+                || modeValue.IsUnresolvedFormula
+                || (!modeValue.IsError && modeValue.Number != 0d)) {
                 return false;
             }
             if (!TryResolveFormulaRangeReference(tokens[1], out ExcelSheet rangeSheet, out int r1, out int c1, out int r2, out int c2))
@@ -36,10 +38,13 @@ namespace OfficeIMO.Excel {
 
             if (lookupValue.IsUnresolvedFormula) return false;
             if (lookupValue.IsError) { result = lookupValue; return true; }
+            if (indexError.IsError) { result = indexError; return true; }
+            if (modeValue.IsError) { result = modeValue; return true; }
             if (function == "VLOOKUP") {
                 int width = c2 - c1 + 1;
                 if (resultIndex < 1 || resultIndex > width) {
-                    return false;
+                    result = FormulaArgumentValue.Error(resultIndex < 1 ? "#VALUE!" : "#REF!");
+                    return true;
                 }
 
                 int resultColumn = c1 + resultIndex - 1;
@@ -51,7 +56,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    result = ResolveFormulaDependency(rangeSheet, row, resultColumn);
+                    result = NormalizeLookupResult(ResolveFormulaDependency(rangeSheet, row, resultColumn));
                     return result.HasValue;
                 }
 
@@ -61,7 +66,8 @@ namespace OfficeIMO.Excel {
 
             int height = r2 - r1 + 1;
             if (resultIndex < 1 || resultIndex > height) {
-                return false;
+                result = FormulaArgumentValue.Error(resultIndex < 1 ? "#VALUE!" : "#REF!");
+                return true;
             }
 
             int resultRow = r1 + resultIndex - 1;
@@ -73,7 +79,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                result = ResolveFormulaDependency(rangeSheet, resultRow, column);
+                result = NormalizeLookupResult(ResolveFormulaDependency(rangeSheet, resultRow, column));
                 return result.HasValue;
             }
 
@@ -92,17 +98,20 @@ namespace OfficeIMO.Excel {
             }
 
             int matchMode = 0;
-            if (tokens.Count >= 5 && tokens[4].Length > 0 && !TryGetWholeNumberArgument(tokens[4], out matchMode)) {
+            FormulaArgumentValue matchError = default;
+            if (tokens.Count >= 5 && tokens[4].Length > 0 && !TryGetLookupIntegerArgument(tokens[4], out matchMode, out matchError)) {
                 return false;
             }
 
-            if (matchMode != -1 && matchMode != 0 && matchMode != 1) {
+            if (!matchError.IsError && matchMode != -1 && matchMode != 0 && matchMode != 1) {
                 return false;
             }
 
             int searchMode = 1;
+            FormulaArgumentValue modeError = default;
             if (tokens.Count >= 6 && tokens[5].Length > 0
-                && (!TryGetWholeNumberArgument(tokens[5], out searchMode) || (searchMode != 1 && searchMode != -1))) {
+                && (!TryGetLookupIntegerArgument(tokens[5], out searchMode, out modeError)
+                    || (!modeError.IsError && searchMode != 1 && searchMode != -1))) {
                 return false;
             }
 
@@ -110,9 +119,10 @@ namespace OfficeIMO.Excel {
             if (_formulaReferenceError.IsError) return true;
             if (lookupValues.Count != returnValues.Count) return false;
             if (lookupValue.IsError) { result = lookupValue; return true; }
+            if (matchError.IsError) { result = matchError; return true; }
+            if (modeError.IsError) { result = modeError; return true; }
             if (TryFindLookupPosition(lookupValue, lookupValues, matchMode, searchMode, out int position, out FormulaArgumentValue searchFailure)) {
-                var returnValue = returnValues[position - 1];
-                result = returnValue;
+                result = NormalizeLookupResult(returnValues[position - 1]);
                 return result.HasValue;
             }
 
@@ -126,6 +136,23 @@ namespace OfficeIMO.Excel {
             result = FormulaArgumentValue.Error("#N/A");
             return true;
         }
+
+        /// <summary>
+        /// Resolves an integral lookup operand without discarding a typed Excel error.
+        /// Unsupported or unresolved operands still leave the owning formula unevaluated.
+        /// </summary>
+        private bool TryGetLookupIntegerArgument(string token, out int number, out FormulaArgumentValue error) {
+            number = 0;
+            error = default;
+            if (!TryResolveFormulaArgument(token, out FormulaArgumentValue value) || value.IsUnresolvedFormula) return false;
+            if (value.IsError) { error = value; return true; }
+            return value.Number.HasValue && TryGetWholeNumber(value.Number.Value, out number);
+        }
+
+        // Excel returns zero for a selected blank cell, while an unresolved formula
+        // must keep its state so an error handler cannot invent a fallback.
+        private static FormulaArgumentValue NormalizeLookupResult(FormulaArgumentValue value) =>
+            !value.HasValue && !value.IsUnresolvedFormula ? new FormulaArgumentValue(0d, "0") : value;
 
         private bool TryEvaluateSumProduct(string args, out double result) {
             result = 0;

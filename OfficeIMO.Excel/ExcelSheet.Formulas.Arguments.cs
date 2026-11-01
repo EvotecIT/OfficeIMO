@@ -123,11 +123,6 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool IsExactLookupMode(string token) {
-            string value = token.Trim();
-            return value == "0" || value.Equals("FALSE", StringComparison.OrdinalIgnoreCase);
-        }
-
         private static bool FormulaValuesEqual(FormulaArgumentValue left, FormulaArgumentValue right) {
             if (left.Number.HasValue && right.Number.HasValue) {
                 return left.Number.Value == right.Number.Value;
