@@ -111,7 +111,7 @@ still consume the image-processing byte budget.
 | Editable vector artwork | `PublisherPage.Shapes` records owner, stable ID, point bounds and placement availability; bounds and solid-paint edits for supported basic geometry; shared text-frame placement and current wrap obstacles | Grouped, transformed, hidden, custom-path, gradient, effected and unresolved artwork is inspection-only; detached editable descriptors do not establish native writable support |
 | Primitive creation | Rectangle, rounded rectangle, ellipse and nondegenerate line descriptors append to qualified document/master pages; shared publication allocator and current SVG/PDF scenes | No native records; unsupported geometry/effects are rejected; new shapes have no story or wrap references |
 | In-memory edits | Document-owned replacement of complete non-table story paragraphs and mapped table-cell paragraphs, bounds changes for qualified frames/tables, and image replacement/bounds changes for supported rectangular PNG/JPEG picture placements; stable IDs and ownership, explicit object order, fresh scenes, text ranges and overflow | Picture and table bounds edits reject unsupported graphic placement. Cell edits reject conflicting grids, unsafe partitions and stories also used by ordinary frames; no table topology/styling changes or arbitrary relinking. Native saving accepts only the separate source-edit profile; old references remain snapshots |
-| Object stacking | `PublisherPage.ObjectIds` exposes the mixed back-to-front order; `SetPageObjectOrder` changes an exact permutation on a document/master page, with fresh SVG/PDF scenes and qualified existing-source native saving | Existing IDs, ownership and story links remain fixed. Grouped native artwork, populated wrap-exclusion lists, enabled/unknown wrapping crossing text frames and split native sibling scopes are outside the qualified save profile; source-free native output remains unavailable |
+| Object stacking | `PublisherPage.ObjectIds` exposes the mixed back-to-front order; `SetPageObjectOrder` changes an exact permutation on a document/master page, with fresh SVG/PDF scenes and qualified existing-source native saving | Existing IDs, ownership and story links remain fixed. Qualified rectangular wrap relationships regenerate during ordering and bounds edits. Groups, unqualified side/outline/master wrapping and split native sibling scopes remain unsupported; source-free native output remains unavailable |
 | Table creation | Empty unmerged borderless grids on qualified document/master pages; copied positive finite tracks, one new complete story, shared table/story identifier allocation and current SVG/PDF/Reader projection | No merged-cell authoring, cell decoration or native PUB records; text/model/projection limits and transactional failure behavior apply |
 | Page/master authoring | Source-free `Create` with one empty physical page; appended same-size physical pages, centered single masters and atomic left/right master pairs; typed master-side metadata; explicit qualified direct assignment or clearing; existing-source assignment/clearing can save natively | No page resizing, deletion/reordering, cross-page object moves, automatic parity selection or master inheritance; unqualified background/registration/reference/display records reject assignment; new topology cannot save natively |
 | Ordinary text creation | `AddTextFrame` creates a complete independent styled story and resolved one-frame chain on a qualified document/master page; one column, zero gap/insets, top alignment, no paint/transform/wrap; existing continuation API handles document-page chains | Authored ordinary stories have no implicit final terminator; full overflow is retained. Frame/story IDs reserve atomically; master-owned stories cannot continue across physical pages; no native text records are authored |
@@ -357,7 +357,7 @@ requested object names/order and source content. The qualification record's
 output/independent native reference pairs at 144 dpi. Nine PSWriteOffice conversion
 workflows pass, and six direct PowerShell order/save cycles match .NET bytes.
 
-Grouped native artwork and native wrap-exclusion lists refuse the operation.
+Grouped native artwork refuses the operation; rectangular wrap lists use the profile below.
 Native saving also refuses a page set split across sibling scopes. The group
 refusal test uses a controlled source group-flag mutation; it does not qualify
 group editing. Mid-work cancellation has no new direct control. Additional
@@ -366,25 +366,42 @@ pixel equivalence and repair-free opening remain separate qualification gaps.
 
 ### Native wrapping and object-order admission
 
-Wrapping artwork can have no current frame-exclusion references while it sits
-behind text. Moving it in front requires new native references and a corresponding
-model update. `SetPageObjectOrder` therefore refuses enabled or unresolved native
-wrapping artwork crossing a text frame, including sources whose initial
-`WrapObjectIds` lists are empty. Crossings with the qualified explicitly disabled
-wrap profile remain supported. The check runs before model publication and again
-at native-save preparation; unchanged ordering retains the exact-source path.
+`SetPageObjectOrder` and existing frame, shape and picture bounds edits rebuild
+qualified rectangular frame-exclusion relationships in the canonical model.
+Participating foreground objects appear in stacking order; moving them behind the
+text or outside its frame removes their references. Returning them restores the
+references, including sources whose initial lists are empty. Complete stories,
+identifiers, ownership, frame chains, assets and prior snapshots remain retained.
 
-Six independent native controls distinguish two foreground obstacles, reversed
-stacking, disabled wrapping, each obstacle in isolation and swapped foreground
-obstacles. Native exclusion references contain only the participating foreground
-IDs and follow their stacking order. An omitted reference list does not establish
-that an obstacle has wrapping disabled. The qualification record's
-`sourceEditing.wrapOrderingAdmission` retains the native controls, direct
-public-API regression and the supported disabled-wrap save/reopen evidence.
+The native codec writes the corresponding count/list fields through the Contents
+chunk-directory owner. It merges these fields with supported layout and picture
+metadata edits, then orders complete OfficeArt records after property/image-store
+rewriting. Unchanged semantic state retains the exact-source copy path. Changed
+exclusions report `PUB_NATIVE_WRAP_REFERENCES_UNQUALIFIED` as `Unassessed` and
+require explicit `Allow`.
 
-Native wrap-reference regeneration remains open. Existing rectangular exclusion
-rendering also retains its side-selection, outline and multiple-interval limits;
-these native controls do not establish universal PDF layout parity.
+The profile covers resolved, untransformed document-page frames, square-wrapped
+rectangular pictures/shapes and ordinary rectangular native defaults, including
+plain rectangle/text-box through wrapping with a solid contour. Source distances
+remain retained, including qualified automatic defaults. Original exclusions
+must match the admitted source geometry before they can be regenerated. Native
+non-default side settings, custom/outline or negative-margin wrapping, groups,
+transforms and master wrapping need separate qualification. Broader recovered
+profiles retain their established projection limits; native preparation refuses
+geometry changes whose wrap relationships cannot be qualified.
+
+Independent native controls cover foreground/reversed/partial/swapped obstacles,
+disabled and default wrapping, nonintersecting placements, moved text frames,
+joint column/inset/alignment layout, and three non-default side settings. Eleven
+actual public outputs complete native open/export/save/reopen, with 33 exact
+native initial/resave/reference page pairs at 144 dpi; 11 model/reload SVG and
+PDF pages also agree. Eight pure ordering cases retain complete source shape
+records. The qualification record's `sourceEditing.wrapRelationshipEditing`
+separates these observations from the earlier admission-only profile.
+
+Reference regeneration does not establish general side/outline or multiple-
+interval rendering. The existing rectangular exclusion renderer retains those
+approximation limits, and native repair-free opening remains unqualified.
 
 ### Empty-paragraph refill with retained formatting
 

@@ -20221,6 +20221,180 @@
         "Native-save defensive rejection and unchanged-order behavior are source-reviewed here without new direct executable regression cases."
       ],
       "canClosePUB00": false
+    },
+    "wrapRelationshipEditing": {
+      "scope": "Qualified existing-source rectangular frame-exclusion regeneration for object ordering and ordinary frame/shape/picture bounds. One canonical model and shared native source codecs; no new public API or runtime dependency.",
+      "sourceImplementationCommit": "9d135a202597e73d7c285b7c3aa38f0330eae722",
+      "publicOperations": [
+        "SetPageObjectOrder retains existing identities and ownership, rebuilding foreground memberships and their stacking order.",
+        "SetTextFrameBounds, SetShapeBounds and SetPictureBounds rebuild qualified memberships when geometry changes.",
+        "Complete stories, chains, assets, source settings and old snapshots remain retained; returning to the original semantic state can produce the exact source."
+      ],
+      "nativeProfile": {
+        "sourceQualification": "Computed rectangular source relationships must match existing native lists before regeneration. Same existing page identities are required; source-free authoring and appended-object topology retain their existing boundary.",
+        "obstacles": "Resolved untransformed document-page rectangular pictures/shapes with square wrapping and ordinary rectangular text-box/shape through wrapping with a solid contour. Explicit and implicit native defaults use retained source distances.",
+        "modeEvidence": "Native Type getters observe default rectangle Through=3 and default picture Square=1. Field04/type10/value0100 is None; value0103 is rectangular Through. An omitted mode is the qualified square default. Field05 carries the non-default side discriminator; the field12 carrier is optional and is not used as the sole effective-type discriminator.",
+        "nativeWriting": "Replace/remove count46 and list47/typeA0, encoding unique same-page type68/id0 references through the Contents field/chunk-directory owner. Merge with frame alignment and picture metadata; whole OfficeArt ordering runs after property/image-store changes.",
+        "reportCode": "PUB_NATIVE_WRAP_REFERENCES_UNQUALIFIED",
+        "lossKind": "Unassessed",
+        "requiresExplicitAllow": true,
+        "unsupported": [
+          "Non-default side settings",
+          "Custom/outline/negative-margin wrapping",
+          "Grouped/transformed placements",
+          "Master wrap relationships",
+          "Source lists inconsistent with admitted geometry",
+          "Other producer/generation profiles"
+        ]
+      },
+      "independentControls": [
+        {
+          "case": "WrapObjectOrderLeft",
+          "publicationSha256": "80f3e065a88b9850a0679c83fedb50c93cc60c389b802cf2ac738c6cd1366777",
+          "nativePdfSha256": "6b05cd44d5c44e221d6683a2c31699371698b21aa0cab67cd68ac954b2b9b5b8",
+          "provenanceSha256": "7c8d04f9cb355ac0c5de09f88299221f0e5f73fc7542f96b0beb237f41e17c15"
+        },
+        {
+          "case": "WrapObjectOrderRight",
+          "publicationSha256": "6c09bbd12a5b32b1ae431f8e757bd49499b07104fdce2701df5b74d6100e9a6e",
+          "nativePdfSha256": "fae9ed16c886cf61126fa866e3a8d1562585e3e223f67f59850260527e89cbed",
+          "provenanceSha256": "202fcfd174d27e7cbb671f641f66c31a1bafc71af582a5e9b54c6977355b87eb"
+        },
+        {
+          "case": "WrapObjectOrderLarger",
+          "publicationSha256": "a27fe7de0063ba6a67c73d287bcfe1cb864b1ab6b73e2bf2d825834a4c91f3f2",
+          "nativePdfSha256": "2f9574c976d034bcb710e9a5322883c15afbcee6c163b087459a170922c2a6b5",
+          "provenanceSha256": "093a045389f5cd831a17c265b7d79cac49af38263121a1202ab19bf2806df94c"
+        },
+        {
+          "case": "WrapObjectOrderOutside",
+          "publicationSha256": "240f93d69204603fb8b9a63c5346769e39ff556aa3e20b6470a2b53ceb6e8568",
+          "nativePdfSha256": "c2c1ee53ed73e38b10d3503c6bf3b330ca42e0ec89781ad8c597fb1bdc365e5e",
+          "provenanceSha256": "921db18247ce3177637ec1fc3f64bbc6e929b2dc461272ba2ffc71129e808ac3"
+        },
+        {
+          "case": "WrapObjectOrderLayout",
+          "publicationSha256": "91aa989dcc05e7f74ec08c44113423027b1a35b403c074d4b8aa14fe4d1c32f3",
+          "nativePdfSha256": "f3dbd4442eb2c71618b98ac8ffd97c8b63cd3b23843ec41c6ac044451f89fdb6",
+          "provenanceSha256": "949e0066318acde1c74982a56fafc89f4250d0fa91ffe7a8658d3d293e96efe9"
+        },
+        {
+          "case": "WrapTextFrameOutside",
+          "publicationSha256": "e62059a91dd34c18a14a5abf4aabceffc337a4b8d4f45614cb840438f27943ef",
+          "nativePdfSha256": "34aa9c23322430f0fd2069ebff9823b7782f6e3c8e73f596bf6a4b54838445e2",
+          "provenanceSha256": "40c6561d437e1b0c7f86b2f9dc3461844e4fde26592a656ef64d4f2f57952827"
+        },
+        {
+          "case": "WrapObjectOrderDefaults",
+          "publicationSha256": "c103ce51d45d58135b3036eefd0d5eac6aa92b6de2cf108f64551406f0e5aca1",
+          "nativePdfSha256": "94a09d5101f5ee554da18ed60290601143e1b539732670f9b0a600ff077905db",
+          "provenanceSha256": "3ea83286cb0c2c8adfabf6313952d32d4111219eaf6cf1a7d9ad01435d34771a"
+        }
+      ],
+      "wireFeasibility": {
+        "cases": 5,
+        "nativeOperations": 35,
+        "nativePixelPairs144Dpi": 15,
+        "proofSha256": "b2c37c517fe36efd1c690c5f79e4897cae7368127bacaf819aee90d18043c8bd"
+      },
+      "geometryFeasibility": {
+        "cases": 2,
+        "nativeOperations": 14,
+        "staleBoundsOutputMatchesNoWrap": true,
+        "repairedRelationshipsMatchWrappedReference": true,
+        "opaqueOverlapFlagPreserved": true,
+        "proofSha256": "86b079d9ada0913879e2fc9b486d60cfe7470401344766b69cc37a56103bcb2c"
+      },
+      "publicQualification": {
+        "cases": 11,
+        "nativeOperations": 77,
+        "nativeReferencePixelPairs144Dpi": 33,
+        "modelReloadPixelPairs144Dpi": 11,
+        "powerShellModelPixelPairs144Dpi": 11,
+        "totalClassifiedPixelPairs144Dpi": 55,
+        "modelReloadSvgPages": 11,
+        "pureOrderShapePreservationCases": 8,
+        "powerShellDirectNativeCycles": 11,
+        "powerShellWorkflows": 11,
+        "powerShellVersion": "7.6.9",
+        "proofSha256": "c2e9d24c9e626ab40212a80edac837e0fd07ab4d2d3a05723d769eb199b7a3b5",
+        "engineNet10Sha256": "bc3c51a84e8dc63ce6c444414a1aa6eb720bba5b8fa62cd298758fca7792a1b5",
+        "enginePowerShellSha256": "f82536834b0636b550809240e57ae501924f6206ba34bfb9bf0a36abf4549cae"
+      },
+      "nativeClosure": {
+        "lateObservedExitCases": 1,
+        "lateCase": "reedit",
+        "originalTimeoutReceiptPreserved": true,
+        "allListedOperationsAndFileHashesVerified": true,
+        "lateExitProofSha256": "cbd15387c9bfbd6381fe5d3ac7b11a5b25d0e10e3e875d81f582164eb61a521b"
+      },
+      "managedValidation": {
+        "reports": {
+          "before": {
+            "passed": 1,
+            "failed": 8,
+            "sha256": "b3aa0a0484d87742f7cd721a5c3e57f48051881c8939340f7c5a9c734f9c66b9"
+          },
+          "current": {
+            "passed": 9,
+            "failed": 0,
+            "sha256": "2dd1245f24e00e9feb7893efc0e9c4977d9e5fd92b49a4ac2dddb0442b703f82"
+          },
+          "siblings": {
+            "passed": 24,
+            "failed": 0,
+            "sha256": "f41813254d101ddc2e2c8d508d68008b324ca000e1bb681d91388c3d651933f3"
+          },
+          "stable-net10": {
+            "passed": 1071,
+            "failed": 0,
+            "sha256": "d11fc58fcfe152e287c65d9b91f45ca2acea899f3a4468d93376797b4d046b1b"
+          },
+          "stable-net8": {
+            "passed": 1071,
+            "failed": 0,
+            "sha256": "82cae3c3aea9a5ff43fafca5ce3165f0a879646d413c5fcd0b0de24817e8918c"
+          },
+          "stable-net472": {
+            "passed": 1071,
+            "failed": 0,
+            "sha256": "a467ef3abef7017d18e32333c9906d836204556ed9b528b6b33034b3bf508f36"
+          },
+          "reader": {
+            "passed": 93,
+            "failed": 0,
+            "sha256": "c92c8b83392abbb85dc7d83a4786d0e56ae89ed1ee1a2adf10f469f80bcfb4e5"
+          }
+        },
+        "readerPassed": 93,
+        "readerNetstandard20Build": true,
+        "sourcePowerShellNet8Build": true,
+        "beforeRuntime": "New public-boundary tests compiled with BuildProjectReferences=false against a retained baseline runtime; production and test-output library SHA256 matched before/after the run. Eight intended failures and one control pass.",
+        "compatibilityCorrections": [
+          "Object creation does not rebuild or resolve retained dangling native wrap references.",
+          "The qualified native default mode is recognized independently of the optional distance carrier.",
+          "Explicit None remains independent of master/opaque placement geometry."
+        ],
+        "newTests": [
+          "Square_wrapped_ordering_rebuilds_native_and_model_relationships",
+          "Moving_square_wrapped_shape_and_picture_rebuilds_membership_and_can_return_to_exact_source",
+          "Moving_the_text_frame_rebuilds_exclusions_without_changing_complete_stories",
+          "Wrap_reference_growth_composes_with_native_frame_layout_growth",
+          "Native_default_rectangular_wrap_modes_remove_and_restore_exclusions",
+          "Unsupported_native_wrap_side_refuses_order_changes_before_model_commit"
+        ],
+        "proofSha256": "b8d6e8979a08a07fa7deb7ad22cf1e8d08a2039f83e98bf7c1ecf3d0c6fac801"
+      },
+      "visualComparisonInspected": true,
+      "limits": [
+        "Native repair-free opening remains unqualified.",
+        "Non-default sides, outline/custom/negative-margin/grouped/transformed/master wrap profiles need separate editing qualification.",
+        "Current model rendering keeps existing single-interval/side/outline and native hyphenation/image-sampling approximation limits; native-to-model universal raster parity is not claimed.",
+        "PS7.6.9 runtime qualified; PS5.1 native execution is not.",
+        "No new direct cancellation-during-computation or maximum-record-threshold control; existing atomicity/resource suites and reviewed traversal checks remain the proof boundary."
+      ],
+      "supersedes": "The rectangular enabled-wrap refusal in sourceEditing.wrapOrderingAdmission; unsupported-side/source profiles still refuse.",
+      "canClosePUB00": false
     }
   },
   "characterReading": {

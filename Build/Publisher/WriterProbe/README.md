@@ -660,6 +660,24 @@ disabled-wrap native save/reopen distinguish refusal from a blanket ordering ban
 This establishes admission and producer semantics; rebuilding native/model wrap
 relationships remains open.
 
+The `sourceEditing.wrapRelationshipEditing` record covers canonical/native
+exclusion regeneration during existing ordering and frame/shape/picture bounds
+edits. Five source-codec wire candidates and two geometry controls precede eleven
+actual public saves, each compared with independently authored native references.
+Default-type controls distinguish implicit square pictures from ordinary
+rectangular through wrapping; non-default sides remain outside the profile.
+The `wrap-order` command exercises count/list replacement and whole-record
+ordering directly through the shared codecs before a public profile is admitted:
+
+```text
+wrap-order <input.pub> <unused-output.pub> <specification.json>
+```
+
+The JSON specification supplies `ObjectIds` as a complete existing page
+permutation and `FrameWraps` as an object mapping existing frame IDs to ordered
+obstacle-ID arrays. Empty arrays remove the native count/list fields. This is
+wire feasibility tooling, not another public editing model.
+
 The `sourceEditing.imageReplacement` record covers public native saves for
 existing PNG/JPEG picture placements, including shared assets, master pictures,
 cropping, repeated replacement, combined frame changes and re-editing a native
