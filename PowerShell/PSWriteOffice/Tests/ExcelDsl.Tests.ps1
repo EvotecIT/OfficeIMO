@@ -2891,16 +2891,16 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $conditionalRules = @(Get-OfficeExcelConditionalFormatting -Path $path -Sheet Data)
+        $conditionalRules = @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data)
         $conditionalRules.Count | Should -Be 2
         ($conditionalRules | Where-Object Range -EQ 'B2:B4').Operator | Should -Be 'GreaterThan'
         ($conditionalRules | Where-Object Range -EQ 'B2:B4').Formulas | Should -Contain '150'
 
-        $rangeFilteredRules = @(Get-OfficeExcelConditionalFormatting -Path $path -Sheet Data -Range 'B3')
+        $rangeFilteredRules = @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data -Range 'B3')
         $rangeFilteredRules.Count | Should -Be 1
         $rangeFilteredRules[0].Range | Should -Be 'B2:B4'
 
-        $validations = @(Get-OfficeExcelDataValidation -Path $path -Sheet Data)
+        $validations = @(Get-OfficeExcelValidation -Path $path -Sheet Data)
         $validations.Count | Should -Be 2
         ($validations | Where-Object Range -EQ 'B2:B4').Formula1 | Should -Be '1'
         ($validations | Where-Object Range -EQ 'B2:B4').Formula2 | Should -Be '1000'
@@ -2908,8 +2908,8 @@ Describe 'Excel DSL surface' {
         Clear-OfficeExcelConditionalFormatting -Path $path -Sheet Data -Range 'B3' -Confirm:$false
         Clear-OfficeExcelDataValidation -Path $path -Sheet Data -Range 'C3' -Confirm:$false
 
-        @(Get-OfficeExcelConditionalFormatting -Path $path -Sheet Data -Range 'B3').Count | Should -Be 0
-        @(Get-OfficeExcelDataValidation -Path $path -Sheet Data -Range 'C3').Count | Should -Be 0
+        @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data -Range 'B3').Count | Should -Be 0
+        @(Get-OfficeExcelValidation -Path $path -Sheet Data -Range 'C3').Count | Should -Be 0
 
         $worksheetXml = Read-XlsxEntryText -Path $path -Entry 'xl/worksheets/sheet1.xml'
         $worksheetXml | Should -Match 'sqref="B2 B4"'
@@ -2918,8 +2918,8 @@ Describe 'Excel DSL surface' {
         Clear-OfficeExcelConditionalFormatting -Path $path -Sheet Data -Confirm:$false
         Clear-OfficeExcelDataValidation -Path $path -Sheet Data -Confirm:$false
 
-        @(Get-OfficeExcelConditionalFormatting -Path $path -Sheet Data).Count | Should -Be 0
-        @(Get-OfficeExcelDataValidation -Path $path -Sheet Data).Count | Should -Be 0
+        @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data).Count | Should -Be 0
+        @(Get-OfficeExcelValidation -Path $path -Sheet Data).Count | Should -Be 0
     }
 
     It 'reads conditional formatting rules from the current DSL sheet by default' {
@@ -2931,7 +2931,7 @@ Describe 'Excel DSL surface' {
                 Set-OfficeExcelCell -Address 'A2' -Value 2
                 Add-OfficeExcelConditionalRule -Range 'A1:A2' -Operator GreaterThan -Formula1 '1'
 
-                $rules = @(Get-OfficeExcelConditionalFormatting -Range 'A2')
+                $rules = @(Get-OfficeExcelConditionalFormat -Range 'A2')
                 $rules.Count | Should -Be 1
                 $rules[0].SheetName | Should -Be 'Data'
                 $rules[0].Range | Should -Be 'A1:A2'
@@ -2950,7 +2950,7 @@ Describe 'Excel DSL surface' {
                 Set-OfficeExcelCell -Address 'B3' -Value 20
                 Add-OfficeExcelValidationWholeNumber -Range 'B2:B4' -Operator Between -Formula1 1 -Formula2 100
 
-                $validations = @(Get-OfficeExcelDataValidation -Range 'B3')
+                $validations = @(Get-OfficeExcelValidation -Range 'B3')
                 $validations.Count | Should -Be 1
                 $validations[0].SheetName | Should -Be 'Data'
                 $validations[0].Range | Should -Be 'B2:B4'
@@ -2987,7 +2987,7 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $rules = @(Get-OfficeExcelConditionalFormatting -Path $path -Sheet Data)
+        $rules = @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data)
         $rules.Count | Should -Be 10
         $rules.Type | Should -Contain 'DuplicateValues'
         $rules.Type | Should -Contain 'UniqueValues'
@@ -3040,10 +3040,10 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $conditionalRules = @(Get-OfficeExcelConditionalFormatting -Path $path -Sheet Data -HeaderName Sales -TableName Sales)
+        $conditionalRules = @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data -Header Sales -Table Sales)
         ($conditionalRules | Where-Object Range -EQ 'B2:B4').Count | Should -Be 2
 
-        $validations = @(Get-OfficeExcelDataValidation -Path $path -Sheet Data -ColumnName Status -TableName Sales)
+        $validations = @(Get-OfficeExcelValidation -Path $path -Sheet Data -Header Status -Table Sales)
         @($validations | Where-Object Range -EQ 'C2:C4').Count | Should -Be 1
 
         $updated = @(Set-OfficeExcelDataValidationMessage -Path $path -Sheet Data -HeaderName Status -TableName Sales -PromptTitle Status -Prompt 'Pick a listed status' -ErrorTitle Invalid -ErrorMessage 'Use the list' -PassThru)
@@ -3059,8 +3059,8 @@ Describe 'Excel DSL surface' {
         Clear-OfficeExcelConditionalFormatting -Path $path -Sheet Data -HeaderName Sales -TableName Sales -Confirm:$false
         Clear-OfficeExcelDataValidation -Path $path -Sheet Data -ColumnName Status -TableName Sales -Confirm:$false
 
-        @(Get-OfficeExcelConditionalFormatting -Path $path -Sheet Data -HeaderName Sales -TableName Sales).Count | Should -Be 0
-        @(Get-OfficeExcelDataValidation -Path $path -Sheet Data -HeaderName Status -TableName Sales).Count | Should -Be 0
+        @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data -Header Sales -Table Sales).Count | Should -Be 0
+        @(Get-OfficeExcelValidation -Path $path -Sheet Data -Header Status -Table Sales).Count | Should -Be 0
     }
 
     It 'sets prompt and error messages on existing data validation rules' {
@@ -3085,7 +3085,7 @@ Describe 'Excel DSL surface' {
         $updated[0].ErrorTitle | Should -Be 'Invalid sales'
         $updated[0].Error | Should -Be 'Use 1-1000'
 
-        $validation = Get-OfficeExcelDataValidation -Path $path -Sheet Data -Range 'B3'
+        $validation = Get-OfficeExcelValidation -Path $path -Sheet Data -Range 'B3'
         $validation.PromptTitle | Should -Be 'Sales input'
         $validation.Prompt | Should -Be 'Use 1-1000'
         $validation.ErrorTitle | Should -Be 'Invalid sales'
@@ -3155,8 +3155,8 @@ Describe 'Excel DSL surface' {
         $updated = @(Set-OfficeExcelDataValidationMessage -Path $path -Sheet Data -Range 'B2:B4' -Prompt 'Shared prompt' -PassThru)
         $updated.Count | Should -Be 2
 
-        $firstRule = @(Get-OfficeExcelDataValidation -Path $path -Sheet Data -Range 'B2' | Where-Object Range -EQ 'B2:B3')[0]
-        $secondRule = @(Get-OfficeExcelDataValidation -Path $path -Sheet Data -Range 'B4' | Where-Object Range -EQ 'B4:B4')[0]
+        $firstRule = @(Get-OfficeExcelValidation -Path $path -Sheet Data -Range 'B2' | Where-Object Range -EQ 'B2:B3')[0]
+        $secondRule = @(Get-OfficeExcelValidation -Path $path -Sheet Data -Range 'B4' | Where-Object Range -EQ 'B4:B4')[0]
 
         $firstRule.PromptTitle | Should -Be 'North sales'
         $firstRule.Prompt | Should -Be 'Shared prompt'
@@ -3264,8 +3264,8 @@ Describe 'Excel DSL surface' {
             $row.Rate | Should -Not -BeNullOrEmpty
         }
 
-        @(Get-OfficeExcelConditionalFormatting -Path $path -Sheet Data -Range 'B3').Count | Should -Be 0
-        @(Get-OfficeExcelDataValidation -Path $path -Sheet Data -Range 'B3').Count | Should -Be 0
+        @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data -Range 'B3').Count | Should -Be 0
+        @(Get-OfficeExcelValidation -Path $path -Sheet Data -Range 'B3').Count | Should -Be 0
     }
 
     It 'sets and reads mixed rich text runs in Excel cells' {
@@ -3545,7 +3545,7 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $conditionalRules = @(Get-OfficeExcelConditionalFormatting -Path $path -Sheet Data -Range 'F2')
+        $conditionalRules = @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data -Range 'F2')
         $conditionalRules.Count | Should -Be 4
 
         $worksheetXml = Read-XlsxEntryText -Path $path -Entry 'xl/worksheets/sheet1.xml'
@@ -4700,10 +4700,10 @@ namespace PSWriteOffice.Tests {
         $doctor = Test-OfficeExcelWorkbook -Path $left -SkipOpenXmlValidation
         $doctor.Passed | Should -BeTrue
 
-        $formulas = Get-OfficeExcelFormulaAnalysis -Path $left -IncludeFormulas
-        $formulas.FormulaCount | Should -Be 1
-        $formulas.VolatileFormulaCount | Should -Be 1
-        $formulas.Formulas[0].Functions | Should -Contain 'SUM'
+        $formulas = @(Get-OfficeExcelFormula -Path $left)
+        $formulas.Count | Should -Be 1
+        $formulas[0].IsVolatile | Should -BeTrue
+        $formulas[0].Functions | Should -Contain 'SUM'
 
         $streaming = Get-OfficeExcelStreamingContract -Path $left
         $streaming.WorksheetCount | Should -Be 1

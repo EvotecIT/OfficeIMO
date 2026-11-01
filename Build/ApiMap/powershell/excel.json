@@ -8977,7 +8977,7 @@
       "alias": null,
       "status": "renamed",
       "synopsis": "Gets data validation rules from worksheets.",
-      "outputType": "OfficeIMO.Excel.ExcelDataValidation",
+      "outputType": "OfficeIMO.Excel.ExcelDataValidationInfo",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -9135,7 +9135,7 @@
           ]
         }
       ],
-      "notes": "Renamed from Get-OfficeExcelDataValidation. -Range and -Header are filters; when both are given, -Header wins.",
+      "notes": "Renamed from Get-OfficeExcelDataValidation. -Range and -Header are filters; when both are given, -Header wins. Returns the native read-only snapshot with SheetName, Sheet and source Path metadata; querying does not change the workbook.",
       "examples": [
         {
           "title": "List validation rules",
@@ -10073,7 +10073,7 @@
       "alias": null,
       "status": "renamed",
       "synopsis": "Gets conditional formatting rules from worksheets.",
-      "outputType": "OfficeIMO.Excel.ExcelConditionalFormat",
+      "outputType": "OfficeIMO.Excel.ExcelConditionalFormattingInfo",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -10231,7 +10231,7 @@
           ]
         }
       ],
-      "notes": "Renamed from Get-OfficeExcelConditionalFormatting to match the Add- noun.",
+      "notes": "Renamed from Get-OfficeExcelConditionalFormatting to match the Add- noun. Returns the native editable snapshot with SheetName, Sheet and source Path metadata; the native model retains preserved rule details for lifecycle edits.",
       "examples": [
         {
           "title": "List conditional formats",
