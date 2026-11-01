@@ -7,7 +7,7 @@ using PSWriteOffice.Services.PowerPoint;
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
 /// <summary>Groups typed content into one column of a designed slide.</summary>
-[Cmdlet(VerbsCommon.Add, "OfficePowerPointColumn")]
+[Cmdlet(VerbsCommon.Add, "OfficePowerPointColumn", DefaultParameterSetName = "Content")]
 [Alias("PowerPointColumn")]
 public sealed class AddOfficePowerPointColumnCommand : OfficeCmdlet {
     /// <summary>Gets or sets the column's content block.</summary>

@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <code>PowerPointSlide -Title 'Service health' {
 ///     PowerPointShape -Type Ellipse -Name 'Healthy' -FillColor Success -X 2cm -Y 4cm -Width 2cm -Height 2cm
 /// }</code></example>
-[Cmdlet(VerbsCommon.Add, "OfficePowerPointShape")]
+[Cmdlet(VerbsCommon.Add, "OfficePowerPointShape", DefaultParameterSetName = "Shape")]
 [Alias("PowerPointShape")]
 [OutputType(typeof(PowerPointAutoShape))]
 public sealed class AddOfficePowerPointShapeCommand : OfficeCmdlet {

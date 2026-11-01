@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <code>Get-OfficePowerPointNotes -Document $deck -IncludeEmpty | Select-Object SlideIndex, Text</code></example>
 /// <example><summary>Read notes from a selected slide.</summary>
 /// <code>Get-OfficePowerPointNotes -Document $deck -Slide 3</code></example>
-[Cmdlet(VerbsCommon.Get, "OfficePowerPointNotes")]
+[Cmdlet(VerbsCommon.Get, "OfficePowerPointNotes", DefaultParameterSetName = "Document")]
 [OutputType(typeof(PowerPointNotesInfo))]
 public sealed class GetOfficePowerPointNotesCommand : OfficeCmdlet {
     /// <summary>Gets or sets a live document; omission uses the enclosing document block.</summary>

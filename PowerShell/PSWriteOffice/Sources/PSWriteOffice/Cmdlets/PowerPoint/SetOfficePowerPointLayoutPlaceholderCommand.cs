@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// Numbers mean points; text margins use one, two or four values in CSS order.</para>
 /// <example><summary>Adjust a template title area and style.</summary>
 /// <code>Set-OfficePowerPointLayoutPlaceholder -Document $deck -TemplateLayout 'Title and Content' -Type Title -X 2cm -Width 24cm -TextMargin 6pt,8pt -Size 32pt -Bold</code></example>
-[Cmdlet(VerbsCommon.Set, "OfficePowerPointLayoutPlaceholder")]
+[Cmdlet(VerbsCommon.Set, "OfficePowerPointLayoutPlaceholder", DefaultParameterSetName = "Document")]
 [OutputType(typeof(PowerPointTextBox))]
 public sealed class SetOfficePowerPointLayoutPlaceholderCommand : OfficeDocumentCmdlet<PowerPointDocument> {
     /// <summary>Gets or sets a layout name, one-based position, native type or returned layout metadata.</summary>

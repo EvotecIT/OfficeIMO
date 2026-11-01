@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <summary>Adds a live styled run to the enclosing paragraph or list item, or starts a slide paragraph.</summary>
 /// <example><summary>Link a status label.</summary>
 /// <code>PowerPointParagraph { PowerPointText 'Service status' -Bold -Link 'https://status.contoso.com' }</code></example>
-[Cmdlet(VerbsCommon.Add, "OfficePowerPointText")]
+[Cmdlet(VerbsCommon.Add, "OfficePowerPointText", DefaultParameterSetName = "Text")]
 [Alias("PowerPointText")]
 [OutputType(typeof(PowerPointTextRun))]
 public sealed class AddOfficePowerPointTextCommand : OfficeCmdlet {

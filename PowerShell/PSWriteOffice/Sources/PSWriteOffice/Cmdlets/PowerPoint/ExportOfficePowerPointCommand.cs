@@ -18,7 +18,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <summary>Present regional revenue with a chart.</summary>
 /// <code>$sales | Export-OfficePowerPoint -Path ./Sales.pptx -Title 'Regional sales' -Property Region,Revenue -Category Region -Value Revenue -Theme Boardroom -PassThru</code>
 /// </example>
-[Cmdlet(VerbsData.Export, "OfficePowerPoint", SupportsShouldProcess = true)]
+[Cmdlet(VerbsData.Export, "OfficePowerPoint", SupportsShouldProcess = true, DefaultParameterSetName = "Path")]
 [OutputType(typeof(FileInfo))]
 public sealed class ExportOfficePowerPointCommand : OfficeCmdlet {
     private readonly List<object?> _input = new();

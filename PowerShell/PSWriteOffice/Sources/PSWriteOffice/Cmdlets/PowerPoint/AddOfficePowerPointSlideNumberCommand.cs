@@ -8,7 +8,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <summary>Inserts a native slide-number field into the current footer.</summary>
 /// <example><summary>Show the current slide and total.</summary>
 /// <code>PowerPointFooter -Alignment Right { PowerPointSlideNumber -IncludeTotal }</code></example>
-[Cmdlet(VerbsCommon.Add, "OfficePowerPointSlideNumber")]
+[Cmdlet(VerbsCommon.Add, "OfficePowerPointSlideNumber", DefaultParameterSetName = "Default")]
 [Alias("PowerPointSlideNumber")]
 public sealed class AddOfficePowerPointSlideNumberCommand : OfficeCmdlet {
     /// <summary>Append the physical slide count, refreshed when the deck is saved.</summary>

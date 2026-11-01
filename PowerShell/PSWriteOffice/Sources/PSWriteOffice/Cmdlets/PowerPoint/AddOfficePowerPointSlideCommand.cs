@@ -39,10 +39,10 @@ public sealed class AddOfficePowerPointSlideCommand : OfficeDocumentCmdlet<Power
     [Parameter]
     public PowerPointLayout Layout { get; set; } = PowerPointLayout.Auto;
     /// <summary>Gets or sets a specific template layout by name, one-based position, native type or returned metadata.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = "Template"), PowerPointLayoutTransformation]
+    [Parameter, PowerPointLayoutTransformation, ValidateNotNull]
     public PowerPointLayoutSelector? TemplateLayout { get; set; }
     /// <summary>Gets or sets a one-based master position for a template layout; defaults to the first.</summary>
-    [Parameter(ParameterSetName = "Template"), ValidateRange(1, int.MaxValue)]
+    [Parameter, ValidateRange(1, int.MaxValue)]
     public int Master { get; set; } = 1;
     /// <summary>Gets or sets a deterministic design seed for this slide.</summary>
     [Parameter]
@@ -78,6 +78,8 @@ public sealed class AddOfficePowerPointSlideCommand : OfficeDocumentCmdlet<Power
         bool backgroundBound = MyInvocation.BoundParameters.ContainsKey(nameof(Background));
         bool transitionBound = MyInvocation.BoundParameters.ContainsKey(nameof(Transition));
         try {
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(Master)) && TemplateLayout == null)
+                throw new ArgumentException("Master requires TemplateLayout.", nameof(Master));
             if (backgroundBound && BackgroundImage != null)
                 throw new ArgumentException("Choose Background or BackgroundImage for one slide.");
             if (transitionBound && !Enum.IsDefined(typeof(PowerPointSlideTransition), Transition))

@@ -10,7 +10,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <code>Copy-OfficePowerPointSlide -Document $deck -Slide 1 -Position 3 -PassThru</code></example>
 /// <example><summary>Copy a selected native slide immediately after itself.</summary>
 /// <code>$slide | Copy-OfficePowerPointSlide -PassThru</code></example>
-[Cmdlet(VerbsCommon.Copy, "OfficePowerPointSlide")]
+[Cmdlet(VerbsCommon.Copy, "OfficePowerPointSlide", DefaultParameterSetName = "Slide")]
 [OutputType(typeof(PowerPointSlide))]
 public sealed class CopyOfficePowerPointSlideCommand : OfficeCmdlet {
     /// <summary>Gets or sets the document for numeric selection; omission uses the enclosing scope or native slide owner.</summary>

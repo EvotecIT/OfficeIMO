@@ -8,7 +8,7 @@ using PSWriteOffice.Services.PowerPoint;
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
 /// <summary>Adds a narrative card or logo tile to the current designed slide.</summary>
-[Cmdlet(VerbsCommon.Add, "OfficePowerPointCard")]
+[Cmdlet(VerbsCommon.Add, "OfficePowerPointCard", DefaultParameterSetName = "Card")]
 [Alias("PowerPointCard")]
 public sealed class AddOfficePowerPointCardCommand : OfficeCmdlet {
     /// <summary>Gets or sets the title.</summary>
