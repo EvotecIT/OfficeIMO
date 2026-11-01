@@ -1,5 +1,7 @@
 using System.Management.Automation;
+using OfficeIMO;
 using OfficeIMO.Word;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.Word;
 
@@ -23,11 +25,11 @@ public sealed class SetOfficeWordImageCommand : PSCmdlet
     [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
     public WordImage Image { get; set; } = null!;
 
-    /// <summary>Image width in points.</summary>
-    [Parameter] public double? Width { get; set; }
+    /// <summary>Image width; numbers mean points and unit suffixes are accepted.</summary>
+    [Parameter, OfficeLengthTransformation] public OfficeLength? Width { get; set; }
 
-    /// <summary>Image height in points.</summary>
-    [Parameter] public double? Height { get; set; }
+    /// <summary>Image height; numbers mean points and unit suffixes are accepted.</summary>
+    [Parameter, OfficeLengthTransformation] public OfficeLength? Height { get; set; }
 
     /// <summary>Text wrapping mode.</summary>
     [Parameter] public WordImageTextWrapping? Wrap { get; set; }
@@ -76,8 +78,11 @@ public sealed class SetOfficeWordImageCommand : PSCmdlet
             return;
         }
 
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(Width))) Image.Width = (Width is { } wordLengthValue2 ? (OfficeIMO.OfficeLength?)OfficeIMO.OfficeLength.Pixels(wordLengthValue2) : null);
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(Height))) Image.Height = (Height is { } wordLengthValue4 ? (OfficeIMO.OfficeLength?)OfficeIMO.OfficeLength.Pixels(wordLengthValue4) : null);
+        if (Width.HasValue && Width.Value <= OfficeLength.Zero) throw new PSArgumentOutOfRangeException(nameof(Width));
+        if (Height.HasValue && Height.Value <= OfficeLength.Zero) throw new PSArgumentOutOfRangeException(nameof(Height));
+
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Width))) Image.Width = Width;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Height))) Image.Height = Height;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Wrap))) Image.WrapText = Wrap;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(CropTop))) Image.CropTopRatio = ((double?)(CropTop)) / 100000D;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(CropBottom))) Image.CropBottomRatio = ((double?)(CropBottom)) / 100000D;

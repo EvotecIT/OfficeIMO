@@ -2788,7 +2788,7 @@
           ]
         },
         {
-          "name": "InputObject",
+          "name": "Visual",
           "default": false,
           "parameters": [
             {
@@ -2878,7 +2878,7 @@
           ]
         }
       ],
-      "notes": "Absorbs Add-OfficeWordVisual (the InputObject set): both commands put a picture into a paragraph and return WordImage. -AlternativeText becomes -Description to match Set-OfficeWordImage. SVG limits are API-enforced resource limits and stay. Inner types of the SVG limits follow the current C# options.",
+      "notes": "Absorbs Add-OfficeWordVisual (the Visual set): both commands put a picture into a paragraph and return WordImage. -AlternativeText becomes -Description to match Set-OfficeWordImage. SVG limits are API-enforced resource limits and stay. Inner types of the SVG limits follow the current C# options.",
       "examples": [
         {
           "title": "Insert a logo",
@@ -9247,7 +9247,7 @@
       "kind": "cmdlet",
       "action": "merge",
       "new": "Add-OfficeWordImage",
-      "parameterSet": "InputObject",
+      "parameterSet": "Visual",
       "parameters": {
         "AlternativeText": "Description",
         "MaximumSvgViewportPixels": "MaximumSvgViewportPixelCount"
@@ -10140,7 +10140,7 @@
       "action": "merge",
       "new": "WordImage",
       "hint": "$artifact | WordImage",
-      "reason": "Add-OfficeWordVisual merged into WordImage (InputObject set)."
+      "reason": "Add-OfficeWordVisual merged into WordImage (Visual set)."
     },
     {
       "old": "WordWatermark",

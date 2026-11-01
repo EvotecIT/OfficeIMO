@@ -1909,6 +1909,12 @@
               "pipeline": "none"
             },
             {
+              "name": "Title",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "AlternativeText",
               "type": "string",
               "mandatory": false,

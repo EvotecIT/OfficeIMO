@@ -429,7 +429,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 | `Add-OfficeWordTabStop` | `Add-OfficeWordTabStop` | Kept |   | `WordTabStop -Position 3in -Alignment Decimal` |
 | `Add-OfficeWordText` | `Add-OfficeWordText` | Kept | `-Strike` &rarr; `-Strikethrough`<br>`-FontSize` &rarr; `-Size`<br>`-FontName`, `-FontFamily`, `-Typeface` &rarr; `-Font`<br>Removed: `-Run` | `WordParagraph { WordText 'Important: ' -Bold; WordText 'read first' -Italic }` |
 | `Add-OfficeWordTextBox` | `Add-OfficeWordTextBox` | Kept | `-WidthCentimeters` &rarr; `-Width`<br>`-HeightCentimeters` &rarr; `-Height`<br>`-HorizontalOffsetCentimeters` &rarr; `-X`<br>`-VerticalOffsetCentimeters` &rarr; `-Y`<br>`-WrapText` &rarr; `-Wrap` | `WordTextBox 'Note' -Width 5cm -X 2cm -Y 1cm` |
-| `Add-OfficeWordVisual` | `Add-OfficeWordImage` (`InputObject` set) | Merged | `-AlternativeText` &rarr; `-Description`<br>`-MaximumSvgViewportPixels` &rarr; `-MaximumSvgViewportPixelCount` | `$artifact \| WordImage -Width 420` |
+| `Add-OfficeWordVisual` | `Add-OfficeWordImage` (`Visual` set) | Merged | `-AlternativeText` &rarr; `-Description`<br>`-MaximumSvgViewportPixels` &rarr; `-MaximumSvgViewportPixelCount` | `$artifact \| WordImage -Width 420` |
 | `Add-OfficeWordWatermark` | `Add-OfficeWordWatermark` | Kept | `-HorizontalOffset` &rarr; `-X`<br>`-VerticalOffset` &rarr; `-Y` |   |
 | `Close-OfficeWord` | `Close-OfficeWord` | Kept | `-Open` &rarr; `-Show`<br>Removed: `-Current` |   |
 | `Compare-OfficeWordDocument` | `Compare-OfficeDocument` (`Path` set) | Cross-format | `-RedlinePath` &rarr; `-OutputPath` | `Compare-OfficeDocument -ReferencePath .\Before.docx -DifferencePath .\After.docx -OutputPath .\Redline.docx -Options (New-OfficeWordComparisonOptions)` |

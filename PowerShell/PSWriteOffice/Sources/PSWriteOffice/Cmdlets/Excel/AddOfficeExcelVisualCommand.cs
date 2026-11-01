@@ -11,6 +11,13 @@ namespace PSWriteOffice.Cmdlets.Excel;
 [Alias("ExcelVisual")]
 [OutputType(typeof(ExcelImage))]
 public sealed class AddOfficeExcelVisualCommand : OfficeVisualCommandBase {
+    /// <summary>Accessible description for the visual or placed image.</summary>
+    [Parameter]
+    public string? AlternativeText { get; set; }
+
+    /// <inheritdoc />
+    protected override string? VisualAlternativeText => AlternativeText;
+
     /// <summary>ChartForgeX VisualArtifact, OfficeVisualSource, OfficeVisualConversionResult, or SVG file path.</summary>
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
     public object InputObject { get; set; } = null!;

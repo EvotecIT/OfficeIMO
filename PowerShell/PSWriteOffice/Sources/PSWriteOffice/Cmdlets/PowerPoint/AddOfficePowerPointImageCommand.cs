@@ -21,6 +21,13 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 [Alias("PowerPointImage")]
 [OutputType(typeof(PowerPointPicture))]
 public sealed class AddOfficePowerPointImageCommand : OfficeVisualCommandBase {
+    /// <summary>Accessible description for the visual or placed image.</summary>
+    [Parameter]
+    public string? AlternativeText { get; set; }
+
+    /// <inheritdoc />
+    protected override string? VisualAlternativeText => AlternativeText;
+
     /// <summary>Native slide or a one-based position in the current document; omitted inside PowerPointSlide.</summary>
     [Parameter, PowerPointSlideTransformation]
     public PowerPointSlideSelector? Slide { get; set; }
@@ -74,6 +81,7 @@ public sealed class AddOfficePowerPointImageCommand : OfficeVisualCommandBase {
             picture = visual == null ? target.Slide.AddImage(path!, left, top, width, height)
                 : target.Slide.AddVisualArtifact(visual, new PowerPointLayoutBox(left, top, width, height));
             if (AlternativeText != null) picture.Description = AlternativeText;
+            if (Title != null) picture.Title = Title;
             bool fixedPlacement = Slide != null || Column.HasValue || Span.HasValue
                 || PowerPointManualPlacement.HasExplicitBounds(MyInvocation.BoundParameters.Keys);
             if (fixedPlacement && MyInvocation.BoundParameters.ContainsKey(nameof(FocalPoint))) {

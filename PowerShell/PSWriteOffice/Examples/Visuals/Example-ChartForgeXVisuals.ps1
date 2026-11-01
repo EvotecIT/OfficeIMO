@@ -20,7 +20,7 @@ $artifact | Export-ImageVisualArtifact -FilePath $svgPath
 $officeVisual = $artifact | ConvertTo-OfficeVisual -Width 420 -SvgPolicy RasterizeWhenNeeded
 
 New-OfficeWord -Path (Join-Path $documents 'service-map.docx') {
-    WordSection { WordParagraph { $officeVisual | Add-OfficeWordVisual  } }
+    WordSection { WordParagraph { $officeVisual | Add-OfficeWordImage  } }
 }
 
 New-OfficeExcel -Path (Join-Path $documents 'service-map.xlsx') {

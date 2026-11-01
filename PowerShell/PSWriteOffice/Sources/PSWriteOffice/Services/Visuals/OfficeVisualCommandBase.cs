@@ -44,12 +44,14 @@ public abstract class OfficeVisualCommandBase : PSCmdlet
     public string? Id { get; set; }
 
     /// <summary>Optional title for an SVG file input.</summary>
-    [Parameter(ParameterSetName = "Visual")]
+    [Parameter]
     public string? Title { get; set; }
 
-    /// <summary>Optional accessible description for an SVG file input.</summary>
-    [Parameter]
-    public string? AlternativeText { get; set; }
+    /// <summary>Accessible description exposed by the owning command.</summary>
+    protected abstract string? VisualAlternativeText { get; }
+
+    /// <summary>Parameter name used when validating metadata overrides.</summary>
+    protected virtual string AlternativeTextParameterName => "AlternativeText";
 
     /// <summary>Converts an artifact or reuses an existing conversion result.</summary>
     /// <param name="inputObject">Portable source or prepared visual.</param>
@@ -117,7 +119,7 @@ public abstract class OfficeVisualCommandBase : PSCmdlet
         {
             Id = ResolvePortableText(input, "OfficeVisualId", Id),
             Title = ResolvePortableText(input, "OfficeVisualTitle", Title),
-            AlternativeText = ResolvePortableText(input, "OfficeVisualAlternativeText", AlternativeText)
+            AlternativeText = ResolvePortableText(input, "OfficeVisualAlternativeText", VisualAlternativeText)
         };
         return source.ToOfficeVisual(CreateOptions(nativePlacement));
     }
@@ -134,10 +136,10 @@ public abstract class OfficeVisualCommandBase : PSCmdlet
 
     private void RejectConversionOverrides(bool nativePlacement)
     {
-        string[] names = { nameof(SvgPolicy), nameof(Width), nameof(Height), nameof(PointsPerPixel), nameof(MaximumSvgElements), nameof(MaximumSvgViewportDimension), nameof(MaximumSvgViewportPixelCount), nameof(Id), nameof(Title), nameof(AlternativeText) };
+        string[] names = { nameof(SvgPolicy), nameof(Width), nameof(Height), nameof(PointsPerPixel), nameof(MaximumSvgElements), nameof(MaximumSvgViewportDimension), nameof(MaximumSvgViewportPixelCount), nameof(Id), nameof(Title), AlternativeTextParameterName };
         foreach (string name in names)
         {
-            if (nativePlacement && (name == nameof(Width) || name == nameof(Height) || name == nameof(AlternativeText))) continue;
+            if (nativePlacement && (name == nameof(Width) || name == nameof(Height) || name == AlternativeTextParameterName || name == nameof(Title))) continue;
             if (MyInvocation.BoundParameters.ContainsKey(name))
             {
                 throw new PSArgumentException($"-{name} cannot be used with an existing OfficeVisualConversionResult.", name);
@@ -147,9 +149,9 @@ public abstract class OfficeVisualCommandBase : PSCmdlet
 
     private void RejectSourceMetadataOverrides(bool nativePlacement)
     {
-        foreach (string name in new[] { nameof(Id), nameof(Title), nameof(AlternativeText) })
+        foreach (string name in new[] { nameof(Id), nameof(Title), AlternativeTextParameterName })
         {
-            if (nativePlacement && name == nameof(AlternativeText)) continue;
+            if (nativePlacement && (name == AlternativeTextParameterName || name == nameof(Title))) continue;
             if (MyInvocation.BoundParameters.ContainsKey(name))
             {
                 throw new PSArgumentException($"-{name} cannot be used with an existing OfficeVisualSource.", name);
@@ -172,7 +174,7 @@ public abstract class OfficeVisualCommandBase : PSCmdlet
         {
             Id = string.IsNullOrWhiteSpace(Id) ? Path.GetFileNameWithoutExtension(fullPath) : Id!,
             Title = Title ?? string.Empty,
-            AlternativeText = AlternativeText ?? string.Empty
+            AlternativeText = VisualAlternativeText ?? string.Empty
         };
         return source.ToOfficeVisual(CreateOptions(nativePlacement));
     }
