@@ -2384,8 +2384,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentInfoCommand.cs",
-      "sourceLine": 25,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentInfoCommand.cs#L25"
+      "sourceLine": 24,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentInfoCommand.cs#L24"
     },
     {
       "name": "Get-OfficeDocumentProvenance",

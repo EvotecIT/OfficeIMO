@@ -20,4 +20,4 @@ Stencil commands can discover catalogs, find shapes, import packages, and export
 
 `Get-OfficeVisio` and `Get-OfficeVisioInfo` expose document and diagram evidence. `ConvertTo-OfficeVisioSvg` and `ConvertTo-OfficeVisioPng` provide portable review output without replacing the editable VSDX source.
 
-See the [Visio examples](https://github.com/EvotecIT/OfficeIMO/tree/c6d39ac20d271acc0f48fd4da51f709ceba4642f/PowerShell/PSWriteOffice/Examples/Visio) and search the [command reference](/api/powershell/) for `OfficeVisio`.
+See the [Visio examples](https://github.com/EvotecIT/OfficeIMO/tree/c7069618fdc1deb81d04ac991d09f0a21807efa3/PowerShell/PSWriteOffice/Examples/Visio) and search the [command reference](/api/powershell/) for `OfficeVisio`.
