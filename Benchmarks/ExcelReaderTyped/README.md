@@ -26,6 +26,13 @@ Use the same processor placement and job settings. The
 records the validated workload, baseline and measurement limits. Measurements
 are opt-in and do not impose timing budgets on ordinary correctness CI.
 
+`FormulaLookupScaleBenchmarks` compares 256 linear and binary XLOOKUP calls over
+the same sorted numeric keys, at 512 and 8,192 keys. The selected search mode is
+the only workload difference. Each operation starts from a fresh workbook and
+validates all 256 outputs outside timing. Select it with
+`--filter '*FormulaLookupScaleBenchmarks*'`. Binary mode requires sorted input;
+these measurements do not apply to unsorted data.
+
 The [8 October 2026 report](../../Docs/benchmarks/officeimo.excel-tabular-2026-10-08.md)
 records the captured Windows .NET 10 matrix, artifact and input identities,
 measurement samples, warnings, and first-row versus full-scan boundaries.

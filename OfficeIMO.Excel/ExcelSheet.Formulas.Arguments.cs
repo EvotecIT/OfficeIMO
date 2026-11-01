@@ -119,6 +119,7 @@ namespace OfficeIMO.Excel {
                 && r1 == r2
                 && c1 == c2) {
                 value = ResolveFormulaDependency(rangeSheet, r1, c1);
+                if (ExcelFormulaExpressionParser.TryParseFunctionCall(trimmed, out _)) value = NormalizeLookupResult(value);
                 return true;
             }
 

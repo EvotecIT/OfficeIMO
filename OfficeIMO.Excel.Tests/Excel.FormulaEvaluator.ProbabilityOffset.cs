@@ -157,7 +157,7 @@ namespace OfficeIMO.Tests {
             string[] expressions = { "RANDBETWEEN(7.1,7.1)", "RANDBETWEEN(9007199254740992,9007199254740992)",
                 "PROB(A1:A2,B1:B2,1)", "PROB(A1:A50001,B1:B50001,1)",
                 "OFFSET(A1,0,0,2,1)", "SUM(OFFSET(A1,0,0,100001,1))", "SUM(A1:A100001)",
-                "XLOOKUP(1,A1:A2,B1:B2,,0,2)", "RANDBETWEEN(7.1,7.1)/0", "UNKNOWN()/0" };
+                "RANDBETWEEN(7.1,7.1)/0", "UNKNOWN()/0" };
             int row = 0;
             foreach (string expression in expressions) {
                 foreach (string wrapper in new[] { "IFERROR({0},99)", "IFNA({0},99)", "ISERROR({0})", "ISERR({0})", "IF(ISERROR({0}),99,1)" }) {

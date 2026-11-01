@@ -165,7 +165,7 @@ try {
                 sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
                 cases = $formulas.Count
                 sourceFormulaCells = 1
-                unsupportedNamedExpressionCells = 1
+                namedExpressionCells = 1
             }
         } finally {
             if ($null -ne $workbook -and -not $closed) { $workbook.Close($false) }

@@ -8,33 +8,58 @@ namespace OfficeIMO.Excel {
         private bool TryResolveDefinedNameConstant(string token, out FormulaArgumentValue value) {
             value = default;
             if (!TrySplitQualifiedReference(token, out _, out string name) || !IsFormulaDefinedNameToken(name)) return false;
-            var catalog = new FormulaDefinedNameResolutionCatalog(this);
-            var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var catalog = GetFormulaDefinedNameCatalog();
+            var active = (_formulaEvaluationGuardState ??= new FormulaEvaluationGuardState()).ActiveDefinedNames;
+            var entered = new List<string>();
             ExcelSheet resolutionSheet = this;
-            for (int expansion = 0; expansion < MaxFormulaDefinedNameExpansionDepth; expansion++) {
-                if (!resolutionSheet.TryGetDefinedNameReference(catalog, token, out ExcelSheet defaultSheet,
-                    out string reference, out string identity) || !visited.Add(identity)) return false;
-                if (double.TryParse(reference, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
-                    value = new FormulaArgumentValue(number, reference);
-                    return true;
+            try {
+                for (int expansion = 0; expansion < MaxFormulaDefinedNameExpansionDepth; expansion++) {
+                    if (!resolutionSheet.TryGetDefinedNameReference(catalog, token, out ExcelSheet defaultSheet,
+                        out string reference, out string identity)
+                        || active.Count >= MaxFormulaDefinedNameExpansionDepth || !active.Add(identity)) return false;
+                    entered.Add(identity);
+                    if (double.TryParse(reference, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+                        value = new FormulaArgumentValue(number, reference);
+                        return true;
+                    }
+                    if (reference.Equals("TRUE", StringComparison.OrdinalIgnoreCase) || reference.Equals("FALSE", StringComparison.OrdinalIgnoreCase)) {
+                        bool flag = reference.Equals("TRUE", StringComparison.OrdinalIgnoreCase);
+                        value = new FormulaArgumentValue(flag ? 1d : 0d, flag ? "1" : "0", isBoolean: true);
+                        return true;
+                    }
+                    if (ExcelFormulaExpressionParser.TryParseTextLiteral(reference, out string text)) {
+                        value = new FormulaArgumentValue(null, text);
+                        return true;
+                    }
+                    if (TryParseDefinedNameError(reference, catalog, out string error)) {
+                        value = FormulaArgumentValue.Error(error);
+                        return true;
+                    }
+                    if (!TrySplitQualifiedReference(reference, out _, out string alias) || !IsFormulaDefinedNameToken(alias))
+                        return defaultSheet.TryEvaluateFormulaValue(reference, out value) && !value.IsUnresolvedFormula;
+                    resolutionSheet = defaultSheet;
+                    token = reference;
                 }
-                if (reference.Equals("TRUE", StringComparison.OrdinalIgnoreCase) || reference.Equals("FALSE", StringComparison.OrdinalIgnoreCase)) {
-                    bool flag = reference.Equals("TRUE", StringComparison.OrdinalIgnoreCase);
-                    value = new FormulaArgumentValue(flag ? 1d : 0d, flag ? "1" : "0", isBoolean: true);
-                    return true;
-                }
-                if (ExcelFormulaExpressionParser.TryParseTextLiteral(reference, out string text)) {
-                    value = new FormulaArgumentValue(null, text);
-                    return true;
-                }
-                if (TryParseDefinedNameError(reference, catalog, out string error)) {
-                    value = FormulaArgumentValue.Error(error);
-                    return true;
-                }
-                resolutionSheet = defaultSheet;
-                token = reference;
+                return false;
+            } finally {
+                foreach (string identity in entered) active.Remove(identity);
             }
-            return false;
+        }
+
+        private FormulaDefinedNameResolutionCatalog GetFormulaDefinedNameCatalog() =>
+            _formulaCalculationContext is { IsDisposed: false } context
+                ? context.GetDefinedNames(this, _excelDocument.CaptureFormulaInputMutationVersion())
+                : new FormulaDefinedNameResolutionCatalog(this);
+
+        private bool TryResolveDefinedNameArray(string token, int depth, out FormulaArrayValue array) {
+            array = null!;
+            if (!TrySplitQualifiedReference(token, out _, out string name) || !IsFormulaDefinedNameToken(name)
+                || !TryGetDefinedNameReference(GetFormulaDefinedNameCatalog(), token, out ExcelSheet sheet,
+                    out string expression, out string identity)) return false;
+            var active = (_formulaEvaluationGuardState ??= new FormulaEvaluationGuardState()).ActiveDefinedNames;
+            if (active.Count >= MaxFormulaDefinedNameExpansionDepth || !active.Add(identity)) return false;
+            try { return sheet.TryEvaluateArrayValue(expression, depth + 1, out array); }
+            finally { active.Remove(identity); }
         }
 
         private static bool TryParseDefinedNameError(string reference, FormulaDefinedNameResolutionCatalog catalog, out string error) {
@@ -45,7 +70,7 @@ namespace OfficeIMO.Excel {
             return TryParseFormulaErrorLiteral(reference.Substring(separator + 1), out error);
         }
 
-        private sealed class FormulaDefinedNameResolutionCatalog {
+        internal sealed class FormulaDefinedNameResolutionCatalog {
             private readonly List<Sheet> _sheets;
             private readonly HashSet<int> _validSheetIndexes = new HashSet<int>();
             private readonly Dictionary<string, int> _sheetIndexes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -149,46 +174,52 @@ namespace OfficeIMO.Excel {
             r2 = 0;
             c2 = 0;
 
-            var visitedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var catalog = new FormulaDefinedNameResolutionCatalog(this);
+            if (!TrySplitQualifiedReference(token, out _, out string name) || !IsFormulaDefinedNameToken(name)) return false;
+            var catalog = GetFormulaDefinedNameCatalog();
+            var active = (_formulaEvaluationGuardState ??= new FormulaEvaluationGuardState()).ActiveDefinedNames;
+            var entered = new List<string>();
             ExcelSheet resolutionSheet = this;
             string currentToken = token;
-            for (int expansion = 0; expansion < MaxFormulaDefinedNameExpansionDepth; expansion++) {
-                if (!resolutionSheet.TryGetDefinedNameReference(
-                    catalog,
-                    currentToken,
-                    out ExcelSheet defaultSheet,
-                    out string reference,
-                    out string identity)) {
-                    return false;
-                }
+            try {
+                for (int expansion = 0; expansion < MaxFormulaDefinedNameExpansionDepth; expansion++) {
+                    if (!resolutionSheet.TryGetDefinedNameReference(
+                        catalog,
+                        currentToken,
+                        out ExcelSheet defaultSheet,
+                        out string reference,
+                        out string identity)) {
+                        return false;
+                    }
 
-                if (!visitedNames.Add(identity)) {
-                    return false;
-                }
+                    if (active.Count >= MaxFormulaDefinedNameExpansionDepth || !active.Add(identity)) {
+                        return false;
+                    }
+                    entered.Add(identity);
 
-                if (resolutionSheet.TryResolveDefinedNameReferenceTarget(
-                    reference,
-                    defaultSheet,
-                    currentRow,
-                    out ExcelSheet resolvedSheet,
-                    out int resolvedR1,
-                    out int resolvedC1,
-                    out int resolvedR2,
-                    out int resolvedC2)) {
-                    sheet = resolvedSheet;
-                    r1 = resolvedR1;
-                    c1 = resolvedC1;
-                    r2 = resolvedR2;
-                    c2 = resolvedC2;
-                    return true;
-                }
+                    if (resolutionSheet.TryResolveDefinedNameReferenceTarget(
+                        reference,
+                        defaultSheet,
+                        currentRow,
+                        out ExcelSheet resolvedSheet,
+                        out int resolvedR1,
+                        out int resolvedC1,
+                        out int resolvedR2,
+                        out int resolvedC2)) {
+                        sheet = resolvedSheet;
+                        r1 = resolvedR1;
+                        c1 = resolvedC1;
+                        r2 = resolvedR2;
+                        c2 = resolvedC2;
+                        return true;
+                    }
 
-                resolutionSheet = defaultSheet;
-                currentToken = reference;
+                    resolutionSheet = defaultSheet;
+                    currentToken = reference;
+                }
+                return false;
+            } finally {
+                foreach (string identity in entered) active.Remove(identity);
             }
-
-            return false;
         }
 
         private bool TryResolveDefinedNameReferenceTarget(
@@ -200,6 +231,10 @@ namespace OfficeIMO.Excel {
             out int c1,
             out int r2,
             out int c2) {
+            if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(reference, out ExcelFormulaFunctionCallSyntax? call)
+                && (call!.Name.Equals("INDEX", StringComparison.OrdinalIgnoreCase)
+                    || call.Name.Equals("OFFSET", StringComparison.OrdinalIgnoreCase)))
+                return defaultSheet.TryResolveFormulaRangeReference(reference, currentRow, out sheet, out r1, out c1, out r2, out c2);
             if (TryParseQualifiedFormulaRange(reference, defaultSheet, out sheet, out r1, out c1, out r2, out c2)) {
                 return true;
             }
@@ -270,8 +305,7 @@ namespace OfficeIMO.Excel {
             bool isConstant = ExcelFormulaExpressionParser.TryParseTextLiteral(reference, out _)
                 || TryParseDefinedNameError(reference, catalog, out _);
             if (reference.Length == 0 || (!isConstant
-                && (ContainsTopLevelFormulaComma(reference)
-                    || reference.IndexOf("#REF!", StringComparison.OrdinalIgnoreCase) >= 0))) {
+                && SplitFormulaArguments(reference, preserveEmpty: true).Count > 1)) {
                 return false;
             }
 
@@ -285,32 +319,6 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool ContainsTopLevelFormulaComma(string reference) {
-            bool inQuotedQualifier = false;
-            int bracketDepth = 0;
-            for (int index = 0; index < reference.Length; index++) {
-                char character = reference[index];
-                if (character == '\'') {
-                    if (inQuotedQualifier
-                        && index + 1 < reference.Length
-                        && reference[index + 1] == '\'') {
-                        index++;
-                        continue;
-                    }
-
-                    inQuotedQualifier = !inQuotedQualifier;
-                } else if (!inQuotedQualifier && character == '[') {
-                    bracketDepth++;
-                } else if (!inQuotedQualifier && character == ']' && bracketDepth > 0) {
-                    bracketDepth--;
-                } else if (character == ',' && !inQuotedQualifier && bracketDepth == 0) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         private ExcelSheet CreateDefinedNameResolutionSheet(Sheet sheetElement) {
             if (string.Equals(Name, sheetElement.Name?.Value, StringComparison.OrdinalIgnoreCase)) {
                 return this;
@@ -319,6 +327,7 @@ namespace OfficeIMO.Excel {
             return new ExcelSheet(_excelDocument, _spreadSheetDocument, sheetElement) {
                 _formulaEvaluationCache = _formulaEvaluationCache,
                 _formulaCalculationContext = _formulaCalculationContext,
+                _formulaEvaluationCellReference = _formulaEvaluationCellReference,
                 _formulaEvaluationDepthCache = _formulaEvaluationDepthCache,
                 _formulaEvaluationStack = _formulaEvaluationStack,
                 _formulaEvaluationDepthFrames = _formulaEvaluationDepthFrames,

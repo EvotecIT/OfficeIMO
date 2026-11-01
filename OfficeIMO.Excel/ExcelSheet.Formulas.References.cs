@@ -189,7 +189,14 @@ namespace OfficeIMO.Excel {
             out int r2,
             out int c2) {
             if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(token, out ExcelFormulaFunctionCallSyntax? call)
-                && call!.Name.Equals("OFFSET", StringComparison.OrdinalIgnoreCase)) {
+                && (call!.Name.Equals("OFFSET", StringComparison.OrdinalIgnoreCase)
+                    || call.Name.Equals("INDEX", StringComparison.OrdinalIgnoreCase))) {
+                if (call.Name.Equals("INDEX", StringComparison.OrdinalIgnoreCase)) {
+                    bool selected = TryResolveIndexRange(call.Arguments, currentRow, out sheet, out r1, out c1, out r2, out c2,
+                        out FormulaArgumentValue indexError);
+                    if (selected && indexError.IsError && !_formulaReferenceError.IsError) _formulaReferenceError = indexError;
+                    return selected && !indexError.IsError;
+                }
                 bool resolved = TryResolveOffsetRange(call.Arguments, currentRow, out sheet, out r1, out c1, out r2, out c2,
                     out FormulaArgumentValue error);
                 if (resolved && error.IsError && !_formulaReferenceError.IsError) _formulaReferenceError = error;

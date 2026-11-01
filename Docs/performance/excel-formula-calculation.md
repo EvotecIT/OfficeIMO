@@ -76,3 +76,20 @@ diagnostic comparison above uses PowerForge/PSPublishModule's shared runner.
 Both exclude input construction and output validation from timing. Use fresh
 workbooks, matching Excel/Core assemblies, equal placement and settings, and
 separate output roots. Never treat an incomplete baseline as equivalent work.
+
+## Lookup expansion comparison
+
+The next comparison uses the complete shared-string-optimized source
+`67ab8dd54bcc17697df755b5b69bb36316056827` as its baseline. Its saved Excel
+assembly SHA-256 is `E3358E58765B7060E8341AC361FB7FF09855A19E55E235AA5DC1E80483CB849C`.
+Keep the four existing report inputs and all 2,048 output checks unchanged.
+The candidate adds lookup modes, INDEX references/arrays and named expressions;
+reference-backed lookup sources also avoid eager range materialization.
+
+Compare that report before/after, then compare 256 linear and binary XLOOKUPs
+over identical sorted numeric sources at 512 and 8,192 keys using
+`FormulaLookupScaleBenchmarks`. Setup and complete output validation remain
+outside timing. Run the complete matrix on each fixed processor domain. Accept
+only correct outputs; investigate material common-case regressions. Stop after
+the measured source-resolution and pass-catalog changes are qualified, without
+adding speculative persistent indexes or expression caches.

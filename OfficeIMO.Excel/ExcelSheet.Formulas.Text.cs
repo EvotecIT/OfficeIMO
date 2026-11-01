@@ -406,46 +406,6 @@ namespace OfficeIMO.Excel {
             return builder.ToString();
         }
 
-        private bool TryEvaluateIndexValue(string args, out FormulaArgumentValue result) {
-            result = default;
-            var tokens = SplitFormulaArguments(args, preserveEmpty: true);
-            if (tokens.Count < 2
-                || tokens.Count > 3
-                || !TryGetLookupIntegerArgument(tokens[1], out int rowIndex, out FormulaArgumentValue rowError)) {
-                return false;
-            }
-
-            int columnIndex = 1;
-            FormulaArgumentValue columnError = default;
-            if (tokens.Count == 3 && tokens[2].Length > 0
-                && !TryGetLookupIntegerArgument(tokens[2], out columnIndex, out columnError)) return false;
-            // Qualify known array selectors before an error can activate IFERROR.
-            if ((!rowError.IsError && rowIndex == 0) || (!columnError.IsError && columnIndex == 0)) return false;
-            if (!TryResolveFormulaRangeReference(tokens[0], out ExcelSheet rangeSheet, out int r1, out int c1, out int r2, out int c2)) {
-                if (_formulaReferenceError.IsError) return true;
-                return TryResolveFormulaArgument(tokens[0], out result) && !result.IsUnresolvedFormula && result.IsError;
-            }
-
-            int rowCount = r2 - r1 + 1;
-            int columnCount = c2 - c1 + 1;
-            if (tokens.Count == 3 && tokens[2].Length == 0 && columnCount > 1) return false;
-            if (tokens.Count == 2 && rowCount > 1 && columnCount > 1) return false;
-            if (rowError.IsError) { result = rowError; return true; }
-            if (columnError.IsError) { result = columnError; return true; }
-            if (tokens.Count != 3) {
-                if (columnCount == 1) columnIndex = 1;
-                else if (rowCount == 1) { columnIndex = rowIndex; rowIndex = 1; }
-                else return false;
-            }
-
-            if (rowIndex < 0 || columnIndex < 0 || rowIndex > rowCount || columnIndex > columnCount) {
-                result = FormulaArgumentValue.Error(rowIndex < 0 || columnIndex < 0 ? "#VALUE!" : "#REF!");
-                return true;
-            }
-            result = NormalizeLookupResult(ResolveFormulaDependency(rangeSheet, r1 + rowIndex - 1, c1 + columnIndex - 1));
-            return result.HasValue;
-        }
-
         private bool TryEvaluateMatchValue(string function, string args, out FormulaArgumentValue result) {
             result = default;
             var tokens = SplitFormulaArguments(args, preserveEmpty: true);
@@ -457,13 +417,14 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            int matchMode = function == "XMATCH" ? 0 : 1;
+            int matchMode = function == "XMATCH" || tokens.Count >= 3 && tokens[2].Length == 0 ? 0 : 1;
             FormulaArgumentValue matchError = default;
             if (tokens.Count >= 3 && tokens[2].Length > 0 && !TryGetLookupIntegerArgument(tokens[2], out matchMode, out matchError)) {
                 return false;
             }
 
-            if (!matchError.IsError && matchMode != -1 && matchMode != 0 && matchMode != 1) {
+            if (!matchError.IsError && matchMode != -1 && matchMode != 0 && matchMode != 1
+                && (function != "XMATCH" || matchMode != 2)) {
                 return false;
             }
 
@@ -473,89 +434,31 @@ namespace OfficeIMO.Excel {
                 && tokens.Count >= 4
                 && tokens[3].Length > 0
                 && (!TryGetLookupIntegerArgument(tokens[3], out searchMode, out modeError)
-                    || (!modeError.IsError && searchMode != 1 && searchMode != -1))) {
+                    || (!modeError.IsError && searchMode != 1 && searchMode != -1 && searchMode != 2 && searchMode != -2))) {
                 return false;
             }
 
-            if (!TryResolveFormulaRangeReference(tokens[1], out _, out int r1, out int c1, out int r2, out int c2))
-                return _formulaReferenceError.IsError;
-            if (c1 != c2 && r1 != r2) return false;
-
+            int budget = MaxResolvedFormulaRangeCells;
+            if (!TryResolveLookupSource(tokens[1], ref budget, out FormulaLookupSource lookupValues)) return false;
+            if (_formulaReferenceError.IsError) return true;
+            if (lookupValues.Columns != 1 && lookupValues.Rows != 1) {
+                result = FormulaArgumentValue.Error("#N/A");
+                return true;
+            }
             int lookupMode = function == "MATCH" ? -matchMode : matchMode;
-            if (function == "MATCH" && matchMode == 0 && !IsSupportedExactLookupValue(lookupValue)) return false;
-            if (!TryResolveFormulaRange(tokens[1], out var lookupValues) || lookupValue.IsUnresolvedFormula) return false;
+            if (function == "MATCH" && matchMode == 0 && !lookupValue.Number.HasValue) lookupMode = 2;
             if (lookupValue.IsError) { result = lookupValue; return true; }
             if (matchError.IsError) { result = matchError; return true; }
             if (modeError.IsError) { result = modeError; return true; }
-            if (!TryFindLookupPosition(lookupValue, lookupValues, lookupMode, searchMode, out int position, out FormulaArgumentValue searchFailure)) {
+            if (!TryFindLookupPosition(lookupValue, lookupValues, lookupMode, searchMode, out int position,
+                out FormulaArgumentValue searchFailure, sortedApproximate: function == "MATCH" && matchMode != 0)) {
                 if (searchFailure.IsUnresolvedFormula) return false;
                 if (searchFailure.IsError) { result = searchFailure; return true; }
-                // Approximate text ordering is outside this numeric lookup subset.
-                if (lookupMode != 0 && !lookupValue.Number.HasValue) return false;
                 result = FormulaArgumentValue.Error("#N/A");
                 return true;
             }
 
             result = new FormulaArgumentValue(position, InvariantNumberText.Get(position));
-            return true;
-        }
-
-        private static bool TryFindLookupPosition(FormulaArgumentValue lookupValue, IReadOnlyList<FormulaArgumentValue> lookupValues, int matchMode, int searchMode, out int position, out FormulaArgumentValue failure) {
-            position = 0;
-            failure = default;
-            if (lookupValues.Count == 0) {
-                return false;
-            }
-
-            int start = searchMode == -1 ? lookupValues.Count - 1 : 0;
-            int end = searchMode == -1 ? -1 : lookupValues.Count;
-            int step = searchMode == -1 ? -1 : 1;
-
-            for (int index = start; index != end; index += step) {
-                // Stop at the first exact match in the requested search order.
-                // Later entries cannot invalidate a selected result.
-                FormulaArgumentValue candidate = lookupValues[index];
-                if (candidate.IsError || candidate.IsUnresolvedFormula) { failure = candidate; return false; }
-                if (!FormulaValuesEqual(candidate, lookupValue)) {
-                    continue;
-                }
-
-                position = index + 1;
-                return true;
-            }
-
-            if (matchMode == 0 || !lookupValue.Number.HasValue) {
-                return false;
-            }
-
-            double bestDelta = double.MaxValue;
-            int bestPosition = 0;
-            for (int index = start; index != end; index += step) {
-                FormulaArgumentValue candidate = lookupValues[index];
-                if (!candidate.Number.HasValue) {
-                    continue;
-                }
-
-                double delta = candidate.Number.Value - lookupValue.Number.Value;
-                bool eligible = matchMode < 0
-                    ? delta <= 0d
-                    : delta >= 0d;
-                if (!eligible) {
-                    continue;
-                }
-
-                double distance = Math.Abs(delta);
-                if (distance < bestDelta) {
-                    bestDelta = distance;
-                    bestPosition = index + 1;
-                }
-            }
-
-            if (bestPosition == 0) {
-                return false;
-            }
-
-            position = bestPosition;
             return true;
         }
 

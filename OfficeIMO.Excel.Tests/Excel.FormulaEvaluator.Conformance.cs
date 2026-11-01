@@ -12,23 +12,20 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, $"FunctionOracle{dateSystem}.xlsx");
             File.Copy(source, path);
             object?[,] expectedValues;
+            object? expectedNamedValue;
             using (var reader = ExcelDocumentReader.Open(source)) {
                 expectedValues = reader.GetSheet("Expressions").ReadRange("B1:B166");
+                expectedNamedValue = reader.GetSheet("Expressions").ReadRange("C1:C1")[0, 0];
             }
             using (var document = ExcelDocument.Load(path)) {
                 var expected = document.InspectFormulas().Formulas.ToDictionary(cell => cell.SheetName + "!" + cell.CellReference);
                 Assert.Equal(168, expected.Count);
                 int calculated = document.Calculate();
                 var failures = new List<string>();
-                if (calculated != expected.Count - 1) failures.Add($"Calculated {calculated} of {expected.Count - 1} supported producer formula cells.");
+                if (calculated != expected.Count) failures.Add($"Calculated {calculated} of {expected.Count} supported producer formula cells.");
                 foreach (var actual in document.InspectFormulas().Formulas) {
                     string key = actual.SheetName + "!" + actual.CellReference;
                     var original = expected[key];
-                    if (key == "Expressions!C1") {
-                        if (actual.IsSupportedByOfficeIMO || original.CachedValue != actual.CachedValue)
-                            failures.Add($"{key}: Named expression must remain unsupported with its producer cache intact.");
-                        continue;
-                    }
                     if (!actual.IsSupportedByOfficeIMO || !EquivalentFormulaCache(original.CachedValue, actual.CachedValue)) {
                         failures.Add($"{key}: {original.Formula}: Excel={original.CachedValue}, OfficeIMO={actual.CachedValue}, supported={actual.IsSupportedByOfficeIMO}: {actual.UnsupportedReason}");
                     }
@@ -39,6 +36,10 @@ namespace OfficeIMO.Tests {
             }
             using var reopened = ExcelDocumentReader.Open(path);
             object?[,] actualValues = reopened.GetSheet("Expressions").ReadRange("B1:B166");
+            object? actualNamedValue = reopened.GetSheet("Expressions").ReadRange("C1:C1")[0, 0];
+            Assert.Equal(expectedNamedValue?.GetType(), actualNamedValue?.GetType());
+            Assert.True(EquivalentFormulaCache(Convert.ToString(expectedNamedValue, CultureInfo.InvariantCulture),
+                Convert.ToString(actualNamedValue, CultureInfo.InvariantCulture)), "Saved named expression differs from Excel.");
             for (int row = 0; row < expectedValues.GetLength(0); row++) {
                 Assert.Equal(expectedValues[row, 0]?.GetType(), actualValues[row, 0]?.GetType());
                 Assert.True(EquivalentFormulaCache(Convert.ToString(expectedValues[row, 0], CultureInfo.InvariantCulture),

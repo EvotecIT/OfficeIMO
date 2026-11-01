@@ -10,6 +10,8 @@ namespace OfficeIMO.Excel {
             internal FormulaEvaluationGuardState GuardState { get; } = new();
             private SharedStringCache? _sharedStrings;
             private long _sharedStringMutationVersion;
+            private FormulaDefinedNameResolutionCatalog? _definedNames;
+            private long _definedNameMutationVersion;
             internal bool IsDisposed { get; private set; }
 
             // Cross-sheet wrappers borrow this snapshot only while the pass owns it.
@@ -25,7 +27,16 @@ namespace OfficeIMO.Excel {
             public void Dispose() {
                 _sharedStrings?.Dispose();
                 _sharedStrings = null;
+                _definedNames = null;
                 IsDisposed = true;
+            }
+
+            internal FormulaDefinedNameResolutionCatalog GetDefinedNames(ExcelSheet owner, long mutationVersion) {
+                if (_definedNames == null || _definedNameMutationVersion != mutationVersion) {
+                    _definedNames = new FormulaDefinedNameResolutionCatalog(owner);
+                    _definedNameMutationVersion = mutationVersion;
+                }
+                return _definedNames;
             }
         }
 

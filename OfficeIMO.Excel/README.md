@@ -1400,10 +1400,34 @@ formulas can use that result. `IFNA` catches only `#N/A`; `IFERROR` catches any
 evaluated error and preserves the fallback's number, text or Boolean type.
 Out-of-range positive lookup positions return `#REF!`; negative `INDEX`
 positions and nonpositive `VLOOKUP`/`HLOOKUP` positions return `#VALUE!`.
-A selected blank cell returns zero. Position and mode arguments use the
-integral numeric subset; array-returning `INDEX` zero selectors, approximate
-`VLOOKUP`/`HLOOKUP`, wildcard/binary lookup modes and unsupported operands
-remain unevaluated, including inside error handlers.
+A selected blank cell returns zero. Row, column and area positions accept
+numeric text and Boolean values and truncate positive fractions. Invalid text
+positions return `#VALUE!`; discrete match/search modes retain their own
+supported values. Lookup keys preserve the distinction between numbers,
+numeric-looking text and Booleans.
+
+| Family | Calculation contract |
+| --- | --- |
+| `VLOOKUP`, `HLOOKUP` | Exact search with `FALSE`; approximate search with `TRUE` or an omitted fourth argument over ascending keys. An explicitly empty fourth argument means exact search. Approximate searches select the last duplicate at the matching boundary. |
+| `MATCH` | Exact mode `0`, ascending approximate mode `1` (the default), and descending approximate mode `-1`. An explicitly empty match argument means exact search. |
+| `XMATCH`, `XLOOKUP` | Exact, next smaller, next larger and wildcard match modes; forward/reverse linear search and ascending/descending binary search. Binary search resolves visited cells without first materializing the lookup and return arrays. Its inputs must be sorted in the requested direction. |
+| Wildcards | Exact legacy lookup modes and modern match mode `2` recognize `*`, `?` and tilde escapes. Modern exact mode `0` treats these characters literally. |
+| Array inputs/results | Ranges, rectangular literal arrays and supported generated arrays can supply lookup inputs. `XLOOKUP` can select an entire matching row or column from a wider return array. |
+
+Ordered text search uses the qualified case-insensitive ASCII letter-and-digit
+profile shared with array `SORT`. Locale-dependent punctuation and Unicode
+ordering remain unevaluated; exact and wildcard searches do not require sorting.
+Invalid shapes return typed errors; unsupported signatures and resource limits
+remain unevaluated inside error handlers.
+
+`INDEX` zero selectors return an entire row, column or rectangle. Reference
+results compose with range consumers, for example `SUM(INDEX(A1:C20,0,2))`,
+`ROWS(INDEX(A1:C20,0,2))` and nested INDEX calls. The reference form also accepts
+a selected area, for example `SUM(INDEX((A1:A2,A4:A6),0,1,2))`. A scalar selection
+from a whole-column or whole-row reference resolves only its selected cell.
+For a multi-cell worksheet result, author an explicit fixed range with
+`SetArrayFormula(...)` or a dynamic anchor with `SetDynamicArrayFormula(...)`;
+the existing shape, spill-blocker and dependency rules apply.
 
 Error-valued conditions and selectors also propagate through `IF`, `IFS`,
 `SWITCH` and `CHOOSE`. Text helpers preserve operand errors instead of treating
@@ -1412,14 +1436,34 @@ vectors. `TEXTBEFORE`/`TEXTAFTER` evaluate an explicit fallback only when needed
 
 `XLOOKUP` retains empty optional argument positions: an empty fallback uses
 `#N/A`, an empty match mode uses exact matching, and an empty search mode scans
-from the first item. The [fresh Excel reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-xlookup-optional-v16.113.3.json)
+from the first item. The [saved Excel reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-xlookup-optional-v16.113.3.json)
 records no-match, explicit-fallback and reverse-search cases. Conditional
 aggregates resolve unquoted criteria as formula arguments; unsupported criterion
 expressions preserve existing caches. Quoted criteria remain literal text.
 
-Named references can resolve to A1 ranges or numeric, text, Boolean, and error
-constants, including bounded aliases and worksheet-local scope. Arbitrary
-formulas stored in defined names remain outside this calculation subset.
+Named references resolve to A1 ranges, numeric/text/Boolean/error constants,
+supported scalar and array expressions, and reference-valued `INDEX`/`OFFSET`
+calls. Aliases and worksheet-local scope are retained. Cyclic definitions,
+unsupported expressions and expansion limits remain unevaluated; they do not
+prevent independent cells from calculating. Each calculation observes later
+input and definition edits.
+
+Use `SetNamedFormula(...)` for an expression; `SetNamedRange(...)` retains its A1
+range validation. Both document and worksheet setters replace the matching name
+in the selected scope. For example:
+
+```csharp
+using var document = ExcelDocument.Create();
+var data = document.AddWorksheet("Data");
+data.CellValue(2, 2, 100d);
+data.CellValue(3, 2, 150d);
+document.SetNamedFormula("NetTotal", "SUM(Data!B2:B3)*0.8", save: false);
+data.SetNamedFormula("TaxRate", "0.2", save: false);
+data.CellFormula(5, 2, "NetTotal*(1+TaxRate)");
+data.SetDynamicArrayFormula("D2", "INDEX(B2:B3,0)");
+document.Calculate(); // B5 = 240; D2:D3 = 100, 150.
+```
+
 `ISNUMBER` distinguishes numbers from Boolean values; `ISLOGICAL` and `NA`
 support typed guards and error fallbacks. `SEARCH` and text criteria recognize
 `*`, `?`, and tilde escapes. `ROUND` handles decimal midpoints away from zero.

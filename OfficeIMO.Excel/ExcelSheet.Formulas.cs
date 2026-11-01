@@ -19,6 +19,7 @@ namespace OfficeIMO.Excel {
 
         internal sealed class FormulaEvaluationGuardState {
             internal bool DependencyGuardBlocked { get; set; }
+            internal HashSet<string> ActiveDefinedNames { get; } = new(StringComparer.OrdinalIgnoreCase);
         }
 
         internal sealed class FormulaEvaluationDepthFrame {

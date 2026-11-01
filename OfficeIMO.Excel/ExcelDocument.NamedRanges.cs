@@ -43,28 +43,20 @@ namespace OfficeIMO.Excel {
             }
 #endif
 
-            var workbook = WorkbookRoot;
-            var definedNames = workbook.DefinedNames ??= new DefinedNames();
-
-            // Validate or sanitize the defined name
             name = NormalizeDefinedName(name, validationMode);
+            string reference = scope == null ? NormalizeRange(range, validationMode)
+                : NormalizeLocalNamedRange(scope, range, validationMode);
+            StoreDefinedName(name, reference, scope, save, hidden);
+        }
 
-            if (scope == null) {
-                string reference = NormalizeRange(range, validationMode); // may already contain a sheet prefix
-                // Workbook-global name: remove any existing global with same name
-                foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == name && d.LocalSheetId == null).ToList())
-                    dn.Remove();
-                var dnNew = new DefinedName { Name = name, Text = reference, Hidden = hidden ? true : (bool?)null };
-                definedNames.Append(dnNew);
-            } else {
-                // Sheet-local name: remove existing with same name for this sheet
-                ushort sheetPos = GetSheetPositionIndex(scope);
-                string localRef = NormalizeLocalNamedRange(scope, range, validationMode);
-                foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == name && d.LocalSheetId != null && d.LocalSheetId.Value == sheetPos).ToList())
-                    dn.Remove();
-                var dnNew = new DefinedName { Name = name, Text = localRef, LocalSheetId = sheetPos, Hidden = hidden ? true : (bool?)null };
-                definedNames.Append(dnNew);
-            }
+        private void StoreDefinedName(string name, string expression, ExcelSheet? scope, bool save, bool hidden) {
+            uint? sheetIndex = scope == null ? null : GetSheetPositionIndex(scope);
+            var definedNames = WorkbookRoot.DefinedNames ??= new DefinedNames();
+            foreach (var existing in definedNames.Elements<DefinedName>().Where(definition => string.Equals(definition.Name?.Value, name, StringComparison.OrdinalIgnoreCase)
+                && definition.LocalSheetId?.Value == sheetIndex).ToList()) existing.Remove();
+            var definition = new DefinedName { Name = name, Text = expression, Hidden = hidden ? true : (bool?)null };
+            if (sheetIndex.HasValue) definition.LocalSheetId = sheetIndex.Value;
+            definedNames.Append(definition);
             MarkPackageDirty();
             SaveWorkbookScopedChange(save);
         }
