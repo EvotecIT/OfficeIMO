@@ -39,31 +39,31 @@ public sealed class SetOfficeWordParagraphCommand : OfficeCmdlet
     public WordVerticalCharacterAlignment? CharacterAlignment { get; set; }
 
     /// <summary>Indentation before the paragraph; a bare number means points.</summary>
-    [Parameter, OfficeLengthTransformation]
+    [Parameter, OfficeLengthTransformation(AllowNull = true)]
     public OfficeLength? IndentationBefore { get; set; }
 
     /// <summary>Indentation after the paragraph; a bare number means points.</summary>
-    [Parameter, OfficeLengthTransformation]
+    [Parameter, OfficeLengthTransformation(AllowNull = true)]
     public OfficeLength? IndentationAfter { get; set; }
 
     /// <summary>First-line indentation; a bare number means points.</summary>
-    [Parameter, OfficeLengthTransformation]
+    [Parameter, OfficeLengthTransformation(AllowNull = true)]
     public OfficeLength? IndentationFirstLine { get; set; }
 
     /// <summary>Hanging indentation; a bare number means points.</summary>
-    [Parameter, OfficeLengthTransformation]
+    [Parameter, OfficeLengthTransformation(AllowNull = true)]
     public OfficeLength? IndentationHanging { get; set; }
 
-    /// <summary>Line spacing; a bare number means points.</summary>
-    [Parameter, OfficeLengthTransformation]
+    /// <summary>Physical line height; bare numbers mean points. Null clears the direct line-spacing override.</summary>
+    [Parameter, OfficeLengthTransformation(AllowNull = true)]
     public OfficeLength? LineSpacing { get; set; }
 
     /// <summary>Line spacing before the paragraph; a bare number means points.</summary>
-    [Parameter, OfficeLengthTransformation]
+    [Parameter, OfficeLengthTransformation(AllowNull = true)]
     public OfficeLength? SpacingBefore { get; set; }
 
     /// <summary>Line spacing after the paragraph; a bare number means points.</summary>
-    [Parameter, OfficeLengthTransformation]
+    [Parameter, OfficeLengthTransformation(AllowNull = true)]
     public OfficeLength? SpacingAfter { get; set; }
 
     /// <summary>Line spacing calculation rule.</summary>

@@ -104,16 +104,16 @@ New-OfficeWord -Path $docx {
     WordHeader { WordParagraph -Text 'PROCUREMENT / OFFER REVIEW' }
     WordFooter { WordPageNumber -IncludeTotal }
     WordParagraph {
-        WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true
+        Set-OfficeWordParagraph -SpacingAfter 12 -KeepWithNext:$true
         WordText 'Supplier offer review' -Bold -FontSize 26 -Color '17365D'
     }
     WordParagraph {
-        WordParagraphStyle -SpacingAfterPoints 10
+        Set-OfficeWordParagraph -SpacingAfter 10
         WordText "$($offers.Count) offers to compare" -Bold -FontSize 16 -Color '166534'
     }
     WordParagraph -Text 'Compare unit price and delivery together. Freight and tax are excluded.'
     WordParagraph {
-        WordParagraphStyle -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
+        Set-OfficeWordParagraph -SpacingBefore 16 -SpacingAfter 8 -KeepWithNext:$true
         WordText 'Offers received' -Bold -FontSize 15 -Color '17365D'
     }
     $table = WordTable -InputObject $reviewRows -Style GridTable4Accent1 `
@@ -123,7 +123,7 @@ New-OfficeWord -Path $docx {
         $_.MarginBottom = [OfficeIMO.OfficeLength]::Centimeters(0.14)
     }
     WordParagraph {
-        WordParagraphStyle -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
+        Set-OfficeWordParagraph -SpacingBefore 16 -SpacingAfter 8 -KeepWithNext:$true
         WordText 'Before placing the order' -Bold -FontSize 15 -Color '17365D'
     }
     WordList -Style Bulleted {

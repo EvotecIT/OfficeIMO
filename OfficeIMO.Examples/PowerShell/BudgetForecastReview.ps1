@@ -112,19 +112,19 @@ $reviewRows = $rows | Select-Object Department,
 New-OfficeWord -Path $docx {
     WordHeader { WordParagraph -Text "FINANCE | $inputLabel | $($AsOfDate.ToString('yyyy-MM-dd'))" }
     WordFooter { WordPageNumber -IncludeTotal }
-    WordParagraph { WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true; WordText 'Budget and forecast review' -Bold -Size 25 -Color '17365D' }
+    WordParagraph { Set-OfficeWordParagraph -SpacingAfter 12 -KeepWithNext:$true; WordText 'Budget and forecast review' -Bold -Size 25 -Color '17365D' }
     WordParagraph -Text "Forecast $($totalForecast.ToString('C2',$money)) against budget $($totalBudget.ToString('C2',$money)); actual spend $($totalActual.ToString('C2',$money))."
     WordParagraph -Text "$(if ($variance -eq 0) {'The forecast matches the approved budget.'} else { "The forecast is $([math]::Abs($variance).ToString('C2',$money)) $(if ($variance -gt 0) {'above'} else {'below'}) budget." }) $($exceptions.Count) department(s) need an overspend decision."
     WordParagraph -Text 'Positive variance is overspend; negative is favorable. The workbook retains detail, formulas and input validation. Regenerate this dated review after changing the CSV.'
-    WordParagraph -Text 'Owner decisions' -Style Heading1 { WordParagraphStyle -KeepWithNext $true -SpacingBeforePoints 12 -SpacingAfterPoints 6 }
+    WordParagraph -Text 'Owner decisions' -Style Heading1 { Set-OfficeWordParagraph -KeepWithNext:$true -SpacingBefore 12 -SpacingAfter 6 }
     WordList -Style Bulleted {
         foreach ($item in $exceptions) {
             $decision = WordListItem -Text "$($item.Department) | $($item.Owner): $($item.Action). Forecast overspend $($item.Variance.ToString('C2',$money))." -PassThru
-            WordParagraphStyle -Paragraph $decision -KeepLinesTogether $true
+            Set-OfficeWordParagraph -Paragraph $decision -KeepLinesTogether:$true
         }
         if (-not $exceptions.Count) { WordListItem -Text 'No overspend exceptions. Confirm the remaining forecast assumptions with department owners.' }
     }
-    WordParagraph -Text 'Department view' -Style Heading1 { WordParagraphStyle -KeepWithNext $true -SpacingBeforePoints 12 -SpacingAfterPoints 6 }
+    WordParagraph -Text 'Department view' -Style Heading1 { Set-OfficeWordParagraph -KeepWithNext:$true -SpacingBefore 12 -SpacingAfter 6 }
     $table = WordTable -InputObject $reviewRows -Style GridTable4Accent1 -Layout AutoFitToWindow -PassThru
     $table.RepeatHeaderRowAtTheTopOfEachPage = $true
     foreach ($tableRow in $table.Rows) { $tableRow.AllowRowToBreakAcrossPages = $false }

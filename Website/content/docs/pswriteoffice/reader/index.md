@@ -4,7 +4,7 @@ description: "Detect formats and extract normalized documents, chunks, hierarchy
 layout: docs
 ---
 
-Reader is the cross-format path for search, review, ingestion, migration, OCR, and AI preparation. Its 17 exported commands expose the normalized OfficeIMO.Reader model and the easy local image OCR entry point without forcing the caller to switch on every native document type.
+Reader is the cross-format path for search, review, ingestion, migration, OCR, and AI preparation. Its 18 exported commands expose the normalized OfficeIMO.Reader model and the easy local image OCR entry point without forcing the caller to switch on every native document type.
 
 ## What Reader returns
 
@@ -35,4 +35,4 @@ Reader adapters are modular. A deployment can carry only the adapters it needs, 
 
 Detect first, inspect capabilities, extract the required surfaces, and record warnings/provenance with the output. Do not silently reduce a document to plain text when tables, visuals, or assets matter to the consumer.
 
-See the [document Reader examples](https://github.com/EvotecIT/OfficeIMO/tree/caffcd0d02eca2ae6917883df6c3aeb6e3a47664/PowerShell/PSWriteOffice/Examples/Reader) and search the [command reference](/api/powershell/) for `OfficeDocument`.
+See the [document Reader examples](https://github.com/EvotecIT/OfficeIMO/tree/640a25d8fa79b69a90ed309104f7134cc190cef9/PowerShell/PSWriteOffice/Examples/Reader) and search the [command reference](/api/powershell/) for `OfficeDocument`.

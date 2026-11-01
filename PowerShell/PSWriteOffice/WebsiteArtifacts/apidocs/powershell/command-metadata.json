@@ -3580,6 +3580,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Html/NewOfficeHtmlRenderOptionsCommand.cs#L18"
     },
     {
+      "name": "New-OfficeHtmlWordOptions",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/NewOfficeHtmlWordOptionsCommand.cs",
+      "sourceLine": 14,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/NewOfficeHtmlWordOptionsCommand.cs#L14"
+    },
+    {
       "name": "New-OfficeMarkdown",
       "kind": "Cmdlet",
       "aliases": [],
@@ -3860,12 +3868,36 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordComparisonOptionsCommand.cs#L16"
     },
     {
+      "name": "New-OfficeWordGoogleDocsOptions",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordGoogleDocsOptionsCommand.cs",
+      "sourceLine": 13,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordGoogleDocsOptionsCommand.cs#L13"
+    },
+    {
+      "name": "New-OfficeWordHtmlOptions",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordHtmlOptionsCommand.cs",
+      "sourceLine": 13,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordHtmlOptionsCommand.cs#L13"
+    },
+    {
       "name": "New-OfficeWordImageOptions",
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordImageOptionsCommand.cs",
       "sourceLine": 17,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordImageOptionsCommand.cs#L17"
+    },
+    {
+      "name": "New-OfficeWordMarkdownOptions",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordMarkdownOptionsCommand.cs",
+      "sourceLine": 13,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordMarkdownOptionsCommand.cs#L13"
     },
     {
       "name": "New-OfficeWordOpenDocumentOptions",
@@ -4915,14 +4947,12 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordPageSetupCommand.cs#L22"
     },
     {
-      "name": "Set-OfficeWordParagraphStyle",
+      "name": "Set-OfficeWordParagraph",
       "kind": "Cmdlet",
-      "aliases": [
-        "WordParagraphStyle"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordParagraphStyleCommand.cs",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordParagraphCommand.cs",
       "sourceLine": 19,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordParagraphStyleCommand.cs#L19"
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordParagraphCommand.cs#L19"
     },
     {
       "name": "Set-OfficeWordShape",
@@ -4953,22 +4983,20 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordTableOfContentsCommand.cs#L32"
     },
     {
-      "name": "Set-OfficeWordTextStyle",
-      "kind": "Cmdlet",
-      "aliases": [
-        "WordTextStyle"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordTextStyleCommand.cs",
-      "sourceLine": 18,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordTextStyleCommand.cs#L18"
-    },
-    {
-      "name": "Split-OfficePdf",
+      "name": "Set-OfficeWordText",
       "kind": "Cmdlet",
       "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/SplitOfficePdfCommand.cs",
-      "sourceLine": 22,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/SplitOfficePdfCommand.cs#L22"
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordTextCommand.cs",
+      "sourceLine": 19,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordTextCommand.cs#L19"
+    },
+    {
+      "name": "Split-OfficeDocument",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/SplitOfficeDocumentCommand.cs",
+      "sourceLine": 32,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/SplitOfficeDocumentCommand.cs#L32"
     },
     {
       "name": "Test-OfficeExcelAccessibility",
@@ -5078,12 +5106,12 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Rtf/UpdateOfficeRtfTextCommand.cs#L22"
     },
     {
-      "name": "Update-OfficeWordFields",
+      "name": "Update-OfficeWordField",
       "kind": "Cmdlet",
       "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/UpdateOfficeWordFieldsCommand.cs",
-      "sourceLine": 21,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/UpdateOfficeWordFieldsCommand.cs#L21"
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/UpdateOfficeWordFieldCommand.cs",
+      "sourceLine": 22,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/UpdateOfficeWordFieldCommand.cs#L22"
     },
     {
       "name": "Update-OfficeWordTableOfContents",

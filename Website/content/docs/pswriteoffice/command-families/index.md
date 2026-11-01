@@ -11,8 +11,8 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 | Family | Exported commands | Guide |
 | --- | ---: | --- |
 | Excel | 153 | [Excel automation](/docs/pswriteoffice/excel/) |
-| Word | 96 | [Word automation](/docs/pswriteoffice/word/) |
-| PDF | 95 | [PDF automation](/docs/pswriteoffice/pdf/) |
+| Word | 99 | [Word automation](/docs/pswriteoffice/word/) |
+| PDF | 94 | [PDF automation](/docs/pswriteoffice/pdf/) |
 | Conversion and capabilities | 7 | [Conversion and capabilities](/docs/pswriteoffice/automation-patterns/) |
 | Project | 19 | [Native document workflows](/docs/pswriteoffice/automation-patterns/) |
 | Access | 9 | [Native document workflows](/docs/pswriteoffice/automation-patterns/) |
@@ -20,7 +20,7 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 | PowerPoint | 53 | [PowerPoint automation](/docs/pswriteoffice/powerpoint/) |
 | Markdown | 27 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | Visio | 21 | [Visio diagrams](/docs/pswriteoffice/visio/) |
-| Reader, extraction, and OCR | 17 | [Reader, extraction, and OCR](/docs/pswriteoffice/reader/) |
+| Reader, extraction, and OCR | 18 | [Reader, extraction, and OCR](/docs/pswriteoffice/reader/) |
 | Archive migration and evidence | 5 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
 | Confluence Cloud | 7 | [Confluence Cloud publishing](/docs/pswriteoffice/confluence/) |
 | RTF | 6 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
@@ -29,7 +29,7 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 | Email | 9 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | AsciiDoc | 4 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | LaTeX | 4 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
-| HTML assets | 3 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
+| HTML assets | 4 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | Cross-format visuals | 1 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
 | Shared authoring primitives | 1 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
 

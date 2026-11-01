@@ -17,11 +17,11 @@ Page normalization is optional. Keep original sizes when fidelity matters; use a
 
 ## Split by intent
 
-`Split-OfficePdf` can split every N pages, explicit page ranges, named bookmarks, or bookmark structure. Padded indexes make generated filenames sort predictably.
+`Split-OfficeDocument` splits PDFs into consecutive page groups, explicit ranges (`-Page '1-3','4,6'`), or top-level bookmarked chapters (`-ByBookmark`). Nested sections stay within their chapter; `-Bookmark` selects exact chapter titles. Outputs use the source base name or `-Prefix`, followed by a part index. Padded indexes make filenames sort predictably. Use `-NoClobber` to keep existing parts; other files in the output folder remain intact.
 
 ```powershell
-Split-OfficePdf -Path '.\Pack.pdf' -OutputDirectory '.\Pages' `
-    -PagesPerDocument 1 -Prefix page -PadIndex -IndexWidth 3
+Split-OfficeDocument -Path '.\Pack.pdf' -OutputDirectory '.\Pages' `
+    -PageCount 1 -Prefix page -PadIndex -IndexWidth 3
 ```
 
-Use `Copy-OfficePdfPage`, `Move-OfficePdfPage`, and `Remove-OfficePdfPage` for targeted page assembly. The [merge-and-split recipe](https://github.com/EvotecIT/OfficeIMO/blob/caffcd0d02eca2ae6917883df6c3aeb6e3a47664/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-MergeAndSplit.ps1) creates two small inputs, combines them, and splits the result into one-page files.
+Use `Copy-OfficePdfPage`, `Move-OfficePdfPage`, and `Remove-OfficePdfPage` for targeted page assembly. The [merge-and-split recipe](https://github.com/EvotecIT/OfficeIMO/blob/640a25d8fa79b69a90ed309104f7134cc190cef9/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-MergeAndSplit.ps1) creates two small inputs, combines them, and splits the result into one-page files.

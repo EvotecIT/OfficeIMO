@@ -46,13 +46,13 @@ public sealed class SetOfficeWordTextCommand : OfficeCmdlet
     [Parameter]
     public WordUnderlineStyle? Underline { get; set; }
 
-    /// <summary>Text color. Named colors and hexadecimal values are accepted.</summary>
+    /// <summary>Text color. Named colors and hexadecimal values are accepted; null clears the direct override.</summary>
     [Parameter]
-    [OfficeColorTransformation]
+    [OfficeColorTransformation(AllowNull = true)]
     public OfficeColor? Color { get; set; }
 
-    /// <summary>Font size in points.</summary>
-    [Parameter, OfficeLengthTransformation]
+    /// <summary>Font size; bare numbers mean points. Null clears the direct size override.</summary>
+    [Parameter, OfficeLengthTransformation(AllowNull = true)]
     public OfficeLength? Size { get; set; }
 
     /// <summary>Font family name.</summary>

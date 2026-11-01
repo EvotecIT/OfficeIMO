@@ -52,6 +52,47 @@ public sealed partial class ConversionCmdletWorkflowTests {
         Assert.Equal("Aptos", scoped.RunFonts!.Ascii!.Value);
     }
 
+    [Theory]
+    [InlineData("Set-OfficeWordText", "Size")]
+    [InlineData("Set-OfficeWordText", "Color")]
+    [InlineData("Set-OfficeWordParagraph", "LineSpacing")]
+    public void NullableWordSettersClearOnlyTheBoundOverride(string command, string parameter) {
+        using var document = WordDocument.Create();
+        var paragraph = document.AddParagraph("Retained text");
+        paragraph.FontSize = OfficeLength.Points(14);
+        paragraph.ColorHex = "112233";
+        paragraph.LineSpacing = WordLineSpacing.Exact(OfficeLength.Points(18));
+        paragraph.LineSpacingBefore = OfficeLength.Points(6);
+        paragraph.IndentationBefore = OfficeLength.Points(18);
+        using var runspace = OpenRunspace();
+        using var shell = PowerShell.Create(); shell.Runspace = runspace;
+        // Omitting each override preserves it, including through the shared binder.
+        shell.AddCommand(command).AddParameter("Paragraph", paragraph).AddParameter("PassThru");
+        shell.Invoke();
+        Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
+        Assert.Equal(14, paragraph.FontSize!.Value.ToPoints());
+        Assert.Equal("112233", paragraph.ColorHex);
+        Assert.Equal(18, paragraph.LineSpacing!.Value.Height!.Value.ToPoints());
+        shell.Commands.Clear();
+        shell.AddCommand(command).AddParameter("Paragraph", paragraph).AddParameter(parameter, null);
+        if (parameter == "LineSpacing") shell.AddParameter("SpacingBefore", null).AddParameter("IndentationBefore", null);
+        shell.Invoke();
+        Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
+        using var bytes = new MemoryStream(); document.Save(bytes); bytes.Position = 0;
+        using var package = WordprocessingDocument.Open(bytes, false);
+        var stored = Assert.Single(package.MainDocumentPart!.Document!.Body!.Elements<Paragraph>());
+        var run = Assert.Single(stored.Elements<Run>());
+        Assert.Equal("Retained text", stored.InnerText);
+        Assert.Equal("120", stored.ParagraphProperties!.SpacingBetweenLines!.Before!.Value);
+        Assert.Equal("360", stored.ParagraphProperties.Indentation!.Left!.Value);
+        if (parameter == "Size") Assert.Null(run.RunProperties?.FontSize);
+        else Assert.Equal("28", run.RunProperties!.FontSize!.Val!.Value);
+        if (parameter == "Color") Assert.Null(run.RunProperties?.Color);
+        else Assert.Equal("112233", run.RunProperties!.Color!.Val!.Value);
+        if (parameter == "LineSpacing") Assert.Null(stored.ParagraphProperties?.SpacingBetweenLines?.Line);
+        else Assert.Equal("360", stored.ParagraphProperties!.SpacingBetweenLines!.Line!.Value);
+    }
+
     [Fact]
     public void PhysicalLineSpacingCannotBeReinterpretedAsAnAutomaticMultipleOrPartiallyChangeTheParagraph() {
         using var document = WordDocument.Create();

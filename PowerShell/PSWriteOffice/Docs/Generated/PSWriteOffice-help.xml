@@ -153563,6 +153563,312 @@ and require an explicit save. The result reports the actual copied rows and colu
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
+      <command:name>New-OfficeHtmlWordOptions</command:name>
+      <command:verb>New</command:verb>
+      <command:noun>OfficeHtmlWordOptions</command:noun>
+      <maml:description>
+        <maml:para>Creates native HTML-to-Word options for Convert-OfficeDocument.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Creates native HTML-to-Word options for Convert-OfficeDocument.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Default">
+        <maml:name>New-OfficeHtmlWordOptions</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>BasePath</maml:name>
+          <maml:description>
+            <maml:para>Filesystem base folder for relative resources, without creating it.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ContinueNumbering</maml:name>
+          <maml:description>
+            <maml:para>Continue numbering across imported lists.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Font</maml:name>
+          <maml:description>
+            <maml:para>Font family for imported text.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>IncludeListStyles</maml:name>
+          <maml:description>
+            <maml:para>Import list style information.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>RenderPreAsTable</maml:name>
+          <maml:description>
+            <maml:para>Render preformatted blocks inside a single-cell table.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>SectionTagHandling</maml:name>
+          <maml:description>
+            <maml:para>How HTML section tags map into Word.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">WordHtmlSectionTagHandling</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">WordSection</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Block</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>WordHtmlSectionTagHandling</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>StylesheetContent</maml:name>
+          <maml:description>
+            <maml:para>Additional CSS stylesheet text.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>StylesheetPath</maml:name>
+          <maml:description>
+            <maml:para>Explicit literal stylesheet files, resolved through the FileSystem provider.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>SupportsHeadingNumbering</maml:name>
+          <maml:description>
+            <maml:para>Allow heading numbering during import.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>TableCaptionPosition</maml:name>
+          <maml:description>
+            <maml:para>Position of an imported table caption.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">WordHtmlTableCaptionPosition</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Above</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Below</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>WordHtmlTableCaptionPosition</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>BasePath</maml:name>
+        <maml:description>
+          <maml:para>Filesystem base folder for relative resources, without creating it.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>ContinueNumbering</maml:name>
+        <maml:description>
+          <maml:para>Continue numbering across imported lists.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Font</maml:name>
+        <maml:description>
+          <maml:para>Font family for imported text.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>IncludeListStyles</maml:name>
+        <maml:description>
+          <maml:para>Import list style information.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>RenderPreAsTable</maml:name>
+        <maml:description>
+          <maml:para>Render preformatted blocks inside a single-cell table.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>SectionTagHandling</maml:name>
+        <maml:description>
+          <maml:para>How HTML section tags map into Word.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">WordHtmlSectionTagHandling</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">WordSection</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Block</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>WordHtmlSectionTagHandling</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>StylesheetContent</maml:name>
+        <maml:description>
+          <maml:para>Additional CSS stylesheet text.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>StylesheetPath</maml:name>
+        <maml:description>
+          <maml:para>Explicit literal stylesheet files, resolved through the FileSystem provider.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>SupportsHeadingNumbering</maml:name>
+        <maml:description>
+          <maml:para>Allow heading numbering during import.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>TableCaptionPosition</maml:name>
+        <maml:description>
+          <maml:para>Position of an imported table caption.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">WordHtmlTableCaptionPosition</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">Above</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Below</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>WordHtmlTableCaptionPosition</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>None</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Word.Html.WordHtmlImportOptions</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Apply an explicit stylesheet while keeping document-linked stylesheets disabled.</maml:title>
+        <dev:code>$options = New-OfficeHtmlWordOptions -StylesheetPath ./report.css -RenderPreAsTable
+            Convert-OfficeDocument -Path ./Report.html -To Word -OutputPath ./Report.docx -Options $options</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
       <command:name>New-OfficeMarkdown</command:name>
       <command:verb>New</command:verb>
       <command:noun>OfficeMarkdown</command:noun>
@@ -167624,6 +167930,574 @@ and require an explicit save. The result reports the actual copied rows and colu
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
+      <command:name>New-OfficeWordGoogleDocsOptions</command:name>
+      <command:verb>New</command:verb>
+      <command:noun>OfficeWordGoogleDocsOptions</command:noun>
+      <maml:description>
+        <maml:para>Creates native Word-to-Google-Docs planning and export settings without contacting Google.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Creates native Word-to-Google-Docs planning and export settings without contacting Google.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Default">
+        <maml:name>New-OfficeWordGoogleDocsOptions</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Comments</maml:name>
+          <maml:description>
+            <maml:para>How Word comments are transferred; omission preserves the native default.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">GoogleDocsCommentMode</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Skip</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">UnanchoredDriveComments</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>GoogleDocsCommentMode</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ConflictMode</maml:name>
+          <maml:description>
+            <maml:para>Revision conflict handling; omission preserves exact revision checks.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">GoogleDocsRevisionConflictMode</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">RequireRevision</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">MergeAgainstTargetRevision</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">OverwriteLatest</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>GoogleDocsRevisionConflictMode</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>DriveId</maml:name>
+          <maml:description>
+            <maml:para>Shared-drive identifier; omission uses the native session location policy.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ExistingFileId</maml:name>
+          <maml:description>
+            <maml:para>Existing document to replace instead of creating a new document.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ExpectedRevisionId</maml:name>
+          <maml:description>
+            <maml:para>Revision captured by an earlier read, checked by the native exporter.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>FolderId</maml:name>
+          <maml:description>
+            <maml:para>Destination Drive folder identifier.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>InlineImageMode</maml:name>
+          <maml:description>
+            <maml:para>Inline image policy. Temporary public staging requires the native session's explicit authorization.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">GoogleDocsInlineImageMode</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Placeholder</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">TemporaryPublicDriveLease</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>GoogleDocsInlineImageMode</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>TabId</maml:name>
+          <maml:description>
+            <maml:para>Tab identifier for SelectedTab.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>TabStrategy</maml:name>
+          <maml:description>
+            <maml:para>First, selected or every tab when reading or replacing content.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">GoogleDocsTabStrategy</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">FirstTab</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">SelectedTab</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">ReplaceEveryTab</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>GoogleDocsTabStrategy</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Title</maml:name>
+          <maml:description>
+            <maml:para>Title of a newly created document; replacement retains the existing title.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Comments</maml:name>
+        <maml:description>
+          <maml:para>How Word comments are transferred; omission preserves the native default.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">GoogleDocsCommentMode</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">Skip</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">UnanchoredDriveComments</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>GoogleDocsCommentMode</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>ConflictMode</maml:name>
+        <maml:description>
+          <maml:para>Revision conflict handling; omission preserves exact revision checks.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">GoogleDocsRevisionConflictMode</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">RequireRevision</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">MergeAgainstTargetRevision</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OverwriteLatest</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>GoogleDocsRevisionConflictMode</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>DriveId</maml:name>
+        <maml:description>
+          <maml:para>Shared-drive identifier; omission uses the native session location policy.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>ExistingFileId</maml:name>
+        <maml:description>
+          <maml:para>Existing document to replace instead of creating a new document.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>ExpectedRevisionId</maml:name>
+        <maml:description>
+          <maml:para>Revision captured by an earlier read, checked by the native exporter.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>FolderId</maml:name>
+        <maml:description>
+          <maml:para>Destination Drive folder identifier.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>InlineImageMode</maml:name>
+        <maml:description>
+          <maml:para>Inline image policy. Temporary public staging requires the native session's explicit authorization.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">GoogleDocsInlineImageMode</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">Placeholder</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">TemporaryPublicDriveLease</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>GoogleDocsInlineImageMode</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>TabId</maml:name>
+        <maml:description>
+          <maml:para>Tab identifier for SelectedTab.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>TabStrategy</maml:name>
+        <maml:description>
+          <maml:para>First, selected or every tab when reading or replacing content.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">GoogleDocsTabStrategy</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">FirstTab</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SelectedTab</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ReplaceEveryTab</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>GoogleDocsTabStrategy</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Title</maml:name>
+        <maml:description>
+          <maml:para>Title of a newly created document; replacement retains the existing title.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>None</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Word.GoogleDocs.GoogleDocsSaveOptions</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Prepare a guarded replacement in a selected document tab.</maml:title>
+        <dev:code>$options = New-OfficeWordGoogleDocsOptions -ExistingFileId $fileId -TabStrategy SelectedTab -TabId $tabId -ExpectedRevisionId $revisionId
+            Export-OfficeWordGoogleDocument -Document $document -Session $session -Options $options</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
+      <command:name>New-OfficeWordHtmlOptions</command:name>
+      <command:verb>New</command:verb>
+      <command:noun>OfficeWordHtmlOptions</command:noun>
+      <maml:description>
+        <maml:para>Creates native Word-to-HTML options for Convert-OfficeDocument.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Creates native Word-to-HTML options for Convert-OfficeDocument.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Default">
+        <maml:name>New-OfficeWordHtmlOptions</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ExcludeFootnotes</maml:name>
+          <maml:description>
+            <maml:para>Omit footnotes from the exported HTML.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Font</maml:name>
+          <maml:description>
+            <maml:para>Font family applied to exported text.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>IncludeDefaultCss</maml:name>
+          <maml:description>
+            <maml:para>Include the native default stylesheet. Omission preserves the engine default.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>IncludeFontStyles</maml:name>
+          <maml:description>
+            <maml:para>Include run font information as inline styles.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>IncludeListStyles</maml:name>
+          <maml:description>
+            <maml:para>Include list style information.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>IncludeParagraphClasses</maml:name>
+          <maml:description>
+            <maml:para>Emit paragraph styles as CSS classes.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>IncludeRunClasses</maml:name>
+          <maml:description>
+            <maml:para>Emit run character styles as CSS classes.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>UseImagePaths</maml:name>
+          <maml:description>
+            <maml:para>Reference image file paths instead of embedding image data.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>ExcludeFootnotes</maml:name>
+        <maml:description>
+          <maml:para>Omit footnotes from the exported HTML.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Font</maml:name>
+        <maml:description>
+          <maml:para>Font family applied to exported text.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>IncludeDefaultCss</maml:name>
+        <maml:description>
+          <maml:para>Include the native default stylesheet. Omission preserves the engine default.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>IncludeFontStyles</maml:name>
+        <maml:description>
+          <maml:para>Include run font information as inline styles.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>IncludeListStyles</maml:name>
+        <maml:description>
+          <maml:para>Include list style information.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>IncludeParagraphClasses</maml:name>
+        <maml:description>
+          <maml:para>Emit paragraph styles as CSS classes.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>IncludeRunClasses</maml:name>
+        <maml:description>
+          <maml:para>Emit run character styles as CSS classes.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>UseImagePaths</maml:name>
+        <maml:description>
+          <maml:para>Reference image file paths instead of embedding image data.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>None</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Word.Html.WordHtmlExportOptions</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Export reusable paragraph and run style classes.</maml:title>
+        <dev:code>$options = New-OfficeWordHtmlOptions -IncludeParagraphClasses -IncludeRunClasses
+            Convert-OfficeDocument -Path ./Guide.docx -To Html -OutputPath ./Guide.html -Options $options</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
       <command:name>New-OfficeWordImageOptions</command:name>
       <command:verb>New</command:verb>
       <command:noun>OfficeWordImageOptions</command:noun>
@@ -168038,6 +168912,184 @@ and require an explicit save. The result reports the actual copied rows and colu
             Export-OfficeWordImage -Path .\Report.docx -OutputPath .\Pages -Options $options</dev:code>
         <dev:remarks>
           <maml:para>Supplying PageCount selects batch export, so OutputPath is a folder. Use -AllPages on the export command for the complete document.</maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
+      <command:name>New-OfficeWordMarkdownOptions</command:name>
+      <command:verb>New</command:verb>
+      <command:noun>OfficeWordMarkdownOptions</command:noun>
+      <maml:description>
+        <maml:para>Creates native Word-to-Markdown options for Convert-OfficeDocument.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Creates native Word-to-Markdown options for Convert-OfficeDocument.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Default">
+        <maml:name>New-OfficeWordMarkdownOptions</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>EnableHighlight</maml:name>
+          <maml:description>
+            <maml:para>Wrap highlighted text in double equals signs.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>EnableUnderline</maml:name>
+          <maml:description>
+            <maml:para>Wrap underlined text in HTML underline tags.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Font</maml:name>
+          <maml:description>
+            <maml:para>Font family whose runs become inline code; omission uses the native monospace resolver.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ImageDirectory</maml:name>
+          <maml:description>
+            <maml:para>Filesystem folder for images when File mode is selected; this command does not create it.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ImageExportMode</maml:name>
+          <maml:description>
+            <maml:para>Embed images as Base64 or save them as File references.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">WordMarkdownImageExportMode</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Base64</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">File</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>WordMarkdownImageExportMode</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>EnableHighlight</maml:name>
+        <maml:description>
+          <maml:para>Wrap highlighted text in double equals signs.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>EnableUnderline</maml:name>
+        <maml:description>
+          <maml:para>Wrap underlined text in HTML underline tags.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Font</maml:name>
+        <maml:description>
+          <maml:para>Font family whose runs become inline code; omission uses the native monospace resolver.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>ImageDirectory</maml:name>
+        <maml:description>
+          <maml:para>Filesystem folder for images when File mode is selected; this command does not create it.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>ImageExportMode</maml:name>
+        <maml:description>
+          <maml:para>Embed images as Base64 or save them as File references.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">WordMarkdownImageExportMode</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">Base64</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">File</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>WordMarkdownImageExportMode</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>None</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Word.Markdown.WordMarkdownExportOptions</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Retain underline and highlight markup in a runbook.</maml:title>
+        <dev:code>$options = New-OfficeWordMarkdownOptions -EnableUnderline -EnableHighlight
+            Convert-OfficeDocument -Path ./Runbook.docx -To Markdown -OutputPath ./Runbook.md -Options $options</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -212014,9 +213066,9 @@ cell inside a deck that already exists.</maml:para>
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
-      <command:name>Set-OfficeWordParagraphStyle</command:name>
+      <command:name>Set-OfficeWordParagraph</command:name>
       <command:verb>Set</command:verb>
-      <command:noun>OfficeWordParagraphStyle</command:noun>
+      <command:noun>OfficeWordParagraph</command:noun>
       <maml:description>
         <maml:para>Updates paragraph style, spacing, indentation, and pagination hints.</maml:para>
       </maml:description>
@@ -212025,30 +213077,24 @@ cell inside a deck that already exists.</maml:para>
       <maml:para>Updates paragraph style, spacing, indentation, and pagination hints.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
-        <maml:name>Set-OfficeWordParagraphStyle</maml:name>
+      <command:syntaxItem parameterSetName="Default">
+        <maml:name>Set-OfficeWordParagraph</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Alignment</maml:name>
           <maml:description>
             <maml:para>Paragraph alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">WordParagraphAlignment</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Both</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">MediumKashida</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Distribute</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">NumTab</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">HighKashida</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">LowKashida</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">ThaiDistribute</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>WordParagraphAlignment</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -212058,9 +213104,9 @@ cell inside a deck that already exists.</maml:para>
           <maml:description>
             <maml:para>Enable widow and orphan control.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
-            <maml:name>Boolean</maml:name>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -212070,9 +213116,9 @@ cell inside a deck that already exists.</maml:para>
           <maml:description>
             <maml:para>Set or clear right-to-left paragraph layout.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
-            <maml:name>Boolean</maml:name>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -212097,49 +213143,49 @@ cell inside a deck that already exists.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IndentationAfterPoints</maml:name>
+          <maml:name>IndentationAfter</maml:name>
           <maml:description>
-            <maml:para>Indentation after the paragraph in points.</maml:para>
+            <maml:para>Indentation after the paragraph; a bare number means points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IndentationBeforePoints</maml:name>
+          <maml:name>IndentationBefore</maml:name>
           <maml:description>
-            <maml:para>Indentation before the paragraph in points.</maml:para>
+            <maml:para>Indentation before the paragraph; a bare number means points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IndentationFirstLinePoints</maml:name>
+          <maml:name>IndentationFirstLine</maml:name>
           <maml:description>
-            <maml:para>First-line indentation in points.</maml:para>
+            <maml:para>First-line indentation; a bare number means points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IndentationHangingPoints</maml:name>
+          <maml:name>IndentationHanging</maml:name>
           <maml:description>
-            <maml:para>Hanging indentation in points.</maml:para>
+            <maml:para>Hanging indentation; a bare number means points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -212149,9 +213195,9 @@ cell inside a deck that already exists.</maml:para>
           <maml:description>
             <maml:para>Keep all paragraph lines together.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
-            <maml:name>Boolean</maml:name>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -212161,21 +213207,21 @@ cell inside a deck that already exists.</maml:para>
           <maml:description>
             <maml:para>Keep this paragraph with the next paragraph.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
-            <maml:name>Boolean</maml:name>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>LineSpacingPoints</maml:name>
+          <maml:name>LineSpacing</maml:name>
           <maml:description>
-            <maml:para>Line spacing in points.</maml:para>
+            <maml:para>Line spacing; a bare number means points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -212202,9 +213248,9 @@ cell inside a deck that already exists.</maml:para>
           <maml:description>
             <maml:para>Start the paragraph on a new page.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
-            <maml:name>Boolean</maml:name>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -212234,25 +213280,25 @@ cell inside a deck that already exists.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SpacingAfterPoints</maml:name>
+          <maml:name>SpacingAfter</maml:name>
           <maml:description>
-            <maml:para>Line spacing after the paragraph in points.</maml:para>
+            <maml:para>Line spacing after the paragraph; a bare number means points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SpacingBeforePoints</maml:name>
+          <maml:name>SpacingBefore</maml:name>
           <maml:description>
-            <maml:para>Line spacing before the paragraph in points.</maml:para>
+            <maml:para>Line spacing before the paragraph; a bare number means points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -212331,23 +213377,17 @@ cell inside a deck that already exists.</maml:para>
         <maml:description>
           <maml:para>Paragraph alignment.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">WordParagraphAlignment</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Both</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">MediumKashida</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Distribute</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">NumTab</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">HighKashida</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">LowKashida</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">ThaiDistribute</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>WordParagraphAlignment</maml:name>
+          <maml:name>OfficeAlignment</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -212357,9 +213397,9 @@ cell inside a deck that already exists.</maml:para>
         <maml:description>
           <maml:para>Enable widow and orphan control.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
-          <maml:name>Boolean</maml:name>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -212369,9 +213409,9 @@ cell inside a deck that already exists.</maml:para>
         <maml:description>
           <maml:para>Set or clear right-to-left paragraph layout.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
-          <maml:name>Boolean</maml:name>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -212396,49 +213436,49 @@ cell inside a deck that already exists.</maml:para>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>IndentationAfterPoints</maml:name>
+        <maml:name>IndentationAfter</maml:name>
         <maml:description>
-          <maml:para>Indentation after the paragraph in points.</maml:para>
+          <maml:para>Indentation after the paragraph; a bare number means points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>IndentationBeforePoints</maml:name>
+        <maml:name>IndentationBefore</maml:name>
         <maml:description>
-          <maml:para>Indentation before the paragraph in points.</maml:para>
+          <maml:para>Indentation before the paragraph; a bare number means points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>IndentationFirstLinePoints</maml:name>
+        <maml:name>IndentationFirstLine</maml:name>
         <maml:description>
-          <maml:para>First-line indentation in points.</maml:para>
+          <maml:para>First-line indentation; a bare number means points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>IndentationHangingPoints</maml:name>
+        <maml:name>IndentationHanging</maml:name>
         <maml:description>
-          <maml:para>Hanging indentation in points.</maml:para>
+          <maml:para>Hanging indentation; a bare number means points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -212448,9 +213488,9 @@ cell inside a deck that already exists.</maml:para>
         <maml:description>
           <maml:para>Keep all paragraph lines together.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
-          <maml:name>Boolean</maml:name>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -212460,21 +213500,21 @@ cell inside a deck that already exists.</maml:para>
         <maml:description>
           <maml:para>Keep this paragraph with the next paragraph.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
-          <maml:name>Boolean</maml:name>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>LineSpacingPoints</maml:name>
+        <maml:name>LineSpacing</maml:name>
         <maml:description>
-          <maml:para>Line spacing in points.</maml:para>
+          <maml:para>Line spacing; a bare number means points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -212501,9 +213541,9 @@ cell inside a deck that already exists.</maml:para>
         <maml:description>
           <maml:para>Start the paragraph on a new page.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
-          <maml:name>Boolean</maml:name>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -212533,25 +213573,25 @@ cell inside a deck that already exists.</maml:para>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SpacingAfterPoints</maml:name>
+        <maml:name>SpacingAfter</maml:name>
         <maml:description>
-          <maml:para>Line spacing after the paragraph in points.</maml:para>
+          <maml:para>Line spacing after the paragraph; a bare number means points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SpacingBeforePoints</maml:name>
+        <maml:name>SpacingBefore</maml:name>
         <maml:description>
-          <maml:para>Line spacing before the paragraph in points.</maml:para>
+          <maml:para>Line spacing before the paragraph; a bare number means points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -212648,7 +213688,7 @@ cell inside a deck that already exists.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$p = Add-OfficeWordParagraph -Text 'Executive Summary' -PassThru; $p | Set-OfficeWordParagraphStyle -Style Heading1 -KeepWithNext $true</dev:code>
+        <dev:code>$p = Add-OfficeWordParagraph -Text 'Executive Summary' -PassThru; $p | Set-OfficeWordParagraph -Style Heading1 -KeepWithNext</dev:code>
         <dev:remarks>
           <maml:para>Applies a heading style and keeps it with the next paragraph.</maml:para>
         </dev:remarks>
@@ -213982,9 +215022,9 @@ cell inside a deck that already exists.</maml:para>
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
-      <command:name>Set-OfficeWordTextStyle</command:name>
+      <command:name>Set-OfficeWordText</command:name>
       <command:verb>Set</command:verb>
-      <command:noun>OfficeWordTextStyle</command:noun>
+      <command:noun>OfficeWordText</command:noun>
       <maml:description>
         <maml:para>Updates styling on Word text.</maml:para>
       </maml:description>
@@ -213993,16 +215033,16 @@ cell inside a deck that already exists.</maml:para>
       <maml:para>Updates styling on Word text.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
-        <maml:name>Set-OfficeWordTextStyle</maml:name>
+      <command:syntaxItem parameterSetName="Default">
+        <maml:name>Set-OfficeWordText</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Bold</maml:name>
           <maml:description>
             <maml:para>Set or clear bold formatting.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
-            <maml:name>Boolean</maml:name>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -214029,21 +215069,21 @@ cell inside a deck that already exists.</maml:para>
           <maml:description>
             <maml:para>Text color. Named colors and hexadecimal values are accepted.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeColor</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>OfficeColor</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>DoubleStrike</maml:name>
+          <maml:name>DoubleStrikethrough</maml:name>
           <maml:description>
             <maml:para>Set or clear double strikethrough.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
-            <maml:name>Boolean</maml:name>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -214053,33 +215093,21 @@ cell inside a deck that already exists.</maml:para>
           <maml:description>
             <maml:para>Set or clear emboss effect.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
-            <maml:name>Boolean</maml:name>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>FontFamily</maml:name>
+          <maml:name>Font</maml:name>
           <maml:description>
             <maml:para>Font family name.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
             <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>FontSize</maml:name>
-          <maml:description>
-            <maml:para>Font size in points.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -214115,26 +215143,14 @@ cell inside a deck that already exists.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
-          <maml:name>InputObject</maml:name>
-          <maml:description>
-            <maml:para>Word text item to update.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">WordParagraph</command:parameterValue>
-          <dev:type>
-            <maml:name>WordParagraph</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Italic</maml:name>
           <maml:description>
             <maml:para>Set or clear italic formatting.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
-            <maml:name>Boolean</maml:name>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -214144,9 +215160,21 @@ cell inside a deck that already exists.</maml:para>
           <maml:description>
             <maml:para>Set or clear outline effect.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
-            <maml:name>Boolean</maml:name>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
+          <maml:name>Paragraph</maml:name>
+          <maml:description>
+            <maml:para>Word text item to update.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">WordParagraph</command:parameterValue>
+          <dev:type>
+            <maml:name>WordParagraph</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -214168,9 +215196,21 @@ cell inside a deck that already exists.</maml:para>
           <maml:description>
             <maml:para>Set or clear shadow effect.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
-            <maml:name>Boolean</maml:name>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Size</maml:name>
+          <maml:description>
+            <maml:para>Font size in points.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -214188,13 +215228,13 @@ cell inside a deck that already exists.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Strike</maml:name>
+          <maml:name>Strikethrough</maml:name>
           <maml:description>
             <maml:para>Set or clear strikethrough.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
-            <maml:name>Boolean</maml:name>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -214287,9 +215327,9 @@ cell inside a deck that already exists.</maml:para>
         <maml:description>
           <maml:para>Set or clear bold formatting.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
-          <maml:name>Boolean</maml:name>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -214316,21 +215356,21 @@ cell inside a deck that already exists.</maml:para>
         <maml:description>
           <maml:para>Text color. Named colors and hexadecimal values are accepted.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeColor</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>OfficeColor</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>DoubleStrike</maml:name>
+        <maml:name>DoubleStrikethrough</maml:name>
         <maml:description>
           <maml:para>Set or clear double strikethrough.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
-          <maml:name>Boolean</maml:name>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -214340,33 +215380,21 @@ cell inside a deck that already exists.</maml:para>
         <maml:description>
           <maml:para>Set or clear emboss effect.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
-          <maml:name>Boolean</maml:name>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>FontFamily</maml:name>
+        <maml:name>Font</maml:name>
         <maml:description>
           <maml:para>Font family name.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
           <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>FontSize</maml:name>
-        <maml:description>
-          <maml:para>Font size in points.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
-        <dev:type>
-          <maml:name>Double</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -214402,26 +215430,14 @@ cell inside a deck that already exists.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
-        <maml:name>InputObject</maml:name>
-        <maml:description>
-          <maml:para>Word text item to update.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">WordParagraph</command:parameterValue>
-        <dev:type>
-          <maml:name>WordParagraph</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Italic</maml:name>
         <maml:description>
           <maml:para>Set or clear italic formatting.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
-          <maml:name>Boolean</maml:name>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -214431,9 +215447,21 @@ cell inside a deck that already exists.</maml:para>
         <maml:description>
           <maml:para>Set or clear outline effect.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
-          <maml:name>Boolean</maml:name>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
+        <maml:name>Paragraph</maml:name>
+        <maml:description>
+          <maml:para>Word text item to update.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">WordParagraph</command:parameterValue>
+        <dev:type>
+          <maml:name>WordParagraph</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -214455,9 +215483,21 @@ cell inside a deck that already exists.</maml:para>
         <maml:description>
           <maml:para>Set or clear shadow effect.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
-          <maml:name>Boolean</maml:name>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Size</maml:name>
+        <maml:description>
+          <maml:para>Font size in points.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -214475,13 +215515,13 @@ cell inside a deck that already exists.</maml:para>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Strike</maml:name>
+        <maml:name>Strikethrough</maml:name>
         <maml:description>
           <maml:para>Set or clear strikethrough.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
-          <maml:name>Boolean</maml:name>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -214592,9 +215632,9 @@ cell inside a deck that already exists.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>WordParagraph -Text 'Warning' -PassThru | Set-OfficeWordTextStyle -Bold $true -Color '#C00000'</dev:code>
+        <dev:code>WordParagraph -Text 'Warning' -PassThru | Set-OfficeWordText -Bold -Color '#C00000'</dev:code>
         <dev:remarks>
-          <maml:para>Applies bold red styling to matching text.</maml:para>
+          <maml:para>Applies bold red styling to the supplied paragraph or scoped run.</maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -214602,59 +215642,24 @@ cell inside a deck that already exists.</maml:para>
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
-      <command:name>Split-OfficePdf</command:name>
+      <command:name>Split-OfficeDocument</command:name>
       <command:verb>Split</command:verb>
-      <command:noun>OfficePdf</command:noun>
+      <command:noun>OfficeDocument</command:noun>
       <maml:description>
-        <maml:para>Splits a PDF into page, range, count, or bookmark files.</maml:para>
+        <maml:para>Splits PDF files into consecutive groups, selected ranges or top-level bookmarked chapters.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Splits a PDF into page, range, count, or bookmark files.</maml:para>
+      <maml:para>Each completed file is returned immediately. Native page extraction retains its permission,
+signature and preservation policies. Only the selected files are written; other folder contents remain intact.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
-        <maml:name>Split-OfficePdf</maml:name>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="Bookmark,BookmarkTitle">
-          <maml:name>BookmarkName</maml:name>
-          <maml:description>
-            <maml:para>Create one PDF for each supplied bookmark title.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ByBookmark</maml:name>
-          <maml:description>
-            <maml:para>Create one PDF for every readable bookmark when -BookmarkName is not supplied.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IgnorePermissionRestrictions</maml:name>
-          <maml:description>
-            <maml:para>After successful password authentication, explicitly ignore owner-imposed assembly restrictions.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
+      <command:syntaxItem parameterSetName="PathByPageCount">
+        <maml:name>Split-OfficeDocument</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>IndexWidth</maml:name>
           <maml:description>
-            <maml:para>Pad numeric split names to this explicit width.</maml:para>
+            <maml:para>Explicit numeric index width, up to 32 characters.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -214663,10 +215668,34 @@ cell inside a deck that already exists.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoClobber</maml:name>
+          <maml:description>
+            <maml:para>Refuse to replace an existing part, including a file created by another writer.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Options</maml:name>
+          <maml:description>
+            <maml:para>Native PDF load settings or property overrides; includes resource and permission policies.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Object[]</command:parameterValue>
+          <dev:type>
+            <maml:name>Object[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
           <maml:name>OutputDirectory</maml:name>
           <maml:description>
-            <maml:para>Output directory.</maml:para>
+            <maml:para>Destination folder. File names begin with Prefix or the source base name.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -214678,7 +215707,7 @@ cell inside a deck that already exists.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PadIndex</maml:name>
           <maml:description>
-            <maml:para>Pad numeric split names to the width required by the source page count.</maml:para>
+            <maml:para>Pad numeric part indexes to the width of the source page count.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -214687,22 +215716,10 @@ cell inside a deck that already exists.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="Range,PageRanges">
-          <maml:name>PageRange</maml:name>
-          <maml:description>
-            <maml:para>Create one PDF for each supplied page range or selection, such as 1-3 or 1,3.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PagesPerDocument</maml:name>
+          <maml:name>PageCount</maml:name>
           <maml:description>
-            <maml:para>Create one PDF for each consecutive group with this many pages.</maml:para>
+            <maml:para>Consecutive source pages per output; defaults to one.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -214714,7 +215731,31 @@ cell inside a deck that already exists.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Password</maml:name>
           <maml:description>
-            <maml:para>Password used to open an encrypted PDF.</maml:para>
+            <maml:para>Input password; accepts a credential or warned plain text.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+          <dev:type>
+            <maml:name>SecureString</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="None">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Input files in provider and pipeline order.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Prefix</maml:name>
+          <maml:description>
+            <maml:para>Portable output file-name prefix; defaults to the source base name.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -214723,10 +215764,61 @@ cell inside a deck that already exists.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
-          <maml:name>Path</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ThrottleLimit</maml:name>
           <maml:description>
-            <maml:para>Input PDF path.</maml:para>
+            <maml:para>Maximum concurrent input files.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="PathByRange">
+        <maml:name>Split-OfficeDocument</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>IndexWidth</maml:name>
+          <maml:description>
+            <maml:para>Explicit numeric index width, up to 32 characters.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoClobber</maml:name>
+          <maml:description>
+            <maml:para>Refuse to replace an existing part, including a file created by another writer.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Options</maml:name>
+          <maml:description>
+            <maml:para>Native PDF load settings or property overrides; includes resource and permission policies.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Object[]</command:parameterValue>
+          <dev:type>
+            <maml:name>Object[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+          <maml:name>OutputDirectory</maml:name>
+          <maml:description>
+            <maml:para>Destination folder. File names begin with Prefix or the source base name.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -214736,9 +215828,57 @@ cell inside a deck that already exists.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PadIndex</maml:name>
+          <maml:description>
+            <maml:para>Pad numeric part indexes to the width of the source page count.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Page</maml:name>
+          <maml:description>
+            <maml:para>One output per range string, for example '1-3','4,6'.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Password</maml:name>
+          <maml:description>
+            <maml:para>Input password; accepts a credential or warned plain text.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+          <dev:type>
+            <maml:name>SecureString</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="None">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Input files in provider and pipeline order.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Prefix</maml:name>
           <maml:description>
-            <maml:para>Output file prefix.</maml:para>
+            <maml:para>Portable output file-name prefix; defaults to the source base name.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -214747,13 +215887,541 @@ cell inside a deck that already exists.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ThrottleLimit</maml:name>
+          <maml:description>
+            <maml:para>Maximum concurrent input files.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="PathByBookmark">
+        <maml:name>Split-OfficeDocument</maml:name>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Bookmark</maml:name>
+          <maml:description>
+            <maml:para>Only these exact top-level bookmark titles; omission selects every chapter.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ByBookmark</maml:name>
+          <maml:description>
+            <maml:para>Split at top-level bookmarks; nested pages remain within their chapter.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>IndexWidth</maml:name>
+          <maml:description>
+            <maml:para>Explicit numeric index width, up to 32 characters.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoClobber</maml:name>
+          <maml:description>
+            <maml:para>Refuse to replace an existing part, including a file created by another writer.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Options</maml:name>
+          <maml:description>
+            <maml:para>Native PDF load settings or property overrides; includes resource and permission policies.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Object[]</command:parameterValue>
+          <dev:type>
+            <maml:name>Object[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+          <maml:name>OutputDirectory</maml:name>
+          <maml:description>
+            <maml:para>Destination folder. File names begin with Prefix or the source base name.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PadIndex</maml:name>
+          <maml:description>
+            <maml:para>Pad numeric part indexes to the width of the source page count.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Password</maml:name>
+          <maml:description>
+            <maml:para>Input password; accepts a credential or warned plain text.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+          <dev:type>
+            <maml:name>SecureString</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="None">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Input files in provider and pipeline order.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Prefix</maml:name>
+          <maml:description>
+            <maml:para>Portable output file-name prefix; defaults to the source base name.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ThrottleLimit</maml:name>
+          <maml:description>
+            <maml:para>Maximum concurrent input files.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="LiteralPathByPageCount">
+        <maml:name>Split-OfficeDocument</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>IndexWidth</maml:name>
+          <maml:description>
+            <maml:para>Explicit numeric index width, up to 32 characters.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+          <maml:name>LiteralPath</maml:name>
+          <maml:description>
+            <maml:para>Literal files; also binds FileInfo.FullName and provider PSPath properties.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoClobber</maml:name>
+          <maml:description>
+            <maml:para>Refuse to replace an existing part, including a file created by another writer.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Options</maml:name>
+          <maml:description>
+            <maml:para>Native PDF load settings or property overrides; includes resource and permission policies.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Object[]</command:parameterValue>
+          <dev:type>
+            <maml:name>Object[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+          <maml:name>OutputDirectory</maml:name>
+          <maml:description>
+            <maml:para>Destination folder. File names begin with Prefix or the source base name.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PadIndex</maml:name>
+          <maml:description>
+            <maml:para>Pad numeric part indexes to the width of the source page count.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PageCount</maml:name>
+          <maml:description>
+            <maml:para>Consecutive source pages per output; defaults to one.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Password</maml:name>
+          <maml:description>
+            <maml:para>Input password; accepts a credential or warned plain text.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+          <dev:type>
+            <maml:name>SecureString</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Prefix</maml:name>
+          <maml:description>
+            <maml:para>Portable output file-name prefix; defaults to the source base name.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ThrottleLimit</maml:name>
+          <maml:description>
+            <maml:para>Maximum concurrent input files.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="LiteralPathByRange">
+        <maml:name>Split-OfficeDocument</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>IndexWidth</maml:name>
+          <maml:description>
+            <maml:para>Explicit numeric index width, up to 32 characters.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+          <maml:name>LiteralPath</maml:name>
+          <maml:description>
+            <maml:para>Literal files; also binds FileInfo.FullName and provider PSPath properties.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoClobber</maml:name>
+          <maml:description>
+            <maml:para>Refuse to replace an existing part, including a file created by another writer.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Options</maml:name>
+          <maml:description>
+            <maml:para>Native PDF load settings or property overrides; includes resource and permission policies.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Object[]</command:parameterValue>
+          <dev:type>
+            <maml:name>Object[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+          <maml:name>OutputDirectory</maml:name>
+          <maml:description>
+            <maml:para>Destination folder. File names begin with Prefix or the source base name.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PadIndex</maml:name>
+          <maml:description>
+            <maml:para>Pad numeric part indexes to the width of the source page count.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Page</maml:name>
+          <maml:description>
+            <maml:para>One output per range string, for example '1-3','4,6'.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Password</maml:name>
+          <maml:description>
+            <maml:para>Input password; accepts a credential or warned plain text.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+          <dev:type>
+            <maml:name>SecureString</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Prefix</maml:name>
+          <maml:description>
+            <maml:para>Portable output file-name prefix; defaults to the source base name.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ThrottleLimit</maml:name>
+          <maml:description>
+            <maml:para>Maximum concurrent input files.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="LiteralPathByBookmark">
+        <maml:name>Split-OfficeDocument</maml:name>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Bookmark</maml:name>
+          <maml:description>
+            <maml:para>Only these exact top-level bookmark titles; omission selects every chapter.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ByBookmark</maml:name>
+          <maml:description>
+            <maml:para>Split at top-level bookmarks; nested pages remain within their chapter.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>IndexWidth</maml:name>
+          <maml:description>
+            <maml:para>Explicit numeric index width, up to 32 characters.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+          <maml:name>LiteralPath</maml:name>
+          <maml:description>
+            <maml:para>Literal files; also binds FileInfo.FullName and provider PSPath properties.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoClobber</maml:name>
+          <maml:description>
+            <maml:para>Refuse to replace an existing part, including a file created by another writer.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Options</maml:name>
+          <maml:description>
+            <maml:para>Native PDF load settings or property overrides; includes resource and permission policies.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Object[]</command:parameterValue>
+          <dev:type>
+            <maml:name>Object[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+          <maml:name>OutputDirectory</maml:name>
+          <maml:description>
+            <maml:para>Destination folder. File names begin with Prefix or the source base name.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PadIndex</maml:name>
+          <maml:description>
+            <maml:para>Pad numeric part indexes to the width of the source page count.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Password</maml:name>
+          <maml:description>
+            <maml:para>Input password; accepts a credential or warned plain text.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+          <dev:type>
+            <maml:name>SecureString</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Prefix</maml:name>
+          <maml:description>
+            <maml:para>Portable output file-name prefix; defaults to the source base name.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ThrottleLimit</maml:name>
+          <maml:description>
+            <maml:para>Maximum concurrent input files.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="Bookmark,BookmarkTitle">
-        <maml:name>BookmarkName</maml:name>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Bookmark</maml:name>
         <maml:description>
-          <maml:para>Create one PDF for each supplied bookmark title.</maml:para>
+          <maml:para>Only these exact top-level bookmark titles; omission selects every chapter.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
         <dev:type>
@@ -214762,24 +216430,12 @@ cell inside a deck that already exists.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>ByBookmark</maml:name>
         <maml:description>
-          <maml:para>Create one PDF for every readable bookmark when -BookmarkName is not supplied.</maml:para>
+          <maml:para>Split at top-level bookmarks; nested pages remain within their chapter.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>IgnorePermissionRestrictions</maml:name>
-        <maml:description>
-          <maml:para>After successful password authentication, explicitly ignore owner-imposed assembly restrictions.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <command:parameterValue required="true" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
           <maml:name>SwitchParameter</maml:name>
           <maml:uri />
@@ -214789,7 +216445,7 @@ cell inside a deck that already exists.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>IndexWidth</maml:name>
         <maml:description>
-          <maml:para>Pad numeric split names to this explicit width.</maml:para>
+          <maml:para>Explicit numeric index width, up to 32 characters.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <dev:type>
@@ -214798,10 +216454,46 @@ cell inside a deck that already exists.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+        <maml:name>LiteralPath</maml:name>
+        <maml:description>
+          <maml:para>Literal files; also binds FileInfo.FullName and provider PSPath properties.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoClobber</maml:name>
+        <maml:description>
+          <maml:para>Refuse to replace an existing part, including a file created by another writer.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Options</maml:name>
+        <maml:description>
+          <maml:para>Native PDF load settings or property overrides; includes resource and permission policies.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Object[]</command:parameterValue>
+        <dev:type>
+          <maml:name>Object[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
         <maml:name>OutputDirectory</maml:name>
         <maml:description>
-          <maml:para>Output directory.</maml:para>
+          <maml:para>Destination folder. File names begin with Prefix or the source base name.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -214813,7 +216505,7 @@ cell inside a deck that already exists.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>PadIndex</maml:name>
         <maml:description>
-          <maml:para>Pad numeric split names to the width required by the source page count.</maml:para>
+          <maml:para>Pad numeric part indexes to the width of the source page count.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -214822,12 +216514,12 @@ cell inside a deck that already exists.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="Range,PageRanges">
-        <maml:name>PageRange</maml:name>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Page</maml:name>
         <maml:description>
-          <maml:para>Create one PDF for each supplied page range or selection, such as 1-3 or 1,3.</maml:para>
+          <maml:para>One output per range string, for example '1-3','4,6'.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
         <dev:type>
           <maml:name>String[]</maml:name>
           <maml:uri />
@@ -214835,9 +216527,9 @@ cell inside a deck that already exists.</maml:para>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>PagesPerDocument</maml:name>
+        <maml:name>PageCount</maml:name>
         <maml:description>
-          <maml:para>Create one PDF for each consecutive group with this many pages.</maml:para>
+          <maml:para>Consecutive source pages per output; defaults to one.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <dev:type>
@@ -214849,23 +216541,23 @@ cell inside a deck that already exists.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Password</maml:name>
         <maml:description>
-          <maml:para>Password used to open an encrypted PDF.</maml:para>
+          <maml:para>Input password; accepts a credential or warned plain text.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
+      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="None">
         <maml:name>Path</maml:name>
         <maml:description>
-          <maml:para>Input PDF path.</maml:para>
+          <maml:para>Input files in provider and pipeline order.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>String[]</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -214873,11 +216565,23 @@ cell inside a deck that already exists.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Prefix</maml:name>
         <maml:description>
-          <maml:para>Output file prefix.</maml:para>
+          <maml:para>Portable output file-name prefix; defaults to the source base name.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
           <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>ThrottleLimit</maml:name>
+        <maml:description>
+          <maml:para>Maximum concurrent input files.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -214886,7 +216590,7 @@ cell inside a deck that already exists.</maml:para>
     <command:inputTypes>
       <command:inputType>
         <dev:type>
-          <maml:name>None</maml:name>
+          <maml:name>System.String[]</maml:name>
         </dev:type>
       </command:inputType>
     </command:inputTypes>
@@ -214904,14 +216608,17 @@ cell inside a deck that already exists.</maml:para>
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Split a PDF into page files.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$pages = Split-OfficePdf -Path .\Examples\Documents\Combined.pdf -OutputDirectory .\Examples\Documents\Pages -Prefix 'combined-page'
-            $pages | Select-Object Name, Length</dev:code>
+        <maml:title>Split each incoming scan into two-page records.</maml:title>
+        <dev:code>Get-ChildItem ./Scans -Filter *.pdf | Split-OfficeDocument -OutputDirectory ./Records -PageCount 2 -NoClobber</dev:code>
         <dev:remarks>
-          <maml:para>Creates one output PDF for each page and returns the written files.</maml:para>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Keep nested sections inside their chapter.</maml:title>
+        <dev:code>Split-OfficeDocument -LiteralPath './Manual [final].pdf' -OutputDirectory ./Chapters -ByBookmark</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -217981,9 +219688,9 @@ cell inside a deck that already exists.</maml:para>
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
-      <command:name>Update-OfficeWordFields</command:name>
+      <command:name>Update-OfficeWordField</command:name>
       <command:verb>Update</command:verb>
-      <command:noun>OfficeWordFields</command:noun>
+      <command:noun>OfficeWordField</command:noun>
       <maml:description>
         <maml:para>Updates fields in a Word document.</maml:para>
       </maml:description>
@@ -217992,8 +219699,8 @@ cell inside a deck that already exists.</maml:para>
       <maml:para>Refreshes page number fields and queues table-of-contents updates.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
-        <maml:name>Update-OfficeWordFields</maml:name>
+      <command:syntaxItem parameterSetName="Default">
+        <maml:name>Update-OfficeWordField</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
           <maml:description>
@@ -218053,7 +219760,13 @@ cell inside a deck that already exists.</maml:para>
         </dev:type>
       </command:inputType>
     </command:inputTypes>
-    <command:returnValues />
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Word.WordDocument</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
     <maml:alertSet>
       <maml:alert>
         <maml:para></maml:para>
@@ -218068,7 +219781,7 @@ cell inside a deck that already exists.</maml:para>
         <dev:code>New-OfficeWord -Path .\Report.docx {
                 Add-OfficeWordParagraph -Text 'Release report'
                 Add-OfficeWordTableOfContents
-                Update-OfficeWordFields
+                Update-OfficeWordField
             }</dev:code>
         <dev:remarks>
           <maml:para>Updates PAGE and NUMPAGES fields and marks TOC fields as dirty before saving.</maml:para>

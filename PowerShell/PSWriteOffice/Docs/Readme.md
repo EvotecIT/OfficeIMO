@@ -1645,7 +1645,7 @@ Updates OfficeIMO Word image sizing, wrapping, crop, and metadata.
 ### [Set-OfficeWordPageSetup](Set-OfficeWordPageSetup.md)
 Sets page setup options on Word sections.
 
-### [Set-OfficeWordParagraphStyle](Set-OfficeWordParagraphStyle.md)
+### [Set-OfficeWordParagraph](Set-OfficeWordParagraph.md)
 Updates paragraph style, spacing, indentation, and pagination hints.
 
 ### [Set-OfficeWordShape](Set-OfficeWordShape.md)
@@ -1657,7 +1657,7 @@ Updates OfficeIMO Word table-cell content, layout, and merge settings.
 ### [Set-OfficeWordTableOfContents](Set-OfficeWordTableOfContents.md)
 Sets properties on a table of contents in a Word document.
 
-### [Set-OfficeWordTextStyle](Set-OfficeWordTextStyle.md)
+### [Set-OfficeWordText](Set-OfficeWordText.md)
 Updates styling on Word text.
 
 ### [Split-OfficeDocument](Split-OfficeDocument.md)
