@@ -318,6 +318,7 @@ namespace OfficeIMO.Excel {
 
             return new ExcelSheet(_excelDocument, _spreadSheetDocument, sheetElement) {
                 _formulaEvaluationCache = _formulaEvaluationCache,
+                _formulaCalculationContext = _formulaCalculationContext,
                 _formulaEvaluationDepthCache = _formulaEvaluationDepthCache,
                 _formulaEvaluationStack = _formulaEvaluationStack,
                 _formulaEvaluationDepthFrames = _formulaEvaluationDepthFrames,

@@ -89,7 +89,10 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Evaluates supported formulas on this sheet and writes cached results.
         /// </summary>
-        public int RecalculateSupportedFormulas() => RecalculateSupportedFormulas(new FormulaCalculationContext());
+        public int RecalculateSupportedFormulas() {
+            using var context = new FormulaCalculationContext();
+            return RecalculateSupportedFormulas(context);
+        }
 
         internal int RecalculateSupportedFormulas(FormulaCalculationContext context) {
             MaterializePendingDirectCellValues();
@@ -100,6 +103,7 @@ namespace OfficeIMO.Excel {
                 long formulaInputMutationVersion = _excelDocument.CaptureFormulaInputMutationVersion();
 
                 var previousCache = _formulaEvaluationCache;
+                var previousCalculationContext = _formulaCalculationContext;
                 var previousDepthCache = _formulaEvaluationDepthCache;
                 var previousStack = _formulaEvaluationStack;
                 var previousDepthFrames = _formulaEvaluationDepthFrames;
@@ -107,6 +111,7 @@ namespace OfficeIMO.Excel {
                 var previousSharedDefinitions = _formulaEvaluationSharedDefinitions;
                 var previousSharedDefinitionsBySheet = _formulaEvaluationSharedDefinitionsBySheet;
                 _formulaEvaluationCache = context.Cache;
+                _formulaCalculationContext = context;
                 _formulaEvaluationDepthCache = context.DepthCache;
                 _formulaEvaluationStack = context.Stack;
                 _formulaEvaluationDepthFrames = context.DepthFrames;
@@ -157,6 +162,7 @@ namespace OfficeIMO.Excel {
                     }
                 } finally {
                     _formulaEvaluationCache = previousCache;
+                    _formulaCalculationContext = previousCalculationContext;
                     _formulaEvaluationDepthCache = previousDepthCache;
                     _formulaEvaluationStack = previousStack;
                     _formulaEvaluationDepthFrames = previousDepthFrames;
@@ -360,6 +366,8 @@ namespace OfficeIMO.Excel {
                 bool packageRequestsRecalculation = calculation?.FullCalculationOnLoad?.Value == true
                     || calculation?.ForceFullCalculation?.Value == true
                     || WorksheetRoot.GetFirstChild<SheetCalculationProperties>()?.FullCalculationOnLoad?.Value == true;
+                using var context = new FormulaCalculationContext();
+                var previousCalculationContext = _formulaCalculationContext;
                 var previousCache = _formulaEvaluationCache;
                 var previousDepthCache = _formulaEvaluationDepthCache;
                 var previousStack = _formulaEvaluationStack;
@@ -367,7 +375,8 @@ namespace OfficeIMO.Excel {
                 var previousGuardState = _formulaEvaluationGuardState;
                 var previousSharedDefinitions = _formulaEvaluationSharedDefinitions;
                 var previousSharedDefinitionsBySheet = _formulaEvaluationSharedDefinitionsBySheet;
-                _formulaEvaluationCache = new Dictionary<string, FormulaArgumentValue>(StringComparer.OrdinalIgnoreCase);
+                _formulaEvaluationCache = context.Cache;
+                _formulaCalculationContext = context;
                 _formulaEvaluationDepthCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
                 _formulaEvaluationStack = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 _formulaEvaluationDepthFrames = new Stack<FormulaEvaluationDepthFrame>();
@@ -411,6 +420,7 @@ namespace OfficeIMO.Excel {
                     }
                 } finally {
                     _formulaEvaluationCache = previousCache;
+                    _formulaCalculationContext = previousCalculationContext;
                     _formulaEvaluationDepthCache = previousDepthCache;
                     _formulaEvaluationStack = previousStack;
                     _formulaEvaluationDepthFrames = previousDepthFrames;

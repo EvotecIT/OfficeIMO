@@ -5,6 +5,27 @@ generated and real-data workloads. CSV and Arrow comparisons are explicit build
 options. It stays outside the normal solution and adds no runtime dependencies
 to OfficeIMO. BenchmarkDotNet 0.15.8 controls the measurements.
 
+`FormulaCalculationBenchmarks` measures `ExcelDocument.Calculate()` for a
+200-product, 1,000-order report with 2,048 formulas. Four cases cover INDEX/MATCH
+hits, INDEX/MATCH misses, VLOOKUP misses and XLOOKUP misses, including dependent
+COUNTIFS/SUMIFS and grand totals. Each iteration starts with a fresh workbook;
+setup and validation are outside the measurement. Cleanup checks every cached
+value against expected values computed from the input rows. An incomplete
+calculation fails validation. This is an OfficeIMO calculation workload.
+
+Run the four cases with:
+
+```powershell
+dotnet run --project Benchmarks/ExcelReaderTyped -c Release -- --filter '*FormulaCalculationBenchmarks*' --job Short --noOverwrite --artifacts <output-directory>
+```
+
+For a before/after comparison, use the saved-assembly input described below for
+each build, with matching Excel/Core assemblies and separate artifact roots.
+Use the same processor placement and job settings. The
+[formula calculation evidence](../../Docs/performance/excel-formula-calculation.md)
+records the validated workload, baseline and measurement limits. Measurements
+are opt-in and do not impose timing budgets on ordinary correctness CI.
+
 The [8 October 2026 report](../../Docs/benchmarks/officeimo.excel-tabular-2026-10-08.md)
 records the captured Windows .NET 10 matrix, artifact and input identities,
 measurement samples, warnings, and first-row versus full-scan boundaries.
