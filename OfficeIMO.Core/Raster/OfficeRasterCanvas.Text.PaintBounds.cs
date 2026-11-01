@@ -8,11 +8,15 @@ public sealed partial class OfficeRasterCanvas {
 
     // Reuse the renderer's bounded, shaped outlines and fallback selection. Width alone
     // cannot establish whether an accent or descender fits a drawing frame.
-    internal OfficeTextPaintBounds MeasureTextPaintBounds(string? text, double fontSize, string? family, OfficeFontStyle style) {
+    internal OfficeTextPaintBounds MeasureTextPaintBounds(string? text, double fontSize, string? family, OfficeFontStyle style) =>
+        MeasureTextPaintBoundsWithFeatures(text, fontSize, family, style, null);
+
+    internal OfficeTextPaintBounds MeasureTextPaintBoundsWithFeatures(string? text, double fontSize, string? family, OfficeFontStyle style,
+        OfficeTextFeatureSettings? features) {
         if (string.IsNullOrWhiteSpace(text)) return default;
         _cancellationToken.ThrowIfCancellationRequested();
         double size = Math.Max(.1D, fontSize);
-        var key = new TextMeasurementKey(text!, size, family, style, PreservePaintedGlyphOrder, RequestedTextFace(style));
+        var key = new TextMeasurementKey(text!, size, family, style, PreservePaintedGlyphOrder, RequestedTextFace(style), features);
         var cache = _textPaintBoundsCache ??= new Dictionary<TextMeasurementKey, OfficeTextPaintBounds>();
         if (cache.TryGetValue(key, out OfficeTextPaintBounds found)) return found;
         double top = -size * .84D, bottom = size * .16D;
@@ -20,7 +24,7 @@ public sealed partial class OfficeRasterCanvas {
             IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, family, RequestedTextFace(style));
             if (ShouldUseFallbackRuns(runs, family)) {
                 foreach (OfficeFontFallbackRun run in runs) {
-                    OfficeTextPaintBounds bounds = MeasureTextPaintBounds(run.Text, size, run.FamilyRequest, style);
+                    OfficeTextPaintBounds bounds = MeasureTextPaintBoundsWithFeatures(run.Text, size, run.FamilyRequest, style, features);
                     top = Math.Min(top, bounds.Top); bottom = Math.Max(bottom, bounds.Bottom);
                 }
                 return Store();
@@ -31,8 +35,8 @@ public sealed partial class OfficeRasterCanvas {
             double origin = -ResolveRasterBaseline(font, size);
             // Fitted raster text paints base outlines, while positioned/SVG paths
             // may use color layers. Bound both representations of the same font.
-            Include(GetResolvedTextContours(text!, font, 0D, origin, size));
-            if (TryGetResolvedColorTextContours(text!, font, 0D, origin, size, null, null, OfficeColor.Black, out List<OfficeColorGlyphContours> layers)) {
+            Include(GetResolvedTextContours(text!, font, 0D, origin, size, features));
+            if (TryGetResolvedColorTextContours(text!, font, 0D, origin, size, features, null, OfficeColor.Black, out List<OfficeColorGlyphContours> layers)) {
                 foreach (OfficeColorGlyphContours layer in layers) Include(layer.Contours);
             }
         } else {

@@ -70,7 +70,7 @@ still consume the image-processing byte budget.
 | Document pages | Native order, physical size and page clipping, including empty physical pages | Master and utility roles follow the ordered native reference array and its role boundaries; malformed boundaries are rejected |
 | Master pages | Recovered definitions applied to referring pages | Missing references report omission; nested master inheritance is unassessed |
 | Text | UTF-16 stories, styled paragraphs, referenced native style values, explicit reciprocal links or complete native story/frame catalog bindings, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; source style pairs and use ranges are retained internally, while names, builtin selectors and auxiliary inheritance metadata remain unassessed |
-| Character formatting | Native font names, size, referenced color, bold/italic, strikethrough, superscript/subscript, pair-kerning threshold metadata and none, single, words-only, double, dotted, dashed and wavy underlines | Shared rendering does not yet apply the native kerning threshold. Native underline weight, long-dash, compound and unknown patterns use the closest shared pattern with `PUB_TEXT_UNDERLINE_APPROXIMATED`. Font availability, exact metrics and decoration geometry remain separate rendering limits |
+| Character formatting | Native font names, size, referenced color, bold/italic, strikethrough, superscript/subscript, pair-kerning threshold metadata and none, single, words-only, double, dotted, dashed and wavy underlines | Explicit thresholds control shared run measurement and raster/SVG/PDF glyph output; omitted native defaults and same-font mixed-run parity remain unqualified. Native underline weight, long-dash, compound and unknown patterns use the closest shared pattern with `PUB_TEXT_UNDERLINE_APPROXIMATED`. Font availability, exact metrics and decoration geometry remain separate rendering limits |
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs; complete tabbed lines follow recovered center/right paragraph alignment | Numbering sequences, additional per-stop alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval. Native font metrics and exact tabbed-line positions remain separate rendering limits |
 | Tables | `PublisherPage.Tables` exposes current tracks, spans, styled paragraphs, text and placement; qualified anchor-cell text edits preserve complete story partitions, and qualified bounds edits scale tracks proportionally; master tables remain on their master | Separate `CanEditCellText`/`CanEditBounds` and limitation properties identify supported operations. Unavailable frame geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`; individual cell borders, fills and padding are unassessed |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
@@ -562,8 +562,8 @@ pair-kerning threshold and zero manual kerning without changing application opti
 A separate source-derived disabled control retains its false story flag after
 native resaving; all four frame ranges match the current non-hyphenating managed
 layout. Core's versioned English patterns and Publisher choose different breaks
-for some words, including `creative`. Shared automatic hyphenation, native kerning
-policy and generated-hyphen transport across frame boundaries remain open work;
+for some words, including `creative`. Shared automatic hyphenation, effective omitted native kerning defaults
+and generated-hyphen transport across frame boundaries remain open work;
 the controls do not enable those behaviors in the product. The `hyphenationReference`
 qualification record identifies the native inputs and comparison limits.
 Complete stories and source styles survive overflow; byte-exact no-op native saving
@@ -642,10 +642,33 @@ The 8.2-point case also retains the requested font size through native save and
 reopen. All 67 native initial/resaved page pairs agree at 144 dpi across eleven
 Full validation runs of these ten inputs.
 
-Shared run snapshots and linked-flow paragraph projections retain the metadata.
-Shared rich-text measurement and glyph rendering do not yet apply it. Native
-repair-free opening, other application defaults, inherited-default activation,
-mixed baselines and managed/native kerning geometry remain unqualified.
+Shared font-aware drawing layout applies an explicit threshold through wrapping,
+tabs, trimming, justification and shrink-to-fit. Raster ink measurement and glyph
+painting, SVG CSS font features and PDF glyph output use the same run setting.
+Zero disables kerning; a positive threshold activates at or above the base run
+size, before superscript/subscript reduction. Drawing scale transforms both
+sizes; font fitting changes the font size while retaining the threshold. Null
+keeps the renderer's feature defaults. Existing caller-supplied width callbacks
+retain control of their measurements.
+
+A 15-input source-edit control compares Arial 12/14 pt, thresholds 0/8/12/14/18,
+both mixed-run directions and 12 pt superscript/subscript. Native save/reopen
+retains the settings, and all 15 initial/resaved native PDF pages agree at
+144 dpi. Script controls activate at threshold 8 despite their 7.8 pt glyph size,
+confirming the base-size decision. Uniform normal-text controls differ from
+managed glyph origins by at most 0.525 pt horizontally and 0.069 pt vertically;
+native device-quantized advances remain distinct from managed design advances.
+Superscript baselines differ by up to 1.929 pt and subscript baselines by up to
+5.39 pt in these controls.
+
+The mixed same-font controls retain both native thresholds, but native PDF
+activation follows the first setting across the observed line. Shared rendering
+applies each run independently. Six additional source-edit controls show that a color change and a space retain
+this behavior, while a new paragraph applies its own setting. All six native
+initial/resaved pages agree at 144 dpi. The cause and behavior across soft line
+breaks remain unresolved; the controls do not establish native mixed-run parity. Native repair-free opening, other
+application defaults, inherited-default activation, broader mixed baselines and
+exact managed/native glyph geometry remain unqualified.
 
 The `nativeLanguageFeasibility` record isolates the language-dependent native
 layout gap. Scratch variants adding character property `0x12` with language ID

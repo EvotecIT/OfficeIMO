@@ -53,5 +53,5 @@
     }
   ],
   "observed": "All sampled native frame getters report the stored threshold before and after save. With Arial12, threshold0 and14 outputs agree; threshold8 and12 outputs agree; the groups differ in six of15 pages. This qualifies an inclusive size>=threshold activation boundary, with zero disabled.",
-  "limits": "Rendering controls retain native automatic hyphenation, dictionaries and the observed application profile. Managed rich-text rendering does not yet apply this threshold. Repair-free opening, other producers, inherited style defaults and mixed baselines are not established."
+  "limits": "Rendering controls retain native automatic hyphenation, dictionaries and the observed application profile. These native-only controls qualify stored thresholds and native activation; shared explicit per-run rendering has separate tests. Repair-free opening, other producers, inherited style defaults and mixed baselines are not established."
 }

@@ -10,16 +10,18 @@ internal static partial class PdfWriter {
 
     internal static OfficeDrawingTextMetrics CreateDrawingTextMetrics(PdfOptions options, System.Threading.CancellationToken cancellationToken = default) {
         var metrics = new Dictionary<(byte[] Data, string Family, OfficeFontStyle Style), OfficeRasterCanvas?>();
-        return new OfficeDrawingTextMetrics(Measure, MeasurePaint, MeasureHorizontalPaint, MeasurePositioned, MeasureSegmentPaint, MeasurePublisherFont);
+        return new OfficeDrawingTextMetrics(Measure, MeasurePaint, MeasureHorizontalPaint, MeasurePositioned, MeasureSegmentPaint, MeasurePublisherFont, MeasureFeatures,
+            (segment, size) => MeasureHorizontalPaintWithFeatures(segment.Text, size, segment.FontFamily, segment.FontStyle, segment.KerningFeatures));
 
         IEnumerable<(PdfTextRun Run, OfficeRasterCanvas? Canvas, string Family, PdfStandardFont Font, bool SyntheticOblique)> Resolve(
-            string? text, double size, string? family, OfficeFontStyle style) {
+            string? text, double size, string? family, OfficeFontStyle style, OfficeTextFeatureSettings? features = null) {
             cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrEmpty(text)) yield break;
             PdfStandardFont font = PdfStandardFontMapper.TryMapFontFamily(family, out PdfStandardFont mapped)
                 ? mapped : string.IsNullOrWhiteSpace(family) ? options.DefaultFont : PdfStandardFont.Helvetica;
             var run = new PdfTextRun(text!, bold: (style & OfficeFontStyle.Bold) != 0,
                 italic: (style & OfficeFontStyle.Italic) != 0, fontSize: size, font: font, fontFamily: family);
+            if (features != null) run = run.WithFeatureSettings(features);
             foreach (PdfTextRun part in NormalizeFallbackRuns(new[] { run }, ChooseNormal(options.DefaultFont), options)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 byte[]? data = null;
@@ -68,6 +70,16 @@ internal static partial class PdfWriter {
             return width;
         }
 
+        double MeasureFeatures(string? text, double size, string? family, OfficeFontStyle style, OfficeTextFeatureSettings? features) {
+            if (features == null) return Measure(text, size, family, style);
+            double width = 0D;
+            foreach (var part in Resolve(text, size, family, style, features))
+                width += part.Canvas != null
+                    ? part.Canvas.MeasureTextWithFeatures(part.Run.Text, part.Run.FontSize ?? size, part.Family, style, part.Run.FeatureSettings)
+                    : GetRichSegmentWidth(CreatePositionedTextSegment(part.Run, size, options));
+            return width;
+        }
+
         double MeasurePositioned(string? text, double size, string? family, OfficeFontStyle style,
             OfficeTextDirection direction) {
             double width = 0D;
@@ -82,13 +94,16 @@ internal static partial class PdfWriter {
             return width;
         }
 
-        OfficeTextPaintBounds MeasurePaint(string? text, double size, string? family, OfficeFontStyle style) {
+        OfficeTextPaintBounds MeasurePaint(string? text, double size, string? family, OfficeFontStyle style) =>
+            MeasurePaintWithFeatures(text, size, family, style, null);
+
+        OfficeTextPaintBounds MeasurePaintWithFeatures(string? text, double size, string? family, OfficeFontStyle style, OfficeTextFeatureSettings? features) {
             double top = 0D, bottom = 0D;
             bool hasPaint = false;
-            foreach (var part in Resolve(text, size, family, style)) {
+            foreach (var part in Resolve(text, size, family, style, features)) {
                 if (string.IsNullOrWhiteSpace(part.Run.Text)) continue;
                 OfficeTextPaintBounds bounds = part.Canvas != null
-                    ? part.Canvas.MeasureTextPaintBounds(part.Run.Text, part.Run.FontSize ?? size, part.Family, style)
+                    ? part.Canvas.MeasureTextPaintBoundsWithFeatures(part.Run.Text, part.Run.FontSize ?? size, part.Family, style, features)
                     : GetStandardFontPaintBounds(part.Run.Text, part.Font, part.Run.FontSize ?? size);
                 if (!hasPaint) {
                     top = bounds.Top; bottom = bounds.Bottom; hasPaint = true;
@@ -105,7 +120,7 @@ internal static partial class PdfWriter {
         OfficeTextPaintBounds? MeasureSegmentPaint(OfficeRichTextSegment segment, double size) {
             double top = double.PositiveInfinity, bottom = double.NegativeInfinity;
             if (segment.Color.A > 0 && !string.IsNullOrWhiteSpace(segment.Text)) {
-                OfficeTextPaintBounds glyphs = MeasurePaint(segment.Text, size, segment.FontFamily, segment.FontStyle);
+                OfficeTextPaintBounds glyphs = MeasurePaintWithFeatures(segment.Text, size, segment.FontFamily, segment.FontStyle, segment.KerningFeatures);
                 Include(glyphs.Top, glyphs.Bottom);
             }
             if (segment.BackgroundColor.HasValue && segment.BackgroundColor.Value.A > 0 && segment.Width > 0D) {
@@ -132,22 +147,25 @@ internal static partial class PdfWriter {
             }
         }
 
-        (double Left, double Right) MeasureHorizontalPaint(string? text, double size, string? family, OfficeFontStyle style) {
+        (double Left, double Right) MeasureHorizontalPaint(string? text, double size, string? family, OfficeFontStyle style) =>
+            MeasureHorizontalPaintWithFeatures(text, size, family, style, null);
+
+        (double Left, double Right) MeasureHorizontalPaintWithFeatures(string? text, double size, string? family, OfficeFontStyle style, OfficeTextFeatureSettings? features) {
             double cursor = 0D, left = 0D, right = 0D;
-            foreach (var part in Resolve(text, size, family, style)) {
+            foreach (var part in Resolve(text, size, family, style, features)) {
                 double renderedSize = part.Run.FontSize ?? size;
                 double advance = part.Canvas != null
-                    ? part.Canvas.MeasureText(part.Run.Text, renderedSize, part.Family, style)
+                    ? part.Canvas.MeasureTextWithFeatures(part.Run.Text, renderedSize, part.Family, style, features)
                     : GetRichSegmentWidth(CreatePositionedTextSegment(part.Run, size, options));
                 var bounds = string.IsNullOrWhiteSpace(part.Run.Text) ? (Left: 0D, Right: advance) :
                     part.Canvas != null
-                        ? part.Canvas.MeasureTextLineHorizontalPaintBounds(part.Run.Text, renderedSize, part.Family, style)
+                        ? part.Canvas.MeasureTextLineHorizontalPaintBoundsWithFeatures(part.Run.Text, renderedSize, part.Family, style, features)
                         : GetStandardFontHorizontalPaintBounds(part.Font, renderedSize, advance);
                 if (part.SyntheticOblique && !string.IsNullOrWhiteSpace(part.Run.Text)) {
                     // The selected fallback bytes are unsheared. Bound the exact PDF
                     // text-matrix shear rather than the raster renderer's synthetic style.
                     OfficeTextPaintBounds vertical = part.Canvas != null
-                        ? part.Canvas.MeasureTextPaintBounds(part.Run.Text, renderedSize, part.Family, style)
+                        ? part.Canvas.MeasureTextPaintBoundsWithFeatures(part.Run.Text, renderedSize, part.Family, style, features)
                         : GetStandardFontPaintBounds(part.Run.Text, part.Font, renderedSize);
                     bounds.Left += Math.Min(-vertical.Top, -vertical.Bottom) * ContentStreamBuilder.SyntheticObliqueShear;
                     bounds.Right += Math.Max(-vertical.Top, -vertical.Bottom) * ContentStreamBuilder.SyntheticObliqueShear;

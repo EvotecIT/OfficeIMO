@@ -10,7 +10,7 @@ public static partial class OfficeTextLayoutEngine {
     // split across run boundaries. Each tab starts a new kerning/measurement context.
     private static double ResolveTabAdvance(OfficeTextTabStops tabs, double current,
         IReadOnlyList<RichTextToken> tokens, int tabIndex,
-        Func<string?, double, string?, OfficeFontStyle, double> measure, CancellationToken cancellationToken, out OfficeTextTabStop? selectedStop) {
+        OfficeRichTextMeasurement measure, CancellationToken cancellationToken, out OfficeTextTabStop? selectedStop) {
         selectedStop = null;
         foreach (OfficeTextTabStop stop in tabs.Stops) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -37,7 +37,7 @@ public static partial class OfficeTextLayoutEngine {
     }
 
     private static double MeasureTabField(IReadOnlyList<RichTextToken> tokens, int tabIndex, string? character,
-        Func<string?, double, string?, OfficeFontStyle, double> measure, CancellationToken cancellationToken) {
+        OfficeRichTextMeasurement measure, CancellationToken cancellationToken) {
         var text = new StringBuilder();
         OfficeRichTextSegment? context = null;
         double width = 0;
@@ -63,7 +63,7 @@ public static partial class OfficeTextLayoutEngine {
 
         double MeasureContext() {
             cancellationToken.ThrowIfCancellationRequested();
-            return context == null ? 0 : Measure(text.ToString(), EffectiveFontSize(context), context.FontFamily, context.FontStyle, measure);
+            return context == null ? 0 : measure.Measure(text.ToString(), context);
         }
     }
 }

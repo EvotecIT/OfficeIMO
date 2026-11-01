@@ -218,17 +218,7 @@ public static partial class OfficeTextBlockRenderer {
             .AppendAttribute("text-anchor", GetSvgTextAnchor(horizontalAlignment, resolvedDirection))
             .AppendPaintAttribute("fill", color);
 
-        if (featureSettings != null && !featureSettings.IsDefault) {
-            var tags = new List<string>(featureSettings.Features.Keys);
-            tags.Sort(StringComparer.Ordinal);
-            var declaration = new StringBuilder();
-            foreach (string tag in tags) {
-                if (declaration.Length > 0) declaration.Append(", ");
-                declaration.Append('"').Append(tag).Append("\" ")
-                    .Append(featureSettings.Features[tag].ToString(System.Globalization.CultureInfo.InvariantCulture));
-            }
-            builder.AppendAttribute("font-feature-settings", declaration.ToString());
-        }
+        AppendSvgFontFeatures(builder, featureSettings);
 
         if (!string.IsNullOrWhiteSpace(fontPalette) && !string.Equals(fontPalette, "normal", StringComparison.OrdinalIgnoreCase)) {
             builder.AppendAttribute("font-palette", fontPalette!.Trim());
@@ -303,6 +293,20 @@ public static partial class OfficeTextBlockRenderer {
 
         builder.Append("</text>");
         return builder;
+    }
+
+    private static void AppendSvgFontFeatures(StringBuilder builder, OfficeTextFeatureSettings? featureSettings) {
+        if (featureSettings != null && !featureSettings.IsDefault) {
+            var tags = new List<string>(featureSettings.Features.Keys);
+            tags.Sort(StringComparer.Ordinal);
+            var declaration = new StringBuilder();
+            foreach (string tag in tags) {
+                if (declaration.Length > 0) declaration.Append(", ");
+                declaration.Append('"').Append(tag).Append("\" ")
+                    .Append(featureSettings.Features[tag].ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
+            builder.AppendAttribute("style", "font-feature-settings:" + declaration);
+        }
     }
 
 }

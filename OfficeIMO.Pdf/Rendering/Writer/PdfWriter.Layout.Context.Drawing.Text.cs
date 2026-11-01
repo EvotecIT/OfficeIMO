@@ -150,7 +150,7 @@ internal static partial class PdfWriter {
             OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.CreateWithMetrics(text, width, height, textMetrics);
             double clipX = contentX, clipWidth = width;
             if (!text.WrapText && text.Paragraphs.Count > 0) {
-                var paint = OfficeDrawingTextLayout.HorizontalPaintEnvelope(layout, textMetrics.MeasureHorizontalPaintBounds);
+                var paint = OfficeDrawingTextLayout.HorizontalPaintEnvelope(layout, textMetrics.MeasureSegmentHorizontalPaintBounds);
                 double left = Math.Min(0D, paint.Left), right = Math.Max(width, paint.Right);
                 clipX += left;
                 clipWidth = right - left;
@@ -173,9 +173,8 @@ internal static partial class PdfWriter {
                 bool justify = OfficeTextBlockRenderer.ShouldJustifyRichTextLine(line, index, layout.Lines.Count, lineWidth, text.Alignment);
                 double cursor = OfficeTextPlacement.ResolveLineLeft(lineLeft, lineWidth, line.Width, text.Alignment);
                 if (justify) {
-                    var tokens = OfficeTextBlockRenderer.CreateRichTextRenderTokens(line, textMetrics.MeasureText);
-                    int gaps = OfficeTextBlockRenderer.CountJustifiableRichTextGaps(tokens);
-                    double gapWidth = gaps == 0 ? 0D : Math.Max(0D, lineWidth - line.Width) / gaps;
+                    var tokens = OfficeTextBlockRenderer.CreateRichTextRenderTokens(line, textMetrics.RichTextMeasurement);
+                    double gapWidth = OfficeTextBlockRenderer.ResolveRichTextJustificationGap(tokens, lineWidth);
                     bool hasWord = false;
                     cursor = lineLeft;
                     for (int tokenIndex = 0; tokenIndex < tokens.Count; tokenIndex++) {
@@ -210,7 +209,8 @@ internal static partial class PdfWriter {
                     linkUri: segment.LinkUri, linkDestinationName: segment.LinkDestinationName,
                     backgroundColor: ToPdfColor(segment.BackgroundColor),
                     fontFamily: segment.FontFamily, underlineStyle: segment.UnderlineStyle,
-                    strikeStyle: segment.StrikethroughStyle, decorationColor: ToPdfColor(decorationColor));
+                    strikeStyle: segment.StrikethroughStyle, decorationColor: ToPdfColor(decorationColor))
+                    .WithFeatureSettings(segment.KerningFeatures ?? OfficeTextFeatureSettings.Default);
                 WriteDrawingPositionedRun(run, x, contentTopY - renderedBaseline, advance,
                     clipX, clipY, clipWidth, clipHeight, segment.Color, decorationColor);
             }

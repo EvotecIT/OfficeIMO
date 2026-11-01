@@ -27,8 +27,8 @@ internal static partial class OfficeDrawingTextLayout {
                     yield return (cursor, segmentTop, cursor + segment.Width,
                         segmentTop + OfficeTextBlockRenderer.ResolveRichTextSegmentBackgroundHeight(segment));
                 if (segment.Color.A > 0) {
-                    foreach (var ink in canvas.TextLinePaintBounds(segment.Text, size, segment.FontFamily, segment.FontStyle,
-                        segment.UnderlineStyle, segment.StrikethroughStyle))
+                    foreach (var ink in canvas.TextLinePaintBoundsWithFeatures(segment.Text, size, segment.FontFamily, segment.FontStyle,
+                        segment.UnderlineStyle, segment.StrikethroughStyle, segment.KerningFeatures))
                         yield return (cursor + ink.Left, segmentTop + ink.Top, cursor + ink.Right, segmentTop + ink.Bottom);
                 }
                 cursor += segment.Width;

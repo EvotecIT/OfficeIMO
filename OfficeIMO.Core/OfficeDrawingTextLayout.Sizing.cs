@@ -24,11 +24,11 @@ internal static partial class OfficeDrawingTextLayout {
         IReadOnlyList<OfficeRichTextParagraph> paragraphs, OfficeDrawingTextMetrics metrics,
         double scale, CancellationToken cancellationToken = default) {
         OfficeRichTextBlockLayout natural = CreateParagraphsWithArea(paragraphs, double.MaxValue, double.MaxValue,
-            metrics.MeasureText, OfficeTextAreaAlignment.Left, wrap: false, scale: scale,
+            metrics.RichTextMeasurement, OfficeTextAreaAlignment.Left, wrap: false, scale: scale,
             measurePaint: metrics.MeasurePaintBounds, cancellationToken: cancellationToken,
             measureSegmentPaint: metrics.MeasureSegmentPaintBounds, measurePublisherFont: metrics.MeasurePublisherFont);
         cancellationToken.ThrowIfCancellationRequested();
-        var paint = HorizontalPaintEnvelope(natural, metrics.MeasureHorizontalPaintBounds);
+        var paint = HorizontalPaintEnvelope(natural, metrics.MeasureSegmentHorizontalPaintBounds);
         return (natural.Width, Math.Max(0D, -paint.Left), Math.Max(0D, paint.Right - natural.Width));
     }
 
@@ -46,7 +46,7 @@ internal static partial class OfficeDrawingTextLayout {
                 if (probeWidth <= 0D) break;
                 // Probe the complete wrapped body, including lines hidden by a
                 // fixed height. These same insets drive the height-growth pass.
-                var paint = HorizontalPaintEnvelope(Layout(probeWidth, double.MaxValue), metrics.MeasureHorizontalPaintBounds);
+                var paint = HorizontalPaintEnvelope(Layout(probeWidth, double.MaxValue), metrics.MeasureSegmentHorizontalPaintBounds);
                 double nextLeft = Math.Max(leftInset, -paint.Left);
                 double nextRight = Math.Max(rightInset, paint.Right - probeWidth);
                 if (nextLeft <= leftInset + .000001D && nextRight <= rightInset + .000001D) break;
@@ -68,9 +68,9 @@ internal static partial class OfficeDrawingTextLayout {
         };
 
         OfficeRichTextBlockLayout Layout(double availableWidth, double availableHeight) => projection
-            ? CreateForProjectionCore(text, availableWidth, availableHeight, metrics.MeasureText, scale,
+            ? CreateForProjectionCore(text, availableWidth, availableHeight, metrics.RichTextMeasurement, scale,
                 metrics.MeasurePaintBounds, metrics.MeasureSegmentPaintBounds, metrics.MeasurePublisherFont)
-            : CreateCore(text, availableWidth, availableHeight, metrics.MeasureText, scale,
+            : CreateCore(text, availableWidth, availableHeight, metrics.RichTextMeasurement, scale,
                 metrics.MeasurePaintBounds, metrics.MeasureSegmentPaintBounds, metrics.MeasurePublisherFont);
     }
 

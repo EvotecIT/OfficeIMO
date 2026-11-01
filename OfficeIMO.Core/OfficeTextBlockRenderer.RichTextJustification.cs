@@ -55,6 +55,8 @@ public static partial class OfficeTextBlockRenderer {
                 builder.AppendNumberAttribute("baseline-shift", -segment.FontSize * 0.15D);
             }
 
+            AppendSvgFontFeatures(builder, segment.KerningFeatures);
+
             if (segment.Bold) {
                 builder.Append(" font-weight=\"700\"");
             }
@@ -136,7 +138,7 @@ public static partial class OfficeTextBlockRenderer {
             return;
         }
 
-        double extraGap = Math.Max(0D, (availableWidth - line.Width) / gapCount);
+        double extraGap = ResolveRichTextJustificationGap(tokens, availableWidth);
         bool hasWordBefore = false;
         double cursor = left;
         for (int i = 0; i < tokens.Count; i++) {
@@ -180,7 +182,7 @@ public static partial class OfficeTextBlockRenderer {
                 rotationCenterY,
                 flipHorizontal,
                 flipVertical);
-            canvas.DrawTextLine(
+            canvas.DrawTextLineWithFeatures(token.Segment.KerningFeatures,
                 token.Text,
                 cursor,
                 segmentTop,
@@ -205,9 +207,12 @@ public static partial class OfficeTextBlockRenderer {
     }
 
     internal static List<RichTextRenderToken> CreateRichTextRenderTokens(OfficeRichTextLine line, OfficeRasterCanvas canvas) =>
-        CreateRichTextRenderTokens(line, canvas.MeasureText);
+        CreateRichTextRenderTokens(line, canvas.CreateDrawingTextMetrics().RichTextMeasurement);
 
-    internal static List<RichTextRenderToken> CreateRichTextRenderTokens(OfficeRichTextLine line, Func<string?, double, string?, OfficeFontStyle, double> measure) {
+    internal static List<RichTextRenderToken> CreateRichTextRenderTokens(OfficeRichTextLine line, Func<string?, double, string?, OfficeFontStyle, double> measure) =>
+        CreateRichTextRenderTokens(line, new OfficeRichTextMeasurement(measure));
+
+    internal static List<RichTextRenderToken> CreateRichTextRenderTokens(OfficeRichTextLine line, OfficeRichTextMeasurement measure) {
         var tokens = new List<RichTextRenderToken>();
         for (int segmentIndex = 0; segmentIndex < line.Segments.Count; segmentIndex++) {
             OfficeRichTextSegment segment = line.Segments[segmentIndex];
@@ -232,12 +237,22 @@ public static partial class OfficeTextBlockRenderer {
         return tokens;
     }
 
-    private static void AddRichTextRenderToken(List<RichTextRenderToken> tokens, OfficeRichTextSegment segment, string text, bool whitespace, Func<string?, double, string?, OfficeFontStyle, double> measure) {
+    private static void AddRichTextRenderToken(List<RichTextRenderToken> tokens, OfficeRichTextSegment segment, string text, bool whitespace, OfficeRichTextMeasurement measure) {
         if (text.Length == 0) {
             return;
         }
 
-        tokens.Add(new RichTextRenderToken(segment, text, measure(text, ResolveRichTextRenderedFontSize(segment), segment.FontFamily, segment.FontStyle), whitespace));
+        tokens.Add(new RichTextRenderToken(segment, text, measure.Measure(text, segment), whitespace));
+    }
+
+    internal static double ResolveRichTextJustificationGap(List<RichTextRenderToken> tokens, double width) {
+        int count = CountJustifiableRichTextGaps(tokens);
+        if (count == 0) return 0D;
+        double advance = 0D;
+        foreach (RichTextRenderToken token in tokens) advance += token.Width;
+        // Painting splits at adjustable spaces. Their contextual kern pairs no
+        // longer contribute, so allocate against these actual token advances.
+        return (width - advance) / count;
     }
 
     internal static int CountJustifiableRichTextGaps(List<RichTextRenderToken> tokens) {

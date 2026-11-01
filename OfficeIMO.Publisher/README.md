@@ -312,9 +312,12 @@ profile](SUPPORT.md) for native creation/editing coverage and limits.
 an 8-point native pair-kerning threshold. Native source saves can set the
 threshold, including zero to disable pair kerning, while retaining other native
 formatting. Null retains the selected source definition. The supported native
-scalar range is 0–999.5 points in exact 1/12700-point units. Shared rich-text
-measurement and rendering currently use their normal kerning defaults; this
-metadata does not yet change managed line breaks or glyph placement. See the
+scalar range is 0–999.5 points in exact 1/12700-point units. Font-aware shared
+layout and raster, SVG and PDF rendering apply an explicit threshold to each run:
+zero disables kerning, and a positive value enables it at or above that base run
+size. An unspecified threshold keeps the renderer's normal feature defaults.
+Native omitted defaults, same-font mixed-run activation and exact native glyph
+geometry remain separate qualification limits. See the
 [native threshold contract](SUPPORT.md#native-pair-kerning-metadata).
 
 `PublisherReadOptions.Fonts` supplies scoped font faces for story flow and page

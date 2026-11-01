@@ -194,12 +194,13 @@ public static class OfficeCalloutRenderer {
         double bodyHeight = Math.Max(1D, height - titleHeight - (padding * 1.4D));
         if (callout.RichTextRuns.Count > 0) {
             IReadOnlyList<OfficeRichTextRun> scaledRuns = ScaleRichTextRuns(callout.RichTextRuns, scale);
-            OfficeRichTextBlockLayout richLayout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+            OfficeRichTextBlockLayout richLayout = OfficeTextLayoutEngine.LayoutRichTextBlockWithMetrics(
                 scaledRuns,
                 textWidth,
                 bodyHeight,
                 style.LineHeightFactor,
-                (text, size, family) => canvas.MeasureText(text, size, family),
+                new OfficeRichTextMeasurement((text, size, family, _) => canvas.MeasureText(text, size, family),
+                    canvas.MeasureTextWithFeatures),
                 wrap: true,
                 shrinkToFit: false,
                 minimumFontSize: Math.Max(1D, scale),
@@ -465,7 +466,7 @@ public static class OfficeCalloutRenderer {
                 run.UnderlineStyle,
                 run.StrikethroughStyle,
                 run.Baseline,
-                run.ParagraphIndent?.Scale(scale)) { LanguageId = run.LanguageId });
+                run.ParagraphIndent?.Scale(scale)) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold * scale, LanguageId = run.LanguageId });
         }
 
         return scaled.AsReadOnly();

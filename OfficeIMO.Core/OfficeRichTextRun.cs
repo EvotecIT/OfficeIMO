@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 public sealed class OfficeRichTextRun {
     private double? _automaticPairKerningThreshold;
     /// <summary>Native automatic pair-kerning threshold, in points. Zero disables pair kerning; null leaves the native setting unspecified.</summary>
-    /// <remarks>Native document adapters can preserve and edit this metadata. Shared rich-text layout and rendering currently use their normal font-feature defaults.</remarks>
+    /// <remarks>Font-aware drawing layout and raster, SVG and PDF rendering enable pair kerning when the base run size meets a positive threshold. Zero disables it; null retains the renderer's normal font-feature defaults. Custom width callbacks retain control of measurement.</remarks>
     public double? AutomaticPairKerningThreshold {
         get => _automaticPairKerningThreshold;
         internal set {
@@ -15,6 +15,7 @@ public sealed class OfficeRichTextRun {
             _automaticPairKerningThreshold = value;
         }
     }
+    internal OfficeTextFeatureSettings? KerningFeatures => OfficeTextKerning.Features(AutomaticPairKerningThreshold, FontSize);
 
     /// <summary>Returns an independent run with a native pair-kerning threshold. Null leaves the setting unspecified; zero explicitly disables it.</summary>
     /// <param name="thresholdPoints">A finite, nonnegative point size, or null. A native writer may impose a narrower representable range.</param>

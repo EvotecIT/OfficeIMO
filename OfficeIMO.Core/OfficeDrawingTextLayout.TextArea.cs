@@ -8,7 +8,7 @@ internal static partial class OfficeDrawingTextLayout {
     // Intrinsic sizing precedes vertical clipping: hidden wider paragraphs still anchor the whole area.
     // Retained measurements keep the authored frame's wrapping, tab advances and font-fit result stable.
     private static OfficeRichTextBlockLayout CreateIntrinsicParagraphs(IReadOnlyList<OfficeRichTextParagraph> paragraphs,
-        double width, double height, Func<string?, double, string?, OfficeFontStyle, double> measure,
+        double width, double height, OfficeRichTextMeasurement measure,
         bool wrap, double scale, double fontScale,
         Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint,
         CancellationToken cancellationToken, bool reportLeaderPaintClipping, OfficeTextAreaAlignment areaAlignment,

@@ -290,7 +290,7 @@ public static partial class OfficeTextLayoutEngine {
                     run.BackgroundColor,
                     run.UnderlineStyle,
                     run.StrikethroughStyle,
-                    run.Baseline) { LanguageId = run.LanguageId }
+                    run.Baseline) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold, LanguageId = run.LanguageId }
             }, lineHeight));
         }
 
@@ -317,7 +317,7 @@ public static partial class OfficeTextLayoutEngine {
             }
 
             clipped = true;
-            lines[i] = TrimRichTextLineToWidthWithEllipsis(lines[i], maxWidth, (value, size, family, _) => measure(value, size, family));
+            lines[i] = TrimRichTextLineToWidthWithEllipsis(lines[i], maxWidth, new OfficeRichTextMeasurement((value, size, family, _) => measure(value, size, family)));
         }
 
         double blockWidth = MeasureMaxRichTextLineWidth(lines);
@@ -369,7 +369,7 @@ public static partial class OfficeTextLayoutEngine {
                     run.BackgroundColor,
                     run.UnderlineStyle,
                     run.StrikethroughStyle,
-                    run.Baseline) { LanguageId = run.LanguageId });
+                    run.Baseline) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold, LanguageId = run.LanguageId });
             }
         }
 

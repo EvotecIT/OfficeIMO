@@ -14,7 +14,7 @@ internal static partial class OfficeDrawingTextLayout {
     }
 
     private static ParagraphLabelLayout? ResolveParagraphLabel(OfficeRichTextParagraph paragraph, double contentWidth, double scale, double fontScale,
-        Func<string?, double, string?, OfficeFontStyle, double> measure,
+        OfficeRichTextMeasurement measure,
         Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint,
         CancellationToken cancellationToken, ref OfficeTextPadding margin, ref OfficeTextParagraphIndent indent, ref bool clipped) {
         OfficeTextParagraphLabel? label = paragraph.Label;
@@ -23,8 +23,8 @@ internal static partial class OfficeDrawingTextLayout {
         double size = fontScale == 1D ? original.FontSize * scale : Math.Max(1D, original.FontSize * scale * fontScale);
         var run = new OfficeRichTextRun(original.Text, size, original.Color, original.Bold, original.Italic,
             original.Underline, original.FontFamily, original.Strikethrough, original.BackgroundColor, original.UnderlineStyle,
-            original.StrikethroughStyle, original.Baseline) { LanguageId = original.LanguageId, LinkUri = original.LinkUri, LinkDestinationName = original.LinkDestinationName };
-        var layout = OfficeTextLayoutEngine.LayoutStyledRichTextBlock(new[] { run }, double.MaxValue, double.MaxValue,
+            original.StrikethroughStyle, original.Baseline) { AutomaticPairKerningThreshold = original.AutomaticPairKerningThreshold * scale, LanguageId = original.LanguageId, LinkUri = original.LinkUri, LinkDestinationName = original.LinkDestinationName };
+        var layout = OfficeTextLayoutEngine.LayoutRichTextBlockWithMetrics(new[] { run }, double.MaxValue, double.MaxValue,
             paragraph.LineHeightFactor ?? 1.2, measure, false, measurePaint: measurePaint, cancellationToken: cancellationToken);
         OfficeRichTextLine line = layout.Lines.Count == 0 ? new OfficeRichTextLine(Array.Empty<OfficeRichTextSegment>()) : layout.Lines[0];
         double position = label.Position * scale, width = line.Width;
@@ -45,7 +45,7 @@ internal static partial class OfficeDrawingTextLayout {
         if (label.FollowedBy == OfficeTextParagraphLabelFollowedBy.Position)
             first = Math.Max((label.TextPosition ?? normalFirst / scale) * scale, left + width + distance);
         else first = left + width + (label.FollowedBy == OfficeTextParagraphLabelFollowedBy.Space ?
-            measure(" ", run.FontSize, run.FontFamily, (run.Bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular) | (run.Italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular)) : 0);
+            measure.Measure(" ", run) : 0);
         double basis = Math.Min(first, continuation);
         margin = new OfficeTextPadding(basis, margin.Top, margin.Right, margin.Bottom);
         indent = new OfficeTextParagraphIndent(first - basis, continuation - basis);

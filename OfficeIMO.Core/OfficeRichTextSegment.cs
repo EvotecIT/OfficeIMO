@@ -4,6 +4,9 @@ namespace OfficeIMO.Drawing;
 /// Describes one measured rich text segment on a laid-out line.
 /// </summary>
 public sealed class OfficeRichTextSegment {
+    /// <summary>Automatic pair-kerning threshold copied from the source run. Null retains normal font-feature defaults; zero disables pair kerning.</summary>
+    public double? AutomaticPairKerningThreshold { get; internal set; }
+    internal OfficeTextFeatureSettings? KerningFeatures => OfficeTextKerning.Features(AutomaticPairKerningThreshold, FontSize);
     /// <summary>Optional language identifier retained from the source run. Layout does not add language-specific hyphenation.</summary>
     public uint? LanguageId { get; internal set; }
     // Native document adapters keep annotations attached through wrapping and shrinking.
