@@ -72,4 +72,21 @@ public sealed class HtmlWordToHtmlLinkSafetyTests {
         Assert.Contains("https://example.com/site.css", html, StringComparison.Ordinal);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == UnsafeLinkDiagnostic);
     }
+
+    [Fact]
+    public void EveryTableOfContentsListsItsHeadings() {
+        using WordDocument document = WordDocument.Create();
+        document.AddTableOfContent();
+        document.AddParagraph("First").Style = WordParagraphStyles.Heading1;
+        document.AddParagraph("Second").Style = WordParagraphStyles.Heading1;
+        document.AddTableOfContent();
+
+        string html = document.ToHtml();
+
+        Assert.Equal(2, CountOccurrences(html, ">First</a>"));
+        Assert.Equal(2, CountOccurrences(html, ">Second</a>"));
+    }
+
+    private static int CountOccurrences(string text, string value) =>
+        (text.Length - text.Replace(value, string.Empty, StringComparison.Ordinal).Length) / value.Length;
 }

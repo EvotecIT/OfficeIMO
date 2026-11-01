@@ -826,6 +826,7 @@ namespace OfficeIMO.Word.Html {
                 var root = CreateOutputElement(htmlDoc, "ul");
                 nav.AppendChild(root);
                 var stack = new List<(int Level, IElement List, IElement? LastItem)> { (minLevel, root, null) };
+                var listedHeadings = new HashSet<Paragraph>();
                 int entries = 0;
                 foreach (WordParagraph headingParagraph in document.Paragraphs) {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -833,7 +834,7 @@ namespace OfficeIMO.Word.Html {
                     int level = WordHeadingStyleMapper.GetLevelForHeadingStyle(headingParagraph.Style.Value);
                     if (level < minLevel || level > maxLevel) continue;
                     Paragraph headingElement = headingParagraph._paragraph;
-                    if (tableOfContentsLinks.Any(link => ReferenceEquals(link.Heading, headingElement))) continue;
+                    if (!listedHeadings.Add(headingElement)) continue;
                     string text = string.Concat(headingElement.Descendants<Text>().Select(item => item.Text)).Trim();
                     if (text.Length == 0) continue;
 
