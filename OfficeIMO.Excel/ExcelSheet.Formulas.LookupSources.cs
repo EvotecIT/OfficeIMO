@@ -32,7 +32,8 @@ namespace OfficeIMO.Excel {
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
 
-        private bool TryResolveLookupSource(string token, ref int budget, out FormulaLookupSource source) {
+        private bool TryResolveLookupSource(string token, ref int budget, out FormulaLookupSource source,
+            bool preserveScalarValue = false) {
             source = null!;
             if (TryResolveFormulaRangeReferenceWithError(token, out ExcelSheet sheet,
                 out int r1, out int c1, out int r2, out int c2, out FormulaArgumentValue referenceError)) {
@@ -44,6 +45,15 @@ namespace OfficeIMO.Excel {
             }
             if (referenceError.IsError) {
                 source = new FormulaLookupSource(1, 1, (_, _) => referenceError, referenceError);
+                return true;
+            }
+            // SUMPRODUCT distinguishes a blank scalar argument from a zero
+            // materialized by ordinary array-value conversion.
+            if (preserveScalarValue && !IsSupportedArrayExpression(token)) {
+                if (budget < 1 || !TryResolveFormulaArgument(token, out FormulaArgumentValue scalar)
+                    || scalar.IsUnresolvedFormula) return false;
+                budget--;
+                source = LookupScalarSource(scalar);
                 return true;
             }
             if (!TryEvaluateArrayValue(token, 0, out FormulaArrayValue array) || array.Values.Length > budget) return false;

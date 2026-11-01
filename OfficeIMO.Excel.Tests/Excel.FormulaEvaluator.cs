@@ -512,15 +512,15 @@ namespace OfficeIMO.Tests {
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(10, before.TotalFormulas);
-                Assert.Equal(8, before.SupportedFormulas);
+                Assert.Equal(9, before.SupportedFormulas);
                 Assert.Contains("TEXTJOIN", before.Capabilities.SupportedFunctions);
                 Assert.Contains("EXACT", before.Capabilities.SupportedFunctions);
                 Assert.Contains("REPT", before.Capabilities.SupportedFunctions);
                 Assert.Contains("SUMPRODUCT", before.Capabilities.SupportedFunctions);
-                Assert.Contains(before.Formulas, formula => formula.CellReference == "E9" && !formula.IsSupportedByOfficeIMO);
+                Assert.Contains(before.Formulas, formula => formula.CellReference == "E9" && formula.IsSupportedByOfficeIMO);
                 Assert.Contains(before.Formulas, formula => formula.CellReference == "E10" && !formula.IsSupportedByOfficeIMO);
 
-                Assert.Equal(8, document.Calculate());
+                Assert.Equal(9, document.Calculate());
                 ExcelFormulaInspection after = document.InspectFormulas();
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "E1" && formula.CachedValue == "North/West/East");
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "E2" && formula.CachedValue == "North--West");
@@ -530,6 +530,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "E6" && formula.CachedValue == "001");
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "E7" && formula.CachedValue == "140");
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "E8" && formula.CachedValue == "6");
+                Assert.Contains(after.Formulas, formula => formula.CellReference == "E9" && formula.CachedValue == "#VALUE!");
                 document.Save();
             }
 

@@ -181,7 +181,8 @@ namespace OfficeIMO.Excel {
             bool mismatchedShape = false;
             int remainingCellBudget = MaxResolvedFormulaRangeCells;
             foreach (string token in tokens) {
-                if (!TryResolveLookupSource(token, ref remainingCellBudget, out FormulaLookupSource source)) return false;
+                if (!TryResolveLookupSource(token, ref remainingCellBudget, out FormulaLookupSource source,
+                    preserveScalarValue: true)) return false;
                 if (rows < 0) { rows = source.Rows; columns = source.Columns; }
                 else if (rows != source.Rows || columns != source.Columns) mismatchedShape = true;
                 var values = new List<FormulaArgumentValue>(source.Count);
