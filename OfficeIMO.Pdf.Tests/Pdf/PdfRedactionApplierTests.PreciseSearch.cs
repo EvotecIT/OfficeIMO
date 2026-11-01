@@ -273,26 +273,36 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.DoesNotContain("secret", result.Read().Text, StringComparison.Ordinal);
         }
 
-        [Fact]
-        public void PreciseSelectionKeepsWholeLigaturesAndRejectsPartialOnes() {
-            byte[] bytes = BuildType0ToUnicodeLigatureRedactionSource();
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void PreciseSelectionKeepsWholeLigaturesAndRejectsPartialOnes(bool actualText) {
+            byte[] bytes = BuildType0ToUnicodeLigatureRedactionSource(actualText);
             PdfDocument source = PdfDocument.Load(bytes);
             PdfRedactionPlan partial = source.Redactions.Search(PreciseOptions().AddLiteral("f"));
             Assert.False(partial.IsReviewable);
             Assert.Contains(partial.Findings, finding => finding.Code == "redaction-search-partial-glyph");
             Assert.Throws<InvalidOperationException>(() => source.Redactions.Apply(partial));
 
-            PdfRedactionPlan whole = source.Redactions.Search(PreciseOptions().AddLiteral("fi"));
+            PdfRedactionPlan whole = source.Redactions.Search(PreciseOptions().AddLiteral(actualText ? "AfiZ" : "fi"));
             Assert.True(whole.IsReviewable, DescribeFindings(whole));
-            string text = source.Redactions.Apply(whole).Read().Text;
+            PdfDocument output = source.Redactions.Apply(whole);
+            string text = output.Read().Text;
             Assert.DoesNotContain("fi", text, StringComparison.Ordinal);
             Assert.Contains("A", text, StringComparison.Ordinal);
             Assert.Contains("Z", text, StringComparison.Ordinal);
+            if (actualText) {
+                Assert.Equal(ReadGlyphEvidence(bytes).Where(glyph => glyph.Y == 680), ReadGlyphEvidence(output.ToBytes()));
+                Assert.DoesNotContain("ActualText", DecodeAllStreams(output.ToBytes()), StringComparison.Ordinal);
+            }
             Assert.Equal(bytes, source.ToBytes());
         }
 
         [Theory]
         [InlineData("/Span << /ActualText (Alpha secret Omega) >> BDC (painted substitute) Tj EMC")]
+        [InlineData("/Span << /ActualText (secret) /MCID 0 >> BDC (secret) Tj EMC")]
+        [InlineData("/Span << /ActualText (secret) >> BDC (secret) Tj (unselected) Tj EMC")]
+        [InlineData("/Span << /ActualText (secret) >> BDC /Span << /ActualText (secret) >> BDC (secret) Tj EMC EMC")]
         [InlineData("q 60 700 m 410 700 l 100 740 l h W n BT /F1 20 Tf 72 720 Td (Alpha secret Omega) Tj ET Q")]
         public void PreciseSelectionBlocksAmbiguousOrClippedSourceText(string content) {
             byte[] bytes = content.StartsWith("q ", StringComparison.Ordinal)
