@@ -31,24 +31,15 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Creates the reader behind the data reader, table and typed routes. Their fast paths
-        /// resolve malformed cells and oversized grids differently from the SDK route, so only
-        /// worksheets that scan as canonical and fit the caller's limits read the snapshot.
+        /// resolve malformed cells and oversized chunks differently from the SDK route, so each
+        /// worksheet that does not qualify keeps that route.
         /// </summary>
         internal ExcelDocumentReader CreateTabularReader(ExcelReaderOptions options) {
             MaterializeDeferredDataSetImport();
             ExcelPackageReadSnapshot? snapshot = options.CellValueConverter == null ? AcquireReadSnapshot() : null;
-            if (snapshot == null) return ExcelDocumentReader.Wrap(_spreadSheetDocument, options);
-            bool qualifies;
-            try {
-                qualifies = snapshot.QualifiesForTabularReaders(options);
-            } catch {
-                snapshot.Release();
-                throw;
-            }
-
-            if (qualifies) return ExcelDocumentReader.Wrap(snapshot, options);
-            snapshot.Release();
-            return ExcelDocumentReader.Wrap(_spreadSheetDocument, options);
+            return snapshot != null
+                ? ExcelDocumentReader.WrapTabular(snapshot, options, () => ExcelDocumentReader.Wrap(_spreadSheetDocument, options))
+                : ExcelDocumentReader.Wrap(_spreadSheetDocument, options);
         }
 
         /// <summary>

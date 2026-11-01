@@ -50,7 +50,9 @@ namespace OfficeIMO.Excel {
             var worksheetRows = new WorksheetXmlRowSelector();
             bool canCancel = ct.CanBeCanceled;
             bool fillBlanks = _opt.FillBlanksInRanges;
-            bool hasCustomConverter = _opt.CellValueConverter != null;
+            // A culture also changes how text parses as a number, which only the raw conversion honours.
+            bool hasCustomConverter = _opt.CellValueConverter != null
+                || !ReferenceEquals(_opt.Culture, System.Globalization.CultureInfo.InvariantCulture);
             int nextRowIndex = 1;
 
             while (reader.Read()) {
@@ -168,6 +170,15 @@ namespace OfficeIMO.Excel {
             bool readStyleIndex = true;
 
             CellRaw raw = ReadXmlCellRaw(cellReader, rowIndex, columnIndex, cellKind, readStyleIndex);
+            if (raw.RawText == null
+                && raw.InlineText == null
+                && raw.FormulaText == null
+                && _opt.CellValueConverter == null
+                && !_opt.FillBlanksInRanges) {
+                value = null;
+                return false;
+            }
+
             value = ConvertRaw(raw).TypedValue;
             return true;
         }

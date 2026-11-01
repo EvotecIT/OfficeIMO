@@ -5,8 +5,6 @@ using System.Xml;
 
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelPackageReadSnapshot {
-        private const long NotCanonical = -1;
-        private const long NotScanned = -2;
         private static readonly XmlReaderSettings QualificationXmlReaderSettings = new() {
             DtdProcessing = DtdProcessing.Prohibit,
             IgnoreComments = true,
@@ -14,41 +12,48 @@ namespace OfficeIMO.Excel {
             CloseInput = false
         };
 
-        private long _largestWorksheetCells = NotScanned;
+        private readonly Dictionary<Uri, WorksheetExtent?> _worksheetExtents = new();
 
-        /// <summary>The first tabular read scans each worksheet once; a canceled scan is not kept.</summary>
-        internal bool QualifiesForTabularReaders(ExcelReaderOptions options) {
-            long largest;
+        /// <summary>
+        /// Scans a worksheet on its first tabular read; a canceled scan is not kept. A chunk or schema
+        /// sample that would exceed the buffered cell limit stays on the SDK route, which reports that limit. Dense reads
+        /// check their own limit on either route, so sheet size alone does not disqualify a worksheet.
+        /// </summary>
+        internal bool QualifiesForTabularReaders(WorksheetPart worksheet, ExcelReaderOptions options) {
+            WorksheetExtent? extent;
             lock (_gate) {
-                if (_largestWorksheetCells == NotScanned) {
-                    _largestWorksheetCells = ScanWorksheets(options.CancellationToken);
-                }
-                largest = _largestWorksheetCells;
-            }
-
-            return largest != NotCanonical
-                && largest <= Math.Min(options.MaxRangeCells, options.MaxDataReaderBufferedCells);
-        }
-
-        private long ScanWorksheets(CancellationToken cancellationToken) {
-            WorkbookPart? workbookPart = Document.WorkbookPart;
-            if (workbookPart == null) return NotCanonical;
-            long largest = 0;
-            foreach (WorksheetPart part in workbookPart.WorksheetParts) {
-                try {
-                    using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
-                    using XmlReader reader = XmlReader.Create(stream, QualificationXmlReaderSettings);
-                    long cells = ExcelSheetReader.MeasureCanonicalWorksheet(reader, cancellationToken);
-                    if (cells < 0) return NotCanonical;
-                    largest = Math.Max(largest, cells);
-                } catch (XmlException) {
-                    return NotCanonical;
-                } catch (InvalidDataException) {
-                    return NotCanonical;
+                if (!_worksheetExtents.TryGetValue(worksheet.Uri, out extent)) {
+                    extent = ScanWorksheet(worksheet, options.CancellationToken);
+                    _worksheetExtents[worksheet.Uri] = extent;
                 }
             }
 
-            return largest;
+            return extent is WorksheetExtent known
+                && known.Columns * Math.Min(known.Rows, Math.Max(options.MaxDataReaderChunkRows, options.MaxDataReaderSchemaSampleRows))
+                    <= options.MaxDataReaderBufferedCells;
         }
+
+        private static WorksheetExtent? ScanWorksheet(WorksheetPart worksheet, CancellationToken cancellationToken) {
+            try {
+                using Stream stream = worksheet.GetStream(FileMode.Open, FileAccess.Read);
+                using XmlReader reader = XmlReader.Create(stream, QualificationXmlReaderSettings);
+                return ExcelSheetReader.MeasureCanonicalWorksheet(reader, cancellationToken);
+            } catch (XmlException) {
+                return null;
+            } catch (IOException) {
+                return null;
+            }
+        }
+    }
+
+    internal readonly struct WorksheetExtent {
+        internal WorksheetExtent(long rows, long columns) {
+            Rows = rows;
+            Columns = columns;
+        }
+
+        internal long Rows { get; }
+
+        internal long Columns { get; }
     }
 }

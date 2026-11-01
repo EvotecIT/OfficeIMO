@@ -160,7 +160,9 @@ namespace OfficeIMO.Excel {
             using var reader = OpenCellEnumerationXmlReader(stream);
             var worksheetRows = new WorksheetXmlRowSelector();
             bool canCancel = ct.CanBeCanceled;
-            bool hasCustomConverter = _opt.CellValueConverter != null;
+            // A culture also changes how text parses as a number, which only the raw conversion honours.
+            bool hasCustomConverter = _opt.CellValueConverter != null
+                || !ReferenceEquals(_opt.Culture, System.Globalization.CultureInfo.InvariantCulture);
             int nextRowIndex = 1;
 
             while (reader.Read()) {

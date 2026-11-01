@@ -137,6 +137,67 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NonCanonicalWorksheetKeepsTheSdkRouteWithoutAffectingItsNeighbour() {
+            byte[] package = CreatePackage(
+                ("Good", "<row r=\"1\"><c r=\"A1\"><v>1</v></c></row>"),
+                ("Bad", "<row r=\"1\"><c r=\"A1\" t=\"str\"><v>   </v></c></row>"));
+            using var document = ExcelDocument.Load(new MemoryStream(package));
+
+            Assert.Equal(1d, document["Good"].ToDataTable(headersInFirstRow: false).Rows[0][0]);
+            Assert.Equal("   ", document["Bad"].ToDataTable(headersInFirstRow: false).Rows[0][0]);
+
+            var parts = document.OpenXmlDocument.WorkbookPart!;
+            var loaded = parts.Workbook!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Sheet>()
+                .ToDictionary(sheet => sheet.Name!.Value!, sheet => parts.GetPartById(sheet.Id!.Value!).IsRootElementLoaded);
+            Assert.False(loaded["Good"]);
+            Assert.True(loaded["Bad"]);
+        }
+
+        [Fact]
+        public void StreamingReadersPassWholeSheetsThatDenseReadsStillLimit() {
+            byte[] package = CreatePackage(string.Concat(Enumerable.Range(1, 30).Select(row =>
+                $"<row r=\"{row}\"><c r=\"A{row}\"><v>{row}</v></c><c r=\"B{row}\"><v>{row}</v></c></row>")));
+            using var document = ExcelDocument.Load(new MemoryStream(package));
+            ExcelSheet sheet = document.Sheets[0];
+            var options = new ExcelReaderOptions { MaxRangeCells = 10, HasHeaderRow = false };
+
+            using (var reader = sheet.CreateDataReader(options)) {
+                int rows = 0;
+                while (reader.Read()) rows++;
+                Assert.Equal(30, rows);
+            }
+
+            Assert.Throws<OfficeIMO.OfficeInspectionResourceLimitException>(() => sheet.ToDataTable(false, options));
+        }
+
+        [Fact]
+        public void ChunkOverTheBufferedCellLimitFailsTheSameOnBothRoutes() {
+            byte[] package = CreatePackage(
+                "<row r=\"1\"><c r=\"A1\"><v>1</v></c></row><row r=\"1048576\"><c r=\"XFD1048576\"><v>2</v></c></row>");
+            var options = new ExcelReaderOptions { HasHeaderRow = false };
+            static void ReadFirstRow(ExcelSheet sheet, ExcelReaderOptions readerOptions) {
+                using var reader = sheet.CreateDataReader(readerOptions);
+                reader.Read();
+            }
+
+            using var loaded = ExcelDocument.Load(new MemoryStream(package));
+            using var exposed = ExcelDocument.Load(new MemoryStream(package));
+            _ = exposed.OpenXmlDocument;
+
+            Assert.Throws<OfficeIMO.OfficeInspectionResourceLimitException>(() => ReadFirstRow(exposed.Sheets[0], options));
+            Assert.Throws<OfficeIMO.OfficeInspectionResourceLimitException>(() => ReadFirstRow(loaded.Sheets[0], options));
+        }
+
+        [Fact]
+        public void CultureAppliesToNumberText() {
+            byte[] package = CreatePackage("<row r=\"1\"><c r=\"A1\"><v>1,25</v></c></row>");
+            using var document = ExcelDocument.Load(new MemoryStream(package));
+            var options = new ExcelReaderOptions { Culture = System.Globalization.CultureInfo.GetCultureInfo("de-DE") };
+
+            Assert.Equal(1.25d, document.Sheets[0].EnumerateCells(options).Single().Value);
+        }
+
+        [Fact]
         public void CellValueConverterSeesCellsWithoutContent() {
             byte[] package = CreatePackage("<row r=\"1\"><c r=\"A1\"><v>1</v></c><c r=\"B1\"/></row>");
             using var document = ExcelDocument.Load(new MemoryStream(package));
@@ -156,7 +217,18 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new DateTime(2024, 2, 1), document.Sheets[0].EnumerateCells(options).Single().Value);
         }
 
-        private static byte[] CreatePackage(string rows) {
+        private static byte[] CreatePackage(string rows) => CreatePackage(("Data", rows));
+
+        private static byte[] CreatePackage(params (string Name, string Rows)[] sheets) {
+            var overrides = new StringBuilder();
+            var sheetElements = new StringBuilder();
+            var relationships = new StringBuilder();
+            for (int index = 1; index <= sheets.Length; index++) {
+                overrides.Append($"<Override PartName=\"/xl/worksheets/sheet{index}.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>");
+                sheetElements.Append($"<sheet name=\"{sheets[index - 1].Name}\" sheetId=\"{index}\" r:id=\"rId{index}\"/>");
+                relationships.Append($"<Relationship Id=\"rId{index}\" Type=\"{RelationshipNamespace}/worksheet\" Target=\"worksheets/sheet{index}.xml\"/>");
+            }
+
             using var output = new MemoryStream();
             using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
                 Add(archive, "[Content_Types].xml",
@@ -164,20 +236,22 @@ namespace OfficeIMO.Tests {
                     + "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>"
                     + "<Default Extension=\"xml\" ContentType=\"application/xml\"/>"
                     + "<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>"
-                    + "<Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>"
+                    + overrides
                     + "<Override PartName=\"/xl/sharedStrings.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml\"/>"
                     + "</Types>");
                 Add(archive, "_rels/.rels",
                     "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
                     + $"<Relationship Id=\"rId1\" Type=\"{RelationshipNamespace}/officeDocument\" Target=\"xl/workbook.xml\"/></Relationships>");
                 Add(archive, "xl/workbook.xml",
-                    $"<workbook xmlns=\"{SpreadsheetNamespace}\" xmlns:r=\"{RelationshipNamespace}\"><sheets><sheet name=\"Data\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>");
+                    $"<workbook xmlns=\"{SpreadsheetNamespace}\" xmlns:r=\"{RelationshipNamespace}\"><sheets>{sheetElements}</sheets></workbook>");
                 Add(archive, "xl/_rels/workbook.xml.rels",
                     "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
-                    + $"<Relationship Id=\"rId1\" Type=\"{RelationshipNamespace}/worksheet\" Target=\"worksheets/sheet1.xml\"/>"
-                    + $"<Relationship Id=\"rId2\" Type=\"{RelationshipNamespace}/sharedStrings\" Target=\"sharedStrings.xml\"/></Relationships>");
-                Add(archive, "xl/worksheets/sheet1.xml",
-                    $"<worksheet xmlns=\"{SpreadsheetNamespace}\"><sheetData>{rows}</sheetData></worksheet>");
+                    + relationships
+                    + $"<Relationship Id=\"rId900\" Type=\"{RelationshipNamespace}/sharedStrings\" Target=\"sharedStrings.xml\"/></Relationships>");
+                for (int index = 1; index <= sheets.Length; index++) {
+                    Add(archive, $"xl/worksheets/sheet{index}.xml",
+                        $"<worksheet xmlns=\"{SpreadsheetNamespace}\"><sheetData>{sheets[index - 1].Rows}</sheetData></worksheet>");
+                }
                 Add(archive, "xl/sharedStrings.xml",
                     $"<sst xmlns=\"{SpreadsheetNamespace}\" count=\"2\" uniqueCount=\"2\"><si><t>shared</t></si><si><t>   </t></si></sst>");
             }
