@@ -535,9 +535,6 @@ Converts Pages, Numbers, or Keynote into the matching editable Microsoft Office 
 ### [ConvertFrom-OfficeLatexMarkdown](ConvertFrom-OfficeLatexMarkdown.md)
 Converts Markdown to native LaTeX with fidelity diagnostics.
 
-### [ConvertFrom-OfficeMarkdownHtml](ConvertFrom-OfficeMarkdownHtml.md)
-Converts HTML content to Markdown.
-
 ### [ConvertFrom-OfficeOneNote](ConvertFrom-OfficeOneNote.md)
 Converts an offline OneNote section or notebook to semantic Markdown, HTML, or PDF.
 
@@ -677,7 +674,7 @@ Exports Word, Excel, PowerPoint, HTML, Markdown, RTF, and literal text documents
 Exports PowerShell objects to an Excel workbook using an operator-friendly surface.
 
 ### [Export-OfficeExcelGoogleSpreadsheet](Export-OfficeExcelGoogleSpreadsheet.md)
-Plans, compiles, or exports an Excel workbook to Google Sheets.
+Plans, compiles or exports Excel workbooks to Google Sheets.
 
 ### [Export-OfficePdfLayoutOverlay](Export-OfficePdfLayoutOverlay.md)
 Exports PDF word, line, region, and reading-order diagnostics as PNG or SVG.
@@ -704,7 +701,7 @@ Exports CFX semantic visual-artifact input as a native editable VSDX diagram.
 Exports PowerShell objects to a Word document containing an editable table.
 
 ### [Export-OfficeWordGoogleDocument](Export-OfficeWordGoogleDocument.md)
-Plans, compiles, or exports a Word document to Google Docs.
+Plans, compiles or exports Word documents to Google Docs.
 
 ### [Find-OfficeExcel](Find-OfficeExcel.md)
 Finds text in worksheet values.
@@ -1165,11 +1162,17 @@ Creates native Excel-to-Google-Sheets planning and export settings without conta
 ### [New-OfficeExcelImageOptions](New-OfficeExcelImageOptions.md)
 Creates discoverable rendering settings for Excel range and chart image export.
 
+### [New-OfficeExcelMergeOptions](New-OfficeExcelMergeOptions.md)
+Creates native import policies and typed worksheet selections for Merge-OfficeDocument.
+
 ### [New-OfficeExcelOpenDocumentOptions](New-OfficeExcelOpenDocumentOptions.md)
 Creates Excel/OpenDocument conversion settings.
 
 ### [New-OfficeExcelPdfOptions](New-OfficeExcelPdfOptions.md)
 Creates discoverable Excel-to-PDF conversion options for Export-OfficeDocumentPdf.
+
+### [New-OfficeExcelProtectionOptions](New-OfficeExcelProtectionOptions.md)
+Creates Excel-specific hash and reservation settings for Protect-OfficeDocument.
 
 ### [New-OfficeExcelSaveOptions](New-OfficeExcelSaveOptions.md)
 Creates native workbook save settings.
@@ -1179,6 +1182,9 @@ Creates discoverable sheet selection and rendering settings for Export-OfficeExc
 
 ### [New-OfficeHtmlConversionOptions](New-OfficeHtmlConversionOptions.md)
 Creates discoverable parsing, trust, and document settings for HTML conversion.
+
+### [New-OfficeHtmlMarkdownOptions](New-OfficeHtmlMarkdownOptions.md)
+Creates native HTML-to-Markdown import and writer settings without converting or writing files.
 
 ### [New-OfficeHtmlPdfOptions](New-OfficeHtmlPdfOptions.md)
 Creates typed HTML rendering options for Export-OfficeDocumentPdf.
@@ -1210,8 +1216,20 @@ Creates a live PDF document or atomically saves a completed composition block.
 ### [New-OfficePdfExcelImportOptions](New-OfficePdfExcelImportOptions.md)
 Creates discoverable PDF-table-to-Excel reconstruction settings.
 
+### [New-OfficePdfFormFillOptions](New-OfficePdfFormFillOptions.md)
+Creates native XFDF field/value limits and appearance behavior for Import-OfficePdfXfdf.
+
 ### [New-OfficePdfImageOptions](New-OfficePdfImageOptions.md)
 Creates discoverable thumbnail and rendering settings for Export-OfficePdfImage.
+
+### [New-OfficePdfInteractionOptions](New-OfficePdfInteractionOptions.md)
+Creates native region limits and invisible-text policy for Get-OfficePdfInteractionMap.
+
+### [New-OfficePdfLayoutOverlayOptions](New-OfficePdfLayoutOverlayOptions.md)
+Creates native PDF layout-overlay layers, colors and resource limits.
+
+### [New-OfficePdfRewriteOptions](New-OfficePdfRewriteOptions.md)
+Creates native PDF rewrite preservation checks for Test-OfficePdfRewrite.
 
 ### [New-OfficePdfSignature](New-OfficePdfSignature.md)
 Prepares an existing PDF for external digital signing by appending a signature field, /ByteRange, and reserved /Contents placeholder.

@@ -101,7 +101,7 @@ Accept wildcard characters: False
 ```
 
 ### -Options
-Native Word, PDF or Excel merge options objects or property hashtables for the selected format.
+Native merge settings, New-OfficeExcelMergeOptions results, or property hashtables for the selected format.
 
 ```yaml
 Type: Object[]
