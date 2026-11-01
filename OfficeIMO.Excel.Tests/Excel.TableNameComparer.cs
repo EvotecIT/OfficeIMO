@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
                 // Switch to case-insensitive and ensure suffixing now applies for the same base name
                 doc.TableNameComparer = System.StringComparer.OrdinalIgnoreCase; // resets cache
                 s.CellValue(2, 1, "B");
-                s.AddTable("A2:A2", hasHeader: true, name: "TABLE", ExcelTableStyle.TableStyleMedium9);
+                s.AddTable("A3:A3", hasHeader: true, name: "TABLE", ExcelTableStyle.TableStyleMedium9);
                 doc.Save();
             }
 

@@ -73,11 +73,11 @@ namespace OfficeIMO.Tests {
             });
 
             sheet.InsertColumns(2);
-            Assert.Equal("A1:C1", sheet.GetTableRange(source.TableName));
+            Assert.Equal("A1:C2", sheet.GetTableRange(source.TableName));
             AssertQueryFieldSchema(sheet, new[] { "A", "Column2", "B" });
 
             sheet.DeleteColumns(2);
-            Assert.Equal("A1:B1", sheet.GetTableRange(source.TableName));
+            Assert.Equal("A1:B2", sheet.GetTableRange(source.TableName));
             AssertQueryFieldSchema(sheet, new[] { "A", "B" });
             Assert.Empty(document.ValidateOpenXml());
         }

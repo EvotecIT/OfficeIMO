@@ -306,7 +306,7 @@ namespace OfficeIMO.Excel {
             return _worksheetPart.TableDefinitionParts
                 .Select(part => part.Table)
                 .FirstOrDefault(table => table != null && (
-                    string.Equals(table.Reference?.Value, tableOrRange, StringComparison.OrdinalIgnoreCase)
+                    string.Equals(table.Reference?.Value, BuildTableReference(tableOrRange, (table.HeaderRowCount?.Value ?? 1U) > 0U), StringComparison.OrdinalIgnoreCase)
                     || string.Equals(table.Name?.Value, tableOrRange, StringComparison.OrdinalIgnoreCase)
                     || string.Equals(table.DisplayName?.Value, tableOrRange, StringComparison.OrdinalIgnoreCase)));
         }
@@ -640,6 +640,8 @@ namespace OfficeIMO.Excel {
                     if (hasHeader) headerNames ??= directCandidateHeaders;
                 }
 
+                string tableRange = BuildTableReference(range, hasHeader);
+                int tableEndRowIndex = tableRange == range ? endRowIndex : endRowIndex + 1;
                 if (!skipExistingTableScan) {
                     foreach (var existingPart in _worksheetPart.TableDefinitionParts) {
                         var existingRange = existingPart.Table?.Reference?.Value;
@@ -649,7 +651,7 @@ namespace OfficeIMO.Excel {
                         bool overlaps = startColumnIndex <= existingEndColumn &&
                                         endColumnIndex >= existingStartColumn &&
                                         startRowIndex <= existingEndRow &&
-                                        endRowIndex >= existingStartRow;
+                                        tableEndRowIndex >= existingStartRow;
                         if (overlaps) {
                             throw new InvalidOperationException("The specified range overlaps with an existing table.");
                         }
@@ -701,7 +703,7 @@ namespace OfficeIMO.Excel {
                     Id = tableId,
                     Name = name,
                     DisplayName = name,
-                    Reference = range,
+                    Reference = tableRange,
                     HeaderRowCount = hasHeader ? (uint)1 : (uint)0,
                     TotalsRowShown = false
                 };
@@ -759,6 +761,7 @@ namespace OfficeIMO.Excel {
                     if (hasExistingFilter && existingWorksheetAutoFilter != null) {
                         // MIGRATE: Move the existing worksheet AutoFilter to the table (preserving filter criteria)
                         var tableAutoFilter = (AutoFilter)existingWorksheetAutoFilter.CloneNode(true);
+                        tableAutoFilter.Reference = tableRange;
 
                         // Remove from worksheet to avoid conflicts
                         WorksheetRoot.RemoveChild(existingWorksheetAutoFilter);
@@ -767,7 +770,7 @@ namespace OfficeIMO.Excel {
                         table.Append(tableAutoFilter);
                     } else {
                         // No existing filter, just add a new one to the table
-                        table.Append(new AutoFilter { Reference = range });
+                        table.Append(new AutoFilter { Reference = tableRange });
                     }
                 } else {
                     // User doesn't want AutoFilter on the table
@@ -834,6 +837,13 @@ namespace OfficeIMO.Excel {
             });
 
             return resolvedName;
+        }
+
+        /// <summary>A table needs a data row, so a header-only range spans a blank row, as Excel's own empty tables do.</summary>
+        internal static string BuildTableReference(string range, bool hasHeader) {
+            if (!hasHeader || !ExcelA1.TryParseStrictRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) ||
+                lastRow != firstRow || lastRow >= ExcelA1.MaxRows) return range;
+            return ExcelA1.CellReference(firstRow, firstColumn) + ":" + ExcelA1.CellReference(lastRow + 1, lastColumn);
         }
 
         private static bool TryAppendProvidedTableColumns(TableColumns tableColumns, IReadOnlyList<string>? headerNames, uint columnsCount) {

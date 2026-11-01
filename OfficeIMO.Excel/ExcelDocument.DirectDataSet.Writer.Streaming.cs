@@ -23,8 +23,7 @@ public partial class ExcelDocument {
             WriteTextEntry(archive, "xl/worksheets/_rels/sheet" + index + ".xml.rels",
                 "<?xml version=\"1.0\" encoding=\"utf-8\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
                 "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/table\" Target=\"../tables/table" + index + ".xml\"/></Relationships>");
-            // A table needs a data row, so an empty one spans a blank row as Excel's own empty tables do.
-            WriteTable(archive, sheet, ExcelSheet.BuildObjectExportRange(1, sheet.Table.ColumnCount, Math.Max(count, 1), sheet.IncludeHeaders));
+            WriteTable(archive, sheet, ExcelSheet.BuildObjectExportRange(1, sheet.Table.ColumnCount, count, sheet.IncludeHeaders));
             return count;
         }
 
