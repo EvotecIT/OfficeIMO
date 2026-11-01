@@ -81,4 +81,20 @@ public partial class PdfFormFillerTests {
         Assert.Contains("CURRENTVALUE", text, StringComparison.Ordinal);
         Assert.DoesNotContain("OLDAPPEARANCE", text, StringComparison.Ordinal);
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FillingARichTextFieldReplacesItsRichValue(bool incremental) {
+        byte[] input = BuildReviewFormPdf("/Fields [10 0 R]", "/Annots [10 0 R]", string.Empty,
+            TextWidget(10, "Note", "72 700 272 720", "/F 4 /Ff 33554432 /V (OLDNOTE) /RV (<body><p>OLDNOTE</p></body>) /AP << /N 12 0 R >>"), TextAppearance(12, "OLDNOTE"));
+        var values = new Dictionary<string, string> { ["Note"] = "new note" };
+
+        byte[] filled = incremental ? PdfIncrementalUpdater.UpdateFormFields(input, values, keepNeedAppearances: false) : PdfFormFiller.FillFields(input, values);
+
+        PdfReadDocument output = PdfReadDocument.Open(filled);
+        PdfDictionary field = output.Objects.Values.Select(static item => item.Value).OfType<PdfDictionary>().Single(static dictionary => dictionary.Items.ContainsKey("T"));
+        Assert.Equal("new note", ((PdfStringObj)field.Items["V"]).Value);
+        Assert.False(field.Items.ContainsKey("RV"));
+    }
 }
