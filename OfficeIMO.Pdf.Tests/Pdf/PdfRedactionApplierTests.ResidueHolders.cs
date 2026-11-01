@@ -20,4 +20,24 @@ public partial class PdfRedactionApplierTests {
 
         Assert.True(PdfSyntax.IsClassicRedactionOutput(pdf, PdfReadDocument.Open(pdf), default));
     }
+
+    [Fact]
+    [Trait("Category", "Performance")]
+    public void ResidueSweepStaysLinearInStreamCount() {
+        const int streamCount = 20_000;
+        var objects = new List<string>(streamCount + 5) {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R >>\nendobj"
+        };
+        byte[] data = Encoding.ASCII.GetBytes("plain note");
+        for (int number = 4; number < 4 + streamCount; number++) objects.Add(BuildStreamObject(number, data));
+        PdfDocument source = PdfDocument.Load(BuildPdf(objects, rootObjectNumber: 1));
+
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        source.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral(ResidueHolderQuery));
+        stopwatch.Stop();
+
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10), "Residue sweep took " + stopwatch.Elapsed + ".");
+    }
 }
