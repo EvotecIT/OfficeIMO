@@ -499,6 +499,92 @@
         "The failed high-volume run is retained as incomplete evidence, separate from the decisive narrowed runs."
       ],
       "canClosePUB00": false
+    },
+    "validationConsentControl": {
+      "scope": "Positive observation of the selected non-strict validation-consent request, followed by native refusal. No successful repaired publication or completed Full lifecycle.",
+      "runnerSourceCommit": "c8e7be496f58421d961bb3ba536595d5137c4f3a",
+      "nativeExecutableSha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed",
+      "input": {
+        "independentProducer": "Microsoft Publisher 16.0.20527.20088",
+        "sourceSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+        "candidateSha256": "8ec6b477871d0744671b9dd0bdaec0fc0c69fa03448ffc24d34102f32f95c915",
+        "stream": "Contents",
+        "streamOffset": 7867,
+        "catalogIndex": 293,
+        "recordKind": 1,
+        "fieldId": 183,
+        "beforeType": "0x20",
+        "afterType": "0xF8",
+        "nativeFieldIdUnchanged": true,
+        "fileByteDifferences": [
+          12987
+        ],
+        "allOtherBytesUnchanged": true
+      },
+      "observation": {
+        "contiguousEvents": 11,
+        "sameThreadPairedLoad": true,
+        "readyBeforeOpen": true,
+        "maximumSeverity": 2,
+        "strictFailure": 0,
+        "diagnosticCount": 1,
+        "diagnosticHelperResult": 1,
+        "consentBoundaryStatus": 0,
+        "continuation": 0,
+        "messageId": "0x66C2",
+        "messageCallerRva": "0x191279",
+        "dispatcherReturn": 2,
+        "validationResult": "0x80040052",
+        "loadResult": "0x80FF000D",
+        "objectLoadingReached": false,
+        "completedNativeOperations": 0,
+        "completeFullStage": false,
+        "canonicalTraceCoverage": "incomplete",
+        "postGateOrDrainClaimed": false
+      },
+      "observationRuntime": {
+        "frida": "17.19.0",
+        "macroSecurity": 3,
+        "syntheticCalls": 3,
+        "syntheticChildClosed": true,
+        "uiInteraction": false,
+        "additionalComCalls": false,
+        "nativeArgumentResultOrDataWrites": false
+      },
+      "observerIdentity": {
+        "unchangedFrom": "observations.laterLoadRecovery",
+        "fingerprints": {
+          "observe.py": "5049a372f447cbef80c8c403b7e1d9ae0311264c196ac2c4e474a52e193eae36",
+          "hooks.js": "998eec147ee836981cd9f4b1cc7cfd6897bc9ca55d14ad599319172b9cfdaae2",
+          "hook-proposal.json": "937909ef8db1f82e235926a60972b5503a31e3d51100657029de532ecb9e5d95",
+          "process-identity.py": "b807b28654921e188f8b7fe074dbd8a741c199adbe5b69da630dce5565c8684e",
+          "replay-identity-v3.json": "897eb0669a7ce5dac43175830ea9866c01cb53e37a8657aab1f80003636fff72"
+        }
+      },
+      "integrity": {
+        "originalAndCopyUnchanged": true,
+        "ownedWorkerAndNativeClosed": true,
+        "proofSha256": "88cfc27f4cb6d56a5882b052b838aa6f253e501a908b5011019fcc3c9b479f42",
+        "traceSha256": "e18b521fd2e2226e60239fc279e4622f7ef62edb60252a5e300d9581f92efd51"
+      },
+      "staticErrorMapping": {
+        "nativeFunctionRva": "0x6A77E8",
+        "result": "The bit-26 error category selects 0x80040042 or 0x80040043 from existing diagnostic state; bit 25 selects 0x80040043. This control stops in validation before the object-loader parser.",
+        "evidenceSha256": [
+          "71d7c7e519a5ae42c1cfe4f8d5808c8f837713e970c74b6e13298bf08ede97cc",
+          "d43285bc1e8917e219875fecf9ee3244d35a479d01da2cf88c7a78d83162b640"
+        ]
+      },
+      "limits": [
+        "No evidence that a dialog was displayed or interacted with.",
+        "No accepted native recovery or repaired saved publication.",
+        "No later object parser or suppression/retry branch executed.",
+        "Do not classify the failed Full run as complete or change its raw observer report.",
+        "The dispatcher return and native refusal do not establish a visible dialog or a user choice.",
+        "A successfully accepted recovery path and saved repaired publication remain unqualified."
+      ],
+      "repairPositive": false,
+      "canClosePUB00": false
     }
   },
   "nativeArtifacts": [

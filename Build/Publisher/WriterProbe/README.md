@@ -627,6 +627,18 @@ None of the 136 parsed repository fixtures contains kind `0x6A`; two additional
 fixtures are outside that scan's parser. These branches remain without a positive
 recovery control. Public native creation remains gated by PUB00.
 
+`observations.validationConsentControl` supplies a positive request-path control.
+A copy of the independent native Text fixture changes only the encoded type byte
+of frame field 183 from `0x20` to unsupported type `0xF8`, preserving the field ID,
+all lengths and every other byte. Native validation reports severity 2, retains a
+zero strict-failure flag and enters the consent branch. Message `0x66C2` returns
+`2` from caller RVA `0x191279`; validation returns `0x80040052` and loading stops
+before the object parser. Eleven contiguous, same-thread events pair the load,
+validator, diagnostic and message entries/returns. The original and copy remain
+unchanged and both owned processes close. The Full attempt remains incomplete;
+no post-open drain, successful repair or native resave is claimed. Accepted
+recovery and the later suppression paths still need positive qualification.
+
 The `sourceEditing.imageReplacement` record covers public native saves for
 existing PNG/JPEG picture placements, including shared assets, master pictures,
 cropping, repeated replacement, combined frame changes and re-editing a native

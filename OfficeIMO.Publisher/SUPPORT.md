@@ -36,6 +36,13 @@ The `observations.laterLoadRecovery` record identifies the sites, results and
 coverage limits. This narrows the unobserved recovery paths; it does not supply
 a successfully repaired control or close native creation acceptance.
 
+A separate one-byte unsupported-field control reaches a severity-2 diagnostic
+and the observed `0x66C2` consent request with the strict-failure flag still zero.
+The dispatcher returns `2`; validation returns `0x80040052` and opening stops
+before object loading. The `observations.validationConsentControl` record
+qualifies that request/refusal observation. It does not establish that a dialog
+was displayed, that recovery was accepted or that a repaired file was saved.
+
 Malformed native character controls further bound that observation: Publisher
 opens and saves a zero font size with no selected diagnostic, while its PDF body
 paint is absent. An invalid primary font index also survives native save and
