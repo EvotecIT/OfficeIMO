@@ -36,13 +36,13 @@ Describe 'Markdown cmdlets' {
     }
 
     It 'converts HTML to Markdown' {
-        $markdown = ConvertFrom-OfficeMarkdownHtml -Html '<h1>Title</h1><p>Hello</p>'
+        $markdown = Convert-OfficeDocument -Text '<h1>Title</h1><p>Hello</p>' -From Html -To Markdown -AsString
         $markdown | Should -Match '# Title'
         $markdown | Should -Match 'Hello'
     }
 
     It 'converts HTML to a Markdown document' {
-        $doc = ConvertFrom-OfficeMarkdownHtml -Html '<h1>Title</h1><p>Hello</p>' -AsDocument
+        $doc = Open-OfficeMarkdown -Text (Convert-OfficeDocument -Text '<h1>Title</h1><p>Hello</p>' -From Html -To Markdown -AsString)
         $doc.GetType().FullName | Should -Be 'OfficeIMO.Markdown.MarkdownDocument'
         $doc.ToMarkdown() | Should -Match '# Title'
     }
@@ -111,9 +111,10 @@ Describe 'Markdown cmdlets' {
 
     It 'saves converted HTML as Markdown' {
         $path = Join-Path $TestDrive 'converted.md'
-        $file = ConvertFrom-OfficeMarkdownHtml -Html '<h1>Title</h1><p>Hello</p>' -OutputPath $path -PassThru
+        $report = Convert-OfficeDocument -Text '<h1>Title</h1><p>Hello</p>' -From Html -To Markdown -OutputPath $path
 
-        $file | Should -BeOfType System.IO.FileInfo
+        $report.GetType().FullName | Should -Be 'OfficeIMO.OfficeConversionReport'
+        $report.OutputPath | Should -Be $path
         (Get-Content -Path $path -Raw) | Should -Match '# Title'
     }
 
@@ -122,7 +123,7 @@ Describe 'Markdown cmdlets' {
         $imageDirectory = Join-Path $TestDrive 'images'
         $html = '<p><img alt="Tiny" src="data:image/png;base64,AQID" /></p>'
 
-        ConvertFrom-OfficeMarkdownHtml -Html $html -OutputPath $path -Base64ImageHandling SaveToFile -Base64ImageOutputDirectory $imageDirectory -WhatIf | Out-Null
+        Convert-OfficeDocument -Text $html -From Html -To Markdown -OutputPath $path -Options (New-OfficeHtmlMarkdownOptions -Base64ImageHandling SaveToFile -Base64ImageOutputDirectory $imageDirectory) -WhatIf | Out-Null
 
         Test-Path -LiteralPath $path | Should -BeFalse
         Test-Path -LiteralPath $imageDirectory | Should -BeFalse
@@ -132,7 +133,7 @@ Describe 'Markdown cmdlets' {
         $imageDirectory = Join-Path $TestDrive 'images-no-output'
         $html = '<p><img alt="Tiny" src="data:image/png;base64,AQID" /></p>'
 
-        ConvertFrom-OfficeMarkdownHtml -Html $html -Base64ImageHandling SaveToFile -Base64ImageOutputDirectory $imageDirectory -WhatIf | Out-Null
+        Convert-OfficeDocument -Text $html -From Html -To Markdown -AsString -Options (New-OfficeHtmlMarkdownOptions -Base64ImageHandling SaveToFile -Base64ImageOutputDirectory $imageDirectory) -WhatIf | Out-Null
 
         Test-Path -LiteralPath $imageDirectory | Should -BeFalse
     }
