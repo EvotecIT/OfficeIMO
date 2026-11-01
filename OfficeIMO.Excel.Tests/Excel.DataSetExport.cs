@@ -488,5 +488,21 @@ namespace OfficeIMO.Tests {
             Assert.Equal("T", sheet.AddTable("A1:A2", name: "T").NameOrRange);
             Assert.Equal("_T2", sheet.AddTable("C1:C2", name: "T").NameOrRange);
         }
+
+        [Fact]
+        public void StreamingWriter_DisposedWithoutTablesThrowsAndPublishesNothing() {
+            string directory = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            string path = Path.Combine(directory, "Existing.xlsx");
+            File.WriteAllText(path, "existing");
+
+            Assert.Throws<InvalidOperationException>(() => ExcelDocument.CreateWriter(path).Dispose());
+            Assert.Equal("existing", File.ReadAllText(path));
+            Assert.Single(Directory.GetFiles(directory));
+
+            using var memory = new MemoryStream();
+            Assert.Throws<InvalidOperationException>(() => ExcelDocument.CreateWriter(memory, leaveOpen: true).Dispose());
+            Assert.Equal(0, memory.Length);
+        }
     }
 }
