@@ -25,9 +25,7 @@ public sealed partial class OfficeRasterCanvas {
 
     internal OfficeDrawingTextMetrics CreateDrawingTextMetrics() => new OfficeDrawingTextMetrics(MeasureText, MeasureTextPaintBounds,
         (text, size, family, style) => MeasureTextLineHorizontalPaintBounds(text ?? string.Empty, size, family, style),
-        null, (segment, size) => OfficeDrawingTextLayout.MeasureSegmentPaintBounds(segment, size,
-            (text, em, family, style) => MeasureTextPaintBoundsWithFeatures(text, em, family, style, segment.KerningFeatures)),
+        null, MeasurePreparedSegmentPaint,
         MeasurePublisherFont, MeasureTextWithFeatures,
-        (segment, size) => MeasureTextLineHorizontalPaintBoundsWithFeatures(segment.Text, size,
-            segment.FontFamily, segment.FontStyle, segment.KerningFeatures));
+        MeasurePreparedSegmentHorizontalPaint, PrepareRichText);
 }

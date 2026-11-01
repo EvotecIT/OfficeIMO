@@ -78,6 +78,7 @@ internal sealed class OfficePreparedTextShaping {
         else program.MeasureShapedText(text, result, 1D);
     }
 
+    internal CancellationToken CancellationToken => _cancellationToken;
     internal IOfficeFontProgram Program { get; }
     internal string Text { get; }
     internal OfficeTextShapingResult Result { get; }

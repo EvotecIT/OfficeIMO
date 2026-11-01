@@ -10,6 +10,8 @@ public sealed class OfficeRichTextParagraph {
     internal bool ContinuesInNextRegion { get; set; }
     // Native Publisher PDF reference metrics are opt-in; ordinary drawing keeps its defaults.
     internal bool UsesPublisherFontMetrics { get; set; }
+    // Native source layout uses the first setting in each qualified font/line context.
+    internal bool UsesPublisherKerningContext { get; set; }
     /// <summary>Creates a paragraph with independent alignment, line spacing, margins and indentation.</summary>
     /// <param name="runs">Styled inline content. The collection and runs are copied.</param>
     /// <param name="alignment">Horizontal alignment within the paragraph's margins.</param>
@@ -81,6 +83,7 @@ public sealed class OfficeRichTextParagraph {
         copy.TabStops = tabStops;
         copy.ContinuesInNextRegion = ContinuesInNextRegion;
         copy.UsesPublisherFontMetrics = UsesPublisherFontMetrics;
+        copy.UsesPublisherKerningContext = UsesPublisherKerningContext;
         return copy;
     }
 

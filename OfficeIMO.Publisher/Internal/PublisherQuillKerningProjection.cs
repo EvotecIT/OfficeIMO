@@ -19,8 +19,7 @@ internal sealed class PublisherQuillKerningProjection {
         result = story.Paragraphs;
         if (_imported?.NativeSource != null && _imported.Baseline != null
             && _imported.Baseline.Text.Stories.TryGetValue(story.Id, out PublisherTextStory? before)
-            && story.Paragraphs.Any(paragraph => paragraph.Runs.Any(run => !run.AutomaticPairKerningThreshold.HasValue)
-                || paragraph.Label != null && !paragraph.Label.Run.AutomaticPairKerningThreshold.HasValue)) {
+            && story.Paragraphs.Any(paragraph => paragraph.Runs.Count != 0)) {
             if (!TryProject(before, story, out var effective))
                 _context.Add("PUB_TEXT_KERNING_SOURCE_UNASSESSED",
                     "Effective native kerning could not be resolved through a qualified retained source definition. Explicit run settings remain active; unspecified runs retain generic renderer defaults.",
@@ -139,6 +138,7 @@ internal sealed class PublisherQuillKerningProjection {
                     paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor);
             copy = copy.WithTabStops(paragraph.TabStops);
             copy.UsesPublisherFontMetrics = paragraph.UsesPublisherFontMetrics;
+            copy.UsesPublisherKerningContext = true;
             copy.ContinuesInNextRegion = paragraph.ContinuesInNextRegion;
             result.Add(copy);
             if (position < story.Text.Length) position++; // Native paragraph CR, absent after an unterminated final paragraph.

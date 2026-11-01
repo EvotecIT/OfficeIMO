@@ -31,6 +31,12 @@ internal static partial class PdfWriter {
         return parts.Any(part => !CanWriteRunWithSelectedFont(part, baseFont, options)) ? null : parts;
     }
 
+    private static PdfTrueTypeFontProgram? ResolvePreparedDrawingFont(RichSeg segment, PdfOptions options) {
+        if (segment.NamedFont.HasValue)
+            return options.TryGetNamedFontProgram(segment.NamedFont.Value, out PdfTrueTypeFontProgram? named) ? named : null;
+        return options.TryGetEmbeddedStandardFontProgram(segment.Font, out PdfTrueTypeFontProgram? standard) ? standard : null;
+    }
+
     private static RichSeg CreatePositionedTextSegment(PdfTextRun run, double fontSize, PdfOptions options, double fontMetricScale = 1D) {
         PdfStandardFont font = ResolveFontForRun(run, ChooseNormal(options.DefaultFont));
         PdfNamedFontFace? namedFont = options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolved)

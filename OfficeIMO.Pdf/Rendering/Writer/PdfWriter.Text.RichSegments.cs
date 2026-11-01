@@ -131,7 +131,7 @@ internal static partial class PdfWriter {
         public PdfTextBaseline Baseline { get; }
         public double LineAlignmentRise { get; set; }
 
-        public double MeasuredWidth { get; }
+        public double MeasuredWidth { get; private set; }
 
         public PdfTextShowCommand? KerningCommand { get; set; }
         public double KerningAdvance { get; set; }
@@ -246,6 +246,13 @@ internal static partial class PdfWriter {
             RichSeg copy = new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth + extraAdvance, LeadingSpace, leadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment, HorizontalTextScaling, CharacterSpacing, FontMetricScale, LeadingSpaceCount, LeadingSpaceRemainder, LeadingSpaceUnitAdvance).CopyLayoutMetadataFrom(this);
             copy.KerningCommand = command ?? KerningCommand;
             copy.JustificationAdvance += extraAdvance;
+            return copy;
+        }
+
+        internal RichSeg WithPreparedGlyphs(PdfTextShowCommand command, double width) {
+            RichSeg copy = WithJustification(0D, LeadingAdvance, command);
+            copy.MeasuredWidth = width;
+            copy.KerningAdvance = 0D;
             return copy;
         }
 

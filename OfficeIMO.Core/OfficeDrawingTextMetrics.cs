@@ -38,8 +38,20 @@ internal sealed class OfficeDrawingTextMetrics {
         Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?> measureSegmentPaint,
         Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? measurePublisherFont,
         Func<string?, double, string?, OfficeFontStyle, OfficeTextFeatureSettings?, double>? measureFeatures,
-        Func<OfficeRichTextSegment, double, (double Left, double Right)>? measureSegmentHorizontalPaint) {
-        RichTextMeasurement = new OfficeRichTextMeasurement(measure, measureFeatures);
+        Func<OfficeRichTextSegment, double, (double Left, double Right)>? measureSegmentHorizontalPaint)
+        : this(measure, measurePaint, measureHorizontalPaint, measurePositioned, measureSegmentPaint, measurePublisherFont,
+            measureFeatures, measureSegmentHorizontalPaint, null) { }
+
+    internal OfficeDrawingTextMetrics(Func<string?, double, string?, OfficeFontStyle, double> measure,
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds> measurePaint,
+        Func<string?, double, string?, OfficeFontStyle, (double Left, double Right)> measureHorizontalPaint,
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextDirection, double>? measurePositioned,
+        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?> measureSegmentPaint,
+        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? measurePublisherFont,
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextFeatureSettings?, double>? measureFeatures,
+        Func<OfficeRichTextSegment, double, (double Left, double Right)>? measureSegmentHorizontalPaint,
+        Func<string, double, string, OfficeFontStyle, OfficeTextFeatureSettings?, OfficePreparedTextShaping?>? prepare) {
+        RichTextMeasurement = new OfficeRichTextMeasurement(measure, measureFeatures, prepare);
         MeasureSegmentHorizontalPaintBounds = measureSegmentHorizontalPaint ??
             ((segment, size) => measureHorizontalPaint(segment.Text, size, segment.FontFamily, segment.FontStyle));
         MeasurePublisherFont = measurePublisherFont;

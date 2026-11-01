@@ -212,16 +212,26 @@ internal static partial class PdfWriter {
                     strikeStyle: segment.StrikethroughStyle, decorationColor: ToPdfColor(decorationColor))
                     .WithFeatureSettings(segment.KerningFeatures ?? OfficeTextFeatureSettings.Default);
                 WriteDrawingPositionedRun(run, x, contentTopY - renderedBaseline, advance,
-                    clipX, clipY, clipWidth, clipHeight, segment.Color, decorationColor);
+                    clipX, clipY, clipWidth, clipHeight, segment.Color, decorationColor,
+                    prepared: segment.PreparedShaping);
             }
         }
 
         private void WriteDrawingPositionedRun(PdfTextRun run, double x, double baseline, double advance,
             double clipX, double clipY, double clipWidth, double clipHeight, OfficeColor foregroundColor,
-            OfficeColor? decorationColor, bool clipToFrame = true) {
+            OfficeColor? decorationColor, bool clipToFrame = true, OfficePreparedTextShaping? prepared = null) {
             double size = run.FontSize ?? currentOpts.DefaultFontSize;
             var runs = new[] { run };
             var line = CreatePositionedTextLine(runs, size, size * 1.2D, currentOpts);
+            if (prepared != null) {
+                if (prepared.Text != run.Text || line.Lines[0].Count != 1)
+                    throw new InvalidOperationException("Prepared drawing text must retain its exact single-font source slice.");
+                RichSeg selected = line.Lines[0][0];
+                PdfTrueTypeFontProgram font = ResolvePreparedDrawingFont(selected, currentOpts)
+                    ?? throw new InvalidOperationException("Prepared drawing text requires its embedded TrueType font.");
+                line.Lines[0][0] = selected.WithPreparedGlyphs(
+                    PdfExternalTextShaper.BuildPreparedTextCommand(prepared, font, size), prepared.Measure(size));
+            }
             double actualWidth = MeasureRichLineWidth(line.Lines[0], currentOpts);
             double scale = actualWidth > 0D && advance > 0D ? advance / actualWidth : 1D;
             // Apply glyph and decoration alpha inside transformed paint, independently

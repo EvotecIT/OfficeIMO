@@ -235,6 +235,14 @@ public static partial class OfficeTextLayoutEngine {
         internal int SourceStart { get; }
         internal int SourceEnd { get; }
         internal bool IsTab => Text == "\t";
+        internal IReadOnlyList<RichTextToken>? Parts { get; private init; }
+
+        internal static RichTextToken CreateWord(IReadOnlyList<RichTextToken> parts) {
+            var text = new StringBuilder();
+            foreach (var part in parts) text.Append(part.Text);
+            return new RichTextToken(parts[0].Run, text.ToString(), false, false, parts[0].SourceStart,
+                parts[parts.Count - 1].SourceEnd) { Parts = parts };
+        }
 
         internal static RichTextToken CreateText(OfficeRichTextRun run, string text, bool isWhitespace, int sourceStart, int sourceEnd) =>
             new RichTextToken(run, text, false, isWhitespace, sourceStart, sourceEnd);
@@ -243,7 +251,7 @@ public static partial class OfficeTextLayoutEngine {
             new RichTextToken(run, string.Empty, true, false, sourceEnd - 1, sourceEnd);
     }
 
-    private sealed class RichTextLineBuilder {
+    private sealed partial class RichTextLineBuilder {
         private readonly OfficeRichTextMeasurement _measure;
         private readonly List<OfficeRichTextSegment> _segments = new List<OfficeRichTextSegment>();
 
@@ -265,6 +273,7 @@ public static partial class OfficeTextLayoutEngine {
         }
 
         internal double MeasureWidthAfter(OfficeRichTextRun run, string text) {
+            if (_measure.UsesPublisherContext) return ContextCandidate(run, text).Width;
             if (_segments.Count > 0 && CanMerge(_segments[_segments.Count - 1], run)) {
                 OfficeRichTextSegment previous = _segments[_segments.Count - 1];
                 return Width - previous.Width + _measure.Measure(previous.Text + text, run);
@@ -274,6 +283,13 @@ public static partial class OfficeTextLayoutEngine {
 
         internal void Add(OfficeRichTextRun run, string text) {
             if (string.IsNullOrEmpty(text)) {
+                return;
+            }
+
+            if (_measure.UsesPublisherContext) {
+                var candidate = ContextCandidate(run, text);
+                _segments.Clear(); _segments.AddRange(candidate.Segments);
+                Width = candidate.Width; _pendingContext = null;
                 return;
             }
 
@@ -292,6 +308,7 @@ public static partial class OfficeTextLayoutEngine {
         }
 
         internal void AddAdvance(OfficeRichTextRun run, double width) {
+            _pendingContext = null;
             // A separate empty segment advances every renderer without painting a tab glyph,
             // and prevents kerning or run merging across the tab boundary.
             _segments.Add(new OfficeRichTextSegment(string.Empty, width, run.FontSize, run.Color, false, false, false,
@@ -316,10 +333,14 @@ public static partial class OfficeTextLayoutEngine {
             return paint.Limited || lineLimited;
         }
 
-        internal OfficeRichTextLine ToLine() =>
-            new OfficeRichTextLine(new List<OfficeRichTextSegment>(_segments), offsetX: OffsetX) { SourceTextEnd = SourceTextEnd };
+        internal OfficeRichTextLine ToLine() {
+            var line = new OfficeRichTextLine(new List<OfficeRichTextSegment>(_segments), offsetX: OffsetX) { SourceTextEnd = SourceTextEnd };
+            if (_measure.UsesPublisherContext) line.RenderTokens = OfficeTextBlockRenderer.CreateRichTextRenderTokens(line, _measure);
+            return line;
+        }
 
         internal void Clear() {
+            _pendingContext = null;
             _segments.Clear();
             Width = 0D;
         }

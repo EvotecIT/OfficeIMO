@@ -70,7 +70,7 @@ still consume the image-processing byte budget.
 | Document pages | Native order, physical size and page clipping, including empty physical pages | Master and utility roles follow the ordered native reference array and its role boundaries; malformed boundaries are rejected |
 | Master pages | Recovered definitions applied to referring pages | Missing references report omission; nested master inheritance is unassessed |
 | Text | UTF-16 stories, styled paragraphs, referenced native style values, explicit reciprocal links or complete native story/frame catalog bindings, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; source style pairs and use ranges are retained internally, while names, builtin selectors and auxiliary inheritance metadata remain unassessed |
-| Character formatting | Native font names, size, referenced color, bold/italic, strikethrough, superscript/subscript, pair-kerning threshold metadata and none, single, words-only, double, dotted, dashed and wavy underlines | Explicit thresholds and qualified source-bound effective defaults control shared run measurement and raster/SVG/PDF glyph output; same-font mixed-run parity and broader producer profiles remain unqualified. Native underline weight, long-dash, compound and unknown patterns use the closest shared pattern with `PUB_TEXT_UNDERLINE_APPROXIMATED`. Font availability, exact metrics and decoration geometry remain separate rendering limits |
+| Character formatting | Native font names, size, referenced color, bold/italic, strikethrough, superscript/subscript, pair-kerning threshold metadata and none, single, words-only, double, dotted, dashed and wavy underlines | Explicit thresholds and qualified source-bound effective defaults control measurement and glyph output. Plain printable-ASCII native contexts span color, threshold and space boundaries, retaining glyph slices for raster/SVG/PDF; broader scripts, decorations and producer profiles remain unqualified. Native underline weight, long-dash, compound and unknown patterns use the closest shared pattern with `PUB_TEXT_UNDERLINE_APPROXIMATED`. Font availability, exact metrics and decoration geometry remain separate rendering limits |
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs; complete tabbed lines follow recovered center/right paragraph alignment | Numbering sequences, additional per-stop alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval. Native font metrics and exact tabbed-line positions remain separate rendering limits |
 | Tables | `PublisherPage.Tables` exposes current tracks, spans, styled paragraphs, text and placement; qualified anchor-cell text edits preserve complete story partitions, and qualified bounds edits scale tracks proportionally; master tables remain on their master | Separate `CanEditCellText`/`CanEditBounds` and limitation properties identify supported operations. Unavailable frame geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`; individual cell borders, fills and padding are unassessed |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
@@ -680,30 +680,47 @@ native device-quantized advances remain distinct from managed design advances.
 Superscript baselines differ by up to 1.929 pt and subscript baselines by up to
 5.39 pt in these controls.
 
-The mixed same-font controls retain both native thresholds, but native PDF
-activation follows the first setting across the observed line. Shared rendering
-applies each run independently. Six additional source-edit controls show that a color change and a space retain
-this behavior, while a new paragraph applies its own setting. All six native
-initial/resaved pages agree at 144 dpi. Eight further controls in both setting
-directions show that soft line breaks, tabs, font-size changes and face changes
-reset activation. Their initial/resaved native pages also agree at 144 dpi.
-These boundaries do not establish native mixed-run parity: shared rendering still
-measures and paints separate source runs, whereas native kerning can span a color
-boundary. Native repair-free opening, other application defaults and broader native
-source profiles, broader mixed baselines and exact managed/native glyph geometry
-remain unqualified.
+Qualified native contexts use the first effective threshold across a same-font
+visual line, including color, threshold and space boundaries. A new visual line,
+tab, font size, face or language starts another context. Layout shapes complete
+candidate lines, retains the original colors and threshold annotations, and
+carries glyph slices into raster paint, SVG paths with logical accessibility
+labels, and searchable embedded PDF text. Ordinary authored drawing paragraphs
+retain their existing per-run policy.
+
+This coordinated path covers printable ASCII in a normal baseline without
+underline, strike or background paint, when the selected font/provider result
+can be sliced at each source and word/space boundary. Unsupported contexts keep
+the per-run route. PDF additionally requires one selected static TrueType
+program with matching font bytes and units; composite fallback requests remain
+outside this native-context profile. Raster exports retain the context at unit,
+doubled and fractional output scales. Complex scripts, unsplittable clusters,
+decorations, mixed baselines and broader native source profiles remain open.
 
 Seven public-caller controls cover omitted defaults at 12 and 14 points, retained
 0/8 settings, and merged 8/18 source ranges in ordinary stories and table cells.
-Native PUB bytes match the prior implementation, while every managed preview
-agrees with its managed native-save/reload preview at 144 dpi. All seven native
-initial/resaved PDF page pairs also agree. For the four uniform ordinary controls,
-maximum native/managed glyph-origin differences are 0.111 pt horizontally and
-0.089 pt vertically. The 12-point omitted-default and retained-zero controls
-previously differed by up to 6.969 pt horizontally. The merged same-font control
-still differs by up to 5.044 pt: native activation spans the font context while
-shared rendering applies the recovered per-run settings independently. These
-controls qualify source-bound effective settings, not native mixed-run parity.
+Their native PUB bytes match the prior implementation, and every managed preview
+agrees with its native-save/reload preview at 144 dpi. The seven existing native
+initial/resaved PDF page pairs also agree. The five ordinary controls differ
+from native glyph origins by at most 0.109 pt horizontally and 0.089 pt vertically.
+The merged same-font control previously differed by 5.044 pt horizontally; its
+current maximum is 0.109 pt. Physical origins of imposed native table labels
+remain outside this comparison.
+
+Color, space, paragraph, soft-line, size and face controls establish the context
+boundaries in both setting directions. Their current horizontal differences
+reach 0.320 pt and baseline differences reach 0.103 pt. Tab controls retain the
+expected activation reset, but their absolute field origins still differ by
+7.656 pt. Two additional 15.5-point frames split a colored `A` / `VAV` word as
+`AV` / `A` / `V` and `A` / `VA` / `V`, matching the native line assignments within
+0.111 pt horizontally and 0.103 pt vertically. All four new native tight-frame
+initial/resaved page pairs agree at 144 dpi. The [native font-context corpus](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFontContext/provenance.json)
+retains the tight-frame publications, their native PDF references and the merged
+8/18 control. At 15 points, native device fitting
+admits a pair that the managed design advance places just outside the frame;
+line assignments still differ. Exact device advances, absolute tab placement,
+automatic hyphenation and repair-free opening remain unqualified. These finite
+controls do not establish universal native glyph or pixel parity.
 
 The `nativeLanguageFeasibility` record isolates the language-dependent native
 layout gap. Scratch variants adding character property `0x12` with language ID

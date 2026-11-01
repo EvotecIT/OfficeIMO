@@ -68,7 +68,7 @@ public static partial class OfficeTextLayoutEngine {
         CopyRichTextSegment(style, text, measure.Measure(text, style));
 
     private static OfficeRichTextSegment CopyRichTextSegment(OfficeRichTextSegment style, string text, double width) =>
-        new OfficeRichTextSegment(text, width, style.FontSize, style.Color, style.Bold, style.Italic, style.Underline, style.FontFamily, style.Strikethrough, style.BackgroundColor, style.UnderlineStyle, style.StrikethroughStyle, style.Baseline) { AutomaticPairKerningThreshold = style.AutomaticPairKerningThreshold, LanguageId = style.LanguageId, LinkUri = style.LinkUri, LinkDestinationName = style.LinkDestinationName };
+        style.WithLayout(text, width, text == style.Text ? style.PreparedShaping : null);
 
     private static double EffectiveFontSize(OfficeRichTextSegment segment) =>
         segment.Baseline == OfficeTextBaseline.Normal ? segment.FontSize : segment.FontSize * 0.65D;

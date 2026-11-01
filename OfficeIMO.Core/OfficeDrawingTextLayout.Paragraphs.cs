@@ -197,7 +197,8 @@ internal static partial class OfficeDrawingTextLayout {
                 run.StrikethroughStyle, run.Baseline, run.ParagraphIndent?.Scale(scale)) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold * scale, LanguageId = run.LanguageId, LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName });
         }
         OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlockWithMetrics(runs,
-            availableWidth, double.MaxValue, paragraph.LineHeightFactor ?? 1.2D, measure, wrap,
+            availableWidth, double.MaxValue, paragraph.LineHeightFactor ?? 1.2D,
+            paragraph.UsesPublisherKerningContext ? measure.ForPublisherContext() : measure, wrap,
             overflowBehavior: OfficeTextOverflowBehavior.Clip, paragraphIndent: indent, measurePaint: measurePaint,
             hardBreakStartsParagraph: false, tabStops: paragraph.TabStops?.Scale(scale, originalLeft - margin.Left, fontScale),
             cancellationToken: cancellationToken, leaderBudget: leaderBudget);
@@ -222,6 +223,8 @@ internal static partial class OfficeDrawingTextLayout {
         if (alignment == OfficeTextAlignment.Justify) offset = measured.Margins.Left + line.OffsetX;
         var placed = line.WithPlacement(segments, lineHeight, offset);
         OfficeRichTextLine result = index == 0 && measured.Label != null ? AddParagraphLabel(placed, measured.Label, lineHeight) : placed;
+        if (line.RenderTokens != null && result.RenderTokens == null)
+            result.RenderTokens = OfficeTextBlockRenderer.CreateRichTextRenderTokens(result, measure);
         result.SourceTextEnd = line.SourceTextEnd;
         result.CompletesSource = line.CompletesSource;
         return result;
@@ -242,9 +245,7 @@ internal static partial class OfficeDrawingTextLayout {
             var token = tokens[i]; OfficeRichTextSegment source = token.Segment;
             double advance = token.Width;
             if (token.IsWhitespace && hasWord && OfficeTextBlockRenderer.HasWordAfter(tokens, i + 1)) advance += extra;
-            result.Add(new OfficeRichTextSegment(token.Text, advance, source.FontSize, source.Color, source.Bold,
-                source.Italic, source.Underline, source.FontFamily, source.Strikethrough, source.BackgroundColor,
-                source.UnderlineStyle, source.StrikethroughStyle, source.Baseline) { AutomaticPairKerningThreshold = source.AutomaticPairKerningThreshold, LanguageId = source.LanguageId, LinkUri = source.LinkUri, LinkDestinationName = source.LinkDestinationName });
+            result.Add(source.WithLayout(token.Text, advance, token.Text == source.Text ? source.PreparedShaping : null));
             hasWord |= !token.IsWhitespace;
         }
         return result;

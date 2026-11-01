@@ -11,7 +11,7 @@ internal static partial class PdfWriter {
     internal static OfficeDrawingTextMetrics CreateDrawingTextMetrics(PdfOptions options, System.Threading.CancellationToken cancellationToken = default) {
         var metrics = new Dictionary<(byte[] Data, string Family, OfficeFontStyle Style), OfficeRasterCanvas?>();
         return new OfficeDrawingTextMetrics(Measure, MeasurePaint, MeasureHorizontalPaint, MeasurePositioned, MeasureSegmentPaint, MeasurePublisherFont, MeasureFeatures,
-            (segment, size) => MeasureHorizontalPaintWithFeatures(segment.Text, size, segment.FontFamily, segment.FontStyle, segment.KerningFeatures));
+            MeasureSegmentHorizontalPaint, Prepare);
 
         IEnumerable<(PdfTextRun Run, OfficeRasterCanvas? Canvas, string Family, PdfStandardFont Font, bool SyntheticOblique)> Resolve(
             string? text, double size, string? family, OfficeFontStyle style, OfficeTextFeatureSettings? features = null) {
@@ -50,6 +50,28 @@ internal static partial class PdfWriter {
                 }
                 yield return (part, canvas, measuredFamily, selectedFont, syntheticOblique);
             }
+        }
+
+        OfficePreparedTextShaping? Prepare(string text, double size, string family, OfficeFontStyle style, OfficeTextFeatureSettings? features) {
+            var parts = Resolve(text, size, family, style, features).ToList();
+            if (parts.Count != 1 || parts[0].Canvas == null || parts[0].SyntheticOblique) return null;
+            var part = parts[0];
+            // A source slice must select this same face again during PDF painting.
+            // Composite fallback requests remain on their ordinary per-run route.
+            if (!string.Equals(part.Family, family, StringComparison.OrdinalIgnoreCase)) return null;
+            var prepared = part.Canvas!.PrepareRichText(text, size, part.Family, style, features);
+            var selected = CreatePositionedTextSegment(part.Run, size, options);
+            var font = ResolvePreparedDrawingFont(selected, options);
+            return prepared != null && font != null && PdfExternalTextShaper.MatchesPreparedFont(prepared, font) ? prepared : null;
+        }
+
+        (double Left, double Right) MeasureSegmentHorizontalPaint(OfficeRichTextSegment segment, double size) {
+            if (segment.PreparedShaping == null)
+                return MeasureHorizontalPaintWithFeatures(segment.Text, size, segment.FontFamily, segment.FontStyle, segment.KerningFeatures);
+            var part = Resolve(segment.Text, size, segment.FontFamily, segment.FontStyle, segment.KerningFeatures).Single();
+            using var scope = part.Canvas!.PushPreparedShaping(segment.PreparedShaping);
+            return part.Canvas.MeasureTextLineHorizontalPaintBoundsWithFeatures(segment.Text, size, part.Family,
+                segment.FontStyle, segment.KerningFeatures);
         }
 
         OfficePublisherFontMetrics? MeasurePublisherFont(string? text, double size, string? family, OfficeFontStyle style) {
@@ -120,7 +142,12 @@ internal static partial class PdfWriter {
         OfficeTextPaintBounds? MeasureSegmentPaint(OfficeRichTextSegment segment, double size) {
             double top = double.PositiveInfinity, bottom = double.NegativeInfinity;
             if (segment.Color.A > 0 && !string.IsNullOrWhiteSpace(segment.Text)) {
-                OfficeTextPaintBounds glyphs = MeasurePaintWithFeatures(segment.Text, size, segment.FontFamily, segment.FontStyle, segment.KerningFeatures);
+                OfficeTextPaintBounds glyphs;
+                if (segment.PreparedShaping != null) {
+                    var part = Resolve(segment.Text, size, segment.FontFamily, segment.FontStyle, segment.KerningFeatures).Single();
+                    using var scope = part.Canvas!.PushPreparedShaping(segment.PreparedShaping);
+                    glyphs = part.Canvas.MeasureTextPaintBoundsWithFeatures(segment.Text, size, part.Family, segment.FontStyle, segment.KerningFeatures);
+                } else glyphs = MeasurePaintWithFeatures(segment.Text, size, segment.FontFamily, segment.FontStyle, segment.KerningFeatures);
                 Include(glyphs.Top, glyphs.Bottom);
             }
             if (segment.BackgroundColor.HasValue && segment.BackgroundColor.Value.A > 0 && segment.Width > 0D) {

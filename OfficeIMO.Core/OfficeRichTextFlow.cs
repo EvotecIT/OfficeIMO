@@ -93,6 +93,7 @@ internal sealed class OfficeRichTextFlow {
                 : new OfficeRichTextParagraph(last.Runs, last.Label, last.Alignment, last.LineHeight, margins, last.Indent, last.LineHeightFactor);
             trimmed.ContinuesInNextRegion = last.ContinuesInNextRegion;
             trimmed.UsesPublisherFontMetrics = last.UsesPublisherFontMetrics;
+            trimmed.UsesPublisherKerningContext = last.UsesPublisherKerningContext;
             visible[visible.Count - 1] = trimmed.WithTabStops(last.TabStops);
         }
         return visible;
@@ -139,6 +140,7 @@ internal sealed class OfficeRichTextFlow {
             : new OfficeRichTextParagraph(runs, source.Alignment, source.LineHeight, margins, paragraphIndent, source.LineHeightFactor);
         result.ContinuesInNextRegion = !complete || source.ContinuesInNextRegion;
         result.UsesPublisherFontMetrics = source.UsesPublisherFontMetrics;
+        result.UsesPublisherKerningContext = source.UsesPublisherKerningContext;
         return result.WithTabStops(source.TabStops);
     }
 }

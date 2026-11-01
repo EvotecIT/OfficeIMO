@@ -85,4 +85,26 @@ public sealed class PdfDrawingRichKerningTests {
             && clip.Left + clip.Width >= 32D + 2D / 3D - .001D);
     }
 
+    [Theory]
+    [InlineData(false, 8, 20)]
+    [InlineData(true, 8, 17.6)]
+    [InlineData(true, 0, 20)]
+    public void Native_context_retains_embedded_searchable_glyphs_across_paint_boundaries(bool native, double firstThreshold, double secondX) {
+        var paragraph = new OfficeRichTextParagraph(new[] {
+            new OfficeRichTextRun("A", 20, OfficeColor.Red, fontFamily: Family).WithAutomaticPairKerningThreshold(firstThreshold),
+            new OfficeRichTextRun("V", 20, OfficeColor.Blue, fontFamily: Family).WithAutomaticPairKerningThreshold(firstThreshold == 0 ? 8 : 0)
+        }) { UsesPublisherKerningContext = native };
+        var drawing = new OfficeDrawing(100, 80).AddRichTextParagraphs(new[] { paragraph }, 10, 10, 80, 50);
+        drawing.Fonts.Add(Family, ManagedTextShapingTestAssets.CreateFontWithKerning('A', 'V', -120));
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(Write(drawing));
+        var letters = pdf.GetPage(1).Letters;
+        Assert.Equal("AV", string.Concat(letters.Select(letter => letter.Value)));
+        Assert.Equal(2, letters.Count);
+        Assert.Equal(10, letters[0].StartBaseLine.X, 3);
+        Assert.Equal(secondX, letters[1].StartBaseLine.X, 3);
+        Assert.Equal((1D, 0D, 0D), letters[0].Color.ToRGBValues());
+        Assert.Equal((0D, 0D, 1D), letters[1].Color.ToRGBValues());
+        Assert.Equal(letters[0].FontName, letters[1].FontName);
+    }
+
 }

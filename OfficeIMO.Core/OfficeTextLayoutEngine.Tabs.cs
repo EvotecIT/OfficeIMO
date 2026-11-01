@@ -38,6 +38,24 @@ public static partial class OfficeTextLayoutEngine {
 
     private static double MeasureTabField(IReadOnlyList<RichTextToken> tokens, int tabIndex, string? character,
         OfficeRichTextMeasurement measure, CancellationToken cancellationToken) {
+        if (measure.UsesPublisherContext) {
+            var field = new RichTextLineBuilder(measure);
+            int offset = 0;
+            int? prefix = null;
+            for (int i = tabIndex + 1; i < tokens.Count; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                RichTextToken token = tokens[i];
+                if (token.IsTab || token.HardBreak) break;
+                if (character != null && !prefix.HasValue) {
+                    int delimiter = token.Text.IndexOf(character, StringComparison.Ordinal);
+                    if (delimiter >= 0) prefix = offset + delimiter;
+                }
+                // Keep the full field: the last prefix glyph can kern into the delimiter.
+                field.Add(token);
+                offset += token.Text.Length;
+            }
+            return prefix.HasValue ? field.MeasurePrefix(prefix.Value) : field.Width;
+        }
         var text = new StringBuilder();
         OfficeRichTextSegment? context = null;
         double width = 0;

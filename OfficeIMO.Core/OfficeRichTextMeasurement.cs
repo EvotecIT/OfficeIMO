@@ -7,20 +7,42 @@ namespace OfficeIMO.Drawing;
 internal sealed class OfficeRichTextMeasurement {
     private readonly Func<string?, double, string?, OfficeFontStyle, double> _measure;
     private readonly Func<string?, double, string?, OfficeFontStyle, OfficeTextFeatureSettings?, double>? _measureFeatures;
+    private readonly Func<string, double, string, OfficeFontStyle, OfficeTextFeatureSettings?, OfficePreparedTextShaping?>? _prepare;
+    internal bool UsesPublisherContext { get; }
     internal bool HasFeatureMeasurement => _measureFeatures != null;
 
     internal OfficeRichTextMeasurement(Func<string?, double, string?, OfficeFontStyle, double> measure,
-        Func<string?, double, string?, OfficeFontStyle, OfficeTextFeatureSettings?, double>? measureFeatures = null) {
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextFeatureSettings?, double>? measureFeatures = null)
+        : this(measure, measureFeatures, null, false) { }
+
+    internal OfficeRichTextMeasurement(Func<string?, double, string?, OfficeFontStyle, double> measure,
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextFeatureSettings?, double>? measureFeatures,
+        Func<string, double, string, OfficeFontStyle, OfficeTextFeatureSettings?, OfficePreparedTextShaping?>? prepare)
+        : this(measure, measureFeatures, prepare, false) { }
+
+    private OfficeRichTextMeasurement(Func<string?, double, string?, OfficeFontStyle, double> measure,
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextFeatureSettings?, double>? measureFeatures,
+        Func<string, double, string, OfficeFontStyle, OfficeTextFeatureSettings?, OfficePreparedTextShaping?>? prepare, bool publisherContext) {
         _measure = measure ?? throw new ArgumentNullException(nameof(measure));
         _measureFeatures = measureFeatures;
+        _prepare = prepare;
+        UsesPublisherContext = publisherContext && prepare != null;
     }
+
+    internal OfficeRichTextMeasurement ForPublisherContext() => _prepare == null || UsesPublisherContext ? this
+        : new OfficeRichTextMeasurement(_measure, _measureFeatures, _prepare, true);
+
+    internal OfficePreparedTextShaping? Prepare(string text, OfficeRichTextSegment first) =>
+        _prepare?.Invoke(text, first.FontSize, first.FontFamily, first.FontStyle, first.KerningFeatures);
 
     internal double Measure(string? text, double size, string? family, OfficeFontStyle style) =>
         Measure(text, size, family, style, null);
     internal double Measure(string? text, OfficeRichTextRun run) =>
         Measure(text, run.EffectiveFontSize, run.FontFamily, run.FontStyle, run.KerningFeatures);
     internal double Measure(string? text, OfficeRichTextSegment segment) =>
-        Measure(text, OfficeTextBlockRenderer.ResolveRichTextRenderedFontSize(segment), segment.FontFamily, segment.FontStyle, segment.KerningFeatures);
+        segment.PreparedShaping is { } prepared && text == prepared.Text
+            ? prepared.Measure(OfficeTextBlockRenderer.ResolveRichTextRenderedFontSize(segment))
+            : Measure(text, OfficeTextBlockRenderer.ResolveRichTextRenderedFontSize(segment), segment.FontFamily, segment.FontStyle, segment.KerningFeatures);
 
     private double Measure(string? text, double size, string? family, OfficeFontStyle style, OfficeTextFeatureSettings? features) {
         if (string.IsNullOrEmpty(text)) return 0D;

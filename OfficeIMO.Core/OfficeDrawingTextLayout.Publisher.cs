@@ -20,6 +20,7 @@ internal static partial class OfficeDrawingTextLayout {
             }
             OfficeRichTextLine resolved = ResolvePublisherLineGeometry(measured, runs, paragraph, measure, empty, scale);
             resolved = resolved.WithPlacement(line.Segments, resolved.LineHeight, line.OffsetX);
+            resolved.RenderTokens = line.RenderTokens;
             lines.Add(resolved);
             height += resolved.LineHeight;
             maximumAdvance = Math.Max(maximumAdvance, resolved.LineHeight);

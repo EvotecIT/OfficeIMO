@@ -11,7 +11,19 @@ public static partial class OfficeDrawingSvgExporter {
     // Painted runs need no reshaping. The explicit option additionally permits
     // simple logical runs shaped by the shared managed/host shaping provider.
     // Unsupported layouts retain text and their registered fonts.
-    private static bool TryAppendGlyphPaths(StringBuilder output, OfficeDrawingText text, OfficeRasterCanvas metrics, bool textAsPaths) {
+    internal static void AppendPreparedRichTextSegment(StringBuilder output, OfficeRichTextSegment segment,
+        double x, double baseline, double rotationDegrees, double rotationCenterX, double rotationCenterY) {
+        var text = new OfficeDrawingText(segment.Text, x, baseline - segment.FontSize,
+            Math.Max(.001D, segment.Width), segment.FontSize * 1.2D,
+            new OfficeFontInfo(segment.FontFamily, segment.FontSize, segment.FontStyle), segment.Color,
+            rotationDegrees: rotationDegrees, rotationCenterX: rotationCenterX, rotationCenterY: rotationCenterY) {
+            PreparedShaping = segment.PreparedShaping
+        };
+        if (!TryAppendGlyphPaths(output, text, null, false))
+            throw new InvalidOperationException("A prepared rich-text slice could not retain its SVG glyphs.");
+    }
+
+    private static bool TryAppendGlyphPaths(StringBuilder output, OfficeDrawingText text, OfficeRasterCanvas? metrics, bool textAsPaths) {
         OfficePreparedTextShaping? prepared = text.PreparedShaping;
         if ((prepared == null && !text.PreservesPaintedGlyphs && !textAsPaths) || text.WrapText || text.ShrinkToFit || text.StackedText || text.HasPadding ||
             text.VerticalAlignment != OfficeTextVerticalAlignment.Top || text.TextDirection == OfficeTextDirection.TopToBottom ||
@@ -34,7 +46,7 @@ public static partial class OfficeDrawingSvgExporter {
         IOfficeBoundedFontProgram font;
         if (prepared != null) font = (IOfficeBoundedFontProgram)prepared.Program;
         else {
-            if (metrics.Fonts == null) return false;
+            if (metrics?.Fonts == null) return false;
             // The normal route resolves fonts per complete text element. Retained glyph ids
             // already belong to their pinned program and must bypass that resolution.
             IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = metrics.Fonts.PlanFallbackRuns(
@@ -46,10 +58,10 @@ public static partial class OfficeDrawingSvgExporter {
                 face.Style != OfficeFontFace.NormalizeStyle(text.Font.Style)) return false;
             font = resolved;
         }
-        var token = metrics.CancellationToken;
+        var token = prepared?.CancellationToken ?? metrics!.CancellationToken;
         OfficeTextShapingResult? shaped = prepared?.Result;
         if (logical) {
-            IOfficeTextShapingProvider provider = metrics.TextShapingProvider ?? OfficeManagedTextShapingProvider.Instance;
+            IOfficeTextShapingProvider provider = metrics!.TextShapingProvider ?? OfficeManagedTextShapingProvider.Instance;
             token.ThrowIfCancellationRequested();
             shaped = provider.ShapeText(new OfficeTextShapingRequest(text.RasterText,
                 font.DisplayName ?? string.Empty,

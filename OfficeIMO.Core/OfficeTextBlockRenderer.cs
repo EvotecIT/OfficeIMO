@@ -340,6 +340,7 @@ public static partial class OfficeTextBlockRenderer {
                 DrawRasterRichTextSegmentBackground(canvas, segment, cursor, segmentTop, rotationDegrees, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
                 if (segment.TabLinePaint != null) DrawRasterTabLineLeader(canvas, segment.TabLinePaint, cursor, renderedBaseline,
                     rotationDegrees, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
+                using var preparedScope = canvas.PushPreparedShaping(segment.PreparedShaping);
                 canvas.DrawTextLineWithFeatures(segment.KerningFeatures,
                     segment.Text,
                     cursor,
@@ -394,6 +395,12 @@ public static partial class OfficeTextBlockRenderer {
             ResolveRichTextRenderedBaseline(segment, baseline), rotationDegrees, rotationCenterX, rotationCenterY);
 
         bool linked = AppendSvgRichTextLinkStart(builder, segment.LinkUri);
+        if (segment.PreparedShaping != null) {
+            OfficeDrawingSvgExporter.AppendPreparedRichTextSegment(builder, segment, x, baseline,
+                rotationDegrees, rotationCenterX, rotationCenterY);
+            if (linked) builder.Append("</a>");
+            return builder;
+        }
         builder.AppendSvgPositionedTextElement(
             segment.Text,
             x,

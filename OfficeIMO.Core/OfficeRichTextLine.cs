@@ -19,8 +19,12 @@ public sealed class OfficeRichTextLine {
     internal OfficeRichTextLine WithPlacement(IReadOnlyList<OfficeRichTextSegment> segments, double advance, double offset) =>
         new OfficeRichTextLine(segments, advance, offset) {
             SourceTextEnd = SourceTextEnd, CompletesSource = CompletesSource,
-            ContentHeight = ContentHeight, BaselineOffset = BaselineOffset
+            ContentHeight = ContentHeight, BaselineOffset = BaselineOffset,
+            RenderTokens = ReferenceEquals(segments, Segments) ? RenderTokens : null
         };
+    // Native layout snapshots retain exact word/space advances for every output backend.
+    internal List<OfficeTextBlockRenderer.RichTextRenderToken>? RenderTokens { get; set; }
+
     /// <summary>Creates a line with renderer-resolved height and no horizontal offset.</summary>
     public OfficeRichTextLine(IReadOnlyList<OfficeRichTextSegment> segments)
         : this(segments, 0D, 0D) {

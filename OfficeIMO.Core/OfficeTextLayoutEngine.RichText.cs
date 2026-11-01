@@ -325,10 +325,12 @@ public static partial class OfficeTextLayoutEngine {
         bool clipped = inputTruncated;
         bool processingStopped = false;
 
-        IReadOnlyList<RichTextToken>? tabTokens = tabStops == null ? null : new List<RichTextToken>(CreateRichTextTokens(runs, cancellationToken, preserveTabs: true));
+        IEnumerable<RichTextToken> sourceTokens = CreateRichTextTokens(runs, cancellationToken, preserveTabs: tabStops != null);
+        if (measure.UsesPublisherContext) sourceTokens = CombineContextWords(sourceTokens, cancellationToken);
+        IReadOnlyList<RichTextToken>? tabTokens = tabStops == null ? null : new List<RichTextToken>(sourceTokens);
         int tokenIndex = 0;
         leaderBudget ??= new OfficeTextTabLeaderLayout.Budget();
-        foreach (RichTextToken token in (IEnumerable<RichTextToken>?)tabTokens ?? CreateRichTextTokens(runs, cancellationToken)) {
+        foreach (RichTextToken token in (IEnumerable<RichTextToken>?)tabTokens ?? sourceTokens) {
             int currentToken = tokenIndex++;
             cancellationToken.ThrowIfCancellationRequested();
             if (lines.Count >= MaximumLayoutLines) {
@@ -381,9 +383,9 @@ public static partial class OfficeTextLayoutEngine {
 
             atParagraphStart = false;
 
-            double tokenWidth = measure.Measure(token.Text, token.Run);
+            double tokenWidth = MeasureRichToken(token, measure);
             double availableWidth = Math.Max(0D, width - builder.OffsetX);
-            if (wrap && builder.MeasureWidthAfter(token.Run, token.Text) > availableWidth && !builder.IsEmpty) {
+            if (wrap && builder.MeasureWidthAfter(token) > availableWidth && !builder.IsEmpty) {
                 if (!AddRichTextLine(lines, builder)) {
                     clipped = true;
                     processingStopped = true;
@@ -413,7 +415,7 @@ public static partial class OfficeTextLayoutEngine {
                     break;
                 }
             } else {
-                builder.Add(token.Run, token.Text);
+                builder.Add(token);
                 builder.SourceTextEnd = token.SourceEnd;
             }
         }
@@ -469,21 +471,22 @@ public static partial class OfficeTextLayoutEngine {
         OfficeTextParagraphIndent paragraphIndent,
         CancellationToken cancellationToken) {
         int sourceEnd = token.SourceStart;
-        foreach (string textElement in OfficeTextElements.Enumerate(token.Text)) {
+        foreach (RichTextToken part in token.Parts ?? new[] { token })
+        foreach (string textElement in OfficeTextElements.Enumerate(part.Text)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (lines.Count >= MaximumLayoutLines) {
                 builder.Clear();
                 return false;
             }
             double availableWidth = Math.Max(0D, maxWidth - builder.OffsetX);
-            if (builder.MeasureWidthAfter(token.Run, textElement) > availableWidth && !builder.IsEmpty) {
+            if (builder.MeasureWidthAfter(part.Run, textElement) > availableWidth && !builder.IsEmpty) {
                 if (!AddRichTextLine(lines, builder)) {
                     return false;
                 }
                 builder.SetOffset(ResolveLineOffset(paragraphIndent, firstVisualLine: false));
             }
 
-            builder.Add(token.Run, textElement);
+            builder.Add(part.Run, textElement);
             sourceEnd += textElement.Length;
             builder.SourceTextEnd = sourceEnd;
         }
@@ -530,10 +533,8 @@ public static partial class OfficeTextLayoutEngine {
     private static void ApplyRichTextLineHeights(List<OfficeRichTextLine> lines, double lineHeightFactor, double fallbackFontSize) {
         for (int i = 0; i < lines.Count; i++) {
             OfficeRichTextLine line = lines[i];
-            lines[i] = new OfficeRichTextLine(
-                line.Segments,
-                ResolveRichTextLineHeight(line, lineHeightFactor, fallbackFontSize),
-                line.OffsetX) { SourceTextEnd = line.SourceTextEnd, CompletesSource = line.CompletesSource };
+            lines[i] = line.WithPlacement(line.Segments,
+                ResolveRichTextLineHeight(line, lineHeightFactor, fallbackFontSize), line.OffsetX);
         }
     }
 
