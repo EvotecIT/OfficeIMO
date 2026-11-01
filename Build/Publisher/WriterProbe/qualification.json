@@ -23846,5 +23846,263 @@
         "sha256": "4e828c1506de836fb217e009d8fcf26a4e4bf0c5c9cd8778c46ab0bb10e0d575"
       }
     ]
+  },
+  "textFrameBreaks": {
+    "schema": "officeimo.publisher.text-frame-breaks.v1",
+    "sourceCommit": "3adffc9f488b2b2827958694f73c2dad214a1785",
+    "fixture": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFrameBreaks",
+    "producer": {
+      "name": "Microsoft Publisher",
+      "version": "16.0",
+      "executableVersion": "16.0.20527.20088",
+      "automationSecurity": 3
+    },
+    "nativeOperations": [
+      "ReadOnlyOpen",
+      "InitialInventory",
+      "InitialPdfExport",
+      "NativeSaveAs",
+      "ReadOnlyReopen",
+      "ResavedInventory",
+      "ResavedPdfExport"
+    ],
+    "nativeSourceUnchanged": true,
+    "profile": {
+      "frames": 51,
+      "pages": 28,
+      "fonts": [
+        "Arial 12 pt",
+        "Courier New 12 pt"
+      ],
+      "exactLineSpacingPoints": [
+        8,
+        9.6,
+        10,
+        12,
+        18,
+        24
+      ],
+      "relativeLineHeightFactor": 1.19,
+      "linkedFrameHeightsPoints": [
+        36,
+        72,
+        36
+      ],
+      "linkedFrameOrder": [
+        0,
+        2,
+        1
+      ],
+      "referenceDpi": 600,
+      "firstLine": "Unlabelled unobstructed frames can assign a first line taller than their positive content height. Later lines fit their normal allocation.",
+      "exactBaseline": "Round to the nearest reference pixel: allocation minus selected device descent for expanded spacing; allocation times selected device ascent divided by selected device height for compressed spacing."
+    },
+    "measured": {
+      "inputs": [
+        "Independent native producer",
+        "Native-resaved publication"
+      ],
+      "assignedRangesCompared": 102,
+      "assignedRangesEqual": 102,
+      "visibleTextOriginsCompared": 218,
+      "maximumHorizontalDifferencePoints": 1.9073486328125e-05,
+      "maximumBaselineDifferencePoints": 0.1529541015625,
+      "nativePageComparisonPairs": 56,
+      "nativePageComparisonDpi": 144,
+      "nativePagePixelsEqual": true,
+      "nativePublicationSha256": "dcc18f07fd009767d47401ee14d1c8ddc91cc8def1f3392c0bf57c8ddb412342",
+      "nativeResavedPublicationSha256": "beb68918918072d269cd1ebe67603307df7993caeaf18473bc850927219b476b"
+    },
+    "contracts": [
+      "Complete story/source range and overflow retention",
+      "Byte-exact no-op native save for both inputs",
+      "Full exact-line allocation and independently sampled baseline",
+      "First-line policy survives nested drawing placement, clones and tint",
+      "Assigned first-line vertical paint survives direct raster and PDF readback",
+      "Labelled paragraphs, exclusion regions and table text retain strict fitting"
+    ],
+    "regressionTests": [
+      "DrawingPublisherFrameFitTests.ExactSpacingUsesSelectedDeviceStrutAndFullAllocatedHeight",
+      "DrawingPublisherFrameFitTests.NativeFirstLineIsForcedOncePerRegionAndAfterSpacingStillPrecedesFollowingText",
+      "DrawingPublisherFrameFitTests.StrictFlowDoesNotForceAnOverheightNativeStyleLine",
+      "DrawingPublisherFrameFitTests.NativeWrappedLinesRequireTheirFullExactHeightAfterTheFirst",
+      "DrawingPublisherFrameFitTests.DrawingPlacementSnapshotsAndTintRetainNativeFirstLinePlacement",
+      "PublisherNativeComparisonTests.Exact_frame_ranges_force_the_first_line_and_require_full_later_allocations",
+      "PublisherAuthoringTests.Story_labels_count_toward_global_admission_and_failed_creation_can_be_retried"
+    ],
+    "validation": [
+      {
+        "suite": "Publisher",
+        "framework": "net10.0",
+        "passed": 964,
+        "notExecuted": 0
+      },
+      {
+        "suite": "Publisher",
+        "framework": "net8.0",
+        "passed": 964,
+        "notExecuted": 0
+      },
+      {
+        "suite": "Publisher",
+        "framework": "net472",
+        "passed": 964,
+        "notExecuted": 0
+      },
+      {
+        "suite": "Drawing",
+        "framework": "net10.0",
+        "passed": 6271,
+        "notExecuted": 5
+      },
+      {
+        "suite": "Drawing",
+        "framework": "net8.0",
+        "passed": 6271,
+        "notExecuted": 5
+      },
+      {
+        "suite": "Drawing",
+        "framework": "net472",
+        "passed": 6243,
+        "notExecuted": 5
+      },
+      {
+        "suite": "Reader.Publisher",
+        "framework": "net10.0",
+        "passed": 95,
+        "notExecuted": 0
+      }
+    ],
+    "compileChecks": [
+      "PSWriteOffice net8.0 unsigned",
+      "OfficeIMO.Reader.Publisher netstandard2.0 unsigned"
+    ],
+    "scriptParseChecks": [
+      "PowerShell 7.6.9: four corpus scripts",
+      "Windows PowerShell 5.1.26100.9711: four corpus scripts; no COM"
+    ],
+    "limits": [
+      "Automatic hyphenation still differs in existing long-word linked stories.",
+      "Labelled first-line behavior, exclusions, tables, column balancing, arbitrary fonts and device resolutions, complex scripts and mixed baselines require separate native qualification.",
+      "Native-only pixel stability and bounded text-origin agreement do not establish managed/native pixel parity or repair-free opening.",
+      "The portable regression substitutes Carlito only for wide exact-frame allocation and paint transport; native metric measurements use the provenance font binaries."
+    ],
+    "managedNativePixelParityQualified": false,
+    "repairFreeQualified": false,
+    "sourceFiles": [
+      {
+        "path": "Build/Publisher/Add-NativeFrameBreakControl.ps1",
+        "sha256": "3880c25c7cca750119732dc4313b2b050983f8bf228c952dfcd30d9dd840a37a"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "sha256": "ff082d6fe4c04be1a15b381c6dd30d74b8befa636411226abf1e23d4a3125c48"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+        "sha256": "931c06dea0a2b04429b4fdd7b5076ba14c110d150ba906550a64cefdf88b7ecb"
+      },
+      {
+        "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+        "sha256": "3da408d59be2e8654dcd3ad414ad738a57bf3621e3fd7d5240567ab719afe674"
+      },
+      {
+        "path": "Docs/ROADMAP.md",
+        "sha256": "cb4aed6644101ac250c3e851a58a24e099136817b22499f2649af2f32b5ae5cf"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawing.ColorTint.cs",
+        "sha256": "c0f5fe9cdfd8b6f47a2015cbaa1cf3b453a578e6f182ba58afd9e6dd17cd55ff"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawing.cs",
+        "sha256": "69222824343b10e0a0c65d916759da486eb9f11db5f022390a4fb92bd21ca6a6"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingRichText.cs",
+        "sha256": "9efc6d34ad6270f9bd297714d801de14c82b462a9d653a516d98f68adee24511"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.Paragraphs.cs",
+        "sha256": "0c1d39148dcdbced2f7cc63fc363cc461ef54e8941ddd0c017b0cc7ee9639783"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.Publisher.cs",
+        "sha256": "ef39bbcc190faaa7f8a92fdab19d6ad74ec8e18c4865321f3f62d216e66e2c92"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.TextArea.cs",
+        "sha256": "d615c3b541389c464d35a91cf302cd037ad9f19632a7b4c7e7ad669e02f52de2"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.cs",
+        "sha256": "c2c69ddb51a4b06f7a0111690e4ede2932e83a495fae19fe28751bfcbe309500"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficePublisherFontMetrics.cs",
+        "sha256": "40d1969367614544e9e2361c8164bcff39e7bf93bcbd79c83770e999b192a527"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextFlow.cs",
+        "sha256": "73e8c1dd60e333f8bb88e77e7843cb7c77f7cab8527ab6afff0128588873d461"
+      },
+      {
+        "path": "OfficeIMO.Core/Raster/OfficeRasterCanvas.PublisherMetrics.cs",
+        "sha256": "3827931c000e00a7b5675deb48d604107ee53a78fbb039cf2e439836f1c14f23"
+      },
+      {
+        "path": "OfficeIMO.Drawing.Tests/Drawing.RichText.PublisherFrameFit.cs",
+        "sha256": "8c76068b36f3c379b56f16556bfc58cb1dd700447613860b1daa5e75ccdd0918"
+      },
+      {
+        "path": "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.DrawingTextMetrics.cs",
+        "sha256": "7b70b79b855f9f080c67e3642804bf99568521fb555c6abf66b80d20ed3b4e43"
+      },
+      {
+        "path": "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.Drawing.Text.cs",
+        "sha256": "77a8a711bc18773a85110cac87be95ba9c3be48097d22296dc323ce3b2f73d14"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFrameBreaks/native-textframebreaks.json",
+        "sha256": "9a5ba59588ed232473a1aa55a86ea133c0b3da47541c09141573531356943a75"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFrameBreaks/native-textframebreaks.pdf",
+        "sha256": "2532888f602d5370898dbb5445344627489fcd9acf77075c9070b8fe6d434031"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFrameBreaks/native-textframebreaks.pub",
+        "sha256": "dcc18f07fd009767d47401ee14d1c8ddc91cc8def1f3392c0bf57c8ddb412342"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFrameBreaks/provenance.json",
+        "sha256": "c8352e64020318fc8a3a5155d82240b3c5cd4103e9467c4297e997621081db8c"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherNativeComparison.FrameBreaks.cs",
+        "sha256": "87d1bef1b48a7be637ac42e7792a3d20a5152307debd2c7b4d24039d9b0a3887"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherNativeComparisonTests.cs",
+        "sha256": "4b0e0744d4c01b96d44228ff19ad2fb4cf07ea3db35d904e9a1ca9c2a7a08e6a"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherPageProjector.AuthoredFrames.cs",
+        "sha256": "a21d7adbddf26ad767fd9e2db550ea15339aa9ee7022e018bf01c430452c8185"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherPageProjector.Flow.cs",
+        "sha256": "917b2fd55c1983934504d6b7b87ea5f13c232bb219b22f91a7cea323ffbb224c"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherPageProjector.cs",
+        "sha256": "d940685f3021b03e702d7cca2e228ff0bc96c601fefdea82e74640ae3535762d"
+      },
+      {
+        "path": "OfficeIMO.Publisher/SUPPORT.md",
+        "sha256": "48e64c673ca0a28ae3c469c15cd519abb0e02fedd33b5df07a45fe1494f89e2c"
+      }
+    ]
   }
 }
