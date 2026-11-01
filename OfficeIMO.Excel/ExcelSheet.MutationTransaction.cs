@@ -33,7 +33,10 @@ namespace OfficeIMO.Excel {
                 EnsureWorksheetCapturedByMutationPlanIsActive();
                 var dynamicSpillState = CaptureDynamicSpillMutationState(_excelDocument.WorkbookPartRoot);
                 FlushPendingPartsBeforeMutationSnapshot();
-                var snapshot = PackageMutationSnapshot.Capture(_excelDocument.WorkbookPartRoot, options.MaximumSnapshotCharacters);
+                ExcelDocument.SourcePackageRollback? sourceRollback = _excelDocument.TryCaptureSourcePackageRollback(options.MaximumSnapshotCharacters);
+                PackageMutationSnapshot? snapshot = sourceRollback == null
+                    ? PackageMutationSnapshot.Capture(_excelDocument.WorkbookPartRoot, options.MaximumSnapshotCharacters)
+                    : null;
                 ExcelDocument.FormulaMutationState formulaMutationState = _excelDocument.CaptureFormulaMutationState();
                 var drawingHandles = _excelDocument.CaptureDrawingHandlesForReload();
                 try {
@@ -48,7 +51,8 @@ namespace OfficeIMO.Excel {
                         diagnostics);
                 } catch {
                     try {
-                        snapshot.Restore();
+                        if (sourceRollback != null) _excelDocument.RestoreSourcePackage(sourceRollback, drawingHandles);
+                        else snapshot!.Restore();
                     } finally {
                         _excelDocument.RestoreFormulaMutationState(formulaMutationState);
                         ResetPendingPartsAfterMutationRollback();

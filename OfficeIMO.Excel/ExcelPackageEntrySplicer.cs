@@ -43,6 +43,15 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>Returns the size of all entries once expanded, or null outside the plain ZIP shape handled here.</summary>
+        internal static long? MeasureExpandedSize(byte[] package) {
+            ExcelPackageEntrySplicer? splicer = Open(package);
+            if (splicer == null) return null;
+            long total = 0;
+            foreach (Entry entry in splicer._entries.Values) total += ReadUInt32(package, entry.CentralOffset + 24);
+            return total;
+        }
+
         internal bool Contains(string name) => _entries.ContainsKey(name);
 
         internal bool Matches(string name, byte[] content, int length) {
@@ -100,7 +109,7 @@ namespace OfficeIMO.Excel {
                 long localOffset = ReadUInt32(package, cursor + 42);
                 if (localOffset == 0xFFFFFFFFL) return null;
                 string name = Encoding.UTF8.GetString(package, cursor + CentralHeaderSize, nameLength);
-                splicer._entries.Add(name, new Entry(cursor, headerLength, (int)localOffset));
+                splicer._entries.Add(name, new Entry(name, cursor, headerLength, (int)localOffset));
                 cursor += headerLength;
             }
             return splicer;
@@ -113,73 +122,87 @@ namespace OfficeIMO.Excel {
                 ordered[index].LocalEnd = index + 1 < ordered.Length ? ordered[index + 1].LocalOffset : _directoryOffset;
             }
 
-            using var output = new MemoryStream(_package.Length + 512);
-            using var directory = new MemoryStream(_endRecord - _directoryOffset + 64);
+            // Sizing the package first means it is built once, in the array the document keeps as its next baseline.
+            int endLength = _package.Length - _endRecord;
+            int directoryLength = 0;
             int kept = 0;
-            foreach (KeyValuePair<string, Entry> pair in _entries.OrderBy(static item => item.Value.LocalOffset)) {
+            long size = endLength;
+            var compressed = new Dictionary<Entry, MemoryStream>();
+            foreach (KeyValuePair<string, Entry> pair in _entries) {
                 if (_removals.Contains(pair.Key)) continue;
-                kept++;
                 Entry entry = pair.Value;
-                int localOffset = (int)output.Position;
+                kept++;
+                directoryLength += entry.CentralLength;
+                size += entry.CentralLength;
                 if (_replacements.TryGetValue(pair.Key, out byte[]? content)) {
-                    WriteReplacement(entry, content, output, directory, localOffset);
+                    MemoryStream deflated = Deflate(content);
+                    compressed.Add(entry, deflated);
+                    size += LocalHeaderSize + ReadUInt16(_package, entry.CentralOffset + 28) + deflated.Length;
                 } else {
-                    output.Write(_package, entry.LocalOffset, entry.LocalEnd - entry.LocalOffset);
-                    var central = new byte[entry.CentralLength];
-                    Buffer.BlockCopy(_package, entry.CentralOffset, central, 0, central.Length);
-                    WriteUInt32(central, 42, (uint)localOffset);
-                    directory.Write(central, 0, central.Length);
+                    size += entry.LocalEnd - entry.LocalOffset;
                 }
             }
 
-            int directoryStart = (int)output.Position;
-            directory.Position = 0;
-            directory.CopyTo(output);
-            int endLength = _package.Length - _endRecord;
-            var end = new byte[endLength];
-            Buffer.BlockCopy(_package, _endRecord, end, 0, endLength);
-            WriteUInt16(end, 8, (ushort)kept);
-            WriteUInt16(end, 10, (ushort)kept);
-            WriteUInt32(end, 12, (uint)(output.Position - directoryStart));
-            WriteUInt32(end, 16, (uint)directoryStart);
-            output.Write(end, 0, end.Length);
-            return output.ToArray();
+            var output = new byte[checked((int)size)];
+            int directoryStart = output.Length - endLength - directoryLength;
+            int position = 0;
+            int central = directoryStart;
+            foreach (Entry entry in ordered) {
+                if (compressed.TryGetValue(entry, out MemoryStream? deflated)) {
+                    position = WriteReplacement(entry, _replacements[entry.Name], deflated, output, position, central);
+                } else if (!_removals.Contains(entry.Name)) {
+                    int length = entry.LocalEnd - entry.LocalOffset;
+                    Buffer.BlockCopy(_package, entry.LocalOffset, output, position, length);
+                    Buffer.BlockCopy(_package, entry.CentralOffset, output, central, entry.CentralLength);
+                    WriteUInt32(output, central + 42, (uint)position);
+                    position += length;
+                } else {
+                    continue;
+                }
+                central += entry.CentralLength;
+            }
+
+            int end = directoryStart + directoryLength;
+            Buffer.BlockCopy(_package, _endRecord, output, end, endLength);
+            WriteUInt16(output, end + 8, (ushort)kept);
+            WriteUInt16(output, end + 10, (ushort)kept);
+            WriteUInt32(output, end + 12, (uint)directoryLength);
+            WriteUInt32(output, end + 16, (uint)directoryStart);
+            return output;
         }
 
-        private void WriteReplacement(Entry entry, byte[] content, MemoryStream output, MemoryStream directory, int localOffset) {
-            byte[] compressed;
-            using (var deflated = new MemoryStream(content.Length / 2 + 64)) {
-                using (var deflate = new DeflateStream(deflated, CompressionLevel.Fastest, leaveOpen: true)) {
-                    deflate.Write(content, 0, content.Length);
-                }
-                compressed = deflated.ToArray();
+        private static MemoryStream Deflate(byte[] content) {
+            var deflated = new MemoryStream(content.Length / 4 + 64);
+            using (var deflate = new DeflateStream(deflated, CompressionLevel.Fastest, leaveOpen: true)) {
+                deflate.Write(content, 0, content.Length);
             }
+            return deflated;
+        }
 
+        private int WriteReplacement(Entry entry, byte[] content, MemoryStream compressed, byte[] output, int position, int central) {
             int nameLength = ReadUInt16(_package, entry.CentralOffset + 28);
+            int compressedLength = (int)compressed.Length;
             uint crc = (uint)Crc(content, content.Length);
-            var local = new byte[LocalHeaderSize];
-            WriteUInt32(local, 0, LocalHeaderSignature);
-            Buffer.BlockCopy(_package, entry.CentralOffset + 6, local, 4, 2);
-            WriteUInt16(local, 6, (ushort)(ReadUInt16(_package, entry.CentralOffset + 8) & ~0x0008));
-            WriteUInt16(local, 8, 8);
-            Buffer.BlockCopy(_package, entry.CentralOffset + 12, local, 10, 4);
-            WriteUInt32(local, 14, crc);
-            WriteUInt32(local, 18, (uint)compressed.Length);
-            WriteUInt32(local, 22, (uint)content.Length);
-            WriteUInt16(local, 26, (ushort)nameLength);
-            output.Write(local, 0, local.Length);
-            output.Write(_package, entry.CentralOffset + CentralHeaderSize, nameLength);
-            output.Write(compressed, 0, compressed.Length);
+            WriteUInt32(output, position, LocalHeaderSignature);
+            Buffer.BlockCopy(_package, entry.CentralOffset + 6, output, position + 4, 2);
+            WriteUInt16(output, position + 6, (ushort)(ReadUInt16(_package, entry.CentralOffset + 8) & ~0x0008));
+            WriteUInt16(output, position + 8, 8);
+            Buffer.BlockCopy(_package, entry.CentralOffset + 12, output, position + 10, 4);
+            WriteUInt32(output, position + 14, crc);
+            WriteUInt32(output, position + 18, (uint)compressedLength);
+            WriteUInt32(output, position + 22, (uint)content.Length);
+            WriteUInt16(output, position + 26, (ushort)nameLength);
+            Buffer.BlockCopy(_package, entry.CentralOffset + CentralHeaderSize, output, position + LocalHeaderSize, nameLength);
+            Buffer.BlockCopy(compressed.GetBuffer(), 0, output, position + LocalHeaderSize + nameLength, compressedLength);
 
-            var central = new byte[entry.CentralLength];
-            Buffer.BlockCopy(_package, entry.CentralOffset, central, 0, central.Length);
-            WriteUInt16(central, 8, (ushort)(ReadUInt16(central, 8) & ~0x0008));
-            WriteUInt16(central, 10, 8);
-            WriteUInt32(central, 16, crc);
-            WriteUInt32(central, 20, (uint)compressed.Length);
-            WriteUInt32(central, 24, (uint)content.Length);
-            WriteUInt32(central, 42, (uint)localOffset);
-            directory.Write(central, 0, central.Length);
+            Buffer.BlockCopy(_package, entry.CentralOffset, output, central, entry.CentralLength);
+            WriteUInt16(output, central + 8, (ushort)(ReadUInt16(output, central + 8) & ~0x0008));
+            WriteUInt16(output, central + 10, 8);
+            WriteUInt32(output, central + 16, crc);
+            WriteUInt32(output, central + 20, (uint)compressedLength);
+            WriteUInt32(output, central + 24, (uint)content.Length);
+            WriteUInt32(output, central + 42, (uint)position);
+            return position + LocalHeaderSize + nameLength + compressedLength;
         }
 
         private static long Crc(byte[] content, int length) =>
@@ -212,12 +235,14 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class Entry {
-            internal Entry(int centralOffset, int centralLength, int localOffset) {
+            internal Entry(string name, int centralOffset, int centralLength, int localOffset) {
+                Name = name;
                 CentralOffset = centralOffset;
                 CentralLength = centralLength;
                 LocalOffset = localOffset;
             }
 
+            internal string Name { get; }
             internal int CentralOffset { get; }
             internal int CentralLength { get; }
             internal int LocalOffset { get; }
