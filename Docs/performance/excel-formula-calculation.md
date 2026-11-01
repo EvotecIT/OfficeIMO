@@ -77,19 +77,60 @@ Both exclude input construction and output validation from timing. Use fresh
 workbooks, matching Excel/Core assemblies, equal placement and settings, and
 separate output roots. Never treat an incomplete baseline as equivalent work.
 
-## Lookup expansion comparison
+## Lookup expansion comparison: 1 November 2026
 
-The next comparison uses the complete shared-string-optimized source
-`67ab8dd54bcc17697df755b5b69bb36316056827` as its baseline. Its saved Excel
-assembly SHA-256 is `E3358E58765B7060E8341AC361FB7FF09855A19E55E235AA5DC1E80483CB849C`.
-Keep the four existing report inputs and all 2,048 output checks unchanged.
-The candidate adds lookup modes, INDEX references/arrays and named expressions;
-reference-backed lookup sources also avoid eager range materialization.
+The [expansion evidence](excel-formula-expansion-2026-11-01.json) compares the
+complete shared-string-optimized source `67ab8dd54bcc17697df755b5b69bb36316056827`
+with `427b0c3bc3f9538e6061c2b4f221bdedfffa80e7`. It records the exact Excel/Core
+assembly hashes, all 144 measured report operations and the complete summaries.
+Both versions calculate the same four inputs and validate all 2,048 cached values.
 
-Compare that report before/after, then compare 256 linear and binary XLOOKUPs
-over identical sorted numeric sources at 512 and 8,192 keys using
-`FormulaLookupScaleBenchmarks`. Setup and complete output validation remain
-outside timing. Run the complete matrix on each fixed processor domain. Accept
-only correct outputs; investigate material common-case regressions. Stop after
-the measured source-resolution and pass-catalog changes are qualified, without
-adding speculative persistent indexes or expression caches.
+The candidate adds lookup modes, reference/array INDEX and named expressions.
+Lazy reference-backed lookup sources avoid eager materialization, per-pass name
+catalogs avoid repeated definition scans, and literal lookup keys avoid wildcard
+regex construction. Nine measured iterations per engine/case use rotated order
+and each fixed processor domain, with one warmup. A preceding three-sample check
+showed an inconclusive VLOOKUP timing regression on one domain; inspecting the
+literal-key path identified unnecessary regex work. The final comparison includes
+that fix and uses nine samples to examine the common-case concern.
+
+| Report | Domain 0 median, baseline → candidate | Domain 1 median, baseline → candidate | Formula allocation, baseline → candidate |
+| --- | --- | --- | --- |
+| INDEX/MATCH hit | 208.45 → 135.15 ms | 176.25 → 119.33 ms | 252.0 → 150.3–151.0 MB |
+| INDEX/MATCH missing product | 198.09 → 127.25 ms | 175.62 → 120.81 ms | 252.0 → 153.3 MB |
+| VLOOKUP missing product | 130.90 → 125.93 ms | 112.63 → 109.43 ms | 155.0 → 148.3 MB |
+| XLOOKUP missing product | 307.72 → 132.18 ms | 281.65 → 108.48 ms | 414.8 → 150.7 MB |
+
+Allocation is cumulative managed allocation inside Calculate, expressed in decimal
+MB; it is not peak or retained RAM. INDEX/MATCH allocation falls approximately
+39–40%, XLOOKUP approximately 64%, and VLOOKUP approximately 4%. INDEX/MATCH medians
+improve approximately 1.46–1.56 times and XLOOKUP 2.33–2.60 times against this already
+optimized baseline. The small VLOOKUP timing margin is workload/host evidence,
+not a general speedup claim. Background development activity remains uncontrolled;
+the recorded 27.8% CPU snapshot before the final run is not a continuous trace.
+
+## Binary lookup scale
+
+The maintained [FormulaLookupScaleBenchmarks](../../Benchmarks/ExcelReaderTyped/FormulaLookupScaleBenchmarks.cs)
+compares 256 linear and binary XLOOKUPs over identical sorted numeric sources at
+512 and 8,192 keys. Setup and full result validation are outside timing. Each
+processor domain ran the complete four-case matrix with BenchmarkDotNet 0.15.8
+ShortRun, one launch, three warmups and three measured iterations at normal
+priority. The evidence identifies the measured `a94fbfeb97ecfa7f0f1df41d0f500bd700fcc4a8`
+assemblies; binary traversal is unchanged in the final report candidate.
+
+At 8,192 keys, linear search means are 530–630 ms and binary means 110–120 ms.
+Allocation is approximately 754 MiB for linear search and 11.5–11.6 MiB for binary
+search. At 512 keys, allocation falls from approximately 55 MiB to 2.7–5.0 MiB,
+but timing is variable and does not establish a consistent binary speedup.
+All 256 cached results were checked after every measured operation. Binary search
+requires sorted input; this numeric cohort does not qualify arbitrary mixed-type
+or locale-dependent text ordering. BDN's three-sample confidence intervals are
+wide, so these results demonstrate the larger-case scaling benefit without
+claiming precise portable timing ratios.
+
+All final report operations and scale cases pass output validation. No persistent
+lookup index, parser cache, timing assertion or memory budget is added to ordinary
+correctness CI. Native Excel was unavailable for a completed new oracle on the
+measurement host; these performance runs establish equivalent validated work,
+not native formula parity.
