@@ -7,6 +7,12 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfRedactionApplier {
     private static readonly string[] FontProgramKeys = { "FontFile", "FontFile2", "FontFile3" };
+    private static readonly string[] FontCMapKeys = { "ToUnicode", "Encoding", "UseCMap" };
+    private static readonly HashSet<string> CMapSyntaxWords = new HashSet<string>(StringComparer.Ordinal) {
+        "CIDInit", "CMapName", "ProcSet", "begin", "begincmap", "begincodespacerange", "beginbfchar", "beginbfrange", "begincidchar", "begincidrange",
+        "beginnotdefchar", "beginnotdefrange", "currentdict", "def", "defineresource", "dict", "end", "endcmap", "endcodespacerange", "endbfchar",
+        "endbfrange", "endcidchar", "endcidrange", "endnotdefchar", "endnotdefrange", "findresource", "pop", "usecmap"
+    };
     /// <summary>Rechecks the saved artifact, including holders unknown to the planner. PDF names are syntax, not string data.</summary>
     internal static IReadOnlyList<PdfRedactionVerificationIssue> FindSearchResidue(byte[] pdf, PdfRedactionPlan plan,
         PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
@@ -31,7 +37,7 @@ internal static partial class PdfRedactionApplier {
         void Inspect(PdfReadDocument current, byte[] bytes, bool historical) {
             HashSet<PdfObject> excluded = FindExcludedSearchObjects(current.Objects, current.Pages.Select(static page => page.ObjectNumber).ToArray(), criteria, cancellationToken);
             HashSet<int> contentStreams = GetPageContentStreamNumbers(current.Objects);
-            HashSet<PdfStream> fontPrograms = FindFontPrograms(current.Objects, cancellationToken);
+            PdfRedactionFontStreams fontStreams = FindFontStreams(current.Objects, cancellationToken);
             if (plan.IsSearchDriven) {
                 for (int index = 0; index < current.Pages.Count; index++) {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -54,7 +60,7 @@ internal static partial class PdfRedactionApplier {
                     foreach (var member in PdfSyntax.ReadRedactionObjectStreamMembers(container, current.Objects, current.ReadOptions.Limits, containerBudget, cancellationToken)) {
                         if (current.Objects.TryGetValue(member.Number, out PdfIndirectObject? live) &&
                             live.SourceOffset == item.SourceOffset && excluded.Contains(live.Value)) continue;
-                        if (SearchObjectHolds(current.Objects, member.Value, criteria, current.ReadOptions.Limits, fontPrograms,
+                        if (SearchObjectHolds(current.Objects, member.Value, criteria, current.ReadOptions.Limits, fontStreams,
                             new HashSet<PdfObject>(), excluded, followReferences: false, cancellationToken: cancellationToken))
                             issues.Add(new PdfRedactionVerificationIssue("SearchResidue", "CompressedMember", "A retained compressed PDF member still holds searched text."));
                     }
@@ -65,7 +71,7 @@ internal static partial class PdfRedactionApplier {
                 // owns that content; the generic sweep still checks its dictionaries and every other holder.
                 if (!plan.IsSearchDriven && inspected is PdfStream selectedStream &&
                     (contentStreams.Contains(item.ObjectNumber) || selectedStream.Dictionary.Get<PdfName>("Subtype")?.Name == "Form")) inspected = selectedStream.Dictionary;
-                if (SearchObjectHolds(current.Objects, inspected, criteria, current.ReadOptions.Limits, fontPrograms, visited, excluded,
+                if (SearchObjectHolds(current.Objects, inspected, criteria, current.ReadOptions.Limits, fontStreams, visited, excluded,
                     contentStreams.Contains(item.ObjectNumber), followReferences: false, cancellationToken)) {
                     issues.Add(new PdfRedactionVerificationIssue("SearchResidue", historical ? "HistoricalRevision" : "Object:" + item.ObjectNumber.ToString(CultureInfo.InvariantCulture),
                         historical ? "An earlier PDF revision still holds searched text." : "A saved PDF object still holds searched text."));
@@ -114,27 +120,29 @@ internal static partial class PdfRedactionApplier {
 
     /// <summary>Checks data recursively, resolving references only when explicitly reached, with stream decoding bounded by the reader limits.</summary>
     private static bool SearchObjectHolds(Dictionary<int, PdfIndirectObject> objects, PdfObject? value, PdfRedactionSearchCriteria[] criteria,
-        PdfReadLimits limits, HashSet<PdfStream> fontPrograms, HashSet<PdfObject> visited, HashSet<PdfObject>? excluded = null, bool contentStream = false, bool followReferences = true, CancellationToken cancellationToken = default) {
+        PdfReadLimits limits, PdfRedactionFontStreams fontStreams, HashSet<PdfObject> visited, HashSet<PdfObject>? excluded = null, bool contentStream = false, bool followReferences = true, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (!followReferences && value is PdfReference) return false;
         value = PdfObjectLookup.Resolve(objects, value);
         if (value is null || excluded?.Contains(value) == true || !visited.Add(value)) return false;
         switch (value) {
             case PdfStringObj text: return SearchTextHolds(text.Value, criteria);
-            case PdfArray array: return array.Items.Any(item => SearchObjectHolds(objects, item, criteria, limits, fontPrograms, visited, excluded, cancellationToken: cancellationToken, followReferences: followReferences));
-            case PdfDictionary dictionary: return dictionary.Items.Values.Any(item => SearchObjectHolds(objects, item, criteria, limits, fontPrograms, visited, excluded, cancellationToken: cancellationToken, followReferences: followReferences));
+            case PdfArray array: return array.Items.Any(item => SearchObjectHolds(objects, item, criteria, limits, fontStreams, visited, excluded, cancellationToken: cancellationToken, followReferences: followReferences));
+            case PdfDictionary dictionary: return dictionary.Items.Values.Any(item => SearchObjectHolds(objects, item, criteria, limits, fontStreams, visited, excluded, cancellationToken: cancellationToken, followReferences: followReferences));
             case PdfStream stream:
-                if (SearchObjectHolds(objects, stream.Dictionary, criteria, limits, fontPrograms, visited, excluded, cancellationToken: cancellationToken, followReferences: followReferences)) return true;
+                if (SearchObjectHolds(objects, stream.Dictionary, criteria, limits, fontStreams, visited, excluded, cancellationToken: cancellationToken, followReferences: followReferences)) return true;
                 if (!StreamDecoder.TryDecode(stream, limits.MaxDecodedStreamBytes, out byte[] data, objects)) return false;
                 string content = PdfEncoding.Latin1GetString(data);
-                bool cmap = ContainsOrdinal(content, "begincmap");
+                // A font's mapping is its repertoire, not retained text. The word alone doesn't make a stream one.
+                bool cmap = fontStreams.CMaps.Contains(stream) && ContainsOrdinal(content, "begincmap");
+                var cmapWords = new StringBuilder();
                 if (contentStream || stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Form" || stream.Dictionary.Items.ContainsKey("PatternType") || cmap) {
                     bool found = false;
                     try {
                         PdfContentStreamInterpreter.Interpret(content, limits.MaxContentOperations,
                             operation => {
-                                // A font's repertoire is not retained text. Only actual string data outside its code mappings counts.
-                                if (cmap && operation.Name is "endbfchar" or "endbfrange" or "endcodespacerange" or "endcidchar" or "endcidrange") return;
+                                if (cmap && !CMapSyntaxWords.Contains(operation.Name)) cmapWords.Append(operation.Name).Append(' ');
+                                if (cmap && operation.Name is "endbfchar" or "endbfrange" or "endcidchar" or "endcidrange") return;
                                 found |= operation.Operands.Any(OperandHolds);
                             }, maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands);
                     } catch (FormatException) {
@@ -142,11 +150,11 @@ internal static partial class PdfRedactionApplier {
                         // Inspect the entire payload, including valid strings after the bad token.
                         return found || SearchTextHolds(content, criteria) || PdfRedactionVerification.ContainsSearchedPdfString(data, criteria, cancellationToken);
                     }
-                    return found;
+                    return found || SearchTextHolds(cmapWords.ToString(), criteria);
                 }
                 // Binary image/font payloads are not text-bearing streams. Their string dictionaries were checked above.
                 if (stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Image") return false;
-                return !fontPrograms.Contains(stream) && (SearchTextHolds(content, criteria) || PdfRedactionVerification.ContainsSearchedPdfString(data, criteria, cancellationToken));
+                return !fontStreams.Programs.Contains(stream) && (SearchTextHolds(content, criteria) || PdfRedactionVerification.ContainsSearchedPdfString(data, criteria, cancellationToken));
             default: return false;
         }
 
@@ -158,16 +166,24 @@ internal static partial class PdfRedactionApplier {
         };
     }
 
-    private static HashSet<PdfStream> FindFontPrograms(Dictionary<int, PdfIndirectObject> objects, CancellationToken cancellationToken) {
-        var programs = new HashSet<PdfStream>();
-        foreach (PdfIndirectObject item in objects.Values) {
+    // Font dictionaries also sit directly inside resources, so this walks containers as well as indirect objects.
+    private static PdfRedactionFontStreams FindFontStreams(Dictionary<int, PdfIndirectObject> objects, CancellationToken cancellationToken) {
+        var found = new PdfRedactionFontStreams();
+        var visited = new HashSet<PdfObject>();
+        var pending = new Stack<PdfObject>(objects.Values.Select(static item => item.Value));
+        while (pending.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (item.Value is not PdfDictionary descriptor) continue;
-            foreach (string key in FontProgramKeys) {
-                if (descriptor.Items.TryGetValue(key, out PdfObject? font) && PdfObjectLookup.Resolve(objects, font) is PdfStream program) programs.Add(program);
+            PdfObject value = pending.Pop();
+            if (!visited.Add(value)) continue;
+            if (value is PdfArray array) foreach (PdfObject item in array.Items) if (item is PdfDictionary or PdfArray) pending.Push(item);
+            if (AsDictionary(value) is not PdfDictionary dictionary) continue;
+            foreach (KeyValuePair<string, PdfObject> entry in dictionary.Items) {
+                if (entry.Value is PdfDictionary or PdfArray) pending.Push(entry.Value);
+                HashSet<PdfStream>? role = Array.IndexOf(FontProgramKeys, entry.Key) >= 0 ? found.Programs : Array.IndexOf(FontCMapKeys, entry.Key) >= 0 ? found.CMaps : null;
+                if (role is not null && PdfObjectLookup.Resolve(objects, entry.Value) is PdfStream stream) role.Add(stream);
             }
         }
-        return programs;
+        return found;
     }
 
     /// <summary>Page data exclusively reachable from excluded pages may legitimately retain a searched value.</summary>
@@ -227,19 +243,25 @@ internal static partial class PdfRedactionApplier {
         string? trailer, IReadOnlyList<int> pages, PdfRedactionSearchCriteria[] criteria, PdfReadLimits limits) {
         var owners = new List<PdfDictionary>();
         if (criteria.Length == 0) return (owners, false);
-        HashSet<PdfStream> fontPrograms = FindFontPrograms(objects, default);
+        PdfRedactionFontStreams fontStreams = FindFontStreams(objects, default);
         Check(catalog);
         for (int index = 0; index < pages.Count; index++) {
             if (!criteria.Any(criterion => criterion.CoversAllPages || criterion.PageNumbers.Contains(index + 1))) continue;
             if (objects.TryGetValue(pages[index], out PdfIndirectObject? page)) Check(page.Value as PdfDictionary);
         }
         PdfReference? info = PdfSyntax.ReadTrailerReference(trailer, "Info", limits);
-        bool removeInfo = info is not null && SearchObjectHolds(objects, info, criteria, limits, fontPrograms, new HashSet<PdfObject>());
+        bool removeInfo = info is not null && SearchObjectHolds(objects, info, criteria, limits, fontStreams, new HashSet<PdfObject>());
         return (owners, removeInfo);
 
         void Check(PdfDictionary? owner) {
             if (owner is not null && owner.Items.TryGetValue("Metadata", out PdfObject? metadata) &&
-                SearchObjectHolds(objects, metadata, criteria, limits, fontPrograms, new HashSet<PdfObject>())) owners.Add(owner);
+                SearchObjectHolds(objects, metadata, criteria, limits, fontStreams, new HashSet<PdfObject>())) owners.Add(owner);
         }
     }
+}
+
+/// <summary>Streams holding a font's own data rather than document text.</summary>
+internal sealed class PdfRedactionFontStreams {
+    internal HashSet<PdfStream> Programs { get; } = new();
+    internal HashSet<PdfStream> CMaps { get; } = new();
 }
