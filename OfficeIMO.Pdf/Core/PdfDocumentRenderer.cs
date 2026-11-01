@@ -37,6 +37,11 @@ public sealed class PdfDocumentRenderer {
         PdfLoadOptions? loadOptions = null) =>
         _document.Reader.LayoutDebugOverlay(pageNumber, options, layoutOptions, loadOptions);
 
+    /// <summary>Renders a transparent diagnostic overlay to PNG within the supplied element and raster-pixel budgets.</summary>
+    public byte[] LayoutDebugOverlayPng(int pageNumber, double scale = 1D,
+        PdfLayoutDebugOverlayOptions? options = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? loadOptions = null) =>
+        _document.Reader.LayoutDebugOverlayPng(pageNumber, scale, options, layoutOptions, loadOptions);
+
     /// <summary>Returns managed-renderer capability diagnostics for a one-based page.</summary>
     public IReadOnlyList<PdfRenderCapabilityDiagnostic> CapabilityDiagnostics(int pageNumber) =>
         CapabilityDiagnostics(pageNumber, null);

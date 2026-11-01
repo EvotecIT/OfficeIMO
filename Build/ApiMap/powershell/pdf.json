@@ -17769,7 +17769,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates the XFDF import limits for Import-OfficePdfXfdf.",
-      "outputType": "PdfFormFillerOptions",
+      "outputType": "OfficeIMO.Pdf.PdfFormFillerOptions",
       "parameterSets": [
         {
           "name": "Default",
@@ -17815,7 +17815,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates the limits for Get-OfficePdfInteractionMap.",
-      "outputType": "PdfPageInteractionOptions",
+      "outputType": "OfficeIMO.Pdf.PdfPageInteractionOptions",
       "parameterSets": [
         {
           "name": "Default",
@@ -17861,7 +17861,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Chooses which document features Test-OfficePdfRewrite requires to survive a rewrite.",
-      "outputType": "PdfRewritePreservationOptions",
+      "outputType": "OfficeIMO.Pdf.PdfRewritePreservationOptions",
       "parameterSets": [
         {
           "name": "Default",
@@ -18027,7 +18027,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Chooses what Export-OfficePdfLayoutOverlay draws.",
-      "outputType": "PdfLayoutDebugOverlayOptions",
+      "outputType": "OfficeIMO.Pdf.PdfLayoutDebugOverlayOptions",
       "parameterSets": [
         {
           "name": "Default",
