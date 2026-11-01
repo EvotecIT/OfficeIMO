@@ -20059,6 +20059,168 @@
         "The exact native reference pixel comparisons cover document-page ordering. Master/linked cases have actual native order and save/reopen evidence without a separately reversed native reference file."
       ],
       "canClosePUB00": false
+    },
+    "wrapOrderingAdmission": {
+      "scope": "Independent native square-wrap/object-order producer controls and conservative existing-source order admission. Full canonical/native wrap-reference regeneration remains open.",
+      "sourceImplementationCommit": "9a4884006ddf5b67a1fd37b45ff37263a6e8eaa3",
+      "publicContract": "SetPageObjectOrder refuses populated native exclusion lists and enabled or unresolved native wrapping artwork crossing a text frame, including initially empty lists. Explicitly disabled wrapping can cross frames under the existing source-save profile. Unchanged order retains the exact-source path.",
+      "nativeProducer": {
+        "application": "Microsoft Publisher",
+        "executableVersion": "16.0.20527.20088",
+        "executableSha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed",
+        "automationSecurity": 3,
+        "newNativeGetters": false,
+        "setterBoundary": "Square obstacles set Type=1, Side=0, automatic distances=false and six-point margins. Text frame and no-wrap controls set Type=0 without unavailable Side/distance setters."
+      },
+      "independentControls": [
+        {
+          "case": "WrapObjectOrder",
+          "publicationSha256": "5a60f5c8e5c64e676d81ea0c3da2aa74c55c6f5250dd1fa38f2080a2f28bc41e",
+          "nativePdfSha256": "e0cbc70457d6125ef12efb54c8f96a42f601b0df7ce3241921a88c8ab03578e9",
+          "provenanceSha256": "d7d2c4a81c31f10e8744b67c291885803caf94b460156f67d57dd0905bac7cec"
+        },
+        {
+          "case": "WrapObjectOrderReversed",
+          "publicationSha256": "15df010a83e8147a3088311c308d0961e53f2f1ba0b2d5e5319e7b8f8fa73fe1",
+          "nativePdfSha256": "c96f7fc009b2012edd3f55d0726c24acc8a1b2317cf7c67e26b4801ba715cf3d",
+          "provenanceSha256": "0f6ba511c90f3849e866ab1423acb735e809a4834672ad113829f3c4ec1f2c81"
+        },
+        {
+          "case": "WrapObjectOrderNone",
+          "publicationSha256": "a97844eaa118c09915c7babd8302ba266d83257f9c2b2e2aabd948b6d6445518",
+          "nativePdfSha256": "a18395f24d0f85937edddb74c898bd196cdffc435b513b0c11a27b7970271c0e",
+          "provenanceSha256": "c5b2cbbb2ea4060afac4c9a52675f43762ab347e0504e57241c1931199f84864"
+        },
+        {
+          "case": "WrapObjectOrderRectangleOnly",
+          "publicationSha256": "8da33c9d291b3f1d2462f7abb4b3ccd115c642c898068e0b3155a2438119cbfe",
+          "nativePdfSha256": "87eabf90201b1fc9fcd4f477b9785bc23b629751a3f245cf7abfbfa32819aed3",
+          "provenanceSha256": "5044cbb18d1df3b6855f40a06f5bb317d9c3bcd4d58a8451c4d04decd71fe1d1"
+        },
+        {
+          "case": "WrapObjectOrderPictureOnly",
+          "publicationSha256": "3d2e8fdc2e9a5aac1b1a7af92264d9a71b54059dbf4f5aa6b7da826baf8e9077",
+          "nativePdfSha256": "f8000b8621e4f14da332b01a4e22f380a32bfe75b03a52612ce5258c9659e204",
+          "provenanceSha256": "1a6d01c3fed87a6b4056e32ff1f796cb423538040a6690f92b48570b73a85109"
+        },
+        {
+          "case": "WrapObjectOrderSwap",
+          "publicationSha256": "0712111e80a056ab2a14da42a109a3682389dd6468da26a784c32bf47385ceb7",
+          "nativePdfSha256": "b458c31ec261299008bddeeecace0a3a1b858b9c5e0f295dc6604236c1e738c0",
+          "provenanceSha256": "8969735e75d1adf3148fc1c8477bf4853fe649bedd78579325aaa5b5a7d93170"
+        }
+      ],
+      "producerRelationships": {
+        "objects": {
+          "293": "WrappedStory",
+          "294": "WrapRectangle",
+          "295": "WrapPicture"
+        },
+        "frameExclusions": {
+          "bothForeground": [
+            294,
+            295
+          ],
+          "bothBehind": [],
+          "disabled": [],
+          "rectangleOnly": [
+            294
+          ],
+          "pictureOnly": [
+            295
+          ],
+          "swappedForeground": [
+            295,
+            294
+          ]
+        },
+        "frameFields": "Count 0x46 and reference-list 0x47 with child type0x68/id0; lists follow participating foreground obstacle order. Native opposite/partial orders remove references for obstacles behind the text.",
+        "obstacleFields": "The qualified None control has one field0x04/type0x10/value0x0100 and no field0x12. Square controls omit field0x04 and retain field0x12/type0x00. Absent, conflicting or other wrap representations do not establish disabled wrapping.",
+        "drawingAndOwnership": "Complete SP order changes; page ownership and story identities stay fixed."
+      },
+      "admissionImplementation": {
+        "owner": "Publisher native source writer, reused before public model commit",
+        "method": "Linear prefix-maximum/suffix-minimum frame positions detect artwork/frame inversions without quadratic pair traversal. Cancellation is checked in each traversal; the public path uses the validated copied order.",
+        "boundaries": [
+          "Existing populated exclusion lists retain their prior refusal.",
+          "Crossing enabled/unknown wrapping refuses before model publication and again in native save preparation.",
+          "Exact observed disabled-wrap token admits crossing subject to existing group, binding, sibling-scope, loss-policy and storage safeguards.",
+          "Unchanged-order source copies remain available."
+        ]
+      },
+      "regression": {
+        "sourceCommit": "94369098348f61e01cb8cc04744cdce781226cc1",
+        "actualPublicSaveAccepted": true,
+        "nativeOperations": 7,
+        "nativeInitialAndResaveMatchNoWrapReference": true,
+        "nativeWrappedReferenceDiffers": true,
+        "nonemptyExtractedLines": {
+          "wrappedReference": 34,
+          "stalePublicNativeInitial": 24,
+          "stalePublicNativeResave": 24
+        },
+        "proofSha256": "2dd7fc73f24be0a5e73581e450810ccc3da2cf71053fa485eb17dd7d550893db"
+      },
+      "validation": {
+        "test": "Native_wrap_crossings_require_qualification_even_when_reference_lists_are_empty",
+        "pairedCases": [
+          "Enabled native obstacles behind text: initial lists empty, requested crossing refuses atomically, same page and exact source retained.",
+          "Explicitly disabled native wrapping: crossing saves, reloads in requested order and retains empty lists."
+        ],
+        "reports": {
+          "before": {
+            "passed": 1,
+            "failed": 1,
+            "reportSha256": "bc6f083a06582fc7db3724179bcc77f20a37f210bc026cfd5e3e95cb97054683"
+          },
+          "after": {
+            "passed": 14,
+            "failed": 0,
+            "reportSha256": "f761d459d8726a24be7946a01f7269e683fc11382cdbaf18ea7e2b58af02e5af"
+          },
+          "stable-net10": {
+            "passed": 1062,
+            "failed": 0,
+            "reportSha256": "2c1d00d561104a298777353342298a7480dbbe0e2eae3c74373aa087e86fc498"
+          },
+          "stable-net8-serial": {
+            "passed": 1062,
+            "failed": 0,
+            "reportSha256": "4f424781a2623307b1fe6f6fc06bf5ed3f637d3f9635d3d2381f7c1dae2e1379"
+          },
+          "stable-net472": {
+            "passed": 1062,
+            "failed": 0,
+            "reportSha256": "242d1f4a758f51ea47353343577c52d477fbbeb6640eb5866754f1bdbffdd205"
+          },
+          "reader": {
+            "passed": 93,
+            "failed": 0,
+            "reportSha256": "2cf0795de9c15262f484b24a6afc2c566694e9bdd8218338a1e48141da935fb7"
+          }
+        },
+        "sourcePowerShellAndNative": {
+          "psVersion": "7.6.9",
+          "sourcePSBuildPassed": true,
+          "psRejectedNativeCases": 2,
+          "psDisabledWrapOrderSaveAndWorkflowPassed": true,
+          "nativeOperations": 7,
+          "nativeInventoryStable": true,
+          "nativePixelPairs144Dpi": 3,
+          "nativePixelSha256144Dpi": "12bce9475eb5d76f6b8dc231eaf8e3fb5f01e5765552e6bd2f5cd08ed9a81d3e",
+          "sourcePSAssemblySha256": "dc84d599745a5e6cf6763a15bcf9e39ad71f5b4a8098d84cfc59710b24891920"
+        },
+        "visualControlAndRegressionSheetsInspected": true,
+        "proofSha256": "60ba0300ddfaf6d7b59e6d84fc64821fa0eca3036a0d08b6af7cc4e54157c60e"
+      },
+      "limits": [
+        "Full model/native wrap-reference regeneration remains open.",
+        "Native repair-free opening remains unqualified.",
+        "Square/both-side producer controls do not qualify general side/outline/multiple-interval rendering.",
+        "PS7.6.9 runtime qualified; PS5.1 native execution is not.",
+        "Native-save defensive rejection and unchanged-order behavior are source-reviewed here without new direct executable regression cases."
+      ],
+      "canClosePUB00": false
     }
   },
   "characterReading": {

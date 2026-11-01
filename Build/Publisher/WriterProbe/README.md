@@ -650,6 +650,16 @@ comparisons and PowerShell workflows. Groups, native wrap-exclusion lists and
 split scopes remain outside this source profile. This does not promote the
 source-free native writer or close PUB00.
 
+The `sourceEditing.wrapOrderingAdmission` record qualifies six native wrap/order
+controls: both obstacles in front, both behind, explicitly disabled wrapping,
+either obstacle in front and swapped foreground obstacles. Native frame lists
+follow participating foreground IDs in stacking order. The public edit and native
+writer refuse an enabled or unresolved wrapping object crossing a text frame,
+including initially empty exclusion lists. The paired public regression and
+disabled-wrap native save/reopen distinguish refusal from a blanket ordering ban.
+This establishes admission and producer semantics; rebuilding native/model wrap
+relationships remains open.
+
 The `sourceEditing.imageReplacement` record covers public native saves for
 existing PNG/JPEG picture placements, including shared assets, master pictures,
 cropping, repeated replacement, combined frame changes and re-editing a native

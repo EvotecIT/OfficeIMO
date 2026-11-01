@@ -354,8 +354,10 @@ File.WriteAllText("flyer-reordered.svg", publication.ToSvg());
 The edit retains identifiers, stories, links, assets and old page snapshots.
 The same operation accepts a qualified master page ID. In-memory authored objects
 also follow the new order in SVG/PDF. Native saving needs an imported source whose
-objects have a complete sibling-record profile; grouped native artwork and native
-text-wrap exclusion lists refuse this operation. The save report includes
+objects have a complete sibling-record profile. Grouped native artwork, populated
+text-wrap exclusion lists, and enabled or unresolved wrapping artwork crossing a
+text frame refuse this operation. An empty exclusion list alone does not establish
+that wrapping is disabled. The save report includes
 `PUB_NATIVE_OBJECT_ORDER_UNQUALIFIED`, requiring explicit `Allow`. See the
 [qualified ordering contract](SUPPORT.md#existing-page-object-ordering).
 
