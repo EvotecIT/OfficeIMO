@@ -127,4 +127,26 @@ public partial class PdfFormFillerTests {
         Assert.DoesNotContain("/Subtype /Widget", Latin1(flattened), StringComparison.Ordinal);
         Assert.Contains("shown", PdfDocument.Load(flattened).ExtractText(), StringComparison.Ordinal);
     }
+
+    [Theory]
+    [InlineData("fill")]
+    [InlineData("append")]
+    [InlineData("flatten")]
+    public void GeneratedAppearanceFollowsTheWidgetRotation(string path) {
+        string value = path == "flatten" ? "/V (Turned) " : string.Empty;
+        byte[] input = BuildReviewFormPdf("/Fields [10 0 R]", "/Rotate 90 /Annots [10 0 R]", string.Empty,
+            TextWidget(10, "Name", "100 300 130 600", "/F 4 " + value + "/MK << /R 90 >>"));
+        var values = new Dictionary<string, string> { ["Name"] = "Turned" };
+
+        byte[] output = path switch {
+            "fill" => PdfFormFiller.FillFields(input, values),
+            "append" => PdfIncrementalUpdater.UpdateFormFields(input, values, keepNeedAppearances: false),
+            _ => PdfFormFiller.FlattenFields(input)
+        };
+
+        PdfStream appearance = PdfReadDocument.Open(output).Objects.Values.Select(static item => item.Value).OfType<PdfStream>()
+            .Single(static stream => stream.Dictionary.Items.ContainsKey("BBox"));
+        Assert.Equal(new[] { 0D, 1D, -1D, 0D, 30D, 0D }, ((PdfArray)appearance.Dictionary.Items["Matrix"]).Items.Cast<PdfNumber>().Select(static number => number.Value));
+        Assert.Equal(new[] { 0D, 0D, 300D, 30D }, ((PdfArray)appearance.Dictionary.Items["BBox"]).Items.Cast<PdfNumber>().Select(static number => number.Value));
+    }
 }

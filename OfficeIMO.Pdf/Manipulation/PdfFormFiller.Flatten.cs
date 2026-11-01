@@ -87,12 +87,14 @@ internal static partial class PdfFormFiller {
                 PdfDictionary? widgetAppearanceResources = TryReadNormalAppearanceResources(objects, field);
                 PdfDictionary? widgetPageResources = TryReadWidgetPageResources(objects, field);
                 PdfFormFieldStyle widgetStyle = ReadWidgetAppearanceStyle(objects, field, fieldFlags, fieldQuadding, fieldMaxLength, defaultAppearance);
+                double layoutWidth = width, layoutHeight = height;
+                int turn = ReadWidgetRotation(objects, field, ref layoutWidth, ref layoutHeight);
                 if (isMultiSelectChoice) {
                     widgetStyle.IsMultiline = true;
                 }
 
                 appearanceObjectNumber = nextObjectNumber++;
-                objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, appearanceValue ?? string.Empty, width, height, widgetStyle, defaultAppearance, ReadWidgetAppearanceFontSize(defaultAppearance, height), options, fullName, ref nextObjectNumber, richAppearanceRuns, maximumMeasurementCharacters: maximumMeasurementCharacters, cancellationToken: cancellationToken));
+                objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, ApplyWidgetRotation(CreateTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, appearanceValue ?? string.Empty, layoutWidth, layoutHeight, widgetStyle, defaultAppearance, ReadWidgetAppearanceFontSize(defaultAppearance, layoutHeight), options, fullName, ref nextObjectNumber, richAppearanceRuns, maximumMeasurementCharacters: maximumMeasurementCharacters, cancellationToken: cancellationToken), turn, layoutWidth, layoutHeight));
             }
 
             // The widget's layer keeps deciding visibility once its appearance is page content.

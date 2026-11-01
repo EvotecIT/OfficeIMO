@@ -394,6 +394,7 @@ internal static partial class PdfIncrementalUpdater {
         PdfDictionary? defaultResources = TryReadDefaultResources(objects, field) ?? inheritedDefaultResources;
         string? defaultAppearance = TryReadText(objects, field, "DA") ?? inheritedDefaultAppearance;
         if (IsWidget(field) && TryReadRect(field, out double width, out double height)) {
+            int turn = PdfFormFiller.ReadWidgetRotation(objects, field, ref width, ref height);
             PdfDictionary? widgetAppearanceResources = TryReadIncrementalNormalAppearanceResources(objects, field);
             PdfDictionary? widgetPageResources = TryReadIncrementalWidgetPageResources(objects, field);
             int appearanceObjectNumber = nextObjectNumber++;
@@ -406,7 +407,7 @@ internal static partial class PdfIncrementalUpdater {
             objects[appearanceObjectNumber] = new PdfIndirectObject(
                 appearanceObjectNumber,
                 0,
-                CreateIncrementalTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, defaultAppearance, value, width, height, style, fontSize, ref nextObjectNumber, ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, maximumMeasurementCharacters, cancellationToken));
+                PdfFormFiller.ApplyWidgetRotation(CreateIncrementalTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, defaultAppearance, value, width, height, style, fontSize, ref nextObjectNumber, ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, maximumMeasurementCharacters, cancellationToken), turn, width, height));
 
             var appearance = new PdfDictionary();
             appearance.Items["N"] = new PdfReference(appearanceObjectNumber, 0);
