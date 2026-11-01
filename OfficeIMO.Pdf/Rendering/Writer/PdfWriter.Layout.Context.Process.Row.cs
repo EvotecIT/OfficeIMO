@@ -554,6 +554,10 @@ internal static partial class PdfWriter {
                             RecordFlowPlacement(yCol);
                             ReserveImageNavigationTarget(pageImage);
                             currentPage!.Images.Add(pageImage);
+                            if (activeContainerScopes.Count > 0 || activeGroups.Any(group => group.Decoration != null)) {
+                                pageImage.InlineDrawToken = AllocateInlineImageDrawToken(currentPage!);
+                                sb.Append(pageImage.InlineDrawToken);
+                            }
                             AddImageLinkAnnotation(ib2, imageStyle, pageImage, xImg, yCol - ciimg.Height, ciimg.Width, ciimg.Height);
                             pageDirty = true;
                             yCol -= ciimg.Height + imageStyle.SpacingAfter.ToPoints(); remain -= needed; consumed += needed; idx++;

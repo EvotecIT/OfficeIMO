@@ -71,7 +71,11 @@ internal static partial class PdfWriter {
             }
 
             AddImageLinkAnnotation(ib, imageStyle, pageImage, xImg, y - imageBox.Height, imageBox.Width, imageBox.Height);
-            if (currentOpts.Debug?.ShowFlowObjectBoxes == true) {
+            if (activeContainerScopes.Count > 0) {
+                pageImage.InlineDrawToken = AllocateInlineImageDrawToken(currentPage!);
+                sb.Append(pageImage.InlineDrawToken);
+                DrawDebugFlowObjectBox(pageImage.X, pageImage.Y, pageImage.W, pageImage.H);
+            } else if (currentOpts.Debug?.ShowFlowObjectBoxes == true) {
                 pageImage.DebugBox = true;
             }
 
