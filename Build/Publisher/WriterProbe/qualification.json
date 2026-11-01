@@ -24104,5 +24104,181 @@
         "sha256": "48e64c673ca0a28ae3c469c15cd519abb0e02fedd33b5df07a45fe1494f89e2c"
       }
     ]
+  },
+  "hyphenationReference": {
+    "schema": "officeimo.publisher.hyphenation-reference.v1",
+    "sourceCommit": "d8dc76182a3f2c9adef0dacb59bb510a5c41b226",
+    "engineSourceCommit": "89d88aef3101d2320d63e2c2d91bdbc3eceb5062",
+    "fixtures": [
+      "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextHyphenation",
+      "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/StoryHyphenationDisabled"
+    ],
+    "producer": {
+      "name": "Microsoft Publisher",
+      "version": "16.0",
+      "executableVersion": "16.0.20527.20088",
+      "automationSecurity": 3
+    },
+    "profile": {
+      "independentFrames": 15,
+      "independentPages": 15,
+      "font": "Arial 12 pt",
+      "languageId": 1033,
+      "frameWidthsPoints": [
+        28,
+        29,
+        30,
+        32,
+        36,
+        100,
+        216
+      ],
+      "linkedFrameOrder": [
+        0,
+        2,
+        1
+      ],
+      "observedApplicationAutoHyphenate": true,
+      "observedApplicationHyphenationZonePoints": 18,
+      "observedAutomaticPairKerningThresholdPoints": 14,
+      "observedManualKerningPoints": 0,
+      "applicationOptionsWritten": false
+    },
+    "nativeStoryFlag": {
+      "catalog": "OplQsb",
+      "fieldId": 4,
+      "name": "FAutoHyphenate",
+      "omittedValueObservedInQualifiedProfile": true,
+      "explicitTrueType": "08",
+      "explicitFalseType": "00",
+      "nativeResaveCanonicalizesTrueToOmission": true,
+      "nativeResaveRetainsFalse": true,
+      "otherApplicationDefaultProfilesQualified": false,
+      "controls": "Copies of the independently produced LinkedStory source are changed only through shared compound/Opl primitives, then opened, exported, saved and reopened natively. These are source-derived interoperability controls, not independent creation."
+    },
+    "measurements": {
+      "nativeInputs": 3,
+      "nativeFullOperations": 21,
+      "nativePages": 21,
+      "native144DpiPagePairs": 39,
+      "nativePagePairsEqual": true,
+      "disabledManagedNativeFrameRangeMatches": 4,
+      "defaultMeasureAspacePoints": 10.67578125,
+      "kernDisabledMeasureAspacePoints": 11.337890625,
+      "defaultMeasureACreHyphenPoints": 31.341796875,
+      "kernDisabledMeasureACreHyphenPoints": 32.00390625
+    },
+    "dictionaryObservation": {
+      "word": "creative",
+      "coreEnglishPatternBreaks": [
+        "cre-ative"
+      ],
+      "nativeObservedBreaks": [
+        "cre-ative",
+        "crea-tive"
+      ],
+      "scope": "The controls establish a dictionary/profile difference; no proprietary dictionary is copied or presumed equivalent."
+    },
+    "publicConsumers": [
+      {
+        "input": "words",
+        "pages": 15,
+        "frames": 15,
+        "stories": 13,
+        "sourceByteExact": true,
+        "completeStoryCharacters": 847
+      },
+      {
+        "input": "disabled",
+        "pages": 3,
+        "frames": 4,
+        "stories": 2,
+        "sourceByteExact": true,
+        "completeStoryCharacters": 402
+      },
+      {
+        "input": "true",
+        "pages": 3,
+        "frames": 4,
+        "stories": 2,
+        "sourceByteExact": true,
+        "completeStoryCharacters": 402
+      }
+    ],
+    "scriptParsing": [
+      {
+        "runtime": "7.6.9",
+        "scripts": 4,
+        "nativeComInvoked": false
+      },
+      {
+        "runtime": "5.1.26100.9711",
+        "scripts": 4,
+        "nativeComInvoked": false
+      }
+    ],
+    "managedAutomaticHyphenationImplemented": false,
+    "managedNativePixelParityQualified": false,
+    "repairFreeQualified": false,
+    "limits": [
+      "The current engines remain unchanged. These controls qualify native reference behavior and source preservation, not a managed automatic-hyphenation implementation.",
+      "Native automatic pair-kerning fields and per-run shaping transport need source-bound implementation before automatic hyphenation consumes those widths.",
+      "Paragraph suppression, inherited defaults outside the observed application profile, generated display hyphens, repeated word splitting and linked UTF-16 endpoint transport require separate qualification.",
+      "Native reference pixel stability does not establish managed/native pixel parity, repair-free opening or template-free creation."
+    ],
+    "sourceFiles": [
+      {
+        "path": "Build/Publisher/Add-NativeHyphenationControl.ps1",
+        "sha256": "277bb1793adf4ae4c525e7e5cc55073f004a7ecab0ef278167317e09215f7b92"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "sha256": "5e1d38f237f80a08c883e5d5b0b6995bda30068af9f56dedb30b009359d595ee"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+        "sha256": "a0a249f959e3ac6a3245f0bd5f18b7d84260a4f9db90caac7e5b582fda1f000d"
+      },
+      {
+        "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+        "sha256": "3e74d99bbf00b5fac8fcac5e8f2d482ce32f1bd8ac3fcda47b858d1accf31dd2"
+      },
+      {
+        "path": "Docs/ROADMAP.md",
+        "sha256": "8ed32a50a928acd06a32f0755db1a60942161fca030b6ae84d21e3caaf0e16e8"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/StoryHyphenationDisabled/native-storyhyphenationdisabled.pdf",
+        "sha256": "00df6e8db072bacdaaeb423d213b683961ef11a6a5a65adaa59bee51fa3c5d6a"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/StoryHyphenationDisabled/native-storyhyphenationdisabled.pub",
+        "sha256": "f7927b6cfee3b77b60548f64161f73381273bd1acccea81e95a114932ad61ebb"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/StoryHyphenationDisabled/provenance.json",
+        "sha256": "336355fdc58eaf6c921d1aed0a83b99162fd1c9d9b16bbbd3fedccbc89080543"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextHyphenation/native-texthyphenation.json",
+        "sha256": "17301bb1b8115bf5416e7975b0a79bc3fa45f2951015518802e2aae07dc3c11b"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextHyphenation/native-texthyphenation.pdf",
+        "sha256": "5b9a36a054462b3a8776d5bf33ca0687b756309be214d6affdbeb638131bf018"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextHyphenation/native-texthyphenation.pub",
+        "sha256": "50aa7ed69016d9fdcbc1b4df31bdaa708c24f60c0aa5afadd18d8f7f18888ab0"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextHyphenation/provenance.json",
+        "sha256": "34ea707a273df854309397573775ede21ff2188a2baa1528f875d6f4dafaa7af"
+      },
+      {
+        "path": "OfficeIMO.Publisher/SUPPORT.md",
+        "sha256": "fed67eadb070e5ea1c05c8678cd34b232c87a969e849f7b3106edd1f1f7c1155"
+      }
+    ]
   }
 }
