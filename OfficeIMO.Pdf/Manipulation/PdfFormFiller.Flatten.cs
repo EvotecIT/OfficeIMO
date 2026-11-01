@@ -94,6 +94,11 @@ internal static partial class PdfFormFiller {
                 objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, appearanceValue ?? string.Empty, width, height, widgetStyle, defaultAppearance, ReadWidgetAppearanceFontSize(defaultAppearance, height), options, fullName, ref nextObjectNumber, richAppearanceRuns, maximumMeasurementCharacters: maximumMeasurementCharacters, cancellationToken: cancellationToken));
             }
 
+            // The widget's layer keeps deciding visibility once its appearance is page content.
+            if (field.Items.TryGetValue("OC", out PdfObject? optionalContent) && objects.TryGetValue(appearanceObjectNumber, out PdfIndirectObject? painted) && painted.Value is PdfStream paintedAppearance) {
+                paintedAppearance.Dictionary.Items["OC"] = optionalContent;
+            }
+
             widgets[fieldObjectNumber.Value] = new FlattenWidgetState(fieldObjectNumber.Value, x, y, width, height, appearanceObjectNumber);
             return;
         }

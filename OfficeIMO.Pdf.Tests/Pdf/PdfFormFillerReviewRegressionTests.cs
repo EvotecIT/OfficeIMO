@@ -58,4 +58,16 @@ public partial class PdfFormFillerTests {
         Assert.Contains("shown", text, StringComparison.Ordinal);
         Assert.DoesNotContain("/Subtype /Widget", Latin1(flattened), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void FlattenFields_KeepsAWidgetInItsOptionalContentLayer() {
+        byte[] input = BuildReviewFormPdf("/Fields [10 0 R]", "/Annots [10 0 R]", "/OCProperties << /OCGs [14 0 R] /D << /OFF [14 0 R] >> >>",
+            TextWidget(10, "Layered", "72 700 272 720", "/F 4 /OC 14 0 R /V (LAYERVALUE) /AP << /N 12 0 R >>"),
+            TextAppearance(12, "LAYERVALUE"), "14 0 obj\n<< /Type /OCG /Name (Layer) >>\nendobj");
+
+        byte[] flattened = PdfFormFiller.FlattenFields(input);
+
+        PdfReadDocument output = PdfReadDocument.Open(flattened);
+        Assert.Contains(output.Objects.Values, static item => item.Value is PdfStream form && form.Dictionary.Items.ContainsKey("OC"));
+    }
 }
