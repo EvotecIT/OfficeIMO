@@ -33,6 +33,22 @@ namespace OfficeIMO.Excel {
                 // A qualified OFFSET failure belongs to this expression. Keep
                 // resolving the other inputs before publishing its typed error.
                 if (referenceError.IsError) { isReference = true; return true; }
+                string expression = token.Trim();
+                if (expression.StartsWith("{", StringComparison.Ordinal) || IsSupportedArrayCall(expression)) {
+                    isReference = true;
+                    if (!TryEvaluateArrayValue(expression, 0, out FormulaArrayValue array)
+                        || array.Values.Length > remainingCellBudget) return false;
+                    remainingCellBudget -= array.Values.Length;
+                    values = array.Values.ToList();
+                    return true;
+                }
+                if (TryResolveDefinedNameArray(expression, 0, out FormulaArrayValue namedArray)) {
+                    isReference = true;
+                    if (namedArray.Values.Length > remainingCellBudget) return false;
+                    remainingCellBudget -= namedArray.Values.Length;
+                    values = namedArray.Values.ToList();
+                    return true;
+                }
                 return false;
             }
             isReference = true;

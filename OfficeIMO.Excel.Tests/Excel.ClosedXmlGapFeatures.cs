@@ -662,7 +662,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellFormula(4, 2, "SUM({1,2})");
 
                 ExcelFormulaInspection inspection = document.InspectFormulas();
-                Assert.Equal(3, inspection.UnsupportedFormulas);
+                Assert.Equal(2, inspection.UnsupportedFormulas);
                 Assert.Contains(inspection.Formulas, formula => formula.CellReference == "B1"
                     && formula.UnsupportedReason == "Array function 'UNIQUE' requires a matching fixed authored range, supported arguments, and a result within the array limits.");
                 Assert.Contains(inspection.Formulas, formula => formula.CellReference == "B2"
@@ -670,7 +670,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(inspection.Formulas, formula => formula.CellReference == "B3"
                     && formula.IsSupportedByOfficeIMO);
                 Assert.Contains(inspection.Formulas, formula => formula.CellReference == "B4"
-                    && formula.UnsupportedReason == "Formula uses array constants, which OfficeIMO's lightweight evaluator does not currently support.");
+                    && formula.IsSupportedByOfficeIMO);
             }
         }
 
@@ -700,7 +700,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 6, 200d);
                 sheet.CellValue(2, 7, 300d);
                 sheet.CellFormula(3, 1, "SUM(A1:A2)");
-                sheet.CellFormula(4, 1, "VLOOKUP(A1,B1:C2,2,TRUE)");
+                sheet.CellFormula(4, 1, "UNIQUE(B1:B2)");
                 sheet.CellFormula(5, 1, "ABS(-4)");
                 sheet.CellFormula(6, 1, "ROUND(2.345,2)");
                 sheet.CellFormula(7, 1, "A1+A2");
@@ -847,7 +847,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(sheetInspection.Formulas, formula => formula.CellReference == "A4"
                     && !formula.IsSupportedByOfficeIMO
                     && !string.IsNullOrWhiteSpace(formula.UnsupportedReason));
-                Assert.Contains("| Calc | A4 | VLOOKUP(A1,B1:C2,2,TRUE) | no | no | no |", sheetInspection.ToMarkdown());
+                Assert.Contains("| Calc | A4 | UNIQUE(B1:B2) | no | no | no |", sheetInspection.ToMarkdown());
                 InvalidOperationException unsupportedException = Assert.Throws<InvalidOperationException>(() => sheetInspection.EnsureAllSupported());
                 Assert.Contains("Calc!A4", unsupportedException.Message);
                 InvalidOperationException missingCacheException = Assert.Throws<InvalidOperationException>(() => sheetInspection.EnsureAllHaveCachedResults());
@@ -1575,7 +1575,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Calc");
                 sheet.CellValue(1, 1, 2d);
-                sheet.CellFormula(2, 1, "VLOOKUP(A1,B1:C2,2,TRUE)");
+                sheet.CellFormula(2, 1, "UNIQUE(B1:B2)");
                 sheet.CellFormula(3, 1, "SUM(" + new string('A', 9000) + ")");
                 sheet.CellFormula(4, 1, "SUM(Calc!A1:A2)");
 
