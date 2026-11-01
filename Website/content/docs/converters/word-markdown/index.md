@@ -1,6 +1,6 @@
 ---
 title: Word to Markdown
-description: Convert Word documents to a typed Markdown model, and build Word documents from Markdown.
+description: Convert Word documents to a typed Markdown model, save Markdown to files or streams, and build Word documents from headings, lists and tables.
 order: 71
 ---
 
