@@ -231,7 +231,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void Remove() {
             _wordTable.TrackRemovedRow(_tableRow);
-            _tableRow.Remove();
+            WordDocument.RemoveWithOwnedParts(_tableRow);
         }
 
         /// <summary>

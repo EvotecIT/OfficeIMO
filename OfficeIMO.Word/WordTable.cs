@@ -551,7 +551,7 @@ namespace OfficeIMO.Word {
         /// Remove table from document
         /// </summary>
         public void Remove() {
-            _table.Remove();
+            WordDocument.RemoveWithOwnedParts(_table);
         }
 
         /// <summary>

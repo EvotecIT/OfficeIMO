@@ -77,4 +77,35 @@ public sealed class WordTableMergedStructureTests {
         Assert.All(tables.SelectMany(table => table.Descendants<TableCell>()),
             cell => Assert.IsType<Paragraph>(cell.ChildElements.Last()));
     }
+
+    [Fact]
+    public void RemovedContentTakesItsImagesAndChartsWithIt() {
+        string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "Kulek.jpg");
+        using WordDocument document = WordDocument.Create();
+        WordTable removedTable = CreateTable(document, 1, 1);
+        removedTable.Rows[0].Cells[0].Paragraphs[0].AddImage(imagePath);
+        document.AddChart(OfficeChartType.Column, new OfficeChartData(new[] { "a" }, new[] { new OfficeSeries("S", new double[] { 1 }) }));
+        WordParagraph chartParagraph = document.Paragraphs.Last(paragraph => paragraph.IsChart);
+
+        removedTable.Remove();
+        chartParagraph.Remove();
+
+        using var package = WordprocessingDocument.Open(new MemoryStream(Save(document)), false);
+        Assert.Empty(package.MainDocumentPart!.ImageParts);
+        Assert.Empty(package.MainDocumentPart.ChartParts);
+    }
+
+    [Fact]
+    public void ContentSharingAnImageKeepsItWhenOneCopyIsRemoved() {
+        string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "Kulek.jpg");
+        using WordDocument document = WordDocument.Create();
+        WordTable table = CreateTable(document, 1, 1);
+        table.Rows[0].Cells[0].Paragraphs[0].AddImage(imagePath);
+        WordTable copy = table.Clone();
+
+        copy.Remove();
+
+        using var package = WordprocessingDocument.Open(new MemoryStream(Save(document)), false);
+        Assert.Single(package.MainDocumentPart!.ImageParts);
+    }
 }
