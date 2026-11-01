@@ -67,6 +67,9 @@ public partial class ExcelDocument {
         document.FilePath = path;
         document._sourceStream = destination;
         document._persistenceMode = options.PersistenceMode;
+        bool saveOnDispose = options.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
+        document._copyPackageToSourceOnDispose = saveOnDispose && destination != null;
+        document._copyPackageToFilePathOnDispose = saveOnDispose && path != null;
         if (options.FirstSheetName != null && document.Sheets.Count == 0) document.AddSheet(options.FirstSheetName);
         return document;
     }

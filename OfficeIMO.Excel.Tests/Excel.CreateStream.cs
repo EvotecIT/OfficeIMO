@@ -557,5 +557,20 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(output, false);
             Assert.Equal(DocumentFormat.OpenXml.SpreadsheetDocumentType.Workbook, spreadsheet.DocumentType);
         }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Create_FromTemplate_SaveOnDisposePublishesUneditedWorkbook(bool useStream) {
+            using var template = new MemoryStream(CreateStreamSaveWorkbookBytes());
+            string path = Path.Combine(_directoryWithFiles, "TemplateSaveOnDispose.xlsx");
+            if (File.Exists(path)) File.Delete(path);
+            var options = new ExcelCreateOptions { TemplateStream = template, PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose };
+            using var output = new MemoryStream();
+            using (useStream ? ExcelDocument.Create(output, options) : ExcelDocument.Create(path, options)) { }
+
+            using var reader = ExcelDocumentReader.Open(useStream ? output.ToArray() : File.ReadAllBytes(path));
+            Assert.Equal("Hello Stream", reader.GetSheet("StreamData").ReadRange("A1:A1")[0, 0]);
+        }
     }
 }
