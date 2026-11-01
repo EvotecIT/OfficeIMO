@@ -9,7 +9,7 @@ schema: 2.0.0
 Closes a project without implicitly saving it.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Close-OfficeProject -Document <ProjectDocument> [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Project to inspect or change.
 
 ```yaml
 Type: ProjectDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

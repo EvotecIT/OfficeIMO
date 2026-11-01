@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a narrative card or logo tile to the current designed slide.
 
 ## SYNTAX
-### __AllParameterSets
+### Card (Default)
 ```powershell
 Add-OfficePowerPointCard [-Title] <string> [-Text <string>] [-Items <string[]>] [-Image <string>] [-Color <OfficeColor>] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Gets or sets the color.
 
 ```yaml
 Type: OfficeColor
-Parameter Sets: __AllParameterSets
+Parameter Sets: Card
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Gets or sets the image.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Card
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Gets or sets the items.
 
 ```yaml
 Type: String[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Card
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ Gets or sets the text.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Card
 Aliases: None
 Possible values:
 
@@ -96,7 +96,7 @@ Gets or sets the title.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Card
 Aliases: None
 Possible values:
 

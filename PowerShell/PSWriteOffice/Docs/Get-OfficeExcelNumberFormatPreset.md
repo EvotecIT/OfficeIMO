@@ -9,7 +9,7 @@ schema: 2.0.0
 Lists OfficeIMO Excel number format presets and their format codes.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Get-OfficeExcelNumberFormatPreset [-Decimals <int>] [-CultureName <string>] [<CommonParameters>]
 ```
@@ -34,7 +34,7 @@ Culture name used for currency symbols, such as en-US or pl-PL.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -50,7 +50,7 @@ Decimal places used for decimal, percent, currency, and scientific presets.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

@@ -9,7 +9,7 @@ schema: 2.0.0
 Closes a native database without implicitly saving it.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Close-OfficeAccess -Document <AccessDocument> [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Live database document.
 
 ```yaml
 Type: AccessDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

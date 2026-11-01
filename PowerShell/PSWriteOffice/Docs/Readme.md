@@ -622,9 +622,6 @@ Converts reusable Office text run specifications to native PDF text runs.
 ### [ConvertTo-OfficePdfWord](ConvertTo-OfficePdfWord.md)
 Reconstructs editable Word content from a PDF.
 
-### [ConvertTo-OfficePowerPointHtml](ConvertTo-OfficePowerPointHtml.md)
-Converts a PowerPoint deck to an HTML review document.
-
 ### [ConvertTo-OfficeProjectTable](ConvertTo-OfficeProjectTable.md)
 Maps PowerShell rows to a bounded project entity table.
 

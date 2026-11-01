@@ -9,7 +9,7 @@ schema: 2.0.0
 Exports objects as a designed presentation with editable tables and optional charts.
 
 ## SYNTAX
-### __AllParameterSets
+### Path (Default)
 ```powershell
 Export-OfficePowerPoint [-Path] <string> -InputObject <Object[]> [-Title <string>] [-Subtitle <string>] [-Property <string[]>] [-Category <string>] [-Value <string[]>] [-ChartType <OfficeChartType>] [-ChartTitle <string>] [-GroupBy <string>] [-NoSummary] [-NoTable] [-MaxRows <Int32>] [-Theme <OfficeThemeInput>] [-Accent <OfficeColor>] [-Culture <cultureinfo>] [-NoClobber] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Brand accent, resolved against the selected theme.
 
 ```yaml
 Type: OfficeColor
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Property containing chart categories.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Chart slide title; omission uses the category property name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ Shared native chart kind; defaults to clustered columns.
 
 ```yaml
 Type: OfficeChartType
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values: ColumnClustered, Column, ColumnStacked, ColumnStacked100, BarClustered, Bar, BarStacked, BarStacked100, Line, LineStacked, LineStacked100, Area, AreaStacked, AreaStacked100, Scatter, Radar, Pie, Doughnut, Bubble, Column3DClustered, Column3DStacked, Column3DStacked100, Bar3DClustered, Bar3DStacked, Bar3DStacked100, Line3D, Area3D, Area3DStacked, Area3DStacked100, Pie3D, PieOfPie, BarOfPie, Stock, Surface, SurfaceWireframe, SurfaceContour, Funnel, Waterfall, BoxWhisker, Treemap, SurfaceContourWireframe, Sunburst
 
@@ -96,7 +96,7 @@ Culture for displayed cell values, group counts and numeric chart input; default
 
 ```yaml
 Type: CultureInfo
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -112,7 +112,7 @@ Property counted on the summary; omission tries Category, then a text property w
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -128,7 +128,7 @@ Objects supplied as an array or through the pipeline.
 
 ```yaml
 Type: Object[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -144,7 +144,7 @@ Maximum data rows per physical table slide; omission uses native readable capaci
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -160,7 +160,7 @@ Refuse to replace an existing destination.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -176,7 +176,7 @@ Omit the At a glance summary.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -192,7 +192,7 @@ Export only title and chart slides; requires Category and Value.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -208,7 +208,7 @@ Return the saved FileInfo.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -224,7 +224,7 @@ Destination PPTX file; its parent folder is created only when publishing.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -240,7 +240,7 @@ Table properties in display order; omission includes all properties.
 
 ```yaml
 Type: String[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -256,7 +256,7 @@ Open the saved presentation using the system's default application.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -272,7 +272,7 @@ Subtitle on the opening slide.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -288,7 +288,7 @@ Built-in theme, OfficeTheme model or PowerPoint template path; defaults to Moder
 
 ```yaml
 Type: OfficeThemeInput
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -304,7 +304,7 @@ Title slide text; omission uses the destination file name without its extension.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -320,7 +320,7 @@ Numeric properties plotted as chart series in the supplied order.
 
 ```yaml
 Type: String[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 

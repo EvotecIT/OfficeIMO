@@ -9,7 +9,7 @@ schema: 2.0.0
 Copies a native slide within its document, preserving its content and relationships.
 
 ## SYNTAX
-### __AllParameterSets
+### Slide (Default)
 ```powershell
 Copy-OfficePowerPointSlide [-Slide] <PowerPointSlideSelector> [-Document <PowerPointDocument>] [-Position <Int32>] [-PassThru] [<CommonParameters>]
 ```
@@ -38,7 +38,7 @@ Gets or sets the document for numeric selection; omission uses the enclosing sco
 
 ```yaml
 Type: PowerPointDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Slide
 Aliases: None
 Possible values:
 
@@ -54,7 +54,7 @@ Gets or sets whether to return the new native slide.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Slide
 Aliases: None
 Possible values:
 
@@ -70,7 +70,7 @@ Gets or sets the copy's one-based destination position; omission inserts it imme
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Slide
 Aliases: None
 Possible values:
 
@@ -86,7 +86,7 @@ Gets or sets a native slide or its one-based position.
 
 ```yaml
 Type: PowerPointSlideSelector
-Parameter Sets: __AllParameterSets
+Parameter Sets: Slide
 Aliases: None
 Possible values:
 

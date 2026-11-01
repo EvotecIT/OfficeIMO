@@ -11,12 +11,7 @@ Adds a designed slide, choosing its layout from typed content unless Layout is s
 ## SYNTAX
 ### Content (Default)
 ```powershell
-Add-OfficePowerPointSlide [[-Content] <scriptblock>] [-Title <string>] [-Subtitle <string>] [-Eyebrow <string>] [-MapLabel <string>] [-Layout <PowerPointLayout>] [-Seed <string>] [-NoFooter] [-NoSlideNumber] [-Background <OfficeColor>] [-BackgroundImage <string>] [-Transition <PowerPointSlideTransition>] [-PassThru] [-Document <PowerPointDocument>] [<CommonParameters>]
-```
-
-### Template
-```powershell
-Add-OfficePowerPointSlide [[-Content] <scriptblock>] -TemplateLayout <PowerPointLayoutSelector> [-Title <string>] [-Subtitle <string>] [-Eyebrow <string>] [-MapLabel <string>] [-Layout <PowerPointLayout>] [-Master <int>] [-Seed <string>] [-NoFooter] [-NoSlideNumber] [-Background <OfficeColor>] [-BackgroundImage <string>] [-Transition <PowerPointSlideTransition>] [-PassThru] [-Document <PowerPointDocument>] [<CommonParameters>]
+Add-OfficePowerPointSlide [[-Content] <scriptblock>] [-Title <string>] [-Subtitle <string>] [-Eyebrow <string>] [-MapLabel <string>] [-Layout <PowerPointLayout>] [-TemplateLayout <PowerPointLayoutSelector>] [-Master <int>] [-Seed <string>] [-NoFooter] [-NoSlideNumber] [-Background <OfficeColor>] [-BackgroundImage <string>] [-Transition <PowerPointSlideTransition>] [-PassThru] [-Document <PowerPointDocument>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -40,7 +35,7 @@ Gets or sets the background color for this slide and its continuations, includin
 
 ```yaml
 Type: OfficeColor
-Parameter Sets: Content, Template
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -56,7 +51,7 @@ Gets or sets a literal local background image path for this slide and its contin
 
 ```yaml
 Type: String
-Parameter Sets: Content, Template
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -72,7 +67,7 @@ Gets or sets the slide's typed content block.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: Content, Template
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -88,7 +83,7 @@ Gets or sets an explicit live document; omission uses the enclosing content bloc
 
 ```yaml
 Type: PowerPointDocument
-Parameter Sets: Content, Template
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -104,7 +99,7 @@ Gets or sets the small label above the title.
 
 ```yaml
 Type: String
-Parameter Sets: Content, Template
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -120,7 +115,7 @@ Gets or sets a designed layout; omission selects it from content.
 
 ```yaml
 Type: PowerPointLayout
-Parameter Sets: Content, Template
+Parameter Sets: Content
 Aliases: None
 Possible values: Auto, Title, Section, TitleAndContent, TwoContent, Comparison, Kpi, Cards, Process, Quote, ImageFull, Closing, CaseStudy, Logos, Coverage
 
@@ -136,7 +131,7 @@ Gets or sets the caption of the coverage panel.
 
 ```yaml
 Type: String
-Parameter Sets: Content, Template
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -152,7 +147,7 @@ Gets or sets a one-based master position for a template layout; defaults to the 
 
 ```yaml
 Type: Int32
-Parameter Sets: Template
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -168,7 +163,7 @@ Gets or sets whether this slide omits its footer.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Content, Template
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -184,7 +179,7 @@ Gets or sets whether this slide omits its slide number.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Content, Template
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -200,7 +195,7 @@ Gets or sets whether the created physical slides are returned.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Content, Template
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -216,7 +211,7 @@ Gets or sets a deterministic design seed for this slide.
 
 ```yaml
 Type: String
-Parameter Sets: Content, Template
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -232,7 +227,7 @@ Gets or sets the subtitle.
 
 ```yaml
 Type: String
-Parameter Sets: Content, Template
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -248,11 +243,11 @@ Gets or sets a specific template layout by name, one-based position, native type
 
 ```yaml
 Type: PowerPointLayoutSelector
-Parameter Sets: Template
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -264,7 +259,7 @@ Gets or sets the slide title.
 
 ```yaml
 Type: String
-Parameter Sets: Content, Template
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -280,7 +275,7 @@ Gets or sets the transition for this slide and its continuations.
 
 ```yaml
 Type: PowerPointSlideTransition
-Parameter Sets: Content, Template
+Parameter Sets: Content
 Aliases: None
 Possible values: None, Fade, Wipe, BlindsVertical, BlindsHorizontal, CombHorizontal, CombVertical, PushUp, PushDown, PushLeft, PushRight, Cut, Flash, WarpIn, WarpOut, Prism, FerrisLeft, FerrisRight, Morph, Random, CheckerHorizontal, CheckerVertical, CoverLeft, CoverUp, CoverRight, CoverDown, CoverLeftUp, CoverRightUp, CoverLeftDown, CoverRightDown, Dissolve, FadeThroughBlack, UncoverLeft, UncoverUp, UncoverRight, UncoverDown, UncoverLeftUp, UncoverRightUp, UncoverLeftDown, UncoverRightDown, RandomBarsHorizontal, RandomBarsVertical, StripsLeftUp, StripsRightUp, StripsLeftDown, StripsRightDown, WipeUp, WipeRight, WipeDown, BoxOut, BoxIn, SplitHorizontalOut, SplitHorizontalIn, SplitVerticalOut, SplitVerticalIn, Diamond, Plus, Wedge, Newsflash, WheelOneSpoke, WheelTwoSpokes, WheelThreeSpokes, WheelFourSpokes, WheelEightSpokes, Circle, CutThroughBlack
 

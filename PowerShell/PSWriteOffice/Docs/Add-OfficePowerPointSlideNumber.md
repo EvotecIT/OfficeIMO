@@ -9,7 +9,7 @@ schema: 2.0.0
 Inserts a native slide-number field into the current footer.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficePowerPointSlideNumber [-IncludeTotal] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Append the physical slide count, refreshed when the deck is saved.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

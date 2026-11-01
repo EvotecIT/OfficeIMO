@@ -1956,16 +1956,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/ConvertToOfficePdfWordCommand.cs#L23"
     },
     {
-      "name": "ConvertTo-OfficePowerPointHtml",
-      "kind": "Cmdlet",
-      "aliases": [
-        "ConvertTo-PowerPointHtml"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/ConvertToOfficePowerPointHtmlCommand.cs",
-      "sourceLine": 37,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/ConvertToOfficePowerPointHtmlCommand.cs#L37"
-    },
-    {
       "name": "ConvertTo-OfficeProjectTable",
       "kind": "Cmdlet",
       "aliases": [],

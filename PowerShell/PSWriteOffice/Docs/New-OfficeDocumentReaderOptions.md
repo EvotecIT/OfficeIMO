@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates common read, detection, package and folder policies for document readers.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 New-OfficeDocumentReaderOptions [-Projection <ReaderProjection>] [-DetectionMode <ReaderDetectionMode>] [-MaximumDetectionProbeBytes <Int32>] [-MaximumDetectionContainerEntries <Int32>] [-MaximumPartUncompressedBytes <Int64>] [-MaximumTotalUncompressedBytes <Int64>] [-MaximumImageAssets <Int32>] [-MaximumImageAssetBytes <Int64>] [-MaximumTotalImageAssetBytes <Int64>] [-MaximumImagePlacementsPerRelationship <Int32>] [-MaximumTraversalEntries <Int32>] [-FollowSymlink] [-NoDeterministicOrder] [-Encoding <Encoding>] [-FailOnInvalidTextBytes] [<CommonParameters>]
 ```
@@ -40,7 +40,7 @@ How extension and content evidence select the format handler.
 
 ```yaml
 Type: ReaderDetectionMode
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: ExtensionOnly, ContentWhenUnknown, PreferContent
 
@@ -56,7 +56,7 @@ Text encoding for sources without a byte-order mark.
 
 ```yaml
 Type: Encoding
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -72,7 +72,7 @@ Reject invalid byte sequences instead of replacing them.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -88,7 +88,7 @@ Follow links and junctions during folder traversal. Native format admission rule
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -104,7 +104,7 @@ Maximum archive entries inspected during format detection.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -120,7 +120,7 @@ Maximum prefix bytes inspected during content detection.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -136,7 +136,7 @@ Maximum bytes retained for one Office image asset.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -152,7 +152,7 @@ Maximum retained Office image assets; zero retains none.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -168,7 +168,7 @@ Maximum placements retained for one Office image relationship.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -184,7 +184,7 @@ Maximum uncompressed bytes in one Office package part.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -200,7 +200,7 @@ Maximum combined retained Office image payload bytes.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -216,7 +216,7 @@ Maximum combined uncompressed bytes in an Office package.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -232,7 +232,7 @@ Maximum raw file-system entries inspected before filtering.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -248,7 +248,7 @@ Do not sort folder traversal results.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -264,7 +264,7 @@ Derived representations to retain.
 
 ```yaml
 Type: ReaderProjection
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Full, TextAndMetadata
 

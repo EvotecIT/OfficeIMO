@@ -9,7 +9,7 @@ schema: 2.0.0
 Sets generated PDF compliance profile and readiness groundwork.
 
 ## SYNTAX
-### __AllParameterSets
+### Context (Default)
 ```powershell
 Set-OfficePdfCompliance -Profile <PdfComplianceProfile> [-Document <PdfDocument>] [-Groundwork] [-Language <string>] [<CommonParameters>]
 ```
@@ -38,7 +38,7 @@ Live generated PDF; omission uses the enclosing creation block.
 
 ```yaml
 Type: PdfDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -54,7 +54,7 @@ Configure common PDF/A or PDF/UA groundwork for the selected profile.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -70,7 +70,7 @@ Catalog language used by compliance groundwork.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -86,7 +86,7 @@ Requested generated PDF compliance profile.
 
 ```yaml
 Type: PdfComplianceProfile
-Parameter Sets: __AllParameterSets
+Parameter Sets: Context
 Aliases: None
 Possible values: None, PdfA2B, PdfA2U, PdfA2A, PdfA3B, PdfA3U, PdfA3A, PdfUa1, FacturX, Zugferd, PdfA4, PdfA4E, PdfA4F, PdfUa2, PdfX1A2003, PdfX4
 

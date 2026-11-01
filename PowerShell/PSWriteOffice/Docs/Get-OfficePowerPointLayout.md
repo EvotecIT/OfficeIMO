@@ -9,7 +9,7 @@ schema: 2.0.0
 Lists template layouts from all masters, or one selected master.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Get-OfficePowerPointLayout [[-Document] <PowerPointDocument>] [-Master <Int32>] [<CommonParameters>]
 ```
@@ -41,7 +41,7 @@ Gets or sets the live document; omission uses the enclosing content scope.
 
 ```yaml
 Type: PowerPointDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -57,7 +57,7 @@ Gets or sets a one-based master position; omission lists all masters.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

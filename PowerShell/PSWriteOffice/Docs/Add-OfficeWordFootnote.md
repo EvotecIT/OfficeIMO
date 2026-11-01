@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a footnote reference to a Word paragraph.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeWordFootnote [-Text] <string> [-Paragraph <WordParagraph>] [-PassThru] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Paragraph to receive the footnote reference.
 
 ```yaml
 Type: WordParagraph
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Emit the created footnote paragraph.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Footnote text.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

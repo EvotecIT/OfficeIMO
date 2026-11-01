@@ -9,7 +9,7 @@ schema: 2.0.0
 Updates the primary title, language or creator through the package model.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Set-OfficeEpubMetadata [-Title <string>] [-Language <string>] [-Author <string>] [-PassThru] [-Document <EpubPublication>] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ New primary author.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Gets or sets an explicit live document; omission uses the enclosing content bloc
 
 ```yaml
 Type: EpubPublication
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ New BCP 47 language.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ Return the created or changed object.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -96,7 +96,7 @@ New primary title.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

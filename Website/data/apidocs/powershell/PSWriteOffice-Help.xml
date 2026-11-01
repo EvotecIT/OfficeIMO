@@ -13,7 +13,7 @@
       <maml:para>Adds a typed field before rows are appended.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Table">
         <maml:name>Add-OfficeAccessColumn</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AutoNumberSeed</maml:name>
@@ -294,7 +294,7 @@
       <maml:para>Appends PowerShell objects or dictionaries using the declared field types.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Table">
         <maml:name>Add-OfficeAccessRow</maml:name>
         <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>InputObject</maml:name>
@@ -415,7 +415,7 @@
       <maml:para>Adds a table to a newly created native database model.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Add-OfficeAccessTable</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -903,7 +903,7 @@
       <maml:para>Adds an image, font, stylesheet or media payload without executing it.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeEpubResource</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>ContainerPath</maml:name>
@@ -11559,7 +11559,7 @@
       <maml:para>Adds a colored callout block to the current Excel report sheet.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeExcelReportCallout</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="2" aliases="None">
           <maml:name>Body</maml:name>
@@ -11889,7 +11889,7 @@
       <maml:para>Adds a legend table to the current Excel report sheet.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeExcelReportLegend</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>CaseSensitive</maml:name>
@@ -12111,7 +12111,7 @@
       <maml:para>Adds a paragraph line to the current Excel report sheet.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeExcelReportParagraph</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
@@ -12309,7 +12309,7 @@
       <maml:para>Creates a worksheet through the OfficeIMO report builder and runs report-block cmdlets inside it.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeExcelReportSheet</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AutoFitRows</maml:name>
@@ -12528,7 +12528,7 @@
       <maml:para>Adds vertical spacing to the current Excel report sheet.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeExcelReportSpacer</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
@@ -12628,7 +12628,7 @@
       <maml:para>Adds an object table to the current Excel report sheet using the OfficeIMO sheet composer.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeExcelReportTable</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>CollectionSeparator</maml:name>
@@ -13238,7 +13238,7 @@
       <maml:para>Adds a title block to the current Excel report sheet.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeExcelReportTitle</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
@@ -15397,7 +15397,7 @@
       <maml:para>Accepts objects, dictionaries, DataTable/DataView/IDataReader inputs, or DataRow sequences and writes them into an Excel table with optional styling.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeExcelTable</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AutoFit</maml:name>
@@ -25279,7 +25279,7 @@ so they do not emit a live table wrapper.</maml:para>
       <maml:para>Adds a heading to an OpenDocument text document.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeOpenDocumentHeading</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -25427,7 +25427,7 @@ so they do not emit a live table wrapper.</maml:para>
       <maml:para>Adds a paragraph to an OpenDocument text document.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeOpenDocumentParagraph</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -25551,7 +25551,7 @@ so they do not emit a live table wrapper.</maml:para>
       <maml:para>Adds a worksheet to an OpenDocument spreadsheet and optionally runs nested cell content.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeOpenDocumentSheet</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
           <maml:name>Content</maml:name>
@@ -25851,7 +25851,7 @@ so they do not emit a live table wrapper.</maml:para>
       <maml:para>Adds a positioned text box to an OpenDocument presentation slide.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeOpenDocumentTextBox</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Height</maml:name>
@@ -36353,7 +36353,7 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <maml:para>Adds a narrative card or logo tile to the current designed slide.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Card">
         <maml:name>Add-OfficePowerPointCard</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Color</maml:name>
@@ -37159,7 +37159,7 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <maml:para>Groups typed content into one column of a designed slide.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Content">
         <maml:name>Add-OfficePowerPointColumn</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
           <maml:name>Content</maml:name>
@@ -39451,7 +39451,7 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <maml:para>Adds a named location to a coverage slide.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Location">
         <maml:name>Add-OfficePowerPointLocation</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Detail</maml:name>
@@ -40348,7 +40348,7 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <maml:para>Adds a quotation and attribution to the current designed slide.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Text">
         <maml:name>Add-OfficePowerPointQuote</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
           <maml:name>Attribution</maml:name>
@@ -40439,7 +40439,7 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <maml:para>Starts a named section at an existing, current or next appended slide.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Name">
         <maml:name>Add-OfficePowerPointSection</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -40595,7 +40595,7 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <maml:para>Adds a native preset shape at physical coordinates or on the theme grid.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Shape">
         <maml:name>Add-OfficePowerPointShape</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Column</maml:name>
@@ -41443,262 +41443,6 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoFooter</maml:name>
-          <maml:description>
-            <maml:para>Gets or sets whether this slide omits its footer.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoSlideNumber</maml:name>
-          <maml:description>
-            <maml:para>Gets or sets whether this slide omits its slide number.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Gets or sets whether the created physical slides are returned.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Seed</maml:name>
-          <maml:description>
-            <maml:para>Gets or sets a deterministic design seed for this slide.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Subtitle</maml:name>
-          <maml:description>
-            <maml:para>Gets or sets the subtitle.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Title</maml:name>
-          <maml:description>
-            <maml:para>Gets or sets the slide title.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Transition</maml:name>
-          <maml:description>
-            <maml:para>Gets or sets the transition for this slide and its continuations.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointSlideTransition</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Fade</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Wipe</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">BlindsVertical</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">BlindsHorizontal</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CombHorizontal</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CombVertical</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">PushUp</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">PushDown</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">PushLeft</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">PushRight</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Cut</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Flash</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">WarpIn</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">WarpOut</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Prism</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">FerrisLeft</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">FerrisRight</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Morph</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Random</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CheckerHorizontal</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CheckerVertical</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CoverLeft</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CoverUp</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CoverRight</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CoverDown</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CoverLeftUp</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CoverRightUp</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CoverLeftDown</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CoverRightDown</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Dissolve</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">FadeThroughBlack</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">UncoverLeft</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">UncoverUp</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">UncoverRight</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">UncoverDown</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">UncoverLeftUp</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">UncoverRightUp</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">UncoverLeftDown</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">UncoverRightDown</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">RandomBarsHorizontal</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">RandomBarsVertical</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">StripsLeftUp</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">StripsRightUp</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">StripsLeftDown</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">StripsRightDown</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">WipeUp</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">WipeRight</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">WipeDown</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">BoxOut</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">BoxIn</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">SplitHorizontalOut</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">SplitHorizontalIn</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">SplitVerticalOut</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">SplitVerticalIn</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Diamond</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Plus</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Wedge</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Newsflash</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">WheelOneSpoke</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">WheelTwoSpokes</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">WheelThreeSpokes</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">WheelFourSpokes</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">WheelEightSpokes</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Circle</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CutThroughBlack</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>PowerPointSlideTransition</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Template">
-        <maml:name>Add-OfficePowerPointSlide</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Background</maml:name>
-          <maml:description>
-            <maml:para>Gets or sets the background color for this slide and its continuations, including theme roles.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">OfficeColor</command:parameterValue>
-          <dev:type>
-            <maml:name>OfficeColor</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>BackgroundImage</maml:name>
-          <maml:description>
-            <maml:para>Gets or sets a literal local background image path for this slide and its continuations.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
-          <maml:name>Content</maml:name>
-          <maml:description>
-            <maml:para>Gets or sets the slide's typed content block.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
-          <dev:type>
-            <maml:name>ScriptBlock</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Document</maml:name>
-          <maml:description>
-            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>PowerPointDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Eyebrow</maml:name>
-          <maml:description>
-            <maml:para>Gets or sets the small label above the title.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Layout</maml:name>
-          <maml:description>
-            <maml:para>Gets or sets a designed layout; omission selects it from content.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointLayout</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Auto</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Title</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Section</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">TitleAndContent</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">TwoContent</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Comparison</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Kpi</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Cards</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Process</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Quote</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">ImageFull</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Closing</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CaseStudy</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Logos</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Coverage</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>PowerPointLayout</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MapLabel</maml:name>
-          <maml:description>
-            <maml:para>Gets or sets the caption of the coverage panel.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Master</maml:name>
           <maml:description>
             <maml:para>Gets or sets a one-based master position for a template layout; defaults to the first.</maml:para>
@@ -41770,12 +41514,12 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>TemplateLayout</maml:name>
           <maml:description>
             <maml:para>Gets or sets a specific template layout by name, one-based position, native type or returned metadata.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">PowerPointLayoutSelector</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PowerPointLayoutSelector</command:parameterValue>
           <dev:type>
             <maml:name>PowerPointLayoutSelector</maml:name>
             <maml:uri />
@@ -42050,12 +41794,12 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>TemplateLayout</maml:name>
         <maml:description>
           <maml:para>Gets or sets a specific template layout by name, one-based position, native type or returned metadata.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">PowerPointLayoutSelector</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PowerPointLayoutSelector</command:parameterValue>
         <dev:type>
           <maml:name>PowerPointLayoutSelector</maml:name>
           <maml:uri />
@@ -42201,7 +41945,7 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <maml:para>Inserts a native slide-number field into the current footer.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficePowerPointSlideNumber</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>IncludeTotal</maml:name>
@@ -42268,7 +42012,7 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <maml:para>Adds a process step to the current designed slide.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Step">
         <maml:name>Add-OfficePowerPointStep</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Number</maml:name>
@@ -43297,7 +43041,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds a live styled run to the enclosing paragraph or list item, or starts a slide paragraph.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Text">
         <maml:name>Add-OfficePowerPointText</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Alignment</maml:name>
@@ -44121,7 +43865,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Assigns a project resource to a task by stable UID.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Add-OfficeProjectAssignment</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -44290,7 +44034,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds a finish-to-start relationship between two tasks.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Add-OfficeProjectDependency</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -44495,7 +44239,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds a work resource with an optional standard rate.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Add-OfficeProjectResource</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -44640,7 +44384,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds a task or summary with a duration expressed in working days.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Add-OfficeProjectTask</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -45498,7 +45242,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Creates an OfficeIMO-authored Visio-native container around existing shapes.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Page">
         <maml:name>Add-OfficeVisioContainer</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>ContainerStyle</maml:name>
@@ -45962,7 +45706,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds a diamond shape to the current Visio page.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Page">
         <maml:name>Add-OfficeVisioDiamond</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Angle</maml:name>
@@ -46400,7 +46144,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds an ellipse shape to the current Visio page.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Page">
         <maml:name>Add-OfficeVisioEllipse</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Angle</maml:name>
@@ -46838,7 +46582,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds a page to a Visio document and optionally executes nested DSL content.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Add-OfficeVisioPage</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
           <maml:name>Content</maml:name>
@@ -47072,7 +46816,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds a rectangle shape to the current Visio page.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Page">
         <maml:name>Add-OfficeVisioRectangle</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Angle</maml:name>
@@ -48495,7 +48239,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds a text box to the current Visio page.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Page">
         <maml:name>Add-OfficeVisioTextBox</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Angle</maml:name>
@@ -48933,7 +48677,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds a bookmark to the current paragraph.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordBookmark</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
           <maml:name>Name</maml:name>
@@ -49051,7 +48795,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>By default this creates a soft line break, equivalent to Shift+Enter in Word.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordBreak</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>BreakType</maml:name>
@@ -50118,7 +49862,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds a checkbox content control to the current paragraph.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordCheckBox</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Alias</maml:name>
@@ -50290,7 +50034,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds a combo box content control to the current paragraph.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordComboBox</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Alias</maml:name>
@@ -50486,7 +50230,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds a structured content control to the current paragraph.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordContentControl</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Alias</maml:name>
@@ -50658,7 +50402,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Uses OfficeIMO.Word cover page templates and optional cover-page metadata.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordCoverPage</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Abstract</maml:name>
@@ -50910,7 +50654,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds a date picker content control to the current paragraph.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordDatePicker</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Alias</maml:name>
@@ -51082,7 +50826,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds a dropdown list content control to the current paragraph.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordDropDownList</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Alias</maml:name>
@@ -51254,7 +50998,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds an endnote reference to a Word paragraph.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordEndnote</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Paragraph</maml:name>
@@ -51930,7 +51674,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Creates or reuses the requested footer part (default/first/even) and runs the DSL script block inside it.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordFooter</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
           <maml:name>Content</maml:name>
@@ -52058,7 +51802,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds a footnote reference to a Word paragraph.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordFootnote</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Paragraph</maml:name>
@@ -52182,7 +51926,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Ensures the requested header part (default/first/even) exists and executes the DSL scriptblock within it.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordHeader</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
           <maml:name>Content</maml:name>
@@ -53472,7 +53216,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Typically used inside WordFooter to render “Page X of Y”.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordPageNumber</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Format</maml:name>
@@ -54081,7 +53825,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds a picture content control to the current paragraph.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordPictureControl</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Alias</maml:name>
@@ -54301,7 +54045,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds a repeating section content control to the current paragraph.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordRepeatingSection</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Alias</maml:name>
@@ -54692,7 +54436,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds a basic OfficeIMO Word shape to the current paragraph.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordShape</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Description</maml:name>
@@ -56280,7 +56024,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Evaluates each data row via -FilterScript ($_ holds the original object) and optionally changes the table style or row shading.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordTableCondition</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>BackgroundColor</maml:name>
@@ -56638,7 +56382,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <maml:para>Adds a table of contents to a Word document.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordTableOfContents</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -56780,7 +56524,7 @@ PowerShell objects. Values are expanded from left to right across cells; missing
 cells. This keeps existing-document editing simple without forcing callers back into the Word DSL.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordTableRow</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
@@ -56923,7 +56667,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
       <maml:para>Thin wrapper over OfficeIMO.Word paragraph tab stops.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordTabStop</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Alignment</maml:name>
@@ -57916,7 +57660,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
       <maml:para>Adds an OfficeIMO Word text box to the current Word DSL location.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Add-OfficeWordTextBox</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AutoFit</maml:name>
@@ -61698,7 +61442,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
       <maml:para>Closes a native database without implicitly saving it.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Close-OfficeAccess</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -61765,7 +61509,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
       <maml:para>Completes an EPUB publication's lifecycle without saving.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Close-OfficeEpub</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -61832,7 +61576,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
       <maml:para>Use Save-OfficeExcel before closing to retain changes. Workbooks with SaveOnDispose are rejected so disposal cannot publish a file.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Close-OfficeExcel</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>Document</maml:name>
@@ -61900,7 +61644,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
       <maml:para>Completes a live Markdown document's lifetime without saving.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Close-OfficeMarkdown</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -61967,7 +61711,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
       <maml:para>Completes a live PDF document's lifetime without saving.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Close-OfficePdf</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -62034,7 +61778,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
       <maml:para>Releases the native document and writes no output. Save changes explicitly with Save-OfficePowerPoint before closing. Documents configured for SaveOnDispose must be reopened with explicit persistence.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Close-OfficePowerPoint</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -62103,7 +61847,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
       <maml:para>Closes a project without implicitly saving it.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Close-OfficeProject</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -65539,6 +65283,231 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
       </command:syntaxItem>
+      <command:syntaxItem parameterSetName="Document">
+        <maml:name>Convert-OfficeDocument</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowLegacyImportLoss</maml:name>
+          <maml:description>
+            <maml:para>Explicitly accept the native legacy Word importer's reported reductions.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AsString</maml:name>
+          <maml:description>
+            <maml:para>Return converted text to the pipeline instead of publishing a main output file.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AutoRename</maml:name>
+          <maml:description>
+            <maml:para>Choose a unique destination name when the requested output exists.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>CompressPdf</maml:name>
+          <maml:description>
+            <maml:para>Apply verified lossless compression to PDF output.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Caller-owned live document. Conversion captures current edits without saving or closing its source.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>Object</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>FailOnLoss</maml:name>
+          <maml:description>
+            <maml:para>Reject a conversion that reports fidelity loss before publishing its output.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>From</maml:name>
+          <maml:description>
+            <maml:para>Source format family or exact codec extension. Overrides filenames while retaining their physical source identity.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MaximumInputBytes</maml:name>
+          <maml:description>
+            <maml:para>Maximum source bytes per file.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int64</command:parameterValue>
+          <dev:type>
+            <maml:name>Int64</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MaximumOutputBytes</maml:name>
+          <maml:description>
+            <maml:para>Maximum serialized output bytes per file.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int64</command:parameterValue>
+          <dev:type>
+            <maml:name>Int64</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MaximumXmlCharactersInPart</maml:name>
+          <maml:description>
+            <maml:para>Maximum XML characters in one package part.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int64</command:parameterValue>
+          <dev:type>
+            <maml:name>Int64</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoClobber</maml:name>
+          <maml:description>
+            <maml:para>Leave an existing destination unchanged and report its input as skipped.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Options</maml:name>
+          <maml:description>
+            <maml:para>Format-owned settings, typed conversion options, or property hashtables.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Object[]</command:parameterValue>
+          <dev:type>
+            <maml:name>Object[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+          <maml:name>OutputPath</maml:name>
+          <maml:description>
+            <maml:para>Single-file destination. Its extension selects the target when To is omitted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>OutputProfile</maml:name>
+          <maml:description>
+            <maml:para>Output intent, subject to the selected route's supported profiles.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeConversionProfile</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Faithful</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Lightweight</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">PrintReady</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">TextOnly</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>OfficeConversionProfile</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Password</maml:name>
+          <maml:description>
+            <maml:para>Runtime source password; saved definitions contain references rather than password values.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+          <dev:type>
+            <maml:name>SecureString</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Route</maml:name>
+          <maml:description>
+            <maml:para>Exact executable route identifier from Get-OfficeDocumentCapability -Conversion.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>SummaryVariable</maml:name>
+          <maml:description>
+            <maml:para>Final batch counts or single-file evidence assigned before any terminal batch error.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>To</maml:name>
+          <maml:description>
+            <maml:para>Target format family, such as Pdf or Word, or an exact physical extension, such as .doc or .docx.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
     </command:syntax>
     <command:parameters>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
@@ -65609,6 +65578,18 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
           <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Caller-owned live document. Conversion captures current edits without saving or closing its source.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+        <dev:type>
+          <maml:name>Object</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -65996,6 +65977,11 @@ cells. This keeps existing-document editing simple without forcing callers back 
       <command:inputType>
         <dev:type>
           <maml:name>System.String[]</maml:name>
+        </dev:type>
+      </command:inputType>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.Object</maml:name>
         </dev:type>
       </command:inputType>
       <command:inputType>
@@ -75838,7 +75824,7 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
       <maml:para>Returns Markdown text by default; use -PassThru to emit a MarkdownDocument.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>ConvertTo-OfficeMarkdown</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>CollectionSeparator</maml:name>
@@ -81933,739 +81919,6 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
-      <command:name>ConvertTo-OfficePowerPointHtml</command:name>
-      <command:verb>ConvertTo</command:verb>
-      <command:noun>OfficePowerPointHtml</command:noun>
-      <maml:description>
-        <maml:para>Converts a PowerPoint deck to an HTML review document.</maml:para>
-      </maml:description>
-    </command:details>
-    <maml:description>
-      <maml:para>Converts a PowerPoint deck to an HTML review document.</maml:para>
-    </maml:description>
-    <command:syntax>
-      <command:syntaxItem parameterSetName="Path">
-        <maml:name>ConvertTo-OfficePowerPointHtml</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IncludeHiddenShapes</maml:name>
-          <maml:description>
-            <maml:para>Include hidden shapes.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IncludeHiddenSlides</maml:name>
-          <maml:description>
-            <maml:para>Include hidden slides in the HTML review output.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoDefaultStyles</maml:name>
-          <maml:description>
-            <maml:para>Do not include OfficeIMO default CSS styles.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoExtractionProof</maml:name>
-          <maml:description>
-            <maml:para>Do not include extraction proof metadata.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoHeading</maml:name>
-          <maml:description>
-            <maml:para>Do not write the document heading.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoMasterInventory</maml:name>
-          <maml:description>
-            <maml:para>Do not include the master, layout, and theme inventory.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoNotes</maml:name>
-          <maml:description>
-            <maml:para>Do not include presenter notes.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoRenderDiagnostics</maml:name>
-          <maml:description>
-            <maml:para>Do not list visual-review render diagnostics below each slide.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoSlideHeadings</maml:name>
-          <maml:description>
-            <maml:para>Do not write a "Slide N" heading before each slide.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoTables</maml:name>
-          <maml:description>
-            <maml:para>Do not include table content.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="OutPath">
-          <maml:name>OutputPath</maml:name>
-          <maml:description>
-            <maml:para>Optional output HTML path. When omitted, HTML text is returned.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit a FileInfo when saving to disk.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Password</maml:name>
-          <maml:description>
-            <maml:para>Password used to open an encrypted presentation package.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
-          <maml:name>Path</maml:name>
-          <maml:description>
-            <maml:para>Path to the presentation to convert.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Profile</maml:name>
-          <maml:description>
-            <maml:para>HTML conversion profile.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">OfficePowerPointHtmlProfile</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">SemanticSlides</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">VisualReview</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>OfficePowerPointHtmlProfile</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Theme</maml:name>
-          <maml:description>
-            <maml:para>Built-in HTML document theme.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">OfficeVisualThemeKind</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Plain</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">WordLike</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">TechnicalDocument</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">GitHubLike</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Compact</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Report</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>OfficeVisualThemeKind</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Title</maml:name>
-          <maml:description>
-            <maml:para>Optional HTML document title.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Presentation">
-        <maml:name>ConvertTo-OfficePowerPointHtml</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IncludeHiddenShapes</maml:name>
-          <maml:description>
-            <maml:para>Include hidden shapes.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IncludeHiddenSlides</maml:name>
-          <maml:description>
-            <maml:para>Include hidden slides in the HTML review output.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoDefaultStyles</maml:name>
-          <maml:description>
-            <maml:para>Do not include OfficeIMO default CSS styles.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoExtractionProof</maml:name>
-          <maml:description>
-            <maml:para>Do not include extraction proof metadata.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoHeading</maml:name>
-          <maml:description>
-            <maml:para>Do not write the document heading.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoMasterInventory</maml:name>
-          <maml:description>
-            <maml:para>Do not include the master, layout, and theme inventory.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoNotes</maml:name>
-          <maml:description>
-            <maml:para>Do not include presenter notes.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoRenderDiagnostics</maml:name>
-          <maml:description>
-            <maml:para>Do not list visual-review render diagnostics below each slide.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoSlideHeadings</maml:name>
-          <maml:description>
-            <maml:para>Do not write a "Slide N" heading before each slide.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoTables</maml:name>
-          <maml:description>
-            <maml:para>Do not include table content.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="OutPath">
-          <maml:name>OutputPath</maml:name>
-          <maml:description>
-            <maml:para>Optional output HTML path. When omitted, HTML text is returned.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit a FileInfo when saving to disk.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Presentation</maml:name>
-          <maml:description>
-            <maml:para>Presentation instance to convert.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">PowerPointDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>PowerPointDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Profile</maml:name>
-          <maml:description>
-            <maml:para>HTML conversion profile.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">OfficePowerPointHtmlProfile</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">SemanticSlides</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">VisualReview</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>OfficePowerPointHtmlProfile</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Theme</maml:name>
-          <maml:description>
-            <maml:para>Built-in HTML document theme.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">OfficeVisualThemeKind</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Plain</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">WordLike</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">TechnicalDocument</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">GitHubLike</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Compact</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Report</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>OfficeVisualThemeKind</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Title</maml:name>
-          <maml:description>
-            <maml:para>Optional HTML document title.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-    </command:syntax>
-    <command:parameters>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>IncludeHiddenShapes</maml:name>
-        <maml:description>
-          <maml:para>Include hidden shapes.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>IncludeHiddenSlides</maml:name>
-        <maml:description>
-          <maml:para>Include hidden slides in the HTML review output.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>NoDefaultStyles</maml:name>
-        <maml:description>
-          <maml:para>Do not include OfficeIMO default CSS styles.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>NoExtractionProof</maml:name>
-        <maml:description>
-          <maml:para>Do not include extraction proof metadata.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>NoHeading</maml:name>
-        <maml:description>
-          <maml:para>Do not write the document heading.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>NoMasterInventory</maml:name>
-        <maml:description>
-          <maml:para>Do not include the master, layout, and theme inventory.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>NoNotes</maml:name>
-        <maml:description>
-          <maml:para>Do not include presenter notes.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>NoRenderDiagnostics</maml:name>
-        <maml:description>
-          <maml:para>Do not list visual-review render diagnostics below each slide.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>NoSlideHeadings</maml:name>
-        <maml:description>
-          <maml:para>Do not write a "Slide N" heading before each slide.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>NoTables</maml:name>
-        <maml:description>
-          <maml:para>Do not include table content.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="OutPath">
-        <maml:name>OutputPath</maml:name>
-        <maml:description>
-          <maml:para>Optional output HTML path. When omitted, HTML text is returned.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>PassThru</maml:name>
-        <maml:description>
-          <maml:para>Emit a FileInfo when saving to disk.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Password</maml:name>
-        <maml:description>
-          <maml:para>Password used to open an encrypted presentation package.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="FilePath">
-        <maml:name>Path</maml:name>
-        <maml:description>
-          <maml:para>Path to the presentation to convert.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Presentation</maml:name>
-        <maml:description>
-          <maml:para>Presentation instance to convert.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">PowerPointDocument</command:parameterValue>
-        <dev:type>
-          <maml:name>PowerPointDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Profile</maml:name>
-        <maml:description>
-          <maml:para>HTML conversion profile.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">OfficePowerPointHtmlProfile</command:parameterValue>
-        <command:parameterValueGroup>
-          <command:parameterValue required="false" variableLength="false">SemanticSlides</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">VisualReview</command:parameterValue>
-        </command:parameterValueGroup>
-        <dev:type>
-          <maml:name>OfficePowerPointHtmlProfile</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Theme</maml:name>
-        <maml:description>
-          <maml:para>Built-in HTML document theme.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">OfficeVisualThemeKind</command:parameterValue>
-        <command:parameterValueGroup>
-          <command:parameterValue required="false" variableLength="false">Plain</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">WordLike</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">TechnicalDocument</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">GitHubLike</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Compact</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Report</command:parameterValue>
-        </command:parameterValueGroup>
-        <dev:type>
-          <maml:name>OfficeVisualThemeKind</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Title</maml:name>
-        <maml:description>
-          <maml:para>Optional HTML document title.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-    </command:parameters>
-    <command:inputTypes>
-      <command:inputType>
-        <dev:type>
-          <maml:name>System.String</maml:name>
-        </dev:type>
-      </command:inputType>
-      <command:inputType>
-        <dev:type>
-          <maml:name>OfficeIMO.PowerPoint.PowerPointDocument</maml:name>
-        </dev:type>
-      </command:inputType>
-    </command:inputTypes>
-    <command:returnValues>
-      <command:returnValue>
-        <dev:type>
-          <maml:name>System.String</maml:name>
-        </dev:type>
-      </command:returnValue>
-      <command:returnValue>
-        <dev:type>
-          <maml:name>System.IO.FileInfo</maml:name>
-        </dev:type>
-      </command:returnValue>
-    </command:returnValues>
-    <maml:alertSet>
-      <maml:alert>
-        <maml:para></maml:para>
-      </maml:alert>
-    </maml:alertSet>
-    <command:examples>
-      <command:example>
-        <maml:title>Export a deck as semantic HTML.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>ConvertTo-OfficePowerPointHtml -Path .\Briefing.pptx -OutputPath .\Briefing.html -Title 'Briefing Review' -PassThru</dev:code>
-        <dev:remarks>
-          <maml:para>Loads the deck and writes an HTML file with slide text, tables, pictures, charts, and notes where available.</maml:para>
-        </dev:remarks>
-      </command:example>
-      <command:example>
-        <maml:title>Export a visual review artifact.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>ConvertTo-OfficePowerPointHtml -Path .\Briefing.pptx -Profile VisualReview -OutputPath .\Briefing.visual.html</dev:code>
-        <dev:remarks>
-          <maml:para>Uses the OfficeIMO PowerPoint visual review profile.</maml:para>
-        </dev:remarks>
-      </command:example>
-      <command:example>
-        <maml:title>Omit headings and selected review details.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>ConvertTo-OfficePowerPointHtml -Path .\Briefing.pptx -Profile VisualReview -NoHeading -NoSlideHeadings -NoRenderDiagnostics -NoMasterInventory -NoExtractionProof -OutputPath .\Briefing.slides.html</dev:code>
-        <dev:remarks>
-          <maml:para>Leaves out the headings, render diagnostics, template inventory, and extraction proof. Enabled SmartArt and media review sections remain.</maml:para>
-        </dev:remarks>
-      </command:example>
-    </command:examples>
-    <command:relatedLinks />
-  </command:command>
-  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
-    <command:details>
       <command:name>ConvertTo-OfficeProjectTable</command:name>
       <command:verb>ConvertTo</command:verb>
       <command:noun>OfficeProjectTable</command:noun>
@@ -82677,7 +81930,7 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
       <maml:para>Maps PowerShell rows to a bounded project entity table.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="InputObject">
         <maml:name>ConvertTo-OfficeProjectTable</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>ColumnMap</maml:name>
@@ -84608,7 +83861,7 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
       <maml:para>Converts CFX semantic visual-artifact input into a native editable OfficeIMO.Visio document.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="InputObject">
         <maml:name>ConvertTo-OfficeVisioVisual</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>InputObject</maml:name>
@@ -87111,7 +86364,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
       <maml:para>Copies a native slide within its document, preserving its content and relationships.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Slide">
         <maml:name>Copy-OfficePowerPointSlide</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -99262,7 +98515,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
       <maml:para>Creates a title slide, an optional grouped summary, repeating table headers and native continuation slides. Replaces an existing file unless NoClobber is supplied. Output is quiet unless PassThru is supplied; publication is atomic.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Path">
         <maml:name>Export-OfficePowerPoint</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Accent</maml:name>
@@ -100135,7 +99388,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
       <maml:para>Requires PowerShell 7.4. The destination extension selects the report adapter. Rendering and editable document composition remain in OfficeIMO.Workflows.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="View">
         <maml:name>Export-OfficeProjectReport</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Force</maml:name>
@@ -101144,7 +100397,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
       <maml:para>Exports CFX semantic visual-artifact input as a native editable VSDX diagram.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="InputObject">
         <maml:name>Export-OfficeVisioVisual</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>InputObject</maml:name>
@@ -101465,7 +100718,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
       <maml:para>Accepts pipeline rows, arrays, dictionaries and tabular data. Uses the shared table normalizer and native Word writer. Replaces an existing DOCX atomically unless NoClobber is supplied, and stays quiet unless PassThru is supplied.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Path">
         <maml:name>Export-OfficeWord</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>ColumnFormat</maml:name>
@@ -104464,7 +103717,7 @@ expressions.</maml:para>
       <maml:para>Streams native or modeled table rows as PowerShell objects.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Get-OfficeAccessRow</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -104585,7 +103838,7 @@ expressions.</maml:para>
       <maml:para>Lists native table definitions and schema without executing their content.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Get-OfficeAccessTable</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -110860,7 +110113,7 @@ expressions.</maml:para>
       <maml:para>Projects chapters to searchable PowerShell objects.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Get-OfficeEpubChapter</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -113392,7 +112645,7 @@ expressions.</maml:para>
       <maml:para>Lists OfficeIMO Excel number format presets and their format codes.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Get-OfficeExcelNumberFormatPreset</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>CultureName</maml:name>
@@ -116026,7 +115279,7 @@ expressions.</maml:para>
       <maml:para>Lists built-in Excel table styles and compatibility recommendations.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Get-OfficeExcelTableStyle</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Profile</maml:name>
@@ -125518,7 +124771,7 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
       <maml:para>Lists template layouts from all masters, or one selected master.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Get-OfficePowerPointLayout</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>Document</maml:name>
@@ -125870,7 +125123,7 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
       <maml:para>Reads speaker notes without creating empty notes parts.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Get-OfficePowerPointNotes</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -126290,7 +125543,7 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
       <maml:para>Reads sections from a live presentation, optionally matching a PowerShell wildcard pattern.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Get-OfficePowerPointSection</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>CaseSensitive</maml:name>
@@ -127400,7 +126653,7 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
       <maml:para>Returns project assignments.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Get-OfficeProjectAssignment</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -127497,7 +126750,7 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
       <maml:para>Returns project dependencies.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Get-OfficeProjectDependency</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -127570,7 +126823,7 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
       <maml:para>Returns project resources.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Get-OfficeProjectResource</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -127667,7 +126920,7 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
       <maml:para>Returns project tasks as pipeline objects.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Get-OfficeProjectTask</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -127764,7 +127017,7 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
       <maml:para>Captures a portable report from a current calculated schedule.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Get-OfficeProjectView</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -132919,7 +132172,7 @@ the script needs to work with list objects directly instead of using a text sear
       <maml:para>Gets cells from an OfficeIMO Word table.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Get-OfficeWordTableCell</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Column</maml:name>
@@ -139291,7 +138544,7 @@ the script needs to work with list objects directly instead of using a text sear
       <maml:para>Imports explicitly mapped tables into a new project without changing existing documents.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Table">
         <maml:name>Import-OfficeProjectTable</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowUnmappedColumns</maml:name>
@@ -143323,7 +142576,7 @@ the script needs to work with list objects directly instead of using a text sear
       <maml:para>Explicitly calculates a schedule and optionally applies its dates.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Invoke-OfficeProjectSchedule</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Apply</maml:name>
@@ -143444,7 +142697,7 @@ the script needs to work with list objects directly instead of using a text sear
       <maml:para>Executes a simple mail merge against MERGEFIELD values in a Word document.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Invoke-OfficeWordMailMerge</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -146750,7 +146003,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates discoverable token and hierarchy settings for Read-OfficeDocument -As Hierarchy.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeDocumentHierarchyOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>IncludeContextInText</maml:name>
@@ -146995,7 +146248,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates structural, Unicode integrity and optional content-credential verification policy.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeDocumentProvenanceOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowedListPath</maml:name>
@@ -147477,7 +146730,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates an immutable document reader with common policies, format options and optional OCR.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeDocumentReader</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>MaximumConcurrentReads</maml:name>
@@ -147715,7 +146968,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates common read, detection, package and folder policies for document readers.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeDocumentReaderOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>DetectionMode</maml:name>
@@ -148151,7 +147404,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates bounded mbox reader settings through ordinary PowerShell parameters.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Options">
         <maml:name>New-OfficeEmailMailboxReaderOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>MaxMailboxBytes</maml:name>
@@ -148311,7 +147564,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates deterministic mbox writer settings through ordinary PowerShell parameters.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Options">
         <maml:name>New-OfficeEmailMailboxWriterOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>MessageOptions</maml:name>
@@ -148423,7 +147676,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates bounded EML, MSG, and TNEF reader settings through ordinary PowerShell parameters.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Options">
         <maml:name>New-OfficeEmailReaderOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>ExcludeAttachmentContent</maml:name>
@@ -148836,7 +148089,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates bounded email-store reader settings without requiring .NET constructor syntax.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Options">
         <maml:name>New-OfficeEmailStoreReaderOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>ExcludeAttachmentContent</maml:name>
@@ -149489,7 +148742,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates deterministic email writer settings through ordinary PowerShell parameters.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Options">
         <maml:name>New-OfficeEmailWriterOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Base64LineLength</maml:name>
@@ -151772,7 +151025,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates discoverable rendering settings for Excel range and chart image export.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeExcelImageOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>BackgroundColor</maml:name>
@@ -152372,7 +151625,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates Excel/OpenDocument conversion settings.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeExcelOpenDocumentOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>IncludeBasicStyles</maml:name>
@@ -152555,7 +151808,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates discoverable Excel-to-PDF conversion options for Export-OfficeDocumentPdf.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeExcelPdfOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowDocumentFontEmbedding</maml:name>
@@ -154287,7 +153540,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates discoverable parsing, trust, and document settings for HTML conversion.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeHtmlConversionOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>BaseUri</maml:name>
@@ -154480,7 +153733,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates typed HTML rendering options for Export-OfficeDocumentPdf.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeHtmlPdfOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>FontFamily</maml:name>
@@ -154677,7 +153930,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates discoverable layout, resource-limit, and rendering settings for HTML image export.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeHtmlRenderOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>BackgroundColor</maml:name>
@@ -155821,7 +155074,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates discoverable Markdown-to-PDF conversion options for Export-OfficeDocumentPdf.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeMarkdownPdfOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>ApplyWordLikeTheme</maml:name>
@@ -156404,7 +155657,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates native Markdown dialect, normalization, URL and input-limit settings.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeMarkdownReaderOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowDataUrls</maml:name>
@@ -159417,7 +158670,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates discoverable thumbnail and rendering settings for Export-OfficePdfImage.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficePdfImageOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>BackgroundColor</maml:name>
@@ -162772,7 +162025,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates discoverable rendering and tolerance settings for Compare-OfficePdfVisual.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficePdfVisualComparisonOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Alignment</maml:name>
@@ -164220,7 +163473,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates discoverable slide selection and rendering settings for Export-OfficePowerPointImage.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficePowerPointImageOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>BackgroundColor</maml:name>
@@ -164833,7 +164086,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Chooses native presentation inspection reports without changing a document.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficePowerPointInspectionOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Animations</maml:name>
@@ -165327,7 +164580,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates native PowerPoint-to-PDF options for Convert-OfficeDocument.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficePowerPointPdfOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowDocumentFontEmbedding</maml:name>
@@ -166160,7 +165413,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates discoverable RTF-to-PDF conversion options for Export-OfficeDocumentPdf.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeRtfPdfOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowDocumentFontEmbedding</maml:name>
@@ -166501,7 +165754,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates literal text decoding and PDF layout settings for Export-OfficeDocumentPdf.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeTextPdfOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>EncodingName</maml:name>
@@ -167674,7 +166927,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Generates the OfficeIMO Visio reference gallery as editable .vsdx diagrams.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="OutputDirectory">
         <maml:name>New-OfficeVisioGallery</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>NoPackageValidation</maml:name>
@@ -167799,7 +167052,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates discoverable page and rendering settings for Export-OfficeVisioImage.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Options">
         <maml:name>New-OfficeVisioImageOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>BackgroundColor</maml:name>
@@ -168698,7 +167951,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates discoverable structural comparison settings for Compare-OfficeWordDocument.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeWordComparisonOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>CompareBlockOrder</maml:name>
@@ -169487,7 +168740,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates discoverable page and rendering settings for Export-OfficeWordImage.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeWordImageOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>BackgroundColor</maml:name>
@@ -169908,7 +169161,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates Word/OpenDocument conversion settings.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeWordOpenDocumentOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>IncludeHeadersAndFooters</maml:name>
@@ -170043,7 +169296,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates discoverable Word-to-PDF conversion options for Export-OfficeDocumentPdf.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeWordPdfOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowDocumentFontEmbedding</maml:name>
@@ -170612,7 +169865,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates a discoverable Word revision filter for Resolve-OfficeWordRevision.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeWordRevisionFilter</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Author</maml:name>
@@ -179271,7 +178524,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Removes selected native slides or one-based slide positions.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Slide">
         <maml:name>Remove-OfficePowerPointSlide</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -179402,7 +178655,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Removes the table of contents from a Word document.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Remove-OfficeWordTableOfContents</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -179843,7 +179096,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Renames the first section matching the supplied name.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Rename-OfficePowerPointSection</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>CaseSensitive</maml:name>
@@ -180650,7 +179903,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Writes a qualified native database with strict loss protection.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Save-OfficeAccess</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -180795,7 +180048,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Saves an OfficeIMO AsciiDoc document.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Save-OfficeAsciiDoc</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>Document</maml:name>
@@ -181010,7 +180263,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Saves an email document as EML, EMLX, MSG, or TNEF with fidelity diagnostics.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Save-OfficeEmail</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -181201,7 +180454,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Saves a native mbox mailbox with output diagnostics.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Save-OfficeEmailMailbox</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Mailbox</maml:name>
@@ -181350,7 +180603,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Save replaces its destination after validation. PassThru returns the native write report.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Save-OfficeEpub</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowLoss</maml:name>
@@ -181543,7 +180796,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Omitted Password preserves loaded encryption; an explicit null removes it. SaveOptions accepts native options or a hashtable. PassThru returns the saved FileInfo. The workbook must use explicit persistence.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Save-OfficeExcel</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowLoss</maml:name>
@@ -181761,7 +181014,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Saves an OfficeIMO LaTeX document.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Save-OfficeLatex</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>Document</maml:name>
@@ -181976,7 +181229,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Saves a live Markdown document using its native save policy and keeps it available.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Save-OfficeMarkdown</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowLoss</maml:name>
@@ -182288,7 +181541,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Saves a native OpenDocument model with entry-level preservation diagnostics.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Save-OfficeOpenDocument</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -182458,7 +181711,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Native serialization rejects content loss unless AllowLoss is supplied. Password and OwnerPassword accept shared secure input. Security options encrypt an unencrypted output; use Protect-OfficeDocument for security changes to an already protected file.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Save-OfficePdf</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowLoss</maml:name>
@@ -182734,7 +181987,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Uses the supplied path or the document's associated destination. Omitted Password preserves loaded encryption. PassThru returns the saved FileInfo.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Save-OfficePowerPoint</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowLoss</maml:name>
@@ -182929,7 +182182,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Saves a project through the qualified native codec with loss protection.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Save-OfficeProject</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowLoss</maml:name>
@@ -183172,7 +182425,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Saves an OfficeIMO.Visio document.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Save-OfficeVisio</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>Document</maml:name>
@@ -183321,7 +182574,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Uses the supplied path or associated destination. Omitted Password preserves loaded encryption. PassThru returns the saved FileInfo. The document must use explicit persistence.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Save-OfficeWord</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowLoss</maml:name>
@@ -184844,7 +184097,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Safely replaces one marker-delimited section in a Confluence storage body.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="ExistingBody">
         <maml:name>Set-OfficeConfluenceManagedSection</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AppendIfMissing</maml:name>
@@ -185021,7 +184274,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Updates the primary title, language or creator through the package model.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Set-OfficeEpubMetadata</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Author</maml:name>
@@ -186347,7 +185600,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Configures common Excel chart axis titles, formats, scale, and gridlines.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Set-OfficeExcelChartAxis</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AxisGroup</maml:name>
@@ -187524,7 +186777,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Configures legend visibility and styling for an Excel chart.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Set-OfficeExcelChartLegend</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Bold</maml:name>
@@ -189792,7 +189045,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Configures collapsible Excel outline grouping for worksheet columns.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Set-OfficeExcelColumnGroup</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Clear</maml:name>
@@ -191741,7 +190994,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Sets the workbook date system used for numeric date serials.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Set-OfficeExcelDateSystem</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
           <maml:name>DateSystem</maml:name>
@@ -191877,7 +191130,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Sets a built-in or application document property on an Excel workbook.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Set-OfficeExcelDocumentProperty</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Custom</maml:name>
@@ -199494,7 +198747,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Writes values and applies row layout to a worksheet in a DSL block or through the pipeline.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Set-OfficeExcelRow</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AutoFit</maml:name>
@@ -200045,7 +199298,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <maml:para>Configures collapsible Excel outline grouping for worksheet rows.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Set-OfficeExcelRowGroup</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Clear</maml:name>
@@ -202985,7 +202238,7 @@ Set both frozen dimensions to zero to unfreeze the sheet.</maml:para>
       <maml:para>Sets a typed zero-based cell value in an OpenDocument spreadsheet.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Set-OfficeOpenDocumentCell</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Column</maml:name>
@@ -203993,7 +203246,7 @@ Use low opacity for watermark-like page texture and -Clear to remove a previousl
       <maml:para>Sets generated PDF compliance profile and readiness groundwork.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Context">
         <maml:name>Set-OfficePdfCompliance</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -207565,7 +206818,7 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
 Numbers mean points; text margins use one, two or four values in CSS order.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Set-OfficePowerPointLayoutPlaceholder</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Bold</maml:name>
@@ -208342,7 +207595,7 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
       <maml:para>Sets speaker notes on a native slide or in the current slide content block.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Text">
         <maml:name>Set-OfficePowerPointNotes</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Document</maml:name>
@@ -211348,7 +210601,7 @@ cell inside a deck that already exists.</maml:para>
       <maml:para>Updates selected task fields without implicitly recalculating its schedule.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Task">
         <maml:name>Set-OfficeProjectTask</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>DurationDays</maml:name>
@@ -212295,7 +211548,7 @@ cell inside a deck that already exists.</maml:para>
       <maml:para>Sets a built-in or custom document property on a Word document.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Set-OfficeWordDocumentProperty</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Custom</maml:name>
@@ -212472,7 +211725,7 @@ cell inside a deck that already exists.</maml:para>
       <maml:para>Updates OfficeIMO Word image sizing, wrapping, crop, and metadata.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Set-OfficeWordImage</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>CropBottom</maml:name>
@@ -214521,7 +213774,7 @@ cell inside a deck that already exists.</maml:para>
       <maml:para>Updates OfficeIMO Word shape metadata, sizing, and colors.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>Set-OfficeWordShape</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Description</maml:name>
@@ -217403,7 +216656,7 @@ cell inside a deck that already exists.</maml:para>
       <maml:para>Creates a proof report for user-visible signals preserved by a PDF rewrite.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Path">
         <maml:name>Test-OfficePdfRewrite</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>DifferencePassword</maml:name>

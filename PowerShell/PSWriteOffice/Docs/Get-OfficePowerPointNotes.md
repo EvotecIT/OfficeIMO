@@ -9,7 +9,7 @@ schema: 2.0.0
 Reads speaker notes without creating empty notes parts.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Get-OfficePowerPointNotes [-Document <PowerPointDocument>] [-Slide <PowerPointSlideSelector>] [-IncludeEmpty] [<CommonParameters>]
 ```
@@ -38,7 +38,7 @@ Gets or sets a live document; omission uses the enclosing document block.
 
 ```yaml
 Type: PowerPointDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -54,7 +54,7 @@ Gets or sets whether slides without notes are included.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -70,7 +70,7 @@ Gets or sets a native slide object or one-based slide position.
 
 ```yaml
 Type: PowerPointSlideSelector
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

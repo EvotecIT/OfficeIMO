@@ -9,7 +9,7 @@ schema: 2.0.0
 Updates a template layout placeholder's geometry, text margins and text style.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Set-OfficePowerPointLayoutPlaceholder -TemplateLayout <PowerPointLayoutSelector> -Type <PowerPointPlaceholderType> [-Master <int>] [-Index <UInt32>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-TextMargin <OfficeLength[]>] [-Style <string>] [-Size <OfficeLength>] [-Font <string>] [-Color <OfficeColor>] [-Highlight <OfficeColor>] [-Bold] [-Italic] [-Underline <PowerPointUnderlineStyle>] [-Level <Int32>] [-BulletChar <string>] [-Numbering <PowerPointNumberingScheme>] [-CreateIfMissing] [-PassThru] [-Document <PowerPointDocument>] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Gets or sets bold formatting; an explicitly false switch clears it.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Gets or sets a single bullet character, exclusive with Numbering.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Gets or sets text color, resolving theme roles against the selected master.
 
 ```yaml
 Type: OfficeColor
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Gets or sets whether to create a missing placeholder.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Gets or sets an explicit live document; omission uses the enclosing content bloc
 
 ```yaml
 Type: PowerPointDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Gets or sets the Latin font family.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -129,7 +129,7 @@ Gets or sets the positive placeholder height.
 
 ```yaml
 Type: OfficeLength
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -145,7 +145,7 @@ Gets or sets the highlight color.
 
 ```yaml
 Type: OfficeColor
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -161,7 +161,7 @@ Gets or sets the optional native placeholder index.
 
 ```yaml
 Type: UInt32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -177,7 +177,7 @@ Gets or sets italic formatting; an explicitly false switch clears it.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -193,7 +193,7 @@ Gets or sets the zero-based paragraph indentation level.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -209,7 +209,7 @@ Gets or sets the one-based master position, defaulting to the first or to the la
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -225,7 +225,7 @@ Gets or sets the native numbering scheme, exclusive with BulletChar.
 
 ```yaml
 Type: PowerPointNumberingScheme
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values: AlphaLowerCharacterParenBoth, AlphaUpperCharacterParenBoth, AlphaLowerCharacterParenR, AlphaUpperCharacterParenR, AlphaLowerCharacterPeriod, AlphaUpperCharacterPeriod, ArabicParenBoth, ArabicParenR, ArabicPeriod, ArabicPlain, RomanLowerCharacterParenBoth, RomanUpperCharacterParenBoth, RomanLowerCharacterParenR, RomanUpperCharacterParenR, RomanLowerCharacterPeriod, RomanUpperCharacterPeriod, CircleNumberDoubleBytePlain, CircleNumberWingdingsBlackPlain, CircleNumberWingdingsWhitePlain, ArabicDoubleBytePeriod, ArabicDoubleBytePlain, EastAsianSimplifiedChinesePeriod, EastAsianSimplifiedChinesePlain, EastAsianTraditionalChinesePeriod, EastAsianTraditionalChinesePlain, EastAsianJapaneseDoubleBytePeriod, EastAsianJapaneseKoreanPlain, EastAsianJapaneseKoreanPeriod, Arabic1Minus, Arabic2Minus, Hebrew2Minus, ThaiAlphaPeriod, ThaiAlphaParenthesisRight, ThaiAlphaParenthesisBoth, ThaiNumberPeriod, ThaiNumberParenthesisRight, ThaiNumberParenthesisBoth, HindiAlphaPeriod, HindiNumPeriod, HindiNumberParenthesisRight, HindiAlpha1Period
 
@@ -241,7 +241,7 @@ Gets or sets whether to emit the updated native text box.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -257,7 +257,7 @@ Gets or sets the font size, from one through 4000 points.
 
 ```yaml
 Type: OfficeLength
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -273,7 +273,7 @@ Gets or sets a native text preset.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values: Title, Subtitle, Body, Caption, Emphasis
 
@@ -289,7 +289,7 @@ Gets or sets a layout name, one-based position, native type or returned layout m
 
 ```yaml
 Type: PowerPointLayoutSelector
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -305,7 +305,7 @@ Gets or sets margins: all; vertical,horizontal; or top,right,bottom,left.
 
 ```yaml
 Type: OfficeLength[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -321,7 +321,7 @@ Gets or sets the placeholder type.
 
 ```yaml
 Type: PowerPointPlaceholderType
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values: Title, Body, CenteredTitle, SubTitle, DateAndTime, SlideNumber, Footer, Header, Object, Chart, Table, ClipArt, Diagram, Media, SlideImage, Picture
 
@@ -337,7 +337,7 @@ Gets or sets the native underline style; None removes underlining.
 
 ```yaml
 Type: PowerPointUnderlineStyle
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values: None, Words, Single, Double, Heavy, Dotted, HeavyDotted, Dash, DashHeavy, DashLong, DashLongHeavy, DotDash, DotDashHeavy, DotDotDash, DotDotDashHeavy, Wavy, WavyHeavy, WavyDouble
 
@@ -353,7 +353,7 @@ Gets or sets the positive placeholder width.
 
 ```yaml
 Type: OfficeLength
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -369,7 +369,7 @@ Gets or sets the left position; negative positions are allowed.
 
 ```yaml
 Type: OfficeLength
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -385,7 +385,7 @@ Gets or sets the top position; negative positions are allowed.
 
 ```yaml
 Type: OfficeLength
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

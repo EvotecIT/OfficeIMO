@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates discoverable token and hierarchy settings for Read-OfficeDocument -As Hierarchy.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 New-OfficeDocumentHierarchyOptions [-MaximumTokens <Int32>] [-OverlapTokens <Int32>] [-MaximumInputChunks <Int32>] [-MaximumOutputChunks <Int32>] [-MaximumHierarchyDepth <Int32>] [-MaximumContextCharacters <Int32>] [-PreferMarkdown] [-IncludeContextInText] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Include hierarchy context in chunk text.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Maximum heading-context characters retained.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Maximum heading hierarchy depth.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Maximum source chunks accepted.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Maximum chunks returned.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Maximum tokens per output chunk.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -129,7 +129,7 @@ Tokens repeated between adjacent chunks.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -145,7 +145,7 @@ Prefer Markdown text where the reader supports it.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

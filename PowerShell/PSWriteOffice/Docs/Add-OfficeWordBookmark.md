@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a bookmark to the current paragraph.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeWordBookmark [-Name] <string> [-Paragraph <WordParagraph>] [-PassThru] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Bookmark name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Explicit paragraph to receive the bookmark.
 
 ```yaml
 Type: WordParagraph
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Emit the paragraph after adding the bookmark.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

@@ -9,7 +9,7 @@ schema: 2.0.0
 Saves a native EPUB publication, rejecting loss unless explicitly allowed.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Save-OfficeEpub [[-Path] <string>] -Document <EpubPublication> [-AllowLoss] [-RemoveInvalidatedSignatures] [-MaxOutputBytes <long>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Permit reductions reported by the package writer.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Live editable publication.
 
 ```yaml
 Type: EpubPublication
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Maximum compressed output size.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ Return the native write report.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -96,7 +96,7 @@ Destination path; omission uses the native publication's associated path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -112,7 +112,7 @@ Explicitly remove signatures invalidated by edits. Reported loss still requires 
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

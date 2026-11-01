@@ -9,7 +9,7 @@ schema: 2.0.0
 Converts objects into a Markdown table.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 ConvertTo-OfficeMarkdown [-InputObject <Object>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-DisableAutoAlign] [-PassThru] [<CommonParameters>]
 ```
@@ -48,7 +48,7 @@ Text used between items when a cell contains a collection.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Text used between entries when a cell contains a dictionary.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ Text used between a dictionary key and value.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -96,7 +96,7 @@ Disable automatic alignment heuristics for tables.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -112,7 +112,7 @@ Objects to convert into Markdown.
 
 ```yaml
 Type: Object
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -128,7 +128,7 @@ Maximum number of items allowed in one nested collection or dictionary cell. Def
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -144,7 +144,7 @@ Maximum nesting depth allowed while normalizing one cell value. Defaults to 64; 
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -160,7 +160,7 @@ Emit a Markdown document object instead of text.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

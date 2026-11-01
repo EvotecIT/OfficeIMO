@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a named location to a coverage slide.
 
 ## SYNTAX
-### __AllParameterSets
+### Location (Default)
 ```powershell
 Add-OfficePowerPointLocation [-Name] <string> -MapLeft <double> -MapTop <double> [-Detail <string>] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Gets or sets the location detail.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Location
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Gets or sets the horizontal fraction of the map.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Location
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Gets or sets the vertical fraction of the map.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Location
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ Gets or sets the location name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Location
 Aliases: None
 Possible values:
 

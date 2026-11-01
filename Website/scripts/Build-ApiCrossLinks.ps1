@@ -94,12 +94,7 @@ foreach ($reference in $xref.RootElement.GetProperty('references').EnumerateArra
         continue
     }
     if ($href.Contains('#')) { continue }
-    if ($package -eq 'powershell') {
-        if ($uid -cmatch '^[A-Z][a-z]+-[A-Za-z0-9]+$') {
-            $commands[$uid] = [pscustomobject]@{ Uid = $uid; Name = $uid; Href = $href; Package = $package; Namespace = '' }
-        }
-        continue
-    }
+    if ($package -eq 'powershell') { continue }
     $short = ($name -replace '<.*$', '') -replace '``?\d+$', ''
     $namespace = if ($uid.Length -gt $short.Length -and $uid.LastIndexOf('.') -gt 0) { $uid.Substring(0, $uid.LastIndexOf('.')) } else { '' }
     $type = [pscustomobject]@{ Uid = $uid; Name = $short; Href = $href; Package = $package; Namespace = $namespace }
@@ -113,8 +108,8 @@ $xref.Dispose()
 $commandAliases = @{}
 $commandMetadata = Get-Content -LiteralPath (Join-Path $websiteRoot 'data/apidocs/powershell/command-metadata.json') -Raw | ConvertFrom-Json
 foreach ($command in $commandMetadata.commands) {
-    # The imported release catalog owns command availability. The merged xref can
-    # predate that snapshot, so it must not hide a supported command or its aliases.
+    # The current command catalog owns availability. A merged xref may still
+    # contain retired commands or omit new commands and aliases.
     $commands[$command.name] = [pscustomobject]@{
         Uid = $command.name; Name = $command.name
         Href = "/api/powershell/$($command.name.ToLowerInvariant())/"

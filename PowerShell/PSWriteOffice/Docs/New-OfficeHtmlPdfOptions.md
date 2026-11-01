@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates typed HTML rendering options for Export-OfficeDocumentPdf.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 New-OfficeHtmlPdfOptions [-Options <HtmlToPdfOptions>] [-PdfOptions <PdfCreateOptions>] [-FontFamily <string>] [-Margin <Double>] [-IncludeLocalResources] [-InteractiveFormControls <Boolean>] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Default HTML font family.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Allow bounded local images, stylesheets and fonts. Workflow batches constrain th
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Render supported HTML form controls as interactive PDF fields.
 
 ```yaml
 Type: Boolean
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Uniform page margins in CSS pixels.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Existing options to clone before applying explicitly supplied values.
 
 ```yaml
 Type: HtmlToPdfOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Underlying PDF writer settings, cloned before use.
 
 ```yaml
 Type: PdfCreateOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

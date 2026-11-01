@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a quotation and attribution to the current designed slide.
 
 ## SYNTAX
-### __AllParameterSets
+### Text (Default)
 ```powershell
 Add-OfficePowerPointQuote [-Text] <string> [[-Attribution] <string>] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Gets or sets the attribution.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Gets or sets the text.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 

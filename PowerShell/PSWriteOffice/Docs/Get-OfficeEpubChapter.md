@@ -9,7 +9,7 @@ schema: 2.0.0
 Projects chapters to searchable PowerShell objects.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Get-OfficeEpubChapter [-Document <EpubPublication>] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Gets or sets an explicit live document; omission uses the enclosing content bloc
 
 ```yaml
 Type: EpubPublication
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
