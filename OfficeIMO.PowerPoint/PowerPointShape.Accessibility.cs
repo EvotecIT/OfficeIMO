@@ -85,9 +85,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointShape SetLanguage(string language) {
             string normalized = PowerPointTextRun.NormalizeLanguage(language)
                 ?? throw new ArgumentException("Language cannot be empty.", nameof(language));
-            foreach (A.Run run in Element.Descendants<A.Run>()) {
-                (run.RunProperties ??= new A.RunProperties()).Language = normalized;
-            }
+            PowerPointTextContent.FormatRuns(Element, properties => properties.Language = normalized);
             foreach (A.Paragraph paragraph in Element.Descendants<A.Paragraph>()) {
                 A.EndParagraphRunProperties? properties = paragraph.GetFirstChild<A.EndParagraphRunProperties>();
                 if (properties == null) {

@@ -52,7 +52,7 @@ namespace OfficeIMO.PowerPoint {
         internal static List<string> Wrap(string text, double size, double width, string family, bool bold = false,
             double tracking = 0D) {
             var lines = new List<string>();
-            foreach (string paragraph in PowerPointLayoutRun.NormalizeBreaks(text).Split('\n')) {
+            foreach (string paragraph in PowerPointTextContent.NormalizeBreaks(text).Split('\n')) {
                 string current = string.Empty;
                 foreach (string word in paragraph.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
                     string candidate = current.Length == 0 ? word : current + " " + word;

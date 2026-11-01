@@ -53,9 +53,8 @@ namespace OfficeIMO.PowerPoint {
                     .ApplicationNonVisualDrawingProperties?.PlaceholderShape?.Type?.Value == type);
             if (shape?.TextBody == null) return;
             shape.TextBody.RemoveAllChildren<A.Paragraph>();
-            shape.TextBody.Append(new A.Paragraph(
-                new A.Run(new A.Text(text)),
-                new A.EndParagraphRunProperties()));
+            shape.TextBody.Append(new A.Paragraph(PowerPointTextContent.CreateInlineContent(text)
+                .Append(new A.EndParagraphRunProperties())));
         }
 
         private static LegacyPptHeaderFooterSettings? GetEffectiveLegacySlideHeaderFooter(

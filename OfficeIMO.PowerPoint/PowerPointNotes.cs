@@ -120,7 +120,7 @@ namespace OfficeIMO.PowerPoint {
                 return paragraphs.Count == 0 ? string.Empty : string.Join(Environment.NewLine, paragraphs);
             }
             set {
-                SetParagraphs((value ?? string.Empty).Split(new[] { "\r\n", "\n" }, StringSplitOptions.None));
+                SetParagraphs(PowerPointTextContent.SplitParagraphs(value));
             }
         }
 
@@ -342,12 +342,7 @@ namespace OfficeIMO.PowerPoint {
             if (templateParagraphProperties != null) {
                 paragraph.Append((A.ParagraphProperties)templateParagraphProperties.CloneNode(true));
             }
-            var run = new A.Run();
-            if (templateRunProperties != null) {
-                run.RunProperties = (A.RunProperties)templateRunProperties.CloneNode(true);
-            }
-            run.Append(new A.Text(text));
-            paragraph.Append(run);
+            paragraph.Append(PowerPointTextContent.CreateInlineContent(text, templateRunProperties));
             if (templateEndParagraphRunProperties != null) {
                 paragraph.Append((A.EndParagraphRunProperties)templateEndParagraphRunProperties.CloneNode(true));
             }

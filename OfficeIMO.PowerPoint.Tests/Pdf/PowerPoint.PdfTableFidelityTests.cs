@@ -154,9 +154,10 @@ public sealed class PowerPointPdfTableFidelityTests {
             var master = presentation.OpenXmlDocument.PresentationPart!.SlideMasterParts.Single();
             master.SlideMaster!.ColorMap!.Accent1 = A.ColorSchemeIndexValues.Accent2;
             cell.FontName = "+mn-lt";
-            var properties = cell.Cell.TextBody!.Elements<A.Paragraph>().Single().Elements<A.Run>().Single().RunProperties!;
-            properties.RemoveAllChildren<A.SolidFill>();
-            properties.Append(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Accent1 }));
+            foreach (var run in cell.Cell.TextBody!.Elements<A.Paragraph>().Single().Elements<A.Run>()) {
+                run.RunProperties!.RemoveAllChildren<A.SolidFill>();
+                run.RunProperties.Append(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Accent1 }));
+            }
             var frame = (DocumentFormat.OpenXml.Presentation.GraphicFrame)table.Element.CloneNode(true);
             table.Element.Remove();
             master.SlideMaster.CommonSlideData!.ShapeTree!.Append(frame);

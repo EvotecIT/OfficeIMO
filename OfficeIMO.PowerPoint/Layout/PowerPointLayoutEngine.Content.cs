@@ -381,7 +381,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static double WidestLine(string? text, double size, string family, bool bold) =>
-            PowerPointLayoutRun.NormalizeBreaks(text).Split('\n').Max(line => PowerPointTextMeasure.Width(line, size, family, bold));
+            PowerPointTextContent.NormalizeBreaks(text).Split('\n').Max(line => PowerPointTextMeasure.Width(line, size, family, bold));
 
         /// <summary>Rows a table row occupies toward the slide limit: one per line.</summary>
         private static int RowUnits(PowerPointLayoutContext context, TableMetrics metrics, IReadOnlyList<string> row) {
@@ -538,7 +538,7 @@ namespace OfficeIMO.PowerPoint {
                 string properties = "<a:rPr lang=\"en-US\" sz=\"" + ((int)Math.Round(size * 100D)).ToString(CultureInfo.InvariantCulture) +
                     "\" b=\"" + (header ? '1' : '0') + "\" dirty=\"0\"><a:solidFill>" + writer.ColorXml(color) +
                     "</a:solidFill><a:latin typeface=\"+mn-lt\"/></a:rPr>";
-                string[] lines = PowerPointLayoutRun.NormalizeBreaks(text).Split('\n');
+                string[] lines = PowerPointTextContent.NormalizeBreaks(text).Split('\n');
                 for (int i = 0; i < lines.Length; i++) {
                     if (i > 0) b.Append("<a:br>").Append(properties).Append("</a:br>");
                     b.Append("<a:r>").Append(properties).Append("<a:t>").Append(PowerPointLayoutWriter.X(lines[i])).Append("</a:t></a:r>");

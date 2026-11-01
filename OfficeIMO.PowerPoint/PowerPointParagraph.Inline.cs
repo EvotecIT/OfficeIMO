@@ -92,7 +92,7 @@ namespace OfficeIMO.PowerPoint {
             if (string.IsNullOrWhiteSpace(fieldType)) {
                 throw new ArgumentException("Field type cannot be empty.", nameof(fieldType));
             }
-            var field = new A.Field(new A.Text(displayText ?? string.Empty)) {
+            var field = new A.Field(new A.Text(PowerPointTextContent.ToSingleLine(displayText))) {
                 Id = string.IsNullOrWhiteSpace(fieldId)
                     ? Guid.NewGuid().ToString("B").ToUpperInvariant()
                     : fieldId,

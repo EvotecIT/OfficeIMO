@@ -70,11 +70,9 @@ namespace OfficeIMO.PowerPoint {
             Action<PowerPointTextRun>? run = null) {
             TextBody textBody = EnsureTextBody();
             var wrapper = AppendParagraph(textBody, text ?? string.Empty, textBody.Elements<A.Paragraph>().FirstOrDefault());
+            PowerPointTextRun authoredRun = wrapper.GetDefaultRun();
             configure?.Invoke(wrapper);
-            if (run != null) {
-                var runWrapper = wrapper.Runs.FirstOrDefault() ?? wrapper.AddRun(text ?? string.Empty);
-                run.Invoke(runWrapper);
-            }
+            run?.Invoke(authoredRun.Run.Parent != null ? authoredRun : wrapper.AddRun(text ?? string.Empty));
 
             return wrapper;
         }
@@ -206,21 +204,15 @@ namespace OfficeIMO.PowerPoint {
 
                 textBody.RemoveAllChildren<A.Paragraph>();
 
-                string[] lines = textValue.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-                foreach (string line in lines) {
+                foreach (string line in PowerPointTextContent.SplitParagraphs(textValue)) {
                     A.Paragraph paragraph = new();
                     if (templateParagraphProperties != null) {
                         paragraph.Append((A.ParagraphProperties)templateParagraphProperties.CloneNode(true));
                     }
 
-                    A.Run run = new();
-                    if (templateRunProperties != null) {
-                        run.RunProperties = CloneRunPropertiesForReplacement(
-                            templateRunProperties);
-                    }
-
-                    run.Append(new A.Text(line));
-                    paragraph.Append(run);
+                    paragraph.Append(PowerPointTextContent.CreateInlineContent(line, templateRunProperties != null
+                        ? CloneRunPropertiesForReplacement(templateRunProperties)
+                        : null));
 
                     if (templateEndParagraphRunProperties != null) {
                         paragraph.Append(
@@ -476,10 +468,7 @@ namespace OfficeIMO.PowerPoint {
                 return run?.RunProperties?.Bold?.Value == true;
             }
             set {
-                foreach (A.Run run in Runs) {
-                    A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
-                    runProps.Bold = value;
-                }
+                PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => runProps.Bold = value);
             }
         }
 
@@ -492,10 +481,7 @@ namespace OfficeIMO.PowerPoint {
                 return run?.RunProperties?.Italic?.Value == true;
             }
             set {
-                foreach (A.Run run in Runs) {
-                    A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
-                    runProps.Italic = value;
-                }
+                PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => runProps.Italic = value);
             }
         }
 
@@ -510,10 +496,7 @@ namespace OfficeIMO.PowerPoint {
             }
             set {
                 int? drawingSize = PowerPointTextDefaults.ToDrawingFontSize(value?.ToPoints(), nameof(value));
-                foreach (A.Run run in Runs) {
-                    A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
-                    runProps.FontSize = drawingSize;
-                }
+                PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => runProps.FontSize = drawingSize);
             }
         }
 
@@ -526,10 +509,7 @@ namespace OfficeIMO.PowerPoint {
                 return run?.RunProperties?.GetFirstChild<A.LatinFont>()?.Typeface;
             }
             set {
-                foreach (A.Run run in Runs) {
-                    A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
-                    PowerPointTextPropertyFormatting.SetFontName(runProps, value);
-                }
+                PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => PowerPointTextPropertyFormatting.SetFontName(runProps, value));
             }
         }
 
@@ -542,10 +522,7 @@ namespace OfficeIMO.PowerPoint {
                 return run?.RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
             }
             set {
-                foreach (A.Run run in Runs) {
-                    A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
-                    PowerPointTextPropertyFormatting.SetColor(runProps, value);
-                }
+                PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => PowerPointTextPropertyFormatting.SetColor(runProps, value));
             }
         }
 
@@ -600,17 +577,10 @@ namespace OfficeIMO.PowerPoint {
                 paragraph.ParagraphProperties = (A.ParagraphProperties)templateParagraph.ParagraphProperties.CloneNode(true);
             }
 
-            A.Run run = new(new A.Text(text));
             A.RunProperties? templateRunProps = templateParagraph?
                 .Elements<A.Run>()
                 .Select(existingRun => existingRun.RunProperties)
                 .FirstOrDefault(runProperties => runProperties != null);
-            if (templateRunProps != null) {
-                run.RunProperties = CloneRunPropertiesForReplacement(
-                    templateRunProps);
-            }
-
-            paragraph.Append(run);
 
             A.EndParagraphRunProperties? templateEnd = templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
             if (templateEnd != null) {
@@ -619,7 +589,11 @@ namespace OfficeIMO.PowerPoint {
             }
 
             textBody.Append(paragraph);
-            return new PowerPointParagraph(paragraph, _slidePart ?? OwnerSlide?.SlidePart, _ownerPart);
+            var wrapper = new PowerPointParagraph(paragraph, _slidePart ?? OwnerSlide?.SlidePart, _ownerPart);
+            wrapper.InsertRun(text, templateRunProps != null
+                ? CloneRunPropertiesForReplacement(templateRunProps)
+                : null);
+            return wrapper;
         }
 
         private static A.Paragraph CreateEmptyParagraph(A.Paragraph? templateParagraph) {

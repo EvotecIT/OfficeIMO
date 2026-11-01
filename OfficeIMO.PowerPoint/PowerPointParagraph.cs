@@ -14,6 +14,7 @@ namespace OfficeIMO.PowerPoint {
         private readonly SlidePart? _initialSlidePart;
         private SlidePart? _slidePart => Paragraph.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
         private readonly OpenXmlPartContainer? _initialOwnerPart;
+        private PowerPointTextRun? _insertedRun;
         private OpenXmlPartContainer? _ownerPart => Paragraph.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>()
             .FirstOrDefault()?.SlidePart ?? _initialOwnerPart ?? _initialSlidePart;
 
@@ -51,8 +52,7 @@ namespace OfficeIMO.PowerPoint {
         /// Adds a run to the paragraph and returns the paragraph for chaining.
         /// </summary>
         public PowerPointParagraph AddText(string text, Action<PowerPointTextRun>? configure = null) {
-            A.Run run = InsertRun(text);
-            var wrapper = new PowerPointTextRun(run, _slidePart, _ownerPart);
+            PowerPointTextRun wrapper = InsertRun(text);
             configure?.Invoke(wrapper);
             return this;
         }
@@ -62,8 +62,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointParagraph AddFormattedText(string text, bool bold = false, bool italic = false,
             PowerPointUnderlineStyle? underline = null, bool strikethrough = false) {
-            A.Run run = InsertRun(text);
-            var wrapper = new PowerPointTextRun(run, _slidePart, _ownerPart);
+            PowerPointTextRun wrapper = InsertRun(text);
             if (bold) {
                 wrapper.Bold = true;
             }
@@ -93,17 +92,15 @@ namespace OfficeIMO.PowerPoint {
             string replacement = newValue ?? string.Empty;
             int count = 0;
 
-            foreach (A.Run run in Paragraph.Elements<A.Run>()) {
-                foreach (A.Text text in run.Elements<A.Text>()) {
-                    string current = text.Text ?? string.Empty;
-                    int occurrences = CountOccurrences(current, oldValue);
-                    if (occurrences == 0) {
-                        continue;
-                    }
-
-                    text.Text = current.Replace(oldValue, replacement);
-                    count += occurrences;
+            foreach (A.Run run in Paragraph.Elements<A.Run>().ToArray()) {
+                string current = run.Text?.Text ?? string.Empty;
+                int occurrences = CountOccurrences(current, oldValue);
+                if (occurrences == 0) {
+                    continue;
                 }
+
+                new PowerPointTextRun(run, _slidePart, _ownerPart).Text = current.Replace(oldValue, replacement);
+                count += occurrences;
             }
 
             return count;
@@ -119,8 +116,7 @@ namespace OfficeIMO.PowerPoint {
         /// Adds a run to the paragraph.
         /// </summary>
         public PowerPointTextRun AddRun(string text, Action<PowerPointTextRun>? configure = null) {
-            A.Run run = InsertRun(text);
-            var wrapper = new PowerPointTextRun(run, _slidePart, _ownerPart);
+            PowerPointTextRun wrapper = InsertRun(text);
             configure?.Invoke(wrapper);
             return wrapper;
         }
@@ -534,20 +530,38 @@ namespace OfficeIMO.PowerPoint {
             InsertParagraphPropertyChild(props, new A.NoBullet());
         }
 
-        private PowerPointTextRun GetDefaultRun() {
-            A.Run run = Paragraph.Elements<A.Run>().LastOrDefault() ?? InsertRun(string.Empty);
-            return new PowerPointTextRun(run, _slidePart);
+        /// <summary>
+        /// The text most recently written through this instance, otherwise the last run with the
+        /// preceding lines that share its formatting, which is how multi-line text is stored.
+        /// </summary>
+        internal PowerPointTextRun GetDefaultRun() {
+            A.Run? run = Paragraph.Elements<A.Run>().LastOrDefault();
+            if (run == null) return InsertRun(string.Empty);
+            if (ReferenceEquals(_insertedRun?.LastLine, run)) return _insertedRun!;
+
+            var lines = new List<OpenXmlElement>();
+            A.Run first = run;
+            while (first.PreviousSibling() is A.Break lineBreak
+                && lineBreak.PreviousSibling() is A.Run previous
+                && previous.RunProperties?.OuterXml == first.RunProperties?.OuterXml) {
+                lines.Insert(0, first);
+                lines.Insert(0, lineBreak);
+                first = previous;
+            }
+            return new PowerPointTextRun(first, _slidePart, _ownerPart, lines);
         }
 
-        private A.Run InsertRun(string text) {
-            A.Run run = new(new A.Text(text ?? string.Empty));
+        internal PowerPointTextRun InsertRun(string? text, A.RunProperties? properties = null) {
+            A.Run run = new(new A.Text(string.Empty));
+            PowerPointTextContent.ApplyProperties(run, properties);
             A.EndParagraphRunProperties? endProps = Paragraph.GetFirstChild<A.EndParagraphRunProperties>();
             if (endProps != null) {
                 Paragraph.InsertBefore(run, endProps);
             } else {
                 Paragraph.Append(run);
             }
-            return run;
+            _insertedRun = new PowerPointTextRun(run, _slidePart, _ownerPart) { Text = text ?? string.Empty };
+            return _insertedRun;
         }
 
         private static void ClearBulletInternal(A.ParagraphProperties props) {

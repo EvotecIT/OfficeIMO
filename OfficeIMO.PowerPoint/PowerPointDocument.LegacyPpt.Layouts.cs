@@ -146,9 +146,8 @@ namespace OfficeIMO.PowerPoint {
                 new TextBody(
                     new A.BodyProperties(),
                     new A.ListStyle(),
-                    new A.Paragraph(
-                        new A.Run(new A.Text(text ?? string.Empty)),
-                        new A.EndParagraphRunProperties()))));
+                    new A.Paragraph(PowerPointTextContent.CreateInlineContent(text)
+                        .Append(new A.EndParagraphRunProperties())))));
         }
 
         private static Shape CreateLegacyLayoutPlaceholderShape(LegacyPptShape source,

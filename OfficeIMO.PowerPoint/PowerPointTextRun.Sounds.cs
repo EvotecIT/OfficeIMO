@@ -84,6 +84,7 @@ namespace OfficeIMO.PowerPoint {
                 Embed = relationshipId,
                 Name = name
             }, true);
+            SyncLineContinuation();
             PowerPointEmbeddedSound.RemoveIfUnused(ownerPart,
                 previousRelationshipId);
         }
@@ -93,6 +94,7 @@ namespace OfficeIMO.PowerPoint {
                 ? GetOrCreateInteraction(mouseOver)
                 : GetInteraction(mouseOver);
             if (hyperlink != null) hyperlink.EndSound = value ? true : null;
+            SyncLineContinuation();
         }
 
         private void ClearInteractionSound(bool mouseOver) {
@@ -102,6 +104,7 @@ namespace OfficeIMO.PowerPoint {
             string? relationshipId = hyperlink?
                 .GetFirstChild<A.HyperlinkSound>()?.Embed?.Value;
             hyperlink?.RemoveAllChildren<A.HyperlinkSound>();
+            SyncLineContinuation();
             PowerPointEmbeddedSound.RemoveIfUnused(ownerPart,
                 relationshipId);
         }

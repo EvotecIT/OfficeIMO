@@ -160,11 +160,8 @@ namespace OfficeIMO.PowerPoint {
                 new C.RichText(
                     new A.BodyProperties(),
                     new A.ListStyle(),
-                    new A.Paragraph(
-                        new A.Run(
-                            new A.RunProperties { Language = "en-US" },
-                            new A.Text { Text = title })
-                    )));
+                    new A.Paragraph(PowerPointTextContent.CreateInlineContent(
+                        title, new A.RunProperties { Language = "en-US" }))));
         }
 
         private static C.Title CreateAxisTitle(string title) {
@@ -173,10 +170,8 @@ namespace OfficeIMO.PowerPoint {
                     new C.RichText(
                         new A.BodyProperties(),
                         new A.ListStyle(),
-                        new A.Paragraph(
-                            new A.Run(
-                                new A.RunProperties { Language = "en-US" },
-                                new A.Text { Text = title })))
+                        new A.Paragraph(PowerPointTextContent.CreateInlineContent(
+                            title, new A.RunProperties { Language = "en-US" })))
                 ),
                 new C.Layout(),
                 new C.Overlay { Val = false }

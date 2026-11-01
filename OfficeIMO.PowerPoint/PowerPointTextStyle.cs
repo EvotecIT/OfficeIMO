@@ -157,7 +157,7 @@ namespace OfficeIMO.PowerPoint {
             }
             if (UnderlineStyle.HasValue) {
                 paragraph.SetUnderline(UnderlineStyle.Value != PowerPointUnderlineStyle.None);
-                paragraph.Runs[paragraph.Runs.Count - 1].UnderlineStyle = UnderlineStyle;
+                paragraph.GetDefaultRun().UnderlineStyle = UnderlineStyle;
             } else if (Underline != null) paragraph.SetUnderline(Underline.Value);
             if (Strikethrough != null) {
                 paragraph.SetStrikethrough(Strikethrough.Value);
