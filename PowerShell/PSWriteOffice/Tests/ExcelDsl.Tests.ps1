@@ -3410,7 +3410,7 @@ Describe 'Excel DSL surface' {
         @(Get-OfficeExcelNamedRange -Path $path -Sheet 'Data' | Where-Object Name -eq 'GrandTotal').Count | Should -Be 0
     }
 
-    It 'adds, lists, and clears manual worksheet page breaks' {
+    It 'adds, lists, and removes selected manual worksheet page breaks' {
         $path = Join-Path $TestDrive 'DslExcelPageBreaks.xlsx'
         $rows = 1..12 | ForEach-Object {
             [PSCustomObject]@{
@@ -3425,10 +3425,13 @@ Describe 'Excel DSL surface' {
                 Add-OfficeExcelPageBreak -Row 5 -Column 1
                 $script:contextPageBreaks = @(Get-OfficeExcelPageBreak)
             }
+            ExcelSheet 'Summary' { ExcelPageBreak -Row 8 }
         }
 
         $breaks = @(Get-OfficeExcelPageBreak -Path $path -Sheet Data)
         $breaks.Count | Should -Be 2
+        $breaks[0] | Should -BeOfType ([PSWriteOffice.Models.Excel.ExcelPageBreakInfo])
+        $breaks[0].Path | Should -Be $path
         ($breaks | Where-Object Type -EQ 'Row').Index | Should -Be 5
         ($breaks | Where-Object Type -EQ 'Row').Position | Should -Be 5
         ($breaks | Where-Object Type -EQ 'Column').Index | Should -Be 1
@@ -3444,11 +3447,11 @@ Describe 'Excel DSL surface' {
         $worksheetXml | Should -Match 'id="1"'
 
         $beforeWhatIf = [System.IO.File]::ReadAllBytes($path)
-        Clear-OfficeExcelPageBreak -Path $path -Sheet Data -Row 5 -WhatIf
+        Open-OfficeExcel -LiteralPath $path -WhatIf { Remove-OfficeExcelPageBreak -Sheet Data -Row 5 }
         $afterWhatIf = [System.IO.File]::ReadAllBytes($path)
         [Convert]::ToBase64String($afterWhatIf) | Should -Be ([Convert]::ToBase64String($beforeWhatIf))
 
-        Clear-OfficeExcelPageBreak -Path $path -Sheet Data -Row 5 -Confirm:$false
+        Open-OfficeExcel -LiteralPath $path { Remove-OfficeExcelPageBreak -Sheet Data -Row 5 }
 
         $rowBreaks = @(Get-OfficeExcelPageBreak -Path $path -Sheet Data -Row)
         $rowBreaks.Count | Should -Be 0
@@ -3459,7 +3462,14 @@ Describe 'Excel DSL surface' {
         $script:contextPageBreaks.Count | Should -Be 2
         $script:contextPageBreaks[0].SheetName | Should -Be 'Data'
 
-        Clear-OfficeExcelPageBreak -Path $path -Sheet Data -All -Confirm:$false
+        Open-OfficeExcel -LiteralPath $path {
+            $script:removedBreaks = @(Remove-OfficeExcelPageBreak -Sheet Data -All -PassThru)
+        }
+        $script:removedBreaks.Count | Should -Be 1
+        $script:removedBreaks[0] | Should -BeOfType ([PSWriteOffice.Models.Excel.ExcelPageBreakInfo])
+        $script:removedBreaks[0].Type | Should -Be 'Column'
+        $script:removedBreaks[0].Position | Should -Be 1
+        @(Get-OfficeExcelPageBreak -LiteralPath $path -Sheet Summary).Position | Should -Be 8
 
         @(Get-OfficeExcelPageBreak -Path $path -Sheet Data).Count | Should -Be 0
     }
