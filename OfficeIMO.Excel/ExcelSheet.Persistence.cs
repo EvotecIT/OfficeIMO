@@ -35,6 +35,8 @@ namespace OfficeIMO.Excel {
             _requiresSavePreparation = false;
         }
 
+        internal void CommitPendingParts() => CommitPendingPartChanges();
+
         private void CommitPendingPartChanges() {
             foreach (OpenXmlPart part in PendingPartSaves) {
                 // A cleared comment or removed table can detach a queued part before Save.

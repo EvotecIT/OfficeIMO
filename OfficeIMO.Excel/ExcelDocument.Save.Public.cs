@@ -146,7 +146,7 @@ namespace OfficeIMO.Excel {
             PrepareCellValueBuffersForExtendedSave(options);
             bool preferExtendedPackageWriter = _materializedDirectDataSetFastSaveModel != null;
             Stopwatch? saveStageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
-            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter);
+            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter, fastWritersReadWorksheets: true);
             ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbook");
 
             string? extendedPackageSkipReason = null;
@@ -157,7 +157,7 @@ namespace OfficeIMO.Excel {
 
             if (preferExtendedPackageWriter) {
                 MaterializeDirectDataSetFastSaveModelIfNeeded();
-                PrepareWorkbookForSave(options);
+                PrepareWorkbookForSave(options, fastWritersReadWorksheets: true);
                 ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbookFallback");
             }
 
@@ -305,7 +305,7 @@ namespace OfficeIMO.Excel {
             PrepareCellValueBuffersForExtendedSave(options);
             bool preferExtendedPackageWriter = _materializedDirectDataSetFastSaveModel != null;
             Stopwatch? saveStageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
-            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter);
+            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter, fastWritersReadWorksheets: true);
             ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbook");
 
             string? extendedPackageSkipReason = null;
@@ -316,7 +316,7 @@ namespace OfficeIMO.Excel {
 
             if (preferExtendedPackageWriter) {
                 MaterializeDirectDataSetFastSaveModelIfNeeded();
-                PrepareWorkbookForSave(options);
+                PrepareWorkbookForSave(options, fastWritersReadWorksheets: true);
                 ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbookFallback");
             }
 
@@ -423,7 +423,7 @@ namespace OfficeIMO.Excel {
             PrepareCellValueBuffersForExtendedSave(options);
             bool preferExtendedPackageWriter = _materializedDirectDataSetFastSaveModel != null;
             Stopwatch? saveStageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
-            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter);
+            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter, fastWritersReadWorksheets: true);
             ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbook");
 
             string? extendedPackageSkipReason = null;
@@ -435,7 +435,7 @@ namespace OfficeIMO.Excel {
 
             if (preferExtendedPackageWriter) {
                 MaterializeDirectDataSetFastSaveModelIfNeeded();
-                PrepareWorkbookForSave(options);
+                PrepareWorkbookForSave(options, fastWritersReadWorksheets: true);
                 ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbookFallback");
             }
 
@@ -570,7 +570,7 @@ namespace OfficeIMO.Excel {
             PrepareCellValueBuffersForExtendedSave(options);
             bool preferExtendedPackageWriter = _materializedDirectDataSetFastSaveModel != null;
             Stopwatch? saveStageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
-            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter);
+            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter, fastWritersReadWorksheets: true);
             ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbook");
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -583,7 +583,7 @@ namespace OfficeIMO.Excel {
 
             if (preferExtendedPackageWriter) {
                 MaterializeDirectDataSetFastSaveModelIfNeeded();
-                PrepareWorkbookForSave(options);
+                PrepareWorkbookForSave(options, fastWritersReadWorksheets: true);
                 ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbookFallback");
             }
 

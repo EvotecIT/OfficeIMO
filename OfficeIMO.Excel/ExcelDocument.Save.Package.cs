@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
 
         private void PrepareWorkbookForSave(ExcelSaveOptions? options, bool skipDirectFastSaveSheetPreparation = false,
-            bool applyCalculationPolicy = true) {
+            bool applyCalculationPolicy = true, bool fastWritersReadWorksheets = false) {
             ApplySignatureMutationPolicy(options);
             Stopwatch? stageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
             if (skipDirectFastSaveSheetPreparation) {
@@ -52,7 +52,14 @@ namespace OfficeIMO.Excel {
                 ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.UpdateSheetDimension");
                 sheet.EnsureWorksheetElementOrder();
                 ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.EnsureWorksheetElementOrder");
-                sheet.Commit();
+                // The fast writers serialize the loaded worksheet, so saving it here would write it twice.
+                // A sheet stays prepared-pending, and a later package route commits it.
+                if (fastWritersReadWorksheets && !_openXmlDocumentExposed) {
+                    sheet.CommitPendingParts();
+                } else {
+                    sheet.Commit();
+                }
+
                 ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.CommitSheet");
             }
 
