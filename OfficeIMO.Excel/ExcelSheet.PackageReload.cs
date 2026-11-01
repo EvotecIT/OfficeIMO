@@ -9,6 +9,7 @@ namespace OfficeIMO.Excel {
             _sheet = sheet;
             _id = sheet.SheetId!;
             _worksheetPart = part;
+            _spillOwnership = null;
             _worksheetPersistence = null;
             _sheetDataCache = null;
             _rowElementCursor = null;

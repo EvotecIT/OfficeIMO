@@ -222,7 +222,17 @@ namespace OfficeIMO.Excel {
 
                 DirectWorksheetMetadata? preservedMetadata = sheetModel.Metadata;
                 bool hasExistingTablePart = preserveExistingWorksheetStructure && sheet.WorksheetPart.TableDefinitionParts.Any();
-                if (preserveExistingWorksheetStructure) {
+                bool preserveWorksheet = preserveExistingWorksheetStructure;
+                if (!preserveWorksheet) {
+                    if (TryCaptureDirectWorksheetMetadata(sheetModel, out DirectWorksheetMetadata? sheetMetadata, out _, allowDrawings: true, allowUnsupportedOverlayStyles: true)) {
+                        preservedMetadata = MergeDirectWorksheetMetadata(sheetModel.Metadata, sheetMetadata, replaceOverlayCells: true);
+                    } else {
+                        // Merges, comments and hyperlinks have no metadata form; a reset would drop them.
+                        preserveWorksheet = !sheetModel.HasTable;
+                    }
+                }
+
+                if (preserveWorksheet) {
                     var worksheet = sheet.WorksheetPart.Worksheet;
                     var sheetData = worksheet?.GetFirstChild<SheetData>();
                     IReadOnlyList<DirectOverlayCell> overlayCells = Array.Empty<DirectOverlayCell>();
@@ -240,15 +250,13 @@ namespace OfficeIMO.Excel {
 
                     preservedMetadata = MergeDirectMaterializationOverlayCells(preservedMetadata, overlayCells);
                 } else {
-                    if (TryCaptureDirectWorksheetMetadata(sheetModel, out DirectWorksheetMetadata? sheetMetadata, out _, allowDrawings: true, allowUnsupportedOverlayStyles: true)) {
-                        preservedMetadata = MergeDirectWorksheetMetadata(sheetModel.Metadata, sheetMetadata, replaceOverlayCells: true);
-                    }
-
                     ResetWorksheetForDirectDataSetMaterialization(sheet.WorksheetPart);
                 }
 
                 using var noLock = sheet.BeginNoLock();
-                if (sheetModel.HasTable) {
+                if (sheetModel.Table.CellValueBuffer is { } cellValueBuffer) {
+                    sheet.ApplyCellValueBufferToWorksheet(cellValueBuffer, cancellationToken);
+                } else if (sheetModel.HasTable) {
                     string tableRange;
                     if (hasExistingTablePart) {
                         tableRange = sheet.TryInsertTabularRowSourceForDeferredMaterialization(

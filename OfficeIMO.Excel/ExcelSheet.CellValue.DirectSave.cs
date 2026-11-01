@@ -1,148 +1,10 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using System.Globalization;
 using System.Threading;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-
-        private sealed class CellValueDirectSaveBuffer {
-            private readonly List<object?[]> _rows = new();
-            private readonly List<int> _filledCounts = new();
-            private Type[] _columnTypes = Array.Empty<Type>();
-            private int _columnCount;
-            private int _lockedColumnCount;
-            private int _lastRow;
-            private int _lastColumn;
-
-            internal IReadOnlyList<object?[]> Rows => _rows;
-
-            internal Type[] ColumnTypes => _columnTypes;
-
-            internal int ColumnCount => _columnCount;
-
-            internal int RowCount => _rows.Count;
-
-            internal int CellCount => _filledCounts.Count == 0 ? 0 : ((_rows.Count - 1) * _columnCount) + _filledCounts[_filledCounts.Count - 1];
-
-            internal bool CanAdd(int row, int column) {
-                if (row <= 0 || column <= 0) return false;
-                if (_rows.Count == 0) return row == 1 && column == 1;
-                if (row == _lastRow && column == _lastColumn + 1)
-                    return _lockedColumnCount == 0 || column <= _lockedColumnCount;
-                return row == _lastRow + 1 && column == 1
-                    && (_lockedColumnCount == 0 || _lastColumn == _lockedColumnCount);
-            }
-
-            internal bool TryAdd(int row, int column, object? value) {
-                if (!CanAdd(row, column)) return false;
-
-                if (_rows.Count == 0) {
-                    if (row != 1 || column != 1) {
-                        return false;
-                    }
-
-                    EnsureColumnCount(1);
-                    _rows.Add(new object?[1]);
-                    _filledCounts.Add(0);
-                    SetValue(0, 1, value);
-                    _lastRow = 1;
-                    _lastColumn = 1;
-                    return true;
-                }
-
-                if (row == _lastRow && column == _lastColumn + 1) {
-                    if (_lockedColumnCount > 0 && column > _lockedColumnCount) {
-                        return false;
-                    }
-
-                    EnsureColumnCount(column);
-                    SetValue(row - 1, column, value);
-                    _lastColumn = column;
-                    return true;
-                }
-
-                if (row == _lastRow + 1 && column == 1) {
-                    if (_lockedColumnCount == 0) {
-                        _lockedColumnCount = _columnCount;
-                    }
-
-                    if (_lastColumn != _lockedColumnCount) {
-                        return false;
-                    }
-
-                    _rows.Add(new object?[_columnCount]);
-                    _filledCounts.Add(0);
-                    SetValue(row - 1, 1, value);
-                    _lastRow = row;
-                    _lastColumn = 1;
-                    return true;
-                }
-
-                return false;
-            }
-
-            internal bool IsComplete {
-                get {
-                    if (_rows.Count == 0 || _columnCount == 0) {
-                        return false;
-                    }
-
-                    for (int i = 0; i < _filledCounts.Count; i++) {
-                        if (_filledCounts[i] != _columnCount) {
-                            return false;
-                        }
-                    }
-
-                    return true;
-                }
-            }
-
-            internal IEnumerable<(int Row, int Column, object? Value)> EnumerateWrittenCells() {
-                for (int row = 0; row < _rows.Count; row++) {
-                    object?[] values = _rows[row];
-                    int count = _filledCounts[row];
-                    for (int column = 0; column < count; column++) {
-                        yield return (row + 1, column + 1, values[column]);
-                    }
-                }
-            }
-
-            private void EnsureColumnCount(int column) {
-                if (column <= _columnCount) {
-                    return;
-                }
-
-                int oldColumnCount = _columnCount;
-                _columnCount = column;
-                Array.Resize(ref _columnTypes, _columnCount);
-                for (int i = oldColumnCount; i < _columnTypes.Length; i++) {
-                    _columnTypes[i] = typeof(object);
-                }
-
-                for (int i = 0; i < _rows.Count; i++) {
-                    object?[] row = _rows[i];
-                    Array.Resize(ref row, _columnCount);
-                    _rows[i] = row;
-                }
-            }
-
-            private void SetValue(int rowIndex, int column, object? value) {
-                _rows[rowIndex][column - 1] = value;
-                _filledCounts[rowIndex] = column;
-                if (value == null || value == DBNull.Value) {
-                    return;
-                }
-
-                Type valueType = value.GetType();
-                int columnIndex = column - 1;
-                Type currentType = _columnTypes[columnIndex];
-                _columnTypes[columnIndex] = currentType == typeof(object) || currentType == valueType
-                    ? valueType
-                    : typeof(object);
-            }
-        }
 
         // Core implementation: single source of truth (no locks here)
         private void CellValueCore(int row, int column, object? value) {
@@ -150,24 +12,26 @@ namespace OfficeIMO.Excel {
             CellValueCoreNoMaterialize(row, column, value);
         }
 
-        private bool TrySetPendingDirectCellValue(int row, int column, object? value) {
+        private bool TrySetPendingDirectCellValue(int row, int column, object? value)
+            => TrySetPendingDirectCell(row, column, ExcelBufferedCell.FromValue(value));
+
+        private bool TrySetPendingDirectCell(int row, int column, in ExcelBufferedCell cell) {
             if (HasCellValueWriteAccess) {
-                return TrySetPendingDirectCellValueLocked(row, column, value);
+                return TrySetPendingDirectCellLocked(row, column, cell);
             }
 
             var lck = _excelDocument.EnsureLock();
             lck.EnterWriteLock();
             try {
-                return TrySetPendingDirectCellValueLocked(row, column, value);
+                return TrySetPendingDirectCellLocked(row, column, cell);
             } finally {
                 lck.ExitWriteLock();
             }
         }
 
-        private bool TrySetPendingDirectCellValueLocked(int row, int column, object? value) {
+        private bool TrySetPendingDirectCellLocked(int row, int column, in ExcelBufferedCell cell) {
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            object? directValue = value;
-            bool prepareDateTimeOffset = value is DateTimeOffset;
+            bool prepareDateTimeOffset = cell.Reference is DateTimeOffset;
             if (!EnablePendingDirectCellValueBuffer
                 || _materializingPendingCellValueDirectSaveBuffer
                 || _disablePendingCellValueDirectSaveBuffer
@@ -175,11 +39,11 @@ namespace OfficeIMO.Excel {
                 || _excelDocument.HasDirectDataSetFastSaveState
                 || (_pendingCellValueDirectSaveBuffer == null && _hasCellValueDomWrites)
                 || (_pendingCellValueDirectSaveBuffer == null && !CanRegisterDirectTabularSaveCandidate(1, 1, Math.Max(1, column)))
-                || (!prepareDateTimeOffset && !TryPreparePendingDirectCellValue(value, out directValue))) {
+                || (!prepareDateTimeOffset && !CanBufferDirectCell(cell))) {
                 return false;
             }
 
-            return TrySetPendingDirectCellValueCore(row, column, directValue, prepareDateTimeOffset);
+            return TrySetPendingDirectCellCore(row, column, cell, prepareDateTimeOffset);
         }
 
         private bool TrySetPendingDirectCellFormula(int row, int column, string formula) {
@@ -207,11 +71,11 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            var directValue = new DirectFormulaCellValue(Utilities.ExcelSanitizer.SanitizeFormula(formula));
-            return TrySetPendingDirectCellValueCore(row, column, directValue);
+            object directValue = new DirectFormulaCellValue(Utilities.ExcelSanitizer.SanitizeFormula(formula));
+            return TrySetPendingDirectCellCore(row, column, ExcelBufferedCell.FromValue(directValue));
         }
 
-        private bool TrySetPendingDirectCellValueCore(int row, int column, object? value, bool prepareDateTimeOffset = false) {
+        private bool TrySetPendingDirectCellCore(int row, int column, in ExcelBufferedCell cell, bool prepareDateTimeOffset = false) {
             EnsureDynamicArrayCellWritable(row, column);
             if (!_excelDocument.TryReservePendingDirectCellValueSheet(this)) {
                 return false;
@@ -226,7 +90,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            var buffer = _pendingCellValueDirectSaveBuffer ??= new CellValueDirectSaveBuffer();
+            var buffer = _pendingCellValueDirectSaveBuffer ??= new ExcelCellValueBuffer();
             // Establish coordinate, sequence and thread admission before a
             // user conversion callback. A rejected buffer write uses the DOM
             // path, which must invoke that callback only once.
@@ -234,22 +98,22 @@ namespace OfficeIMO.Excel {
                 MaterializePendingDirectCellValues();
                 return false;
             }
-            if (prepareDateTimeOffset && value is DateTimeOffset dateTimeOffset) {
+
+            ExcelBufferedCell bufferedCell = cell;
+            if (prepareDateTimeOffset && cell.Reference is DateTimeOffset dateTimeOffset) {
                 if (!TryPrepareDateTimeOffsetPendingDirectCellValue(dateTimeOffset, out DateTime converted)) {
                     MaterializePendingDirectCellValues();
                     CellDateTimeOffsetValueCore(row, column, dateTimeOffset, converted);
                     return true;
                 }
-                value = converted;
-            }
-            if (!buffer.TryAdd(row, column, value)) {
-                MaterializePendingDirectCellValues();
-                return false;
+                bufferedCell = ExcelBufferedCell.DateTimeCell(converted);
             }
 
+            buffer.Add(row, column, bufferedCell);
+
             if (MirrorPendingDirectCellValueBufferToWorksheet || buffer.CellCount < PendingDirectCellValueMinimumCellCount) {
-                ApplyPendingDirectCellValueToDom(row, column, value);
-            } else if (value is not DirectFormulaCellValue) {
+                ApplyPendingDirectCellValueToDom(row, column, bufferedCell.ToValue());
+            } else if (bufferedCell.Reference is not DirectFormulaCellValue) {
                 _excelDocument.MarkFormulaInputMutation();
             }
 
@@ -269,50 +133,40 @@ namespace OfficeIMO.Excel {
             CellValueCoreNoMaterialize(row, column, value);
         }
 
-        private bool TryPreparePendingDirectCellValue(object? value, out object? directValue) {
-            if (value == null || value == DBNull.Value) {
-                directValue = null;
-                return true;
-            }
-
-            switch (value) {
-                case string text:
-                    CoerceValueHelper.ValidateSharedStringLength(text, nameof(value));
-                    directValue = text;
+        private static bool CanBufferDirectCell(in ExcelBufferedCell cell) {
+            switch (cell.Kind) {
+                case ExcelBufferedCellKind.Text:
+                    string text = (string)cell.Reference!;
+                    CoerceValueHelper.ValidateSharedStringLength(text, "value");
                     return text.IndexOf('\n') < 0 && text.IndexOf('\r') < 0;
-                case double:
-                case float:
-                case decimal:
-                case int:
-                case long:
-                case short:
-                case uint:
-                case ulong:
-                case ushort:
-                case byte:
-                case sbyte:
-                case bool:
-                    directValue = value;
+                case ExcelBufferedCellKind.DateTime:
+                    _ = cell.DateTimeValue.ToOADate();
                     return true;
-                case DateTime dateTime:
-                    _ = dateTime.ToOADate();
-                    directValue = dateTime;
-                    return true;
-                case TimeSpan:
-                    directValue = value;
-                    return true;
+                case ExcelBufferedCellKind.Value:
+                    switch (cell.Reference) {
+                        case float:
+                        case decimal:
+                        case short:
+                        case uint:
+                        case ulong:
+                        case ushort:
+                        case byte:
+                        case sbyte:
+                        case TimeSpan:
+                        case DirectFormulaCellValue:
+                            return true;
 #if NET6_0_OR_GREATER
-                case DateOnly dateOnly:
-                    _ = dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate();
-                    directValue = dateOnly;
-                    return true;
-                case TimeOnly:
-                    directValue = value;
-                    return true;
+                        case DateOnly dateOnly:
+                            _ = dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate();
+                            return true;
+                        case TimeOnly:
+                            return true;
 #endif
+                        default:
+                            return false;
+                    }
                 default:
-                    directValue = value;
-                    return false;
+                    return true;
             }
         }
 
@@ -342,8 +196,15 @@ namespace OfficeIMO.Excel {
 
             _materializingPendingCellValueDirectSaveBuffer = true;
             try {
+                // The first cells were mirrored as they arrived and may since have been edited in place.
+                int mirroredCells = PendingDirectCellValueMinimumCellCount - 1;
                 foreach (var cell in buffer.EnumerateWrittenCells()) {
                     cancellationToken.ThrowIfCancellationRequested();
+                    if (mirroredCells > 0) {
+                        mirroredCells--;
+                        continue;
+                    }
+
                     ApplyPendingDirectCellValueToDom(cell.Row, cell.Column, cell.Value);
                 }
                 if (ReferenceEquals(_pendingCellValueDirectSaveBuffer, buffer)) {
@@ -355,8 +216,39 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal void ApplyCellValueBufferToWorksheet(ExcelCellValueBuffer buffer, CancellationToken cancellationToken) {
+            foreach (var cell in buffer.EnumerateWrittenCells()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                ApplyPendingDirectCellValueToDom(cell.Row, cell.Column, cell.Value);
+            }
+        }
+
         internal bool IsMaterializingPendingDirectCellValues
             => Volatile.Read(ref _materializingPendingCellValueDirectSaveBuffer);
+
+        // A DOM-only cell inside the buffer's rectangle, such as an array formula set
+        // between buffered cells, would be lost to a writer that sees only the buffer.
+        private bool WorksheetHoldsCellsOutsideBuffer(ExcelCellValueBuffer buffer) {
+            SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
+            if (sheetData == null) {
+                return false;
+            }
+
+            foreach (Row row in sheetData.Elements<Row>()) {
+                foreach (Cell cell in row.Elements<Cell>()) {
+                    if (cell.CellReference?.Value is not string reference) {
+                        return true;
+                    }
+
+                    (int rowNumber, int column) = ExcelA1.ParseCellRef(reference);
+                    if (rowNumber <= buffer.RowCount && column <= buffer.ColumnCount && !buffer.Contains(rowNumber, column)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
 
         internal bool TryPromotePendingDirectCellValuesToSaveCandidate() {
             var buffer = _pendingCellValueDirectSaveBuffer;
@@ -364,30 +256,13 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (!buffer.IsComplete
-                || buffer.ColumnCount <= 0
-                || buffer.RowCount <= 0
-                || buffer.CellCount < PendingDirectCellValueMinimumCellCount) {
+            if (buffer.CellCount < PendingDirectCellValueMinimumCellCount
+                || !buffer.HasCompactRectangle
+                || WorksheetHoldsCellsOutsideBuffer(buffer)) {
                 return false;
             }
 
-            var columnNames = new string[buffer.ColumnCount];
-            for (int i = 0; i < columnNames.Length; i++) {
-                columnNames[i] = "Column" + (i + 1).ToString(CultureInfo.InvariantCulture);
-            }
-
-            string range = ExcelA1.CellReference(1, 1) + ":" + ExcelA1.CellReference(buffer.RowCount, buffer.ColumnCount);
-            bool registered = _excelDocument.RegisterDeferredDirectTabularSaveCandidate(
-                this,
-                "Cells",
-                columnNames,
-                buffer.ColumnTypes,
-                buffer.Rows,
-                includeHeaders: false,
-                range,
-                useCellValueNumberFormats: true,
-                replacingPendingDirectCellValues: true,
-                preserveMissingValues: false);
+            bool registered = _excelDocument.RegisterDeferredCellValueBufferSaveCandidate(this, buffer);
             if (registered) {
                 _pendingCellValueDirectSaveBuffer = null;
                 _excelDocument.ClearPendingDirectCellValueSheet(this);

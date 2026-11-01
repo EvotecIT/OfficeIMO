@@ -47,7 +47,7 @@ namespace OfficeIMO.Excel {
         private WeakReference<SharedStringTable>? _cellValueSharedStringTable;
         private uint? _cellValueDefaultDateStyleIndex;
         private uint? _cellValueDefaultDurationStyleIndex;
-        private CellValueDirectSaveBuffer? _pendingCellValueDirectSaveBuffer;
+        private ExcelCellValueBuffer? _pendingCellValueDirectSaveBuffer;
         private int _pendingCellValueDirectSaveThreadId;
         private bool _disablePendingCellValueDirectSaveBuffer;
         private bool _materializingPendingCellValueDirectSaveBuffer;

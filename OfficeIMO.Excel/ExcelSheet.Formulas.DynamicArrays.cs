@@ -19,7 +19,8 @@ namespace OfficeIMO.Excel {
             internal readonly HashSet<long> WrittenOwners = new HashSet<long>();
         }
 
-        private DynamicSpillOwnership SpillOwnership => DynamicSpillOwnerships.GetOrCreateValue(_worksheetPart);
+        private DynamicSpillOwnership? _spillOwnership;
+        private DynamicSpillOwnership SpillOwnership => _spillOwnership ??= DynamicSpillOwnerships.GetOrCreateValue(_worksheetPart);
         private Dictionary<long, DynamicSpillCacheSnapshot> DynamicSpillCacheSnapshots =>
             SpillOwnership.Cells;
 
@@ -66,9 +67,12 @@ namespace OfficeIMO.Excel {
 
         private void EnsureDynamicArrayCellWritable(int row, int column) {
             EnsureDynamicArrayWriteIndex();
-            if (SpillOwnership.WriteRanges.Any(range => row >= range.Top && row <= range.Bottom
-                && column >= range.Left && column <= range.Right))
-                throw new InvalidOperationException($"Cell '{ExcelA1.CellReference(row, column)}' belongs to a dynamic array; clear its array formula first.");
+            List<(int Top, int Left, int Bottom, int Right)> ranges = SpillOwnership.WriteRanges;
+            for (int i = 0; i < ranges.Count; i++) {
+                var range = ranges[i];
+                if (row >= range.Top && row <= range.Bottom && column >= range.Left && column <= range.Right)
+                    throw new InvalidOperationException($"Cell '{ExcelA1.CellReference(row, column)}' belongs to a dynamic array; clear its array formula first.");
+            }
         }
 
         private Cell GetWritableValueCell(int row, int column) {

@@ -277,7 +277,20 @@ namespace OfficeIMO.Excel {
 
                         int rowCount = sheet.Table.RowCount;
                         int stringColumnCount = stringColumnIndexes.Length;
-                        if (sheet.Table.TryGetBufferedRows(out DirectBufferedRows bufferedRows)) {
+                        if (sheet.Table.CellValueBuffer is { } cellValueBuffer) {
+                            foreach (string text in cellValueBuffer.EnumerateText()) {
+                                NoteString(text);
+                                if ((totalStringReferences & 1023) == 0) {
+                                    if (canCancel) {
+                                        ct.ThrowIfCancellationRequested();
+                                    }
+
+                                    if (ShouldAbandonSharedStrings()) {
+                                        return null;
+                                    }
+                                }
+                            }
+                        } else if (sheet.Table.TryGetBufferedRows(out DirectBufferedRows bufferedRows)) {
                             for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                                 if (canCancel) {
                                     ct.ThrowIfCancellationRequested();

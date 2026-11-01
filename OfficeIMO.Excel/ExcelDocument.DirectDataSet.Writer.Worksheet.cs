@@ -67,6 +67,9 @@ namespace OfficeIMO.Excel {
                     WriteDeclaredRows(writer, sheet, rowIndex, cellReferencePrefixes, columnWritePlan,
                         stylePlan.TabularStyles, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
                     rowIndex += rowCount;
+                } else if (sheet.Table.CellValueBuffer is { } cellValueBuffer && !hasInlineOverlayCells) {
+                    WriteCellValueBuffer(writer, cellValueBuffer, cellReferencePrefixes, styleAttributes, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
+                    rowIndex += rowCount;
                 } else if (hasObjectRows && !hasInlineOverlayCells && !sheet.OmitBlankCells) {
                     WriteObjectRows(writer, objectRows, rowIndex, sheet.IncludeCellReferences, cellReferencePrefixes, styleAttributes, valueStyleColumns, sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
                     rowIndex += rowCount;
@@ -611,6 +614,10 @@ namespace OfficeIMO.Excel {
             private static string GetWorksheetDimension(DirectDataSetSheetModel sheet) {
                 var overlayCells = sheet.Metadata?.OverlayCells;
                 if (overlayCells == null || overlayCells.Count == 0) {
+                    if (sheet.Table.CellValueBuffer is { } cellValueBuffer) {
+                        return cellValueBuffer.Dimension;
+                    }
+
                     return sheet.Range.Length == 0 ? "A1" : sheet.Range;
                 }
 

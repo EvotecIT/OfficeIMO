@@ -3,6 +3,59 @@ using System.Threading;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private static partial class DirectDataSetWorkbookWriter {
+            private static void WriteCellValueBuffer(
+                TextWriter writer,
+                ExcelCellValueBuffer buffer,
+                string[] cellReferencePrefixes,
+                string?[]? styleAttributes,
+                Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
+                ExcelDateSystem dateSystem,
+                DirectSharedStringTable? sharedStrings,
+                CancellationToken ct) {
+                bool canCancel = ct.CanBeCanceled;
+                for (int rowIndex = 0; rowIndex < buffer.WrittenRowCount; rowIndex++) {
+                    if (canCancel) ct.ThrowIfCancellationRequested();
+                    string rowReference = InvariantNumberText.Get(buffer.GetRowNumber(rowIndex));
+                    writer.Write("<row r=\"");
+                    writer.Write(rowReference);
+                    writer.Write("\">");
+                    int endCellIndex = buffer.GetEndCellIndex(rowIndex);
+                    for (int cellIndex = buffer.GetFirstCellIndex(rowIndex); cellIndex < endCellIndex; cellIndex++) {
+                        int columnIndex = buffer.GetColumn(cellIndex) - 1;
+                        ExcelBufferedCell cell = buffer.GetCell(cellIndex);
+                        writer.Write(cellReferencePrefixes[columnIndex]);
+                        writer.Write(rowReference);
+                        writer.Write('"');
+                        string? styleAttribute = styleAttributes?[columnIndex];
+                        switch (cell.Kind) {
+                            case ExcelBufferedCellKind.Text:
+                                if (styleAttribute != null) writer.Write(styleAttribute);
+                                WriteStringCellValue(writer, (string)cell.Reference!, sharedStrings);
+                                break;
+                            case ExcelBufferedCellKind.Number:
+                                if (styleAttribute != null) writer.Write(styleAttribute);
+                                WriteRawValueCell(writer, cell.NumberValue);
+                                break;
+                            case ExcelBufferedCellKind.DateTime:
+                                writer.Write(styleAttribute ?? CellValueDateStyleAttribute);
+                                WriteDateTimeSerialCell(writer, cell.DateTimeValue, dateSystem);
+                                break;
+                            case ExcelBufferedCellKind.Value:
+                                string? effectiveStyle = styleAttribute ?? CreateStyleAttributeForValue(cell.Reference, useCellValueNumberFormats: true);
+                                if (effectiveStyle != null) writer.Write(effectiveStyle);
+                                WriteCellValue(writer, cell.Reference, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
+                                break;
+                            default:
+                                if (styleAttribute != null) writer.Write(styleAttribute);
+                                WriteCellValue(writer, cell.ToValue(), dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
+                                break;
+                        }
+                    }
+
+                    writer.Write("</row>");
+                }
+            }
+
             private static void WriteCompactDirectValueRows(
                 TextWriter writer,
                 DirectDataSetSheetModel sheet,
