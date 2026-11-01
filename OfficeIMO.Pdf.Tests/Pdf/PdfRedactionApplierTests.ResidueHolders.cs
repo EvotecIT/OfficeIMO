@@ -179,6 +179,24 @@ public partial class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void SearchRefusesTextStoredPastAnImagesRaster() {
+        byte[] payload = new byte[] { 0x20, 0x40 }.Concat(Encoding.ASCII.GetBytes("note " + ResidueHolderQuery)).ToArray();
+        byte[] input = BuildPdf(new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Resources << /Font << /F1 4 0 R >> /XObject << /Im0 6 0 R >> >> >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 700 Td (visible) Tj ET q 100 0 0 20 70 500 cm /Im0 Do Q")),
+            BuildStreamObject(6, payload, "/Type /XObject /Subtype /Image /Width 2 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceGray")
+        }, rootObjectNumber: 1);
+        PdfDocument source = PdfDocument.Load(input);
+        var search = new PdfRedactionSearchOptions();
+        search.AddLiteral(ResidueHolderQuery);
+
+        Assert.Throws<InvalidOperationException>(() => source.Redactions.ApplyWithEvidence(source.Redactions.Search(search)));
+    }
+
+    [Fact]
     public void ManualAreaRemovalClearsAlternateTextInNamedPropertyList() {
         byte[] input = BuildResidueHolderPdf("/Span /P1 BDC BT /F1 12 Tf 72 700 Td (visible) Tj ET EMC", "/Properties << /P1 8 0 R >>");
         PdfDocument source = PdfDocument.Load(input);

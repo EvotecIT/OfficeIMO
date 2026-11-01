@@ -196,7 +196,10 @@ internal static partial class PdfRedactionApplier {
                     return found || SearchTextHolds(cmapWords.ToString(), criteria);
                 }
                 // Binary image/font payloads are not text-bearing streams. Their string dictionaries were checked above.
-                if (stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Image") return false;
+                if (stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Image") {
+                    data = ReadBytesPastRaster(stream, data, objects);
+                    content = PdfEncoding.Latin1GetString(data);
+                }
                 return !fontStreams.Programs.Contains(stream) && (SearchTextHolds(content, criteria) || PdfRedactionVerification.ContainsSearchedPdfString(data, criteria, cancellationToken));
             default: return false;
         }
@@ -207,6 +210,27 @@ internal static partial class PdfRedactionApplier {
             PdfContentDictionary dictionary => dictionary.Items.Values.Any(OperandHolds),
             _ => false
         };
+    }
+
+    // Pixels can hold any bytes, so they are never searched. A raster's length is declared though, and whatever
+    // lies past its last row is never painted, so that part is an ordinary payload. Codec data has no such length.
+    private static byte[] ReadBytesPastRaster(PdfStream image, byte[] data, Dictionary<int, PdfIndirectObject> objects) {
+        if (!StreamDecoder.TryGetDeclaredFilterNames(image.Dictionary, objects, out IReadOnlyList<string> filters) ||
+            filters.Any(static filter => filter is "DCTDecode" or "DCT" or "JPXDecode")) return Array.Empty<byte>();
+        double width = PdfObjectLookup.Resolve(objects, image.Dictionary.Items.TryGetValue("Width", out PdfObject? widthValue) ? widthValue : null) is PdfNumber w ? w.Value : 0D;
+        double height = PdfObjectLookup.Resolve(objects, image.Dictionary.Items.TryGetValue("Height", out PdfObject? heightValue) ? heightValue : null) is PdfNumber h ? h.Value : 0D;
+        if (width < 1D || height < 1D) return data;
+        double bitsPerPixel = 1D;
+        if (image.Dictionary.Get<PdfBoolean>("ImageMask")?.Value != true) {
+            if (!PdfImageColorSpaceNormalization.TryResolve(image.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpace) ? colorSpace : null, string.Empty, objects, out PdfImageColorSpaceNormalization normalization) ||
+                PdfObjectLookup.Resolve(objects, image.Dictionary.Items.TryGetValue("BitsPerComponent", out PdfObject? bits) ? bits : null) is not PdfNumber bitsPerComponent) return Array.Empty<byte>();
+            bitsPerPixel = normalization.SourceColorCount * bitsPerComponent.Value;
+        }
+        double rasterLength = Math.Ceiling(width * bitsPerPixel / 8D) * height;
+        if (rasterLength >= data.Length) return Array.Empty<byte>();
+        var excess = new byte[data.Length - (int)rasterLength];
+        Buffer.BlockCopy(data, (int)rasterLength, excess, 0, excess.Length);
+        return excess;
     }
 
     // Font dictionaries also sit directly inside resources, so this walks containers as well as indirect objects.
