@@ -6223,7 +6223,8 @@
         "Index": "Slide",
         "ShapeIndex": "Index"
       },
-      "reason": "Absorbs Find-OfficePowerPointShape. -Slide (object or 1-based number) replaces -Index; -Index now means 1-based shape positions (was -ShapeIndex)."
+      "hint": "Get-OfficePowerPointShape -Document $deck -Slide 1 -Index 1   # SlideIndex and ShapeIndex are also 1-based",
+      "reason": "Absorbs Find-OfficePowerPointShape. -Slide (object or 1-based number) replaces -Index; -Index now means 1-based shape positions (was -ShapeIndex). Returned SlideIndex and ShapeIndex positions are also 1-based."
     },
     {
       "old": "Get-OfficePowerPointSlide",
@@ -6576,7 +6577,7 @@
       "parameters": {
         "Run": "Content"
       },
-      "reason": "Row and column are 1-based; -Run hashtables are replaced by a content block of PptText runs."
+      "reason": "Row and column are 1-based; -Run hashtables are replaced by a content block of PowerPointText runs and PowerPointParagraph blocks."
     },
     {
       "old": "Set-OfficePowerPointThemeColor",

@@ -57,7 +57,7 @@ public sealed class AddOfficePowerPointTextCommand : OfficeCmdlet {
         var textScope = PowerPointTextScope.Current;
         if (scope == null && textScope == null) { InvalidArgument(new ArgumentException("Invoke PowerPointText inside a slide or text content block."), Text); return; }
         var paragraph = textScope?.Paragraph;
-        if (paragraph == null && textScope?.Box != null) paragraph = textScope.TextParagraph();
+        if (paragraph == null && textScope?.HasTextBody == true) paragraph = textScope.TextParagraph();
         PowerPointLayoutNativeText? body = null;
         if (paragraph == null) {
             body = scope!.CreateTextBody();

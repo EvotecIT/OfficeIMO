@@ -116,11 +116,11 @@ Describe 'PowerPointShapeEditing workflows' {
             $reloadedSummary.SlideIndex | Should -Be 2
             $reloadedSummary.PictureCount | Should -Be 1
             $reloadedSummary.TableCount | Should -Be 1
-            $reloadedShapeInfo = Get-OfficePowerPointShape -Presentation $reloaded -Index 1
+            $reloadedShapeInfo = Get-OfficePowerPointShape -Document $reloaded -Slide 2
             $reloadedShapeInfo.Count | Should -BeGreaterThan 0
             ($reloadedShapeInfo | Where-Object Kind -eq 'Picture').Count | Should -Be 1
             ($reloadedShapeInfo | Where-Object Kind -eq 'Table').Count | Should -Be 1
-            ($reloadedShapeInfo | Where-Object Kind -eq 'Picture' | Select-Object -First 1).SlideIndex | Should -Be 1
+            ($reloadedShapeInfo | Where-Object Kind -eq 'Picture' | Select-Object -First 1).SlideIndex | Should -Be 2
             @($reloadedSlide.Tables).Count | Should -BeGreaterThan 0
             $reloadedSlide.Pictures.Count | Should -BeGreaterThan 0
         } finally {
@@ -143,12 +143,12 @@ Describe 'PowerPointShapeEditing workflows' {
             $table = Add-OfficePowerPointTable -Slide $slide -InputObject $rows -X 80 -Y 160 -Width 420 -Height 120 -PassThru
             $table.Name = 'Status.Table'
 
-            $byName = Find-OfficePowerPointShape -Presentation $presentation -Name 'Status.*' -Kind TextBox
+            $byName = Get-OfficePowerPointShape -Document $presentation -Name 'Status.*' -Kind TextBox
             $byName | Should -HaveCount 1
             $byName[0].Name | Should -Be 'Status.Primary'
             $byName[0].Kind | Should -Be 'TextBox'
 
-            $byKind = Find-OfficePowerPointShape -Presentation $presentation -Kind Table
+            $byKind = Get-OfficePowerPointShape -Document $presentation -Kind Table
             $byKind | Should -HaveCount 1
             $byKind[0].Name | Should -Be 'Status.Table'
             $byKind[0].Kind | Should -Be 'Table'
@@ -166,12 +166,12 @@ Describe 'PowerPointShapeEditing workflows' {
             $shape2 = Add-OfficePowerPointShape -Slide $slide -Name 'Kpi.Two' -Type Rectangle -X 180 -Y 140 -Width 80 -Height 40 -PassThru
             $shape3 = Add-OfficePowerPointShape -Slide $slide -Name 'Kpi.Three' -Type Rectangle -X 320 -Y 200 -Width 80 -Height 40 -PassThru
 
-            @($shape1, $shape2, $shape3) | Set-OfficePowerPointShapeLayout -Slide $slide -Align Top
+            @($shape1, $shape2, $shape3) | PowerPointShapeLayout -Alignment Top
             $shape1.Top.ToPoints() | Should -Be $shape2.Top.ToPoints()
             $shape1.Top.ToPoints() | Should -Be $shape3.Top.ToPoints()
 
-            Find-OfficePowerPointShape -Slide $slide -Name 'Kpi.*' |
-                Set-OfficePowerPointShapeLayout -Grid -Columns 3 -Rows 1 -ToSlide -GutterXPoints 12 -NoResize | Out-Null
+            Get-OfficePowerPointShape -Slide $slide -Name 'Kpi.*' |
+                Set-OfficePowerPointShapeLayout -Grid -Columns 3 -Rows 1 -ToSlide -GutterX 12 -NoResize | Out-Null
 
             $arranged = @(Get-OfficePowerPointShape -Slide $slide -Kind AutoShape | Sort-Object LeftPoints)
             $arranged | Should -HaveCount 3
@@ -202,10 +202,10 @@ Describe 'PowerPointShapeEditing workflows' {
         $slideSummary[0].HasNotes | Should -BeFalse
         $slideSummary[0].Title | Should -Be 'No notes yet'
 
-        $shapeInfo = Get-OfficePowerPointShape -Presentation $presentation -Index 0 -Kind TextBox
+        $shapeInfo = Get-OfficePowerPointShape -Document $presentation -Slide 1 -Kind TextBox
         $shapeInfo.Count | Should -BeGreaterThan 0
-        $shapeInfo[0].SlideIndex | Should -Be 0
-        $shapeByIndex = Get-OfficePowerPointShape -Slide $slide -ShapeIndex $shapeInfo[0].ShapeIndex
+        $shapeInfo[0].SlideIndex | Should -Be 1
+        $shapeByIndex = Get-OfficePowerPointShape -Slide $slide -Index $shapeInfo[0].ShapeIndex
         $shapeByIndex.ShapeIndex | Should -Be $shapeInfo[0].ShapeIndex
         $shapeByIndex.Kind | Should -Be 'TextBox'
 

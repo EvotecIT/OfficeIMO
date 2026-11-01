@@ -274,7 +274,7 @@ Describe 'PSWriteOffice public API consistency' {
             @{ Command = 'Set-OfficeWordParagraphStyle'; Parameter = 'Alignment'; Type = 'WordParagraphAlignment' }
             @{ Command = 'Set-OfficeWordTextStyle'; Parameter = 'Underline'; Type = 'WordUnderlineStyle' }
             @{ Command = 'Add-OfficePowerPointShape'; Parameter = 'Type'; Type = 'OfficePresetShapeType' }
-            @{ Command = 'Find-OfficePowerPointShape'; Parameter = 'Kind'; Type = 'OfficePowerPointShapeKind[]' }
+            @{ Command = 'Get-OfficePowerPointShape'; Parameter = 'Kind'; Type = 'OfficePowerPointShapeKind[]' }
             @{ Command = 'Set-OfficePdfPage'; Parameter = 'BoxName'; Type = 'PdfPageBoundaryBox' }
             @{ Command = 'Save-OfficeAsciiDoc'; Parameter = 'LineEnding'; Type = 'OfficeLineEnding' }
         )

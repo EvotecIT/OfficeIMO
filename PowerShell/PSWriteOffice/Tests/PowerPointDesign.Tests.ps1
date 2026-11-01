@@ -328,7 +328,7 @@ Describe 'PowerPointDesign workflows' {
         $reloaded = Open-OfficePowerPoint -Path $path
         try {
             $reloaded.Slides.Count | Should -Be 3
-            (Get-OfficePowerPointShape -Presentation $reloaded | Where-Object Kind -eq 'Chart') | Should -HaveCount 3
+            (Get-OfficePowerPointShape -Document $reloaded | Where-Object Kind -eq 'Chart') | Should -HaveCount 3
         } finally {
             if ($reloaded) {
                 $reloaded.Dispose()

@@ -14,6 +14,9 @@ internal sealed class PowerPointTextScope {
     internal PowerPointTextScope(PowerPointDocument document, PowerPointTextBox box) {
         Document = document; Box = box; TargetSlide = box.OwnerSlide;
     }
+    internal PowerPointTextScope(PowerPointDocument document, PowerPointSlide slide, PowerPointTableCell cell) {
+        Document = document; Cell = cell; TargetSlide = slide;
+    }
     internal PowerPointTextScope(PowerPointTextScope parent, PowerPointParagraph paragraph) {
         Owner = parent.Owner; Document = parent.Document; TargetSlide = parent.TargetSlide; Paragraph = paragraph;
     }
@@ -24,17 +27,21 @@ internal sealed class PowerPointTextScope {
     internal PowerPointParagraph? Paragraph { get; }
     internal PowerPointTextBox? List { get; }
     internal PowerPointTextBox? Box { get; }
-    private PowerPointParagraph? _boxParagraph;
-    private bool _boxWritten;
+    internal PowerPointTableCell? Cell { get; }
+    internal bool HasTextBody => Box != null || Cell != null;
+    private PowerPointParagraph? _bodyParagraph;
+    private bool _bodyWritten;
 
     internal PowerPointParagraph StartParagraph() {
-        if (Box == null) throw new InvalidOperationException("This text scope does not own a text box.");
-        _boxParagraph = !_boxWritten && Box.Paragraphs.Count > 0 ? Box.Paragraphs[0] : Box.AddParagraph();
-        _boxWritten = true;
-        return _boxParagraph;
+        if (!HasTextBody) throw new InvalidOperationException("This text scope does not own a text body.");
+        var paragraphs = Box != null ? Box.Paragraphs : Cell!.Paragraphs;
+        _bodyParagraph = !_bodyWritten && paragraphs.Count > 0 ? paragraphs[0] :
+            Box != null ? Box.AddParagraph() : Cell!.AddParagraph();
+        _bodyWritten = true;
+        return _bodyParagraph;
     }
 
-    internal PowerPointParagraph TextParagraph() => Paragraph ?? _boxParagraph ?? StartParagraph();
+    internal PowerPointParagraph TextParagraph() => Paragraph ?? _bodyParagraph ?? StartParagraph();
     internal static PowerPointTextScope? Current {
         get {
             var scope = OfficeDocumentContext.Find<PowerPointTextScope>();

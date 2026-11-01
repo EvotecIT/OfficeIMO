@@ -65,8 +65,8 @@ public sealed class AddOfficePowerPointParagraphCommand : OfficeCmdlet {
     protected override void ProcessRecord() {
         var scope = PowerPointContentScope.Current;
         var textScope = PowerPointTextScope.Current;
-        if (scope == null && textScope?.Box == null) { InvalidArgument(new ArgumentException("Invoke PowerPointParagraph inside a slide, column or text-box content block."), Text); return; }
-        var body = textScope?.Box == null ? scope!.CreateTextBody() : null;
+        if (scope == null && textScope?.HasTextBody != true) { InvalidArgument(new ArgumentException("Invoke PowerPointParagraph inside a slide, column, text-box or cell content block."), Text); return; }
+        var body = textScope?.HasTextBody != true ? scope!.CreateTextBody() : null;
         try {
             var paragraph = body != null ? body.Box.AddParagraph() : textScope!.StartParagraph();
             paragraph.Text = Content == null ? Text : string.Empty;

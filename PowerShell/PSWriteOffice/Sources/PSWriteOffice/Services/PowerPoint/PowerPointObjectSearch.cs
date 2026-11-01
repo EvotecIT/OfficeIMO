@@ -31,8 +31,8 @@ internal static class PowerPointObjectSearch
 
     public static Func<string, bool> CreateRegexMatcher(string pattern, bool caseSensitive)
     {
-        var options = caseSensitive ? RegexOptions.None : RegexOptions.IgnoreCase;
-        var regex = new Regex(pattern, options);
+        var options = RegexOptions.CultureInvariant | (caseSensitive ? RegexOptions.None : RegexOptions.IgnoreCase);
+        var regex = new Regex(pattern, options, TimeSpan.FromSeconds(2));
         return value => value != null && regex.IsMatch(value);
     }
 
