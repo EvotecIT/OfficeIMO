@@ -51,14 +51,13 @@ namespace OfficeIMO.Excel {
             if (function == "TEXT") {
                 if (tokens.Count != 2
                     || !TryResolveFormulaArgument(tokens[0], out FormulaArgumentValue value)
-                    || value.IsUnresolvedFormula
-                    || !value.HasValue) {
+                    || value.IsUnresolvedFormula) {
                     return false;
                 }
                 if (value.IsError && !_formulaReferenceError.IsError) _formulaReferenceError = value;
                 if (!TryResolveTextArgument(tokens[1], out string format)) return false;
                 if (_formulaReferenceError.IsError) return true;
-                if (!TryFormatTextFunctionValue(value, format, out string formatted)) return false;
+                if (!TryFormatTextFunctionValue(NormalizeLookupResult(value), format, out string formatted)) return false;
 
                 result = new FormulaArgumentValue(null, formatted);
                 return true;

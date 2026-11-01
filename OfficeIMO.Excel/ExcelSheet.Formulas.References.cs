@@ -74,7 +74,7 @@ namespace OfficeIMO.Excel {
             }
 
             value = ResolveFormulaDependency(sheet, row, column);
-            return value.HasValue && !value.IsUnresolvedFormula;
+            return !value.IsUnresolvedFormula;
         }
 
         private bool TryParseQualifiedFormulaCellReference(string token, ExcelSheet? defaultSheet, out ExcelSheet sheet, out int row, out int column) {

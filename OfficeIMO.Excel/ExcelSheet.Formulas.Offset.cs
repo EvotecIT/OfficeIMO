@@ -11,7 +11,6 @@ namespace OfficeIMO.Excel {
             // Multi-cell OFFSET is a reference argument, not a scalar or a dynamic spill in this subset.
             if (r1 != r2 || c1 != c2) return false;
             result = ResolveFormulaDependency(sheet, r1, c1);
-            if (!result.HasValue && !result.IsUnresolvedFormula) result = new FormulaArgumentValue(0d, "0");
             return !result.IsUnresolvedFormula;
         }
 

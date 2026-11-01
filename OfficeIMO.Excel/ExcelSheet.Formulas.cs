@@ -223,9 +223,11 @@ namespace OfficeIMO.Excel {
                     || _formulaEvaluationDepthCache == null
                     || _formulaEvaluationStack == null
                     || _formulaEvaluationDepthFrames == null) {
-                    return cell.CellFormula.FormulaType?.Value == CellFormulaValues.Array
+                    bool supported = cell.CellFormula.FormulaType?.Value == CellFormulaValues.Array
                         ? TryEvaluateAuthoredFormulaCell(cell, formula, out result)
                         : TryEvaluateFormulaValue(formula, out result);
+                    if (supported) result = NormalizeLookupResult(result);
+                    return supported;
                 }
 
                 string cacheKey = GetFormulaEvaluationCacheKey(reference);
@@ -270,6 +272,9 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
+                    // A blank reference remains blank inside an expression. A formula
+                    // cell stores its value, so dependants see the displayed numeric zero.
+                    result = NormalizeLookupResult(result);
                     if (depthFrame.UsedUnevaluatedFormulaCache)
                         result = result.WithUnevaluatedFormulaCache();
 

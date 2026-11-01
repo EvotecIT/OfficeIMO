@@ -103,13 +103,6 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            // A scalar OFFSET owns blank-to-zero coercion. Do not consume its
-            // reference as a plain cell before dispatching the function.
-            if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(trimmed, out ExcelFormulaFunctionCallSyntax? call)
-                && call!.Name.Equals("OFFSET", StringComparison.OrdinalIgnoreCase)) {
-                return TryEvaluateFormulaValue(trimmed, out value, allowScalarExpression: false);
-            }
-
             if (TryParseQualifiedFormulaCellReference(trimmed, out ExcelSheet sheet, out int row, out int column)) {
                 value = ResolveFormulaDependency(sheet, row, column);
                 return true;
@@ -119,7 +112,6 @@ namespace OfficeIMO.Excel {
                 && r1 == r2
                 && c1 == c2) {
                 value = ResolveFormulaDependency(rangeSheet, r1, c1);
-                if (ExcelFormulaExpressionParser.TryParseFunctionCall(trimmed, out _)) value = NormalizeLookupResult(value);
                 return true;
             }
 

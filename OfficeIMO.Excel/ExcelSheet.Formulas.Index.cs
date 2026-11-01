@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel {
         private bool TryEvaluateIndexValue(string args, out FormulaArgumentValue result) {
             result = default;
             if (!TrySelectIndexSource(args, out FormulaLookupSource selected) || selected.Count != 1) return false;
-            result = NormalizeLookupResult(selected[0]);
+            result = selected[0];
             return !result.IsUnresolvedFormula;
         }
 
@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
                 out int r2, out int c2, out FormulaArgumentValue areaError)) {
                 selected = areaError.IsError ? LookupScalarSource(areaError)
                     : new FormulaLookupSource(r2 - r1 + 1, c2 - c1 + 1,
-                        (row, column) => NormalizeLookupResult(ResolveFormulaDependency(sheet, r1 + row, c1 + column)));
+                        (row, column) => ResolveFormulaDependency(sheet, r1 + row, c1 + column));
                 return true;
             }
             if (tokens.Count == 4) return false;
