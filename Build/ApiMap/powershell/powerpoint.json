@@ -67,21 +67,21 @@
               "type": "PowerPointDeckStyle",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Advanced designer-engine tuning: Auto (default, follows -Theme), FieldProof, EditorialCaseStudy, TechnicalMap, QuietAppendix."
+              "notes": "Advanced native design-brief tuning: Auto (default, follows Theme), FieldProof, EditorialCaseStudy, TechnicalMap, QuietAppendix. Density adjusts body typography and spacing; the chosen theme retains its palette and fonts."
             },
             {
               "name": "Purpose",
               "type": "string",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Plain-language deck purpose matched to a built-in design recipe."
+              "notes": "Plain-language purpose matched to a built-in native recipe, including its eyebrow and composition intent. An explicit Style selects its own recipe."
             },
             {
               "name": "LayoutStrategy",
               "type": "PowerPointAutoLayoutStrategy",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "ContentFirst, DesignFirst, Compact, VisualFirst."
+              "notes": "ContentFirst keeps content-fit allocation (default); Compact uses denser body text and equal columns; VisualFirst gives a visual column more space; DesignFirst selects valid column proportions deterministically from Seed. Explicit strategy overrides the recipe."
             },
             {
               "name": "Seed",
@@ -203,21 +203,21 @@
               "type": "PowerPointDeckStyle",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Advanced designer-engine tuning: Auto (default, follows -Theme), FieldProof, EditorialCaseStudy, TechnicalMap, QuietAppendix."
+              "notes": "Advanced native design-brief tuning: Auto (default, follows Theme), FieldProof, EditorialCaseStudy, TechnicalMap, QuietAppendix. Density adjusts body typography and spacing; the chosen theme retains its palette and fonts."
             },
             {
               "name": "Purpose",
               "type": "string",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Plain-language deck purpose matched to a built-in design recipe."
+              "notes": "Plain-language purpose matched to a built-in native recipe, including its eyebrow and composition intent. An explicit Style selects its own recipe."
             },
             {
               "name": "LayoutStrategy",
               "type": "PowerPointAutoLayoutStrategy",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "ContentFirst, DesignFirst, Compact, VisualFirst."
+              "notes": "ContentFirst keeps content-fit allocation (default); Compact uses denser body text and equal columns; VisualFirst gives a visual column more space; DesignFirst selects valid column proportions deterministically from Seed. Explicit strategy overrides the recipe."
             },
             {
               "name": "Seed",

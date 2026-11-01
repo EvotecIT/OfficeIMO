@@ -259,8 +259,10 @@ namespace OfficeIMO.PowerPoint {
 
         internal PowerPointSlide AddContentSlide(PowerPointContentPlanSlide content) {
             if (content.MaterializedSlide != null) _slideIndex--;
-            ResolveSeed(content.Seed ?? content.Title);
+            string seed = ResolveSeed(content.Seed ?? content.Title);
             PowerPointLayoutSlide slide = content.ToLayout();
+            slide.DesignIntent = _design.IntentFor(seed);
+            slide.Eyebrow ??= _design.Eyebrow;
             if (slide.Meta.Count == 0) slide.Meta.AddRange(_presentation.LayoutDeck.TitleMetadata);
             slide.IsLast = _isLastPlannedSlide;
             if (content.MaterializedSlide != null) slide.IsFirst = content.MaterializedSlide.Index == 0;

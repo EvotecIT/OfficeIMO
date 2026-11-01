@@ -5,14 +5,16 @@ using System.Linq;
 namespace OfficeIMO.PowerPoint {
     /// <summary>Everything a layout renderer needs: document, tokens, grid and deck state.</summary>
     internal sealed class PowerPointLayoutContext {
-        internal PowerPointLayoutContext(PowerPointDocument document, PowerPointLayoutTheme theme) {
+        internal PowerPointLayoutContext(PowerPointDocument document, PowerPointLayoutTheme theme, PowerPointDesignIntent? intent = null) {
             Document = document;
-            Theme = theme.Scaled(SizeScale(document));
+            Intent = intent ?? document.LayoutDeck.Design?.BaseIntent;
+            Theme = theme.WithIntent(Intent).Scaled(SizeScale(document));
             Grid = (document.OwnsLayoutTheme ? null : TemplateGrid(document)) ?? PowerPointLayoutGrid.For(document, theme);
             Deck = document.LayoutDeck;
         }
 
         internal PowerPointDocument Document { get; }
+        internal PowerPointDesignIntent? Intent { get; }
 
         /// <summary>
         ///     The slide size relative to the 960 x 540 pt reference (and 720 x 540 pt for 4:3). The type scale and

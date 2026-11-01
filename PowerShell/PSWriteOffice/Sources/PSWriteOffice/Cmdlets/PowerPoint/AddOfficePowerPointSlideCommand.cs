@@ -95,7 +95,7 @@ public sealed class AddOfficePowerPointSlideCommand : OfficeDocumentCmdlet<Power
             var slide = new PowerPointContentPlanSlide(Title, content.Blocks, Layout, Subtitle, seed) {
                 Eyebrow = Eyebrow, MapLabel = MapLabel, NoFooter = NoFooter, NoSlideNumber = NoSlideNumber, TemplateLayout = template
             };
-            var options = PowerPointCompositionOptions.FromDesign(PowerPointDeckDesign.FromBrand(
+            var options = PowerPointCompositionOptions.FromDesign(document.LayoutDeck.Design ?? PowerPointDeckDesign.FromBrand(
                 document.GetThemeColor(PowerPointThemeColor.Accent1) ?? "#2563EB", seed ?? "document"));
             options.ApplyTheme = false;
             var result = content.Complete(slide, options, physicalSlides => {

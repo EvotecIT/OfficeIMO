@@ -25,6 +25,13 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// Save-OfficePowerPoint -Document $deck -Path ./Review.pptx
 /// Close-OfficePowerPoint -Document $deck</code>
 /// </example>
+/// <example>
+///   <summary>Create a compact technical review using the dark theme.</summary>
+///   <code>New-OfficePowerPoint -Path ./Architecture.pptx -Theme Dark -Purpose 'technical proposal' -LayoutStrategy Compact {
+///     PowerPointSlide -Title 'Architecture review'
+///     PowerPointSlide -Title 'Decisions' { PowerPointList 'Retain the API boundary', 'Track rollout evidence' }
+/// }</code>
+/// </example>
 [Cmdlet(VerbsCommon.New, "OfficePowerPoint", SupportsShouldProcess = true)]
 [OutputType(typeof(PowerPointDocument), typeof(FileInfo))]
 public sealed class NewOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPointDocument> {
@@ -53,6 +60,18 @@ public sealed class NewOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPoin
     /// <summary>Brand accent used to derive the theme's accent palette while retaining its fonts and surfaces.</summary>
     [Parameter, OfficeColorTransformation]
     public OfficeColor Accent { get; set; }
+
+    /// <summary>Composition tuning layered on the theme; Auto uses the theme and purpose-matched recipe.</summary>
+    [Parameter]
+    public PowerPointDeckStyle Style { get; set; }
+
+    /// <summary>Plain-language purpose matched by the native design brief to a built-in recipe.</summary>
+    [Parameter, ValidateNotNullOrEmpty]
+    public string? Purpose { get; set; }
+
+    /// <summary>ContentFirst, DesignFirst, Compact or VisualFirst allocation; overrides the recipe's strategy.</summary>
+    [Parameter]
+    public PowerPointAutoLayoutStrategy LayoutStrategy { get; set; } = PowerPointAutoLayoutStrategy.ContentFirst;
 
     /// <summary>Stable deck seed; an individual slide can supply its own seed.</summary>
     [Parameter, ValidateNotNullOrEmpty]
@@ -93,6 +112,14 @@ public sealed class NewOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPoin
             InvalidArgument(new PSArgumentException("Choose a supported slide size.", nameof(SlideSize)), SlideSize);
             return;
         }
+        if (!Enum.IsDefined(typeof(PowerPointDeckStyle), Style) || !Enum.IsDefined(typeof(PowerPointAutoLayoutStrategy), LayoutStrategy)) {
+            InvalidArgument(new PSArgumentException("Choose a supported deck style and layout strategy."), Style);
+            return;
+        }
+        if (Purpose != null && string.IsNullOrWhiteSpace(Purpose)) {
+            InvalidArgument(new PSArgumentException("Deck purpose cannot be empty.", nameof(Purpose)), Purpose);
+            return;
+        }
         if (ContinuationFormat != null) {
             try { _ = string.Format(CultureInfo.CurrentCulture, ContinuationFormat, "Title", 2, 3); }
             catch (FormatException error) { InvalidArgument(error, ContinuationFormat); return; }
@@ -129,6 +156,10 @@ public sealed class NewOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPoin
             }
             if (Date.HasValue) document.LayoutDeck.TitleMetadata.Add(Date.Value.ToString("d", CultureInfo.CurrentCulture));
             document.LayoutDeck.Seed = Seed;
+            if (Style != PowerPointDeckStyle.Auto || Purpose != null || MyInvocation.BoundParameters.ContainsKey(nameof(LayoutStrategy))) {
+                document.LayoutDeck.Design = PowerPointDocumentService.CreateDesign(document, Style, Purpose,
+                    MyInvocation.BoundParameters.ContainsKey(nameof(LayoutStrategy)) ? LayoutStrategy : null, Seed);
+            }
             document.LayoutDeck.NoFooter = NoFooter;
             document.LayoutDeck.ShowSlideNumber = !NoSlideNumber;
             document.LayoutDeck.ContinuationFormat = ContinuationFormat;

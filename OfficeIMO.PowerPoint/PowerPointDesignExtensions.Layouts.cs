@@ -23,7 +23,6 @@ namespace OfficeIMO.PowerPoint {
             // Loaded decks retain their native neutral palette, including readable muted text on dark slides.
             OfficeTheme basis = presentation.OwnsLayoutTheme ? presentation.BaseTheme : presentation.LayoutTheme.Theme;
             PowerPointLayoutTheme mapped = PowerPointLayoutTheme.From(ResolveTheme(theme), basis);
-            if (presentation.OwnsLayoutTheme) return mapped;
             (string? heading, string? body) = presentation.ThemeFontFamilies();
             return mapped.WithFontFamilies(heading, body);
         }
@@ -80,6 +79,7 @@ namespace OfficeIMO.PowerPoint {
                 Title = title,
                 Subtitle = string.IsNullOrWhiteSpace(subtitle) || suffix != null ? null : subtitle,
                 Layout = layout,
+                DesignIntent = options.DesignIntent.Clone(),
                 FooterRightText = options.FooterRight,
                 TemplateLayout = options.TemplateLayout
             };

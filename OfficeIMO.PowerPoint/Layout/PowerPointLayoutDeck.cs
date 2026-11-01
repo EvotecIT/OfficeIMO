@@ -37,6 +37,9 @@ namespace OfficeIMO.PowerPoint {
 
         internal Dictionary<OfficeAlignment, PowerPointLayoutFooter> Footers { get; } = new();
 
+        /// <summary>Optional authored design defaults; native theme colors and fonts remain authoritative.</summary>
+        internal PowerPointDeckDesign? Design { get; set; }
+
         internal bool ShowSlideNumber { get; set; } = true;
 
         /// <summary>Suppress footer text throughout a composed deck.</summary>

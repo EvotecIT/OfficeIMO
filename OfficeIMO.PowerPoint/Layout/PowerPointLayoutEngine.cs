@@ -13,7 +13,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutTheme? theme = null, PowerPointSlide? materialized = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (content == null) throw new ArgumentNullException(nameof(content));
-            var context = new PowerPointLayoutContext(document, theme ?? document.LayoutTheme);
+            var context = new PowerPointLayoutContext(document, theme ?? document.LayoutTheme, content.DesignIntent);
             int originalCount = document.Slides.Count;
             Action rollback = context.Deck.CaptureRollback();
             try {
