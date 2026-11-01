@@ -1511,8 +1511,8 @@
         "browser",
         "powershell"
       ],
-      "cmdlet": "ConvertFrom-OfficeMarkdownHtml",
-      "example": "ConvertFrom-OfficeMarkdownHtml -Path ./in.html -OutputPath ./out.md"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.html -To Markdown -OutputPath ./out.md"
     },
     {
       "id": "html-onenote",
