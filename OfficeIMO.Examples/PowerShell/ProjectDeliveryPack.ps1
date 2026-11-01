@@ -56,7 +56,7 @@ $pdf = Join-Path $OutputDirectory 'ProjectDeliveryPack.pdf'
 #region Excerpt:pswriteoffice-project-delivery
 New-OfficeExcel -Path $xlsx -SaveOptions @{ EvaluateFormulas = $true } {
     ExcelSheet 'Review' {
-        ExcelGridlines -Hide
+        ExcelSheetView -NoGridlines
         ExcelColumn -ColumnName A -Width 44
         ExcelColumn -ColumnName B -Width 24
         ExcelCell -Address A1 -Value "$reviewContext | delivery review"
@@ -76,7 +76,7 @@ New-OfficeExcel -Path $xlsx -SaveOptions @{ EvaluateFormulas = $true } {
     }
     ExcelSheet 'Milestones' {
         ExcelTable -Data $rows -Name 'DeliveryMilestones' -TableStyle TableStyleMedium4
-        ExcelFreeze -TopRows 1
+        ExcelSheetView -FreezeRows 1
         ExcelColumn -ColumnName A -Width 36
         ExcelColumn -ColumnName B -Width 24
         ExcelColumn -ColumnName C -Width 18

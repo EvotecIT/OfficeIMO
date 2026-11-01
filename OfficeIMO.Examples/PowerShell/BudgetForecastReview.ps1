@@ -64,7 +64,7 @@ $pdf = Join-Path $OutputDirectory 'BudgetForecastReview.pdf'
 #region Excerpt:pswriteoffice-budget-review
 New-OfficeExcel -Path $xlsx -SaveOptions @{ EvaluateFormulas = $true } {
     ExcelSheet 'Review' {
-        ExcelGridlines -Hide
+        ExcelSheetView -NoGridlines
         ExcelColumn -ColumnName A -Width 44
         ExcelColumn -ColumnName B -Width 24
         ExcelCell -Address A1 -Value 'Annual forecast review'
@@ -87,7 +87,7 @@ New-OfficeExcel -Path $xlsx -SaveOptions @{ EvaluateFormulas = $true } {
     }
     ExcelSheet 'Detail' {
         ExcelTable -Data $rows -Name 'BudgetForecast' -TableStyle TableStyleMedium4
-        ExcelFreeze -TopRows 1
+        ExcelSheetView -FreezeRows 1
         ExcelColumn -ColumnName A -Width 36
         ExcelColumn -ColumnName B -Width 24
         foreach ($column in 'C','D','E','F') { ExcelColumn -ColumnName $column -Width 20 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "moduleName": "PSWriteOffice",
-  "moduleVersion": "3.5.2",
+  "moduleVersion": "3.5.3",
   "commands": [
     {
       "name": "Add-OfficeAccessColumn",
@@ -2402,14 +2402,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/FindOfficeExcelCommand.cs#L22"
     },
     {
-      "name": "Find-OfficePowerPointShape",
-      "kind": "Cmdlet",
-      "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/FindOfficePowerPointShapeCommand.cs",
-      "sourceLine": 39,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/FindOfficePowerPointShapeCommand.cs#L39"
-    },
-    {
       "name": "Find-OfficeVisioStencil",
       "kind": "Cmdlet",
       "aliases": [
@@ -3047,8 +3039,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/GetOfficePowerPointShapeCommand.cs",
-      "sourceLine": 26,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/GetOfficePowerPointShapeCommand.cs#L26"
+      "sourceLine": 19,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/GetOfficePowerPointShapeCommand.cs#L19"
     },
     {
       "name": "Get-OfficePowerPointSlide",
@@ -3942,6 +3934,14 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointDeckPlanCommand.cs",
       "sourceLine": 27,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointDeckPlanCommand.cs#L27"
+    },
+    {
+      "name": "New-OfficePowerPointHtmlOptions",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointHtmlOptionsCommand.cs",
+      "sourceLine": 17,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointHtmlOptionsCommand.cs#L17"
     },
     {
       "name": "New-OfficePowerPointImageOptions",
@@ -5008,33 +5008,32 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointNotesCommand.cs#L24"
     },
     {
-      "name": "Set-OfficePowerPointPlaceholderText",
+      "name": "Set-OfficePowerPointPlaceholder",
       "kind": "Cmdlet",
       "aliases": [
-        "PptPlaceholderText"
+        "PowerPointPlaceholder"
       ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointPlaceholderTextCommand.cs",
-      "sourceLine": 24,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointPlaceholderTextCommand.cs#L24"
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointPlaceholderCommand.cs",
+      "sourceLine": 23,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointPlaceholderCommand.cs#L23"
     },
     {
       "name": "Set-OfficePowerPointShapeLayout",
       "kind": "Cmdlet",
       "aliases": [
-        "PptArrange",
-        "PptShapeLayout"
+        "PowerPointShapeLayout"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointShapeLayoutCommand.cs",
-      "sourceLine": 22,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointShapeLayoutCommand.cs#L22"
+      "sourceLine": 24,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointShapeLayoutCommand.cs#L24"
     },
     {
       "name": "Set-OfficePowerPointShapeText",
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointShapeTextCommand.cs",
-      "sourceLine": 33,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointShapeTextCommand.cs#L33"
+      "sourceLine": 35,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointShapeTextCommand.cs#L35"
     },
     {
       "name": "Set-OfficePowerPointSlide",
@@ -5057,8 +5056,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointTableCellCommand.cs",
-      "sourceLine": 31,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointTableCellCommand.cs#L31"
+      "sourceLine": 32,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointTableCellCommand.cs#L32"
     },
     {
       "name": "Set-OfficePowerPointTheme",

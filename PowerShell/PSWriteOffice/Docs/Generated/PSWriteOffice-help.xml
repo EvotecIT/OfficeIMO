@@ -45579,24 +45579,12 @@ properties are expanded across table cells. The new row is cloned from an existi
 table formatting, borders, and style choices are preserved.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Table">
         <maml:name>Add-OfficePowerPointTableRow</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Index</maml:name>
-          <maml:description>
-            <maml:para>Optional zero-based index where the row should be inserted. Defaults to appending at the end.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>InputObject</maml:name>
           <maml:description>
-            <maml:para>PowerPoint table or table shape info returned by Find-OfficePowerPointShape or Get-OfficePowerPointShape.</maml:para>
+            <maml:para>PowerPoint table or table shape info returned by Get-OfficePowerPointShape.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
           <dev:type>
@@ -45618,9 +45606,9 @@ table formatting, borders, and style choices are preserved.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>TemplateRowIndex</maml:name>
+          <maml:name>Position</maml:name>
           <maml:description>
-            <maml:para>Optional zero-based template row index to clone. Defaults to the last existing row.</maml:para>
+            <maml:para>Optional one-based position where the row should be inserted. Defaults to appending at the end.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -45629,7 +45617,19 @@ table formatting, borders, and style choices are preserved.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="Data,Values">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>TemplateRow</maml:name>
+          <maml:description>
+            <maml:para>Optional one-based template row to clone. Defaults to the last existing row.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
           <maml:name>Value</maml:name>
           <maml:description>
             <maml:para>Values to write into the new row. Arrays, dictionaries, and objects are expanded across cells.</maml:para>
@@ -45644,22 +45644,10 @@ table formatting, borders, and style choices are preserved.</maml:para>
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Index</maml:name>
-        <maml:description>
-          <maml:para>Optional zero-based index where the row should be inserted. Defaults to appending at the end.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
         <maml:name>InputObject</maml:name>
         <maml:description>
-          <maml:para>PowerPoint table or table shape info returned by Find-OfficePowerPointShape or Get-OfficePowerPointShape.</maml:para>
+          <maml:para>PowerPoint table or table shape info returned by Get-OfficePowerPointShape.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
         <dev:type>
@@ -45681,9 +45669,9 @@ table formatting, borders, and style choices are preserved.</maml:para>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>TemplateRowIndex</maml:name>
+        <maml:name>Position</maml:name>
         <maml:description>
-          <maml:para>Optional zero-based template row index to clone. Defaults to the last existing row.</maml:para>
+          <maml:para>Optional one-based position where the row should be inserted. Defaults to appending at the end.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <dev:type>
@@ -45692,7 +45680,19 @@ table formatting, borders, and style choices are preserved.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="Data,Values">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>TemplateRow</maml:name>
+        <maml:description>
+          <maml:para>Optional one-based template row to clone. Defaults to the last existing row.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
         <maml:name>Value</maml:name>
         <maml:description>
           <maml:para>Values to write into the new row. Arrays, dictionaries, and objects are expanded across cells.</maml:para>
@@ -45730,8 +45730,8 @@ table formatting, borders, and style choices are preserved.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>Find-OfficePowerPointShape -Presentation $ppt -Text 'Metric' -Kind Table |
-                Add-OfficePowerPointTableRow -Values 'Latency', 'Ready'</dev:code>
+        <dev:code>Get-OfficePowerPointShape -Document $ppt -Text 'Metric' -Kind Table |
+                Add-OfficePowerPointTableRow -Value 'Latency', 'Ready'</dev:code>
         <dev:remarks>
           <maml:para>Accepts a PowerPoint table or table shape metadata and writes the supplied values into the new row.</maml:para>
         </dev:remarks>
@@ -45741,13 +45741,13 @@ table formatting, borders, and style choices are preserved.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$shape = Find-OfficePowerPointShape -Presentation $ppt -Text 'Metric' -Kind Table | Select-Object -First 1
-            $shape | Add-OfficePowerPointTableRow -Index 1 -TemplateRowIndex 1 -Values ([ordered]@{
+        <dev:code>$shape = Get-OfficePowerPointShape -Document $ppt -Text 'Metric' -Kind Table | Select-Object -First 1
+            $shape | Add-OfficePowerPointTableRow -Position 2 -TemplateRow 2 -Value ([ordered]@{
                 Metric = 'Documentation'
                 State  = 'Ready'
             })</dev:code>
         <dev:remarks>
-          <maml:para>Resolves the table from shape metadata, inserts a formatted row at index 1, and maps values across cells.</maml:para>
+          <maml:para>Resolves the table from shape metadata, inserts a formatted row at position 2, and maps values across cells.</maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -105939,555 +105939,6 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
-      <command:name>Find-OfficePowerPointShape</command:name>
-      <command:verb>Find</command:verb>
-      <command:noun>OfficePowerPointShape</command:noun>
-      <maml:description>
-        <maml:para>Finds PowerPoint shapes by text, name, kind, or slide.</maml:para>
-      </maml:description>
-    </command:details>
-    <maml:description>
-      <maml:para>Searches an open presentation or a single slide and returns PowerPointShapeInfo
-records that include the slide index, shape index, shape kind, extracted text, shape name, and the
-underlying OfficeIMO shape object. Text matching includes normal text boxes and table cell text, so
-this command can locate the right object before piping it into modification commands.</maml:para>
-      <maml:para>Use -Text for literal contains matching or -Pattern for regular expressions, or omit
-both text parameters when -Kind, -Name, -Index, and -ShapeIndex identify
-the target shape without reading text content.</maml:para>
-    </maml:description>
-    <command:syntax>
-      <command:syntaxItem parameterSetName="PresentationText">
-        <maml:name>Find-OfficePowerPointShape</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>CaseSensitive</maml:name>
-          <maml:description>
-            <maml:para>Use case-sensitive matching for text and name filters.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Index</maml:name>
-          <maml:description>
-            <maml:para>Optional zero-based slide index when reading from a presentation.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Kind</maml:name>
-          <maml:description>
-            <maml:para>Optional shape kind filter such as TextBox or Table.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">OfficePowerPointShapeKind[]</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">TextBox</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Picture</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Table</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Chart</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">AutoShape</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">GroupShape</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>OfficePowerPointShapeKind[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Name</maml:name>
-          <maml:description>
-            <maml:para>Optional wildcard filter for shape names.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Presentation</maml:name>
-          <maml:description>
-            <maml:para>Open presentation whose slides should be searched.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">PowerPointDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>PowerPointDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ShapeIndex</maml:name>
-          <maml:description>
-            <maml:para>Optional zero-based shape index filter, useful when several shapes contain the same text.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32[]</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
-          <maml:name>Text</maml:name>
-          <maml:description>
-            <maml:para>Literal text to find in text boxes and table cells.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="PresentationRegex">
-        <maml:name>Find-OfficePowerPointShape</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>CaseSensitive</maml:name>
-          <maml:description>
-            <maml:para>Use case-sensitive matching for text and name filters.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Index</maml:name>
-          <maml:description>
-            <maml:para>Optional zero-based slide index when reading from a presentation.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Kind</maml:name>
-          <maml:description>
-            <maml:para>Optional shape kind filter such as TextBox or Table.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">OfficePowerPointShapeKind[]</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">TextBox</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Picture</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Table</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Chart</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">AutoShape</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">GroupShape</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>OfficePowerPointShapeKind[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Name</maml:name>
-          <maml:description>
-            <maml:para>Optional wildcard filter for shape names.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
-          <maml:name>Pattern</maml:name>
-          <maml:description>
-            <maml:para>Regular expression to find in text boxes and table cells.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Presentation</maml:name>
-          <maml:description>
-            <maml:para>Open presentation whose slides should be searched.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">PowerPointDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>PowerPointDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ShapeIndex</maml:name>
-          <maml:description>
-            <maml:para>Optional zero-based shape index filter, useful when several shapes contain the same text.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32[]</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="SlideText">
-        <maml:name>Find-OfficePowerPointShape</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>CaseSensitive</maml:name>
-          <maml:description>
-            <maml:para>Use case-sensitive matching for text and name filters.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Kind</maml:name>
-          <maml:description>
-            <maml:para>Optional shape kind filter such as TextBox or Table.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">OfficePowerPointShapeKind[]</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">TextBox</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Picture</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Table</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Chart</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">AutoShape</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">GroupShape</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>OfficePowerPointShapeKind[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Name</maml:name>
-          <maml:description>
-            <maml:para>Optional wildcard filter for shape names.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ShapeIndex</maml:name>
-          <maml:description>
-            <maml:para>Optional zero-based shape index filter, useful when several shapes contain the same text.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32[]</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Slide</maml:name>
-          <maml:description>
-            <maml:para>Single slide to search when the caller has already resolved the slide.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">PowerPointSlide</command:parameterValue>
-          <dev:type>
-            <maml:name>PowerPointSlide</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
-          <maml:name>Text</maml:name>
-          <maml:description>
-            <maml:para>Literal text to find in text boxes and table cells.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="SlideRegex">
-        <maml:name>Find-OfficePowerPointShape</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>CaseSensitive</maml:name>
-          <maml:description>
-            <maml:para>Use case-sensitive matching for text and name filters.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Kind</maml:name>
-          <maml:description>
-            <maml:para>Optional shape kind filter such as TextBox or Table.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">OfficePowerPointShapeKind[]</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">TextBox</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Picture</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Table</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Chart</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">AutoShape</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">GroupShape</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>OfficePowerPointShapeKind[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Name</maml:name>
-          <maml:description>
-            <maml:para>Optional wildcard filter for shape names.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
-          <maml:name>Pattern</maml:name>
-          <maml:description>
-            <maml:para>Regular expression to find in text boxes and table cells.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ShapeIndex</maml:name>
-          <maml:description>
-            <maml:para>Optional zero-based shape index filter, useful when several shapes contain the same text.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32[]</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Slide</maml:name>
-          <maml:description>
-            <maml:para>Single slide to search when the caller has already resolved the slide.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">PowerPointSlide</command:parameterValue>
-          <dev:type>
-            <maml:name>PowerPointSlide</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-    </command:syntax>
-    <command:parameters>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>CaseSensitive</maml:name>
-        <maml:description>
-          <maml:para>Use case-sensitive matching for text and name filters.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Index</maml:name>
-        <maml:description>
-          <maml:para>Optional zero-based slide index when reading from a presentation.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Kind</maml:name>
-        <maml:description>
-          <maml:para>Optional shape kind filter such as TextBox or Table.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">OfficePowerPointShapeKind[]</command:parameterValue>
-        <command:parameterValueGroup>
-          <command:parameterValue required="false" variableLength="false">TextBox</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Picture</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Table</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Chart</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">AutoShape</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">GroupShape</command:parameterValue>
-        </command:parameterValueGroup>
-        <dev:type>
-          <maml:name>OfficePowerPointShapeKind[]</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Name</maml:name>
-        <maml:description>
-          <maml:para>Optional wildcard filter for shape names.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-        <dev:type>
-          <maml:name>String[]</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
-        <maml:name>Pattern</maml:name>
-        <maml:description>
-          <maml:para>Regular expression to find in text boxes and table cells.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Presentation</maml:name>
-        <maml:description>
-          <maml:para>Open presentation whose slides should be searched.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">PowerPointDocument</command:parameterValue>
-        <dev:type>
-          <maml:name>PowerPointDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>ShapeIndex</maml:name>
-        <maml:description>
-          <maml:para>Optional zero-based shape index filter, useful when several shapes contain the same text.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32[]</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32[]</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Slide</maml:name>
-        <maml:description>
-          <maml:para>Single slide to search when the caller has already resolved the slide.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">PowerPointSlide</command:parameterValue>
-        <dev:type>
-          <maml:name>PowerPointSlide</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
-        <maml:name>Text</maml:name>
-        <maml:description>
-          <maml:para>Literal text to find in text boxes and table cells.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-    </command:parameters>
-    <command:inputTypes>
-      <command:inputType>
-        <dev:type>
-          <maml:name>OfficeIMO.PowerPoint.PowerPointDocument</maml:name>
-        </dev:type>
-      </command:inputType>
-      <command:inputType>
-        <dev:type>
-          <maml:name>OfficeIMO.PowerPoint.PowerPointSlide</maml:name>
-        </dev:type>
-      </command:inputType>
-    </command:inputTypes>
-    <command:returnValues>
-      <command:returnValue>
-        <dev:type>
-          <maml:name>PSWriteOffice.Services.PowerPoint.PowerPointShapeInfo</maml:name>
-        </dev:type>
-        <maml:description>
-          <maml:para>PowerShell-friendly description of a PowerPoint shape.</maml:para>
-        </maml:description>
-      </command:returnValue>
-    </command:returnValues>
-    <maml:alertSet>
-      <maml:alert>
-        <maml:para></maml:para>
-      </maml:alert>
-    </maml:alertSet>
-    <command:examples>
-      <command:example>
-        <maml:title>Find and update a text box.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>Find-OfficePowerPointShape -Presentation $ppt -Text 'FY24' -Kind TextBox |
-                Set-OfficePowerPointShapeText -Text 'FY25'</dev:code>
-        <dev:remarks>
-          <maml:para>Finds matching text shapes and updates them without using the PowerPoint DSL.</maml:para>
-        </dev:remarks>
-      </command:example>
-      <command:example>
-        <maml:title>Find a table by cell text and append a new status row.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$ppt = Get-OfficePowerPoint -Path .\Readiness.pptx
-            $table = Find-OfficePowerPointShape -Presentation $ppt -Text 'Risk' -Kind Table | Select-Object -First 1
-            $table | Add-OfficePowerPointTableRow -Values 'Latency', 'Investigating'
-            $ppt | Close-OfficePowerPoint -Save</dev:code>
-        <dev:remarks>
-          <maml:para>Uses table-cell text as the locator, then pipes the table shape metadata into a table-row edit.</maml:para>
-        </dev:remarks>
-      </command:example>
-    </command:examples>
-    <command:relatedLinks />
-  </command:command>
-  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
-    <command:details>
       <command:name>Find-OfficeVisioStencil</command:name>
       <command:verb>Find</command:verb>
       <command:noun>OfficeVisioStencil</command:noun>
@@ -130099,122 +129550,19 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
       <command:verb>Get</command:verb>
       <command:noun>OfficePowerPointShape</command:noun>
       <maml:description>
-        <maml:para>Reads shape summaries from a slide or presentation.</maml:para>
+        <maml:para>Gets editable shape summaries, with optional text, name, kind and position filters.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Returns PowerShell-friendly metadata for text boxes, pictures, tables, charts, and auto shapes.</maml:para>
+      <maml:para>Searches every slide of the document unless a native slide or one-based slide number is supplied. Inside PowerPointSlide, omission uses the current slide. Text matching includes table cells.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="Slide">
+      <command:syntaxItem parameterSetName="All">
         <maml:name>Get-OfficePowerPointShape</maml:name>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Kind</maml:name>
-          <maml:description>
-            <maml:para>Optional shape kind filter.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">OfficePowerPointShapeKind[]</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">TextBox</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Picture</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Table</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Chart</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">AutoShape</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">GroupShape</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>OfficePowerPointShapeKind[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Name</maml:name>
-          <maml:description>
-            <maml:para>Optional wildcard filter for shape names.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ShapeIndex</maml:name>
-          <maml:description>
-            <maml:para>Optional zero-based shape index filter.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32[]</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Slide</maml:name>
+          <maml:name>Document</maml:name>
           <maml:description>
-            <maml:para>Slide to inspect (optional inside the DSL).</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
-          <dev:type>
-            <maml:name>PowerPointSlide</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Presentation">
-        <maml:name>Get-OfficePowerPointShape</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Index</maml:name>
-          <maml:description>
-            <maml:para>Optional zero-based slide index when reading from a presentation.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Kind</maml:name>
-          <maml:description>
-            <maml:para>Optional shape kind filter.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">OfficePowerPointShapeKind[]</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">TextBox</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Picture</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Table</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Chart</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">AutoShape</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">GroupShape</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>OfficePowerPointShapeKind[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Name</maml:name>
-          <maml:description>
-            <maml:para>Optional wildcard filter for shape names.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Presentation</maml:name>
-          <maml:description>
-            <maml:para>Presentation whose slides should be inspected.</maml:para>
+            <maml:para>Live document; omission uses the enclosing document block.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
           <dev:type>
@@ -130224,9 +129572,9 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ShapeIndex</maml:name>
+          <maml:name>Index</maml:name>
           <maml:description>
-            <maml:para>Optional zero-based shape index filter.</maml:para>
+            <maml:para>One-based shape positions within each selected slide.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32[]</command:parameterValue>
           <dev:type>
@@ -130235,17 +129583,275 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Kind</maml:name>
+          <maml:description>
+            <maml:para>Shape kinds to include.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficePowerPointShapeKind[]</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">TextBox</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Picture</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Table</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Chart</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">AutoShape</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">GroupShape</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>OfficePowerPointShapeKind[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Name</maml:name>
+          <maml:description>
+            <maml:para>Wildcard shape-name filters.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Slide</maml:name>
+          <maml:description>
+            <maml:para>Native slide or one-based slide number.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
+          <dev:type>
+            <maml:name>PowerPointSlideSelector</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="Text">
+        <maml:name>Get-OfficePowerPointShape</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>CaseSensitive</maml:name>
+          <maml:description>
+            <maml:para>Match text and names with case sensitivity.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Live document; omission uses the enclosing document block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>PowerPointDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Index</maml:name>
+          <maml:description>
+            <maml:para>One-based shape positions within each selected slide.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32[]</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Kind</maml:name>
+          <maml:description>
+            <maml:para>Shape kinds to include.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficePowerPointShapeKind[]</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">TextBox</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Picture</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Table</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Chart</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">AutoShape</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">GroupShape</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>OfficePowerPointShapeKind[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Name</maml:name>
+          <maml:description>
+            <maml:para>Wildcard shape-name filters.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Slide</maml:name>
+          <maml:description>
+            <maml:para>Native slide or one-based slide number.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
+          <dev:type>
+            <maml:name>PowerPointSlideSelector</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
+          <maml:name>Text</maml:name>
+          <maml:description>
+            <maml:para>Literal text to find in text boxes or table cells.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="Pattern">
+        <maml:name>Get-OfficePowerPointShape</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>CaseSensitive</maml:name>
+          <maml:description>
+            <maml:para>Match text and names with case sensitivity.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Live document; omission uses the enclosing document block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>PowerPointDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Index</maml:name>
+          <maml:description>
+            <maml:para>One-based shape positions within each selected slide.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32[]</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Kind</maml:name>
+          <maml:description>
+            <maml:para>Shape kinds to include.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficePowerPointShapeKind[]</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">TextBox</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Picture</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Table</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Chart</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">AutoShape</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">GroupShape</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>OfficePowerPointShapeKind[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Name</maml:name>
+          <maml:description>
+            <maml:para>Wildcard shape-name filters.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Pattern</maml:name>
+          <maml:description>
+            <maml:para>Regular expression to find in text boxes or table cells.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Slide</maml:name>
+          <maml:description>
+            <maml:para>Native slide or one-based slide number.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
+          <dev:type>
+            <maml:name>PowerPointSlideSelector</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>CaseSensitive</maml:name>
+        <maml:description>
+          <maml:para>Match text and names with case sensitivity.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Live document; omission uses the enclosing document block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
+        <dev:type>
+          <maml:name>PowerPointDocument</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Index</maml:name>
         <maml:description>
-          <maml:para>Optional zero-based slide index when reading from a presentation.</maml:para>
+          <maml:para>One-based shape positions within each selected slide.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">Int32[]</command:parameterValue>
         <dev:type>
-          <maml:name>Int32</maml:name>
+          <maml:name>Int32[]</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -130253,7 +129859,7 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Kind</maml:name>
         <maml:description>
-          <maml:para>Optional shape kind filter.</maml:para>
+          <maml:para>Shape kinds to include.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">OfficePowerPointShapeKind[]</command:parameterValue>
         <command:parameterValueGroup>
@@ -130270,10 +129876,10 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="None">
         <maml:name>Name</maml:name>
         <maml:description>
-          <maml:para>Optional wildcard filter for shape names.</maml:para>
+          <maml:para>Wildcard shape-name filters.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
         <dev:type>
@@ -130282,49 +129888,44 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Presentation</maml:name>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Pattern</maml:name>
         <maml:description>
-          <maml:para>Presentation whose slides should be inspected.</maml:para>
+          <maml:para>Regular expression to find in text boxes or table cells.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
         <dev:type>
-          <maml:name>PowerPointDocument</maml:name>
+          <maml:name>String</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>ShapeIndex</maml:name>
-        <maml:description>
-          <maml:para>Optional zero-based shape index filter.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32[]</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32[]</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Slide</maml:name>
         <maml:description>
-          <maml:para>Slide to inspect (optional inside the DSL).</maml:para>
+          <maml:para>Native slide or one-based slide number.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
         <dev:type>
-          <maml:name>PowerPointSlide</maml:name>
+          <maml:name>PowerPointSlideSelector</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
+        <maml:name>Text</maml:name>
+        <maml:description>
+          <maml:para>Literal text to find in text boxes or table cells.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
     </command:parameters>
     <command:inputTypes>
-      <command:inputType>
-        <dev:type>
-          <maml:name>OfficeIMO.PowerPoint.PowerPointSlide</maml:name>
-        </dev:type>
-      </command:inputType>
       <command:inputType>
         <dev:type>
           <maml:name>OfficeIMO.PowerPoint.PowerPointDocument</maml:name>
@@ -130349,22 +129950,17 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
     <command:examples>
       <command:example>
         <maml:title>Inspect one slide.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>Get-OfficePowerPointSlide -Presentation $ppt -Index 0 | Get-OfficePowerPointShape</dev:code>
+        <dev:code>Get-OfficePowerPointShape -Document $deck -Slide 2 -Kind Picture</dev:code>
         <dev:remarks>
-          <maml:para>Returns shape summaries for the selected slide.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
-        <maml:title>Find pictures on a slide.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>Get-OfficePowerPointShape -Presentation $ppt -Index 0 -Kind Picture</dev:code>
+        <maml:title>Find and replace a label.</maml:title>
+        <dev:code>Get-OfficePowerPointShape -Document $deck -Text 'Draft' -Kind TextBox |
+                Set-OfficePowerPointShapeText -Text 'Ready'</dev:code>
         <dev:remarks>
-          <maml:para>Filters the slide output to picture shapes only.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -166173,6 +165769,384 @@ and require an explicit save. The result reports the actual copied rows and colu
             }</dev:code>
         <dev:remarks>
           <maml:para>Builds a deck plan and renders it through the OfficeIMO designer helpers.</maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
+      <command:name>New-OfficePowerPointHtmlOptions</command:name>
+      <command:verb>New</command:verb>
+      <command:noun>OfficePowerPointHtmlOptions</command:noun>
+      <maml:description>
+        <maml:para>Creates native PowerPoint-to-HTML settings for Convert-OfficeDocument.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Creates native PowerPoint-to-HTML settings for Convert-OfficeDocument.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Default">
+        <maml:name>New-OfficePowerPointHtmlOptions</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>IncludeHiddenShapes</maml:name>
+          <maml:description>
+            <maml:para>Include shapes marked hidden.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>IncludeHiddenSlides</maml:name>
+          <maml:description>
+            <maml:para>Include slides marked hidden.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoDefaultStyles</maml:name>
+          <maml:description>
+            <maml:para>Omit the shared HTML stylesheet.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoExtractionProof</maml:name>
+          <maml:description>
+            <maml:para>Omit slide-aligned extraction proof.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoHeading</maml:name>
+          <maml:description>
+            <maml:para>Omit the visible document heading; the HTML title is retained.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoMasterInventory</maml:name>
+          <maml:description>
+            <maml:para>Omit the master, layout and theme inventory.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoNotes</maml:name>
+          <maml:description>
+            <maml:para>Omit speaker notes.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoRenderDiagnostics</maml:name>
+          <maml:description>
+            <maml:para>Omit visible visual-review render diagnostics.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoSlideHeadings</maml:name>
+          <maml:description>
+            <maml:para>Omit the heading before each slide.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoTables</maml:name>
+          <maml:description>
+            <maml:para>Omit table content.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Profile</maml:name>
+          <maml:description>
+            <maml:para>Semantic slide content or positioned visual review.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PowerPointHtmlExportProfile</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">SemanticSlides</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">VisualReview</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>PowerPointHtmlExportProfile</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Theme</maml:name>
+          <maml:description>
+            <maml:para>Shared HTML theme: a built-in name, OfficeTheme or Office document template path. Defaults to Modern.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeThemeInput</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeThemeInput</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Title</maml:name>
+          <maml:description>
+            <maml:para>Optional HTML document title.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>IncludeHiddenShapes</maml:name>
+        <maml:description>
+          <maml:para>Include shapes marked hidden.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>IncludeHiddenSlides</maml:name>
+        <maml:description>
+          <maml:para>Include slides marked hidden.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoDefaultStyles</maml:name>
+        <maml:description>
+          <maml:para>Omit the shared HTML stylesheet.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoExtractionProof</maml:name>
+        <maml:description>
+          <maml:para>Omit slide-aligned extraction proof.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoHeading</maml:name>
+        <maml:description>
+          <maml:para>Omit the visible document heading; the HTML title is retained.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoMasterInventory</maml:name>
+        <maml:description>
+          <maml:para>Omit the master, layout and theme inventory.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoNotes</maml:name>
+        <maml:description>
+          <maml:para>Omit speaker notes.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoRenderDiagnostics</maml:name>
+        <maml:description>
+          <maml:para>Omit visible visual-review render diagnostics.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoSlideHeadings</maml:name>
+        <maml:description>
+          <maml:para>Omit the heading before each slide.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoTables</maml:name>
+        <maml:description>
+          <maml:para>Omit table content.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Profile</maml:name>
+        <maml:description>
+          <maml:para>Semantic slide content or positioned visual review.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">PowerPointHtmlExportProfile</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">SemanticSlides</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">VisualReview</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>PowerPointHtmlExportProfile</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Theme</maml:name>
+        <maml:description>
+          <maml:para>Shared HTML theme: a built-in name, OfficeTheme or Office document template path. Defaults to Modern.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeThemeInput</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeThemeInput</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Title</maml:name>
+        <maml:description>
+          <maml:para>Optional HTML document title.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>None</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.PowerPoint.Html.PowerPointHtmlSaveOptions</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Publish a deck with the Modern document theme.</maml:title>
+        <dev:code>$options = New-OfficePowerPointHtmlOptions -Theme Modern -NoNotes
+            Convert-OfficeDocument -Path ./Review.pptx -To Html -OutputPath ./Review.html -Options $options</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Export a visual review without inventories or extraction proof.</maml:title>
+        <dev:code>$options = New-OfficePowerPointHtmlOptions -Profile VisualReview -NoMasterInventory -NoExtractionProof
+            Convert-OfficeDocument -Path ./Review.pptx -To Html -OutputPath ./Review.visual.html -Options $options</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -210285,23 +210259,23 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
-      <command:name>Set-OfficePowerPointPlaceholderText</command:name>
+      <command:name>Set-OfficePowerPointPlaceholder</command:name>
       <command:verb>Set</command:verb>
-      <command:noun>OfficePowerPointPlaceholderText</command:noun>
+      <command:noun>OfficePowerPointPlaceholder</command:noun>
       <maml:description>
-        <maml:para>Sets text in a slide placeholder.</maml:para>
+        <maml:para>Replaces a native slide placeholder with plain text or rich paragraph content.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Sets text in a slide placeholder.</maml:para>
+      <maml:para>Edits the existing text box, preserving its type, index and geometry. Use a New-OfficePowerPoint or Open-OfficePowerPoint content block to save completed edits atomically.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
-        <maml:name>Set-OfficePowerPointPlaceholderText</maml:name>
+      <command:syntaxItem parameterSetName="Text">
+        <maml:name>Set-OfficePowerPointPlaceholder</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>IgnoreMissing</maml:name>
           <maml:description>
-            <maml:para>Ignore missing placeholders.</maml:para>
+            <maml:para>Leave the slide unchanged when the placeholder is absent; the content callback is not run.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -210313,7 +210287,7 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Index</maml:name>
           <maml:description>
-            <maml:para>Optional placeholder index.</maml:para>
+            <maml:para>Optional native placeholder index within the selected type.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">UInt32</command:parameterValue>
           <dev:type>
@@ -210325,7 +210299,7 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Emit the placeholder textbox after update.</maml:para>
+            <maml:para>Return the same live native text box after editing.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -210334,10 +210308,34 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Type">
-          <maml:name>PlaceholderType</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Slide</maml:name>
           <maml:description>
-            <maml:para>Placeholder type to target.</maml:para>
+            <maml:para>Native slide or one-based slide number; omission uses the current slide block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
+          <dev:type>
+            <maml:name>PowerPointSlideSelector</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
+          <maml:name>Text</maml:name>
+          <maml:description>
+            <maml:para>Replacement plain text; an empty string clears the placeholder.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Type</maml:name>
+          <maml:description>
+            <maml:para>Placeholder type to update.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">PowerPointPlaceholderType</command:parameterValue>
           <command:parameterValueGroup>
@@ -210364,26 +210362,95 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="Content">
+        <maml:name>Set-OfficePowerPointPlaceholder</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
+          <maml:name>Content</maml:name>
+          <maml:description>
+            <maml:para>Native rich paragraphs and runs to place in the existing text box.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">ScriptBlock</command:parameterValue>
+          <dev:type>
+            <maml:name>ScriptBlock</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>IgnoreMissing</maml:name>
+          <maml:description>
+            <maml:para>Leave the slide unchanged when the placeholder is absent; the content callback is not run.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Index</maml:name>
+          <maml:description>
+            <maml:para>Optional native placeholder index within the selected type.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">UInt32</command:parameterValue>
+          <dev:type>
+            <maml:name>UInt32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Return the same live native text box after editing.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Slide</maml:name>
           <maml:description>
-            <maml:para>Slide to update (optional inside DSL).</maml:para>
+            <maml:para>Native slide or one-based slide number; omission uses the current slide block.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PowerPointSlide</maml:name>
+            <maml:name>PowerPointSlideSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Text</maml:name>
+          <maml:name>Type</maml:name>
           <maml:description>
-            <maml:para>Text to set.</maml:para>
+            <maml:para>Placeholder type to update.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">PowerPointPlaceholderType</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Title</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Body</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">CenteredTitle</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">SubTitle</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DateAndTime</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">SlideNumber</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Footer</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Header</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Object</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Chart</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Table</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">ClipArt</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Diagram</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Media</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">SlideImage</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Picture</command:parameterValue>
+          </command:parameterValueGroup>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>PowerPointPlaceholderType</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -210391,10 +210458,22 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
+        <maml:name>Content</maml:name>
+        <maml:description>
+          <maml:para>Native rich paragraphs and runs to place in the existing text box.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">ScriptBlock</command:parameterValue>
+        <dev:type>
+          <maml:name>ScriptBlock</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>IgnoreMissing</maml:name>
         <maml:description>
-          <maml:para>Ignore missing placeholders.</maml:para>
+          <maml:para>Leave the slide unchanged when the placeholder is absent; the content callback is not run.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -210406,7 +210485,7 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Index</maml:name>
         <maml:description>
-          <maml:para>Optional placeholder index.</maml:para>
+          <maml:para>Optional native placeholder index within the selected type.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">UInt32</command:parameterValue>
         <dev:type>
@@ -210418,7 +210497,7 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>PassThru</maml:name>
         <maml:description>
-          <maml:para>Emit the placeholder textbox after update.</maml:para>
+          <maml:para>Return the same live native text box after editing.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -210427,10 +210506,34 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Type">
-        <maml:name>PlaceholderType</maml:name>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Slide</maml:name>
         <maml:description>
-          <maml:para>Placeholder type to target.</maml:para>
+          <maml:para>Native slide or one-based slide number; omission uses the current slide block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
+        <dev:type>
+          <maml:name>PowerPointSlideSelector</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
+        <maml:name>Text</maml:name>
+        <maml:description>
+          <maml:para>Replacement plain text; an empty string clears the placeholder.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Type</maml:name>
+        <maml:description>
+          <maml:para>Placeholder type to update.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">PowerPointPlaceholderType</command:parameterValue>
         <command:parameterValueGroup>
@@ -210457,35 +210560,11 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Slide</maml:name>
-        <maml:description>
-          <maml:para>Slide to update (optional inside DSL).</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
-        <dev:type>
-          <maml:name>PowerPointSlide</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Text</maml:name>
-        <maml:description>
-          <maml:para>Text to set.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
     </command:parameters>
     <command:inputTypes>
       <command:inputType>
         <dev:type>
-          <maml:name>OfficeIMO.PowerPoint.PowerPointSlide</maml:name>
+          <maml:name>None</maml:name>
         </dev:type>
       </command:inputType>
     </command:inputTypes>
@@ -210503,17 +210582,22 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Set the title placeholder text.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>New-OfficePowerPoint -Path .\Examples\Documents\PowerPointPlaceholderText.pptx {
-                $slide = Add-OfficePowerPointSlide -Layout 1 -PassThru
-                Set-OfficePowerPointPlaceholderText -Slide $slide -PlaceholderType Title -Text 'Agenda'
-                Set-OfficePowerPointPlaceholderText -Slide $slide -PlaceholderType Body -Text 'Review signals and decisions' -IgnoreMissing
+        <maml:title>Fill the current slide's title.</maml:title>
+        <dev:code>PowerPointPlaceholder -Type Title 'Quarterly review'</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Fill a body placeholder with native rich paragraphs.</maml:title>
+        <dev:code>Open-OfficePowerPoint -Path ./Review.pptx {
+                PowerPointPlaceholder -Slide 2 -Type Body {
+                    PowerPointParagraph { PowerPointText 'Status: ' -Bold; PowerPointText 'Healthy' }
+                    PowerPointParagraph 'All regions are operational.'
+                }
             }</dev:code>
         <dev:remarks>
-          <maml:para>Updates placeholder text when the selected layout exposes matching placeholders.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -210532,10 +210616,10 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
       <maml:para>Aligns, distributes, or arranges PowerPoint shapes using OfficeIMO layout helpers.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="Align">
+      <command:syntaxItem parameterSetName="Alignment">
         <maml:name>Set-OfficePowerPointShapeLayout</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Align</maml:name>
+          <maml:name>Alignment</maml:name>
           <maml:description>
             <maml:para>Alignment operation.</maml:para>
           </maml:description>
@@ -210554,26 +210638,26 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>InputObject</maml:name>
           <maml:description>
-            <maml:para>PowerPoint shapes or shape info records from Get-OfficePowerPointShape or Find-OfficePowerPointShape.</maml:para>
+            <maml:para>PowerPoint shapes or shape info records from Get-OfficePowerPointShape.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
           <dev:type>
-            <maml:name>Object</maml:name>
+            <maml:name>Object[]</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MarginPoints</maml:name>
+          <maml:name>Margin</maml:name>
           <maml:description>
-            <maml:para>Use slide content bounds with the supplied margin in points.</maml:para>
+            <maml:para>Use slide content bounds with the supplied margin; bare numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -210593,11 +210677,11 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Slide</maml:name>
           <maml:description>
-            <maml:para>Slide that owns raw PowerPointShape inputs. Shape info records carry their own slide.</maml:para>
+            <maml:para>Native slide or one-based slide number; omission uses the supplied shapes' owning slide.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PowerPointSlide</maml:name>
+            <maml:name>PowerPointSlideSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -210630,7 +210714,7 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>CrossAxisAlign</maml:name>
+          <maml:name>CrossAxisAlignment</maml:name>
           <maml:description>
             <maml:para>Optional cross-axis alignment for even distribution.</maml:para>
           </maml:description>
@@ -210665,26 +210749,26 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>InputObject</maml:name>
           <maml:description>
-            <maml:para>PowerPoint shapes or shape info records from Get-OfficePowerPointShape or Find-OfficePowerPointShape.</maml:para>
+            <maml:para>PowerPoint shapes or shape info records from Get-OfficePowerPointShape.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
           <dev:type>
-            <maml:name>Object</maml:name>
+            <maml:name>Object[]</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MarginPoints</maml:name>
+          <maml:name>Margin</maml:name>
           <maml:description>
-            <maml:para>Use slide content bounds with the supplied margin in points.</maml:para>
+            <maml:para>Use slide content bounds with the supplied margin; bare numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -210704,23 +210788,23 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Slide</maml:name>
           <maml:description>
-            <maml:para>Slide that owns raw PowerPointShape inputs. Shape info records carry their own slide.</maml:para>
+            <maml:para>Native slide or one-based slide number; omission uses the supplied shapes' owning slide.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PowerPointSlide</maml:name>
+            <maml:name>PowerPointSlideSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SpacingPoints</maml:name>
+          <maml:name>Spacing</maml:name>
           <maml:description>
-            <maml:para>Fixed spacing between distributed shapes in points.</maml:para>
+            <maml:para>Fixed spacing between distributed shapes; bare numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -210793,49 +210877,49 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>GutterXPoints</maml:name>
+          <maml:name>GutterX</maml:name>
           <maml:description>
-            <maml:para>Horizontal grid gutter in points.</maml:para>
+            <maml:para>Horizontal grid gutter; bare numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>GutterYPoints</maml:name>
+          <maml:name>GutterY</maml:name>
           <maml:description>
-            <maml:para>Vertical grid gutter in points.</maml:para>
+            <maml:para>Vertical grid gutter; bare numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>InputObject</maml:name>
           <maml:description>
-            <maml:para>PowerPoint shapes or shape info records from Get-OfficePowerPointShape or Find-OfficePowerPointShape.</maml:para>
+            <maml:para>PowerPoint shapes or shape info records from Get-OfficePowerPointShape.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
           <dev:type>
-            <maml:name>Object</maml:name>
+            <maml:name>Object[]</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MarginPoints</maml:name>
+          <maml:name>Margin</maml:name>
           <maml:description>
-            <maml:para>Use slide content bounds with the supplied margin in points.</maml:para>
+            <maml:para>Use slide content bounds with the supplied margin; bare numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -210879,11 +210963,11 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Slide</maml:name>
           <maml:description>
-            <maml:para>Slide that owns raw PowerPointShape inputs. Shape info records carry their own slide.</maml:para>
+            <maml:para>Native slide or one-based slide number; omission uses the supplied shapes' owning slide.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PowerPointSlide</maml:name>
+            <maml:name>PowerPointSlideSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -210904,7 +210988,7 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
     </command:syntax>
     <command:parameters>
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Align</maml:name>
+        <maml:name>Alignment</maml:name>
         <maml:description>
           <maml:para>Alignment operation.</maml:para>
         </maml:description>
@@ -210960,7 +211044,7 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>CrossAxisAlign</maml:name>
+        <maml:name>CrossAxisAlignment</maml:name>
         <maml:description>
           <maml:para>Optional cross-axis alignment for even distribution.</maml:para>
         </maml:description>
@@ -211024,49 +211108,49 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>GutterXPoints</maml:name>
+        <maml:name>GutterX</maml:name>
         <maml:description>
-          <maml:para>Horizontal grid gutter in points.</maml:para>
+          <maml:para>Horizontal grid gutter; bare numbers mean points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>GutterYPoints</maml:name>
+        <maml:name>GutterY</maml:name>
         <maml:description>
-          <maml:para>Vertical grid gutter in points.</maml:para>
+          <maml:para>Vertical grid gutter; bare numbers mean points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
         <maml:name>InputObject</maml:name>
         <maml:description>
-          <maml:para>PowerPoint shapes or shape info records from Get-OfficePowerPointShape or Find-OfficePowerPointShape.</maml:para>
+          <maml:para>PowerPoint shapes or shape info records from Get-OfficePowerPointShape.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+        <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
         <dev:type>
-          <maml:name>Object</maml:name>
+          <maml:name>Object[]</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>MarginPoints</maml:name>
+        <maml:name>Margin</maml:name>
         <maml:description>
-          <maml:para>Use slide content bounds with the supplied margin in points.</maml:para>
+          <maml:para>Use slide content bounds with the supplied margin; bare numbers mean points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -211110,23 +211194,23 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Slide</maml:name>
         <maml:description>
-          <maml:para>Slide that owns raw PowerPointShape inputs. Shape info records carry their own slide.</maml:para>
+          <maml:para>Native slide or one-based slide number; omission uses the supplied shapes' owning slide.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
         <dev:type>
-          <maml:name>PowerPointSlide</maml:name>
+          <maml:name>PowerPointSlideSelector</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SpacingPoints</maml:name>
+        <maml:name>Spacing</maml:name>
         <maml:description>
-          <maml:para>Fixed spacing between distributed shapes in points.</maml:para>
+          <maml:para>Fixed spacing between distributed shapes; bare numbers mean points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -211147,7 +211231,7 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
     <command:inputTypes>
       <command:inputType>
         <dev:type>
-          <maml:name>System.Object</maml:name>
+          <maml:name>System.Object[]</maml:name>
         </dev:type>
       </command:inputType>
     </command:inputTypes>
@@ -211169,8 +211253,8 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>Find-OfficePowerPointShape -Slide $slide -Name 'Kpi.*' |
-                Set-OfficePowerPointShapeLayout -Align Top</dev:code>
+        <dev:code>Get-OfficePowerPointShape -Slide $slide -Name 'Kpi.*' |
+                Set-OfficePowerPointShapeLayout -Alignment Top</dev:code>
         <dev:remarks>
           <maml:para>Uses OfficeIMO.PowerPoint to align all matching shapes to the top edge of their selection bounds.</maml:para>
         </dev:remarks>
@@ -211189,7 +211273,7 @@ Numbers mean points; text margins use one, two or four values in CSS order.</mam
     </command:details>
     <maml:description>
       <maml:para>Accepts either a PowerPointTextBox object or a PowerPointShapeInfo record
-returned by Find-OfficePowerPointShape or Get-OfficePowerPointShape. This is the direct
+returned by Get-OfficePowerPointShape. This is the direct
 object-editing counterpart to the creation DSL: locate the text box in an existing deck, replace its
 contents, then save or close the presentation.</maml:para>
     </maml:description>
@@ -211233,8 +211317,20 @@ contents, then save or close the presentation.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
       </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Run">
+      <command:syntaxItem parameterSetName="Content">
         <maml:name>Set-OfficePowerPointShapeText</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+          <maml:name>Content</maml:name>
+          <maml:description>
+            <maml:para>Replacement rich paragraphs and runs, using PowerPointParagraph and PowerPointText.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">ScriptBlock</command:parameterValue>
+          <dev:type>
+            <maml:name>ScriptBlock</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>InputObject</maml:name>
           <maml:description>
@@ -211259,21 +211355,21 @@ contents, then save or close the presentation.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="Runs">
-          <maml:name>Run</maml:name>
-          <maml:description>
-            <maml:para>Replacement rich text runs. Each run can be created with TextRun/PowerPointTextRun or provided as a hashtable/object.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
-          <dev:type>
-            <maml:name>Object[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+        <maml:name>Content</maml:name>
+        <maml:description>
+          <maml:para>Replacement rich paragraphs and runs, using PowerPointParagraph and PowerPointText.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">ScriptBlock</command:parameterValue>
+        <dev:type>
+          <maml:name>ScriptBlock</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
         <maml:name>InputObject</maml:name>
         <maml:description>
@@ -211294,18 +211390,6 @@ contents, then save or close the presentation.</maml:para>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
           <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="Runs">
-        <maml:name>Run</maml:name>
-        <maml:description>
-          <maml:para>Replacement rich text runs. Each run can be created with TextRun/PowerPointTextRun or provided as a hashtable/object.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
-        <dev:type>
-          <maml:name>Object[]</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -211348,10 +211432,10 @@ contents, then save or close the presentation.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>Find-OfficePowerPointShape -Presentation $ppt -Text 'Draft' -Kind TextBox |
+        <dev:code>Get-OfficePowerPointShape -Document $ppt -Text 'Draft' -Kind TextBox |
                 Set-OfficePowerPointShapeText -Text 'Ready'</dev:code>
         <dev:remarks>
-          <maml:para>Accepts shape metadata returned by Find-OfficePowerPointShape or Get-OfficePowerPointShape.</maml:para>
+          <maml:para>Accepts shape metadata returned by Get-OfficePowerPointShape.</maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
@@ -211359,10 +211443,11 @@ contents, then save or close the presentation.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$ppt = Get-OfficePowerPoint -Path .\Release.pptx
-            Find-OfficePowerPointShape -Presentation $ppt -Text 'Status marker' -Kind TextBox |
+        <dev:code>$ppt = Open-OfficePowerPoint -Path .\Release.pptx
+            Get-OfficePowerPointShape -Document $ppt -Text 'Status marker' -Kind TextBox |
                 Set-OfficePowerPointShapeText -Text 'Status marker: Ready for launch'
-            $ppt | Close-OfficePowerPoint -Save</dev:code>
+            Save-OfficePowerPoint -Document $ppt
+            Close-OfficePowerPoint -Document $ppt</dev:code>
         <dev:remarks>
           <maml:para>Searches the existing deck, edits the matched text box, and saves the presentation.</maml:para>
         </dev:remarks>
@@ -212373,8 +212458,8 @@ contents, then save or close the presentation.</maml:para>
     </command:details>
     <maml:description>
       <maml:para>Accepts a PowerPointTable or a PowerPointShapeInfo record whose shape is a
-table. Row and column coordinates are zero-based, matching the OfficeIMO PowerPoint table API. Use
-this after Find-OfficePowerPointShape -Kind Table when a script needs to update a specific
+table. Row and column coordinates are one-based. Use
+this after Get-OfficePowerPointShape -Kind Table when a script needs to update a specific
 cell inside a deck that already exists.</maml:para>
     </maml:description>
     <command:syntax>
@@ -212383,7 +212468,7 @@ cell inside a deck that already exists.</maml:para>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Column</maml:name>
           <maml:description>
-            <maml:para>Zero-based column index.</maml:para>
+            <maml:para>One-based column number.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -212395,7 +212480,7 @@ cell inside a deck that already exists.</maml:para>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>InputObject</maml:name>
           <maml:description>
-            <maml:para>PowerPoint table or table shape info returned by Find-OfficePowerPointShape or Get-OfficePowerPointShape.</maml:para>
+            <maml:para>PowerPoint table or table shape info returned by Get-OfficePowerPointShape.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
           <dev:type>
@@ -212419,7 +212504,7 @@ cell inside a deck that already exists.</maml:para>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Row</maml:name>
           <maml:description>
-            <maml:para>Zero-based row index.</maml:para>
+            <maml:para>One-based row number.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -212441,12 +212526,12 @@ cell inside a deck that already exists.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
       </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Run">
+      <command:syntaxItem parameterSetName="Content">
         <maml:name>Set-OfficePowerPointTableCell</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Column</maml:name>
           <maml:description>
-            <maml:para>Zero-based column index.</maml:para>
+            <maml:para>One-based column number.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -212455,10 +212540,22 @@ cell inside a deck that already exists.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Content</maml:name>
+          <maml:description>
+            <maml:para>Replacement rich paragraphs and runs, using PowerPointParagraph and PowerPointText.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">ScriptBlock</command:parameterValue>
+          <dev:type>
+            <maml:name>ScriptBlock</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>InputObject</maml:name>
           <maml:description>
-            <maml:para>PowerPoint table or table shape info returned by Find-OfficePowerPointShape or Get-OfficePowerPointShape.</maml:para>
+            <maml:para>PowerPoint table or table shape info returned by Get-OfficePowerPointShape.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
           <dev:type>
@@ -212482,23 +212579,11 @@ cell inside a deck that already exists.</maml:para>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Row</maml:name>
           <maml:description>
-            <maml:para>Zero-based row index.</maml:para>
+            <maml:para>One-based row number.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
           <dev:type>
             <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="Runs">
-          <maml:name>Run</maml:name>
-          <maml:description>
-            <maml:para>Replacement rich text runs. Each run can be created with TextRun/PowerPointTextRun or provided as a hashtable/object.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
-          <dev:type>
-            <maml:name>Object[]</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -212509,7 +212594,7 @@ cell inside a deck that already exists.</maml:para>
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Column</maml:name>
         <maml:description>
-          <maml:para>Zero-based column index.</maml:para>
+          <maml:para>One-based column number.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
         <dev:type>
@@ -212518,10 +212603,22 @@ cell inside a deck that already exists.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Content</maml:name>
+        <maml:description>
+          <maml:para>Replacement rich paragraphs and runs, using PowerPointParagraph and PowerPointText.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">ScriptBlock</command:parameterValue>
+        <dev:type>
+          <maml:name>ScriptBlock</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
         <maml:name>InputObject</maml:name>
         <maml:description>
-          <maml:para>PowerPoint table or table shape info returned by Find-OfficePowerPointShape or Get-OfficePowerPointShape.</maml:para>
+          <maml:para>PowerPoint table or table shape info returned by Get-OfficePowerPointShape.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
         <dev:type>
@@ -212545,23 +212642,11 @@ cell inside a deck that already exists.</maml:para>
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Row</maml:name>
         <maml:description>
-          <maml:para>Zero-based row index.</maml:para>
+          <maml:para>One-based row number.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
         <dev:type>
           <maml:name>Int32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="Runs">
-        <maml:name>Run</maml:name>
-        <maml:description>
-          <maml:para>Replacement rich text runs. Each run can be created with TextRun/PowerPointTextRun or provided as a hashtable/object.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
-        <dev:type>
-          <maml:name>Object[]</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -212604,10 +212689,10 @@ cell inside a deck that already exists.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>Find-OfficePowerPointShape -Presentation $ppt -Text 'Metric' -Kind Table |
-                Set-OfficePowerPointTableCell -Row 1 -Column 1 -Text 'Ready'</dev:code>
+        <dev:code>Get-OfficePowerPointShape -Document $ppt -Text 'Metric' -Kind Table |
+                Set-OfficePowerPointTableCell -Row 2 -Column 2 -Text 'Ready'</dev:code>
         <dev:remarks>
-          <maml:para>Accepts a PowerPoint table or table shape metadata and updates a zero-based table cell.</maml:para>
+          <maml:para>Accepts a PowerPoint table or table shape metadata and updates a one-based table cell.</maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
@@ -212615,8 +212700,8 @@ cell inside a deck that already exists.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$table = Find-OfficePowerPointShape -Presentation $ppt -Text 'Risk' -Kind Table | Select-Object -First 1
-            $table | Set-OfficePowerPointTableCell -Row 1 -Column 1 -Text 'Mitigating'</dev:code>
+        <dev:code>$table = Get-OfficePowerPointShape -Document $ppt -Text 'Risk' -Kind Table | Select-Object -First 1
+            $table | Set-OfficePowerPointTableCell -Row 2 -Column 2 -Text 'Mitigating'</dev:code>
         <dev:remarks>
           <maml:para>Uses the table found by text content and updates the second row, second column.</maml:para>
         </dev:remarks>
