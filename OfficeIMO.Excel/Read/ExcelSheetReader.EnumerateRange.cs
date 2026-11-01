@@ -164,25 +164,16 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryReadXmlCellValueForEnumeration(XmlReader cellReader, int rowIndex, int columnIndex, out object? value) {
-            XmlCellKind cellKind = ParseXmlCellKind(ReadXmlCellTypeAttribute(cellReader));
+            XmlCellKind cellKind = ParseXmlCellKind(ReadValidatedXmlCellType(cellReader));
             bool readStyleIndex = true;
 
             CellRaw raw = ReadXmlCellRaw(cellReader, rowIndex, columnIndex, cellKind, readStyleIndex);
-            if (raw.RawText == null
-                && raw.InlineText == null
-                && raw.FormulaText == null
-                && !_opt.FillBlanksInRanges) {
-                value = null;
-                return false;
-            }
-
             value = ConvertRaw(raw).TypedValue;
             return true;
         }
 
         private bool CanUseEnumerateRangeXmlReader() {
-            return (_opt.CellValueConverter != null || _opt.Culture == System.Globalization.CultureInfo.InvariantCulture)
-                && CanStreamWorksheetPart();
+            return CanStreamWorksheetPart();
         }
     }
 }

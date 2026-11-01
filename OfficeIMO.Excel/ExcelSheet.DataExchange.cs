@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
                 ct,
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
-            using var reader = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
+            using var reader = _excelDocument.CreateTabularReader(effectiveOptions.WithCancellationToken(token));
             var sheetReader = reader.GetSheet(Name);
             string a1Range = sheetReader.GetUsedRangeA1(token);
             return sheetReader.ReadRangeAsDataTable(a1Range, headersInFirstRow, mode, token);
@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel {
                 ct,
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
-            using var reader = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
+            using var reader = _excelDocument.CreateTabularReader(effectiveOptions.WithCancellationToken(token));
             return reader.GetSheet(Name).ReadRangeAsDataTable(a1Range, headersInFirstRow, mode, token);
         }
 
@@ -49,7 +49,7 @@ namespace OfficeIMO.Excel {
                 ct,
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
-            using var reader = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
+            using var reader = _excelDocument.CreateTabularReader(effectiveOptions.WithCancellationToken(token));
             return reader.ReadTableAsDataTable(tableName, headersInFirstRow, mode, token);
         }
 

@@ -229,39 +229,26 @@ namespace OfficeIMO.Excel {
         /// <summary>Rejects a cell type the SDK model rejects, which the tolerant XML projection would read as a number.</summary>
         private static string? ReadValidatedXmlCellType(XmlReader cellReader) {
             string? cellType = ReadXmlCellTypeAttribute(cellReader);
-            switch (cellType) {
-                case null:
-                case "n":
-                case "s":
-                case "str":
-                case "b":
-                case "e":
-                case "d":
-                case "inlineStr":
-                    return cellType;
-                default:
-                    throw new FormatException($"The cell type '{cellType}' is not valid.");
-            }
+            return IsKnownXmlCellType(cellType)
+                ? cellType
+                : throw new FormatException($"The cell type '{cellType}' is not valid.");
         }
 
+        private static bool IsKnownXmlCellType(string? cellType) =>
+            cellType is null or "n" or "s" or "str" or "b" or "e" or "d" or "inlineStr";
+
         private bool TryReadXmlCellValueForCellEnumeration(XmlReader cellReader, int rowIndex, int columnIndex, out object? value, out bool explicitBlank) {
-            XmlCellKind cellKind = ParseXmlCellKind(ReadXmlCellTypeAttribute(cellReader));
+            XmlCellKind cellKind = ParseXmlCellKind(ReadValidatedXmlCellType(cellReader));
             bool readStyleIndex = true;
 
             CellRaw raw = ReadXmlCellRaw(cellReader, rowIndex, columnIndex, cellKind, readStyleIndex);
             explicitBlank = raw.RawText != null && raw.RawText.Length == 0 && raw.InlineText == null && raw.FormulaText == null;
-            if (raw.RawText == null && raw.InlineText == null && raw.FormulaText == null) {
-                value = null;
-                return false;
-            }
-
             value = ConvertRaw(raw).TypedValue;
             return true;
         }
 
         private bool CanUseEnumerateCellsXmlReader() {
-            return (_opt.CellValueConverter != null || _opt.Culture == CultureInfo.InvariantCulture)
-                && CanStreamWorksheetPart();
+            return CanStreamWorksheetPart();
         }
 
         // ---------- Internals ----------

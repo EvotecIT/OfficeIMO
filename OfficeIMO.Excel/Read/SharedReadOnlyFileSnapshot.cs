@@ -37,6 +37,9 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>Takes ownership of an already open file that nothing else writes to.</summary>
+        internal static SharedReadOnlyFileSnapshot Adopt(FileStream stream) => new(stream);
+
         internal Stream CreateView(int bufferSize = 4096) {
             ThrowIfDisposed();
             var view = new View(this);

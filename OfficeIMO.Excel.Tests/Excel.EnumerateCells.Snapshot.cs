@@ -77,6 +77,85 @@ namespace OfficeIMO.Tests {
             Assert.Throws<FormatException>(() => document.Sheets[0].EnumerateCells().ToArray());
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void OpenDocumentKeepsItsContentWhenTheSourceFileIsReplaced(bool fileBacked) {
+            string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.Snapshot.{Guid.NewGuid():N}.xlsx");
+            try {
+                File.WriteAllBytes(path, CreatePackage("<row r=\"1\"><c r=\"A1\"><v>1</v></c></row>"));
+                using var document = ExcelDocument.Load(path, new ExcelLoadOptions { FileBacked = fileBacked });
+                ExcelSheet sheet = document.Sheets[0];
+
+                File.WriteAllBytes(path, CreatePackage("<row r=\"1\"><c r=\"A1\"><v>2</v></c></row>"));
+
+                Assert.Equal(1d, sheet.EnumerateCells().Single().Value);
+                using var reader = sheet.CreateDataReader(new ExcelReaderOptions { HasHeaderRow = false });
+                Assert.True(reader.Read());
+                Assert.Equal(1d, reader.GetValue(0));
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void FileBackedEnumerationSurvivesSaveAndFollowsTheSavedWorkbook() {
+            string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.Snapshot.{Guid.NewGuid():N}.xlsx");
+            try {
+                File.WriteAllBytes(path, CreatePackage("<row r=\"1\"><c r=\"A1\"><v>1</v></c><c r=\"B1\"><v>2</v></c></row>"));
+                using var document = ExcelDocument.Load(path, new ExcelLoadOptions { FileBacked = true });
+                ExcelSheet sheet = document.Sheets[0];
+
+                using (var cells = sheet.EnumerateCells().GetEnumerator()) {
+                    Assert.True(cells.MoveNext());
+                    sheet.CellValue(1, 1, 10d);
+                    document.Save();
+                    Assert.True(cells.MoveNext());
+                    Assert.Equal(2d, cells.Current.Value);
+                }
+
+                Assert.Equal(new object[] { 10d, 2d }, sheet.EnumerateCells().Select(cell => cell.Value!).ToArray());
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void TabularReadersKeepTheSdkReadingOfNonCanonicalWorksheets() {
+            byte[] whitespace = CreatePackage("<row r=\"1\"><c r=\"A1\" t=\"str\"><v>   </v></c></row>");
+            using (var document = ExcelDocument.Load(new MemoryStream(whitespace))) {
+                Assert.Equal("   ", document.Sheets[0].ToDataTable(headersInFirstRow: false).Rows[0][0]);
+            }
+
+            byte[] outsideGrid = CreatePackage(
+                "<row r=\"1\"><c r=\"A1\"><v>1</v></c></row><row r=\"1048577\"><c r=\"A1048577\"><v>2</v></c></row>");
+            using (var document = ExcelDocument.Load(new MemoryStream(outsideGrid))) {
+                using var reader = document.Sheets[0].CreateDataReader(new ExcelReaderOptions { HasHeaderRow = false });
+                Assert.True(reader.Read());
+                Assert.Equal(1d, reader.GetValue(0));
+            }
+        }
+
+        [Fact]
+        public void CellValueConverterSeesCellsWithoutContent() {
+            byte[] package = CreatePackage("<row r=\"1\"><c r=\"A1\"><v>1</v></c><c r=\"B1\"/></row>");
+            using var document = ExcelDocument.Load(new MemoryStream(package));
+            var options = new ExcelReaderOptions { CellValueConverter = context => new ExcelCellValue(context.RawText ?? "empty") };
+
+            object?[] values = document.Sheets[0].EnumerateCells(options).Select(cell => cell.Value).ToArray();
+
+            Assert.Equal(new object?[] { "1", "empty" }, values);
+        }
+
+        [Fact]
+        public void CultureAppliesToDateTextCells() {
+            byte[] package = CreatePackage("<row r=\"1\"><c r=\"A1\" t=\"d\"><v>01.02.2024</v></c></row>");
+            using var document = ExcelDocument.Load(new MemoryStream(package));
+            var options = new ExcelReaderOptions { Culture = System.Globalization.CultureInfo.GetCultureInfo("de-DE") };
+
+            Assert.Equal(new DateTime(2024, 2, 1), document.Sheets[0].EnumerateCells(options).Single().Value);
+        }
+
         private static byte[] CreatePackage(string rows) {
             using var output = new MemoryStream();
             using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
