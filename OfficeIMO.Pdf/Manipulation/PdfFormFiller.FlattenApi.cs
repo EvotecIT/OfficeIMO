@@ -61,6 +61,7 @@ internal static partial class PdfFormFiller {
         }
 
         catalog.Items.Remove("AcroForm");
+        catalog.Items.Remove("NeedsRendering");
         if (acroFormObject is PdfReference acroFormReference) {
             removableObjects.Add(acroFormReference.ObjectNumber);
         }
@@ -159,6 +160,8 @@ internal static partial class PdfFormFiller {
         }
 
         FilterCalculationOrder(objects, acroForm, removableObjects, cancellationToken);
+        // The XFA packet repeats every field's value, and flattened fields would stay live and readable in it.
+        if (acroForm.Items.Remove("XFA")) catalog.Items.Remove("NeedsRendering");
         if (fields.Items.Count == 0) {
             catalog.Items.Remove("AcroForm");
             if (acroFormObject is PdfReference acroFormReference) removableObjects.Add(acroFormReference.ObjectNumber);

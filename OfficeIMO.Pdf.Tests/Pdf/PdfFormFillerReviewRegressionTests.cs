@@ -97,4 +97,20 @@ public partial class PdfFormFillerTests {
         Assert.Equal("new note", ((PdfStringObj)field.Items["V"]).Value);
         Assert.False(field.Items.ContainsKey("RV"));
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FlattenFields_LeavesNoXfaCopyOfFlattenedValues(bool selective) {
+        byte[] input = BuildReviewFormPdf("/Fields [10 0 R 11 0 R] /XFA 14 0 R", "/Annots [10 0 R 11 0 R]", "/NeedsRendering true",
+            TextWidget(10, "Secret", "72 700 272 720", "/F 4 /V (visible) /AP << /N 12 0 R >>"),
+            TextWidget(11, "Other", "72 650 272 670", "/F 4 /V (other) /AP << /N 13 0 R >>"),
+            TextAppearance(12, "visible"), TextAppearance(13, "other"),
+            Stream(14, string.Empty, "<xfa:datasets><form><Secret>XFASECRET</Secret></form></xfa:datasets>"));
+
+        byte[] flattened = selective ? PdfFormFiller.FlattenFields(input, new[] { "Secret" }) : PdfFormFiller.FlattenFields(input);
+
+        Assert.DoesNotContain("XFASECRET", Latin1(flattened), StringComparison.Ordinal);
+        Assert.DoesNotContain("/NeedsRendering", Latin1(flattened), StringComparison.Ordinal);
+    }
 }
