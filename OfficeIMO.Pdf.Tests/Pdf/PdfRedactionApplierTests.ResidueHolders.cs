@@ -127,6 +127,21 @@ public partial class PdfRedactionApplierTests {
         Assert.Contains(report.Issues, static issue => issue.Feature == "RedactedContentOutsidePageContent" && issue.Marker == "AlternateText");
     }
 
+    [Theory]
+    [InlineData("70 695 50 20 re f", 250D)]
+    [InlineData("q 100 0 0 20 70 695 cm /Im0 Do Q", 250D)]
+    [InlineData("q 100 0 0 20 70 695 cm /Im0 Do Q", 30D)]
+    [InlineData("/Fm1 Do", 250D)]
+    public void RemovalClearsSectionsOpenedInAnotherContentStream(string paint, double areaWidth) {
+        PdfDocument source = PdfDocument.Load(BuildResidueHolderPdf(new[] { "/Figure<</Alt(TOPSECRET)>>BDC", paint, "EMC" }));
+        PdfRedactionPlan plan = source.Redactions.Plan(new[] { new PdfRedactionArea(1, 60, 690, areaWidth, 30) });
+
+        PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+
+        Assert.DoesNotContain(ResidueHolderQuery, Encoding.GetEncoding("ISO-8859-1").GetString(result.Pdf), StringComparison.Ordinal);
+        Assert.True(result.Evidence.IsVerified);
+    }
+
     [Fact]
     public void ManualAreaRemovalClearsAlternateTextInNamedPropertyList() {
         byte[] input = BuildResidueHolderPdf("/Span /P1 BDC BT /F1 12 Tf 72 700 Td (visible) Tj ET EMC", "/Properties << /P1 8 0 R >>");
@@ -202,15 +217,25 @@ public partial class PdfRedactionApplierTests {
         return pdf.Concat(Encoding.ASCII.GetBytes(afterEndOfFile)).ToArray();
     }
 
-    private static byte[] BuildResidueHolderPdf(string content, string resources = "") => BuildPdf(new[] {
-        "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
-        "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
-        "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Resources << /Font << /F1 4 0 R >> /XObject << /Im0 6 0 R /Fm0 7 0 R >> " + resources + " >> >>\nendobj",
-        "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
-        BuildStreamObject(5, Encoding.ASCII.GetBytes(content + "\nBT /F1 12 Tf 72 500 Td (other text) Tj ET")),
-        BuildStreamObject(6, new byte[] { 0x20, 0x40 }, "/Type /XObject /Subtype /Image /Width 2 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceGray"),
-        BuildStreamObject(7, Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 700 Td (inside) Tj ET"), "/Type /XObject /Subtype /Form /BBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >>"),
-        "8 0 obj\n<< /ActualText (TOPSECRET) >>\nendobj",
-        "9 0 obj\n<< /Type /OCG /Name (Layer) /Alt (described) >>\nendobj"
-    }, rootObjectNumber: 1);
+    private static byte[] BuildResidueHolderPdf(string content, string resources = "") => BuildResidueHolderPdf(new[] { content }, resources);
+
+    private static byte[] BuildResidueHolderPdf(string[] contents, string resources = "") {
+        const int firstContent = 12;
+        var objects = new List<string> {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents [" + string.Join(" ", contents.Select(static (_, index) => (firstContent + index) + " 0 R")) + " 5 0 R] " +
+                "/Resources << /Font << /F1 4 0 R >> /XObject << /Im0 6 0 R /Fm0 7 0 R /Fm1 10 0 R >> " + resources + " >> >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 500 Td (other text) Tj ET")),
+            BuildStreamObject(6, new byte[] { 0x20, 0x40 }, "/Type /XObject /Subtype /Image /Width 2 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceGray"),
+            BuildStreamObject(7, Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 700 Td (inside) Tj ET"), "/Type /XObject /Subtype /Form /BBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >>"),
+            "8 0 obj\n<< /ActualText (TOPSECRET) >>\nendobj",
+            "9 0 obj\n<< /Type /OCG /Name (Layer) /Alt (described) >>\nendobj",
+            BuildStreamObject(10, Encoding.ASCII.GetBytes("q 100 0 0 20 70 695 cm /Im0 Do Q"), "/Type /XObject /Subtype /Form /BBox [0 0 612 792] /Resources << /XObject << /Im0 11 0 R >> >>"),
+            BuildStreamObject(11, new byte[] { 0x30, 0x50 }, "/Type /XObject /Subtype /Image /Width 2 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceGray")
+        };
+        objects.AddRange(contents.Select(static (content, index) => BuildStreamObject(firstContent + index, Encoding.ASCII.GetBytes(content))));
+        return BuildPdf(objects.ToArray(), rootObjectNumber: 1);
+    }
 }

@@ -239,7 +239,7 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
-    public void ApplyWithEvidenceRejectsPagePathWhoseGraphicsStateCrossesContentStreams() {
+    public void ApplyWithEvidenceRemovesPagePathWhoseGraphicsStateCrossesContentStreams() {
         byte[] source = BuildSplitStreamGraphicsStatePathPdf();
         PdfDocument document = PdfDocument.Load(source);
         PdfRedactionPlan plan = document.Redactions.Plan([
@@ -253,8 +253,8 @@ public class PdfRedactionVerificationTests {
                 RequireCompleteStreamInspection = true
             });
 
-        Assert.False(result.IsVerified);
-        Assert.Contains(result.Evidence.ResidualMatches, static match =>
+        Assert.True(result.IsVerified);
+        Assert.DoesNotContain(result.Evidence.ResidualMatches, static match =>
             match.Kind == PdfRedactionMatchKind.VectorPath);
     }
 

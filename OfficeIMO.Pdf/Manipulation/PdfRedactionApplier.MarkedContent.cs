@@ -120,14 +120,34 @@ internal static partial class PdfRedactionApplier {
             .Select(static rewrite => (rewrite.Index, rewrite.Index + rewrite.Length)), propertyText, limits);
 
     // Nothing in the owning stream changed: the invoked image or form did.
-    private static string ClearAlternateTextAroundInvocations(string content, HashSet<string> changedNames, PropertyAlternateText propertyText, PdfReadLimits limits) {
-        if (changedNames.Count == 0) return content;
+    private static string ClearAlternateTextAroundInvocations(string content, HashSet<string> changedNames, PropertyAlternateText propertyText, PdfReadLimits limits) =>
+        RewriteTextObjectSpans(content, 0, FindAlternateTextRewritesAroundInvocations(content, changedNames, propertyText, limits));
+
+    private static TextObjectRewrite[] FindAlternateTextRewritesAroundInvocations(string content, HashSet<string> changedNames, PropertyAlternateText propertyText, PdfReadLimits limits) {
+        if (changedNames.Count == 0) return Array.Empty<TextObjectRewrite>();
         var invocations = new List<(int Start, int End)>();
         PdfContentStreamInterpreter.Interpret(content, limits.MaxContentOperations, operation => {
             if (operation.Name == "Do" && operation.Operands.Count > 0 && operation.Operands[operation.Operands.Count - 1] is string name && changedNames.Contains(name))
                 invocations.Add((operation.OperatorOffset, operation.OperatorOffset + 2));
         }, maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands);
-        return RewriteTextObjectSpans(content, 0, ClearAlternateTextAround(content, Array.Empty<TextObjectRewrite>(), invocations, propertyText, limits));
+        return ClearAlternateTextAround(content, Array.Empty<TextObjectRewrite>(), invocations, propertyText, limits);
+    }
+
+    // Each stream was already cleared on its own; this reaches sections that open in one stream and close in another.
+    private static bool ClearAlternateTextAroundPageInvocations(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary page,
+        ref PdfObject contents,
+        HashSet<string> changedNames,
+        PropertyAlternateText propertyText,
+        IReadOnlyDictionary<int, int> referenceCounts,
+        PdfReadLimits limits,
+        ref int nextObjectNumber) {
+        if (changedNames.Count == 0) return false;
+        PdfReference[] references = EnumerateContentReferences(objects, contents).ToArray();
+        string?[] segments = ReadPageContentSegments(objects, references, _ => int.MaxValue);
+        TextObjectRewrite[] rewrites = FindAlternateTextRewritesAroundInvocations(JoinPageContent(segments), changedNames, propertyText, limits);
+        return ApplyPageContentRewrites(objects, page, ref contents, references, segments, rewrites, referenceCounts, ref nextObjectNumber);
     }
 
     // Clearing a section stops it naming its property list, but the value stays in the file while /Properties lists

@@ -31,22 +31,10 @@ internal static partial class PdfRedactionApplier {
             : ResolveExtGStateFontSelections(objects, pageResources, fontDecoders, fontWidthProviders, verticalWritingFonts);
         PdfObject currentContentsObject = contentsObject;
         PdfReference[] contentReferences = EnumerateContentReferences(objects, contentsObject).ToArray();
-        var contentSegments = new List<string>(contentReferences.Length);
-        bool allStreamsDecoded = true;
-        foreach (PdfReference reference in contentReferences) {
-            if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
-                indirect.Value is not PdfStream stream ||
-                stream.DecodingFailed) {
-                allStreamsDecoded = false;
-                break;
-            }
+        string?[] contentSegments = ReadPageContentSegments(objects, contentReferences, stream => GetMutationDecodeLimit(stream, limits, sourceStreamIdentities));
 
-            byte[] contentBytes = StreamDecoder.DecodeRequired(stream, objects, GetMutationDecodeLimit(stream, limits, sourceStreamIdentities));
-            contentSegments.Add(PdfEncoding.Latin1GetString(contentBytes));
-        }
-
-        if (allStreamsDecoded && contentSegments.Count > 0) {
-            string combinedContent = string.Join(PdfContentStreamSequenceDecoder.Separator.ToString(), contentSegments);
+        if (contentSegments.Length > 0 && Array.IndexOf(contentSegments, null) < 0) {
+            string combinedContent = JoinPageContent(contentSegments);
             TextObjectRewrite[] rewrites = FindMatchingTextObjectRewrites(
                 combinedContent,
                 textTargets,
@@ -58,22 +46,7 @@ internal static partial class PdfRedactionApplier {
                 limits,
                 verticalWritingFonts,
                 extGStateFonts: extGStateFonts);
-            int contentOffset = 0;
-            for (int index = 0; index < contentReferences.Length; index++) {
-                string content = contentSegments[index];
-                string scrubbed = RewriteTextObjectSpans(content, contentOffset, rewrites);
-                changed = ReplacePageContentStreamIfChanged(
-                    objects,
-                    pageDictionary,
-                    ref currentContentsObject,
-                    contentReferences[index],
-                    index,
-                    content,
-                    scrubbed,
-                    referenceCounts,
-                    ref nextObjectNumber) || changed;
-                contentOffset += content.Length + 1;
-            }
+            changed = ApplyPageContentRewrites(objects, pageDictionary, ref currentContentsObject, contentReferences, contentSegments, rewrites, referenceCounts, ref nextObjectNumber);
         } else {
             var graphicsState = new TextScrubGraphicsState();
             for (int index = 0; index < contentReferences.Length; index++) {
@@ -101,6 +74,40 @@ internal static partial class PdfRedactionApplier {
         }
 
         return ScrubMatchedFormXObjects(objects, pageDictionary, currentContentsObject, textTargets, fontDecoders, fontWidthProviders, verticalWritingFonts, referenceCounts, limits, sourceStreamIdentities, ref nextObjectNumber) || changed;
+    }
+
+    // A page's streams paint as one sequence: a section or a path can open in one and close in the next.
+    // An unreadable stream stays null, and the rest still read as the sequence around it.
+    private static string?[] ReadPageContentSegments(Dictionary<int, PdfIndirectObject> objects, PdfReference[] references, Func<PdfStream, int> decodeLimit) {
+        var segments = new string?[references.Length];
+        for (int index = 0; index < references.Length; index++) {
+            if (PdfObjectLookup.TryGet(objects, references[index], out PdfIndirectObject? indirect) && indirect.Value is PdfStream stream && !stream.DecodingFailed)
+                segments[index] = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream, objects, decodeLimit(stream)));
+        }
+        return segments;
+    }
+
+    private static string JoinPageContent(string?[] segments) =>
+        string.Join(PdfContentStreamSequenceDecoder.Separator.ToString(), segments.Where(static segment => segment is not null));
+
+    private static bool ApplyPageContentRewrites(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary pageDictionary,
+        ref PdfObject currentContentsObject,
+        PdfReference[] contentReferences,
+        string?[] contentSegments,
+        IReadOnlyList<TextObjectRewrite> rewrites,
+        IReadOnlyDictionary<int, int> referenceCounts,
+        ref int nextObjectNumber) {
+        bool changed = false;
+        int contentOffset = 0;
+        for (int index = 0; index < contentReferences.Length; index++) {
+            if (contentSegments[index] is not string content) continue;
+            string scrubbed = RewriteTextObjectSpans(content, contentOffset, rewrites);
+            changed = ReplacePageContentStreamIfChanged(objects, pageDictionary, ref currentContentsObject, contentReferences[index], index, content, scrubbed, referenceCounts, ref nextObjectNumber) || changed;
+            contentOffset += content.Length + 1;
+        }
+        return changed;
     }
 
     private static bool ReplacePageContentStreamIfChanged(

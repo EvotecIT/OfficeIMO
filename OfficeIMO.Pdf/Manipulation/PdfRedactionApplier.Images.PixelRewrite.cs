@@ -33,6 +33,7 @@ internal static partial class PdfRedactionApplier {
         bool changed = false;
         PdfObject currentContentsObject = contentsObject;
         var contentState = new ImageContentGraphicsState(Matrix2D.Identity);
+        var changedInvocations = new HashSet<string>(StringComparer.Ordinal);
         foreach (PdfReference reference in EnumerateContentReferences(objects, contentsObject)) {
             if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
                 indirect.Value is not PdfStream stream ||
@@ -56,9 +57,10 @@ internal static partial class PdfRedactionApplier {
             }
 
             changed = result.HasChanges || changed;
+            changedInvocations.UnionWith(result.ChangedInvocations);
         }
 
-        return changed;
+        return ClearAlternateTextAroundPageInvocations(objects, pageDictionary, ref currentContentsObject, changedInvocations, ReadPropertyAlternateText(objects, resources), referenceCounts, limits, ref nextObjectNumber) || changed;
     }
 
     private static ImagePixelRewriteContentResult RewriteImagePixelsInContent(
@@ -160,7 +162,7 @@ internal static partial class PdfRedactionApplier {
             }
         }
 
-        return new ImagePixelRewriteContentResult(changed, ClearAlternateTextAroundInvocations(rewrittenContent, changedInvocations, ReadPropertyAlternateText(objects, resources), limits));
+        return new ImagePixelRewriteContentResult(changed, ClearAlternateTextAroundInvocations(rewrittenContent, changedInvocations, ReadPropertyAlternateText(objects, resources), limits), changedInvocations);
     }
 
     private static ImagePixelRewriteContentResult RewriteImagePixelsInForm(
@@ -1020,14 +1022,17 @@ internal static partial class PdfRedactionApplier {
     }
 
     private readonly struct ImagePixelRewriteContentResult {
-        public ImagePixelRewriteContentResult(bool hasChanges, string content) {
+        public ImagePixelRewriteContentResult(bool hasChanges, string content, IReadOnlyCollection<string>? changedInvocations = null) {
             HasChanges = hasChanges;
             Content = content;
+            ChangedInvocations = changedInvocations ?? Array.Empty<string>();
         }
 
         public bool HasChanges { get; }
 
         public string Content { get; }
+
+        public IReadOnlyCollection<string> ChangedInvocations { get; }
     }
 
     private readonly struct ImageResourceInvocation {
