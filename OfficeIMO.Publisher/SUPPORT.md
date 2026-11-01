@@ -110,9 +110,10 @@ still consume the image-processing byte budget.
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
 | Editable vector artwork | `PublisherPage.Shapes` records owner, stable ID, point bounds and placement availability; bounds and solid-paint edits for supported basic geometry; shared text-frame placement and current wrap obstacles | Grouped, transformed, hidden, custom-path, gradient, effected and unresolved artwork is inspection-only; detached editable descriptors do not establish native writable support |
 | Primitive creation | Rectangle, rounded rectangle, ellipse and nondegenerate line descriptors append to qualified document/master pages; shared publication allocator and current SVG/PDF scenes | No native records; unsupported geometry/effects are rejected; new shapes have no story or wrap references |
-| In-memory edits | Document-owned replacement of complete non-table story paragraphs and mapped table-cell paragraphs, bounds changes for qualified frames/tables, and image replacement/bounds changes for supported rectangular PNG/JPEG picture placements; stable IDs, ownership and order, fresh scenes, text ranges and overflow | Picture and table bounds edits reject unsupported graphic placement. Cell edits reject conflicting grids, unsafe partitions and stories also used by ordinary frames; no table topology/styling changes or arbitrary relinking. Native saving accepts only the separate source-edit profile; old references remain snapshots |
+| In-memory edits | Document-owned replacement of complete non-table story paragraphs and mapped table-cell paragraphs, bounds changes for qualified frames/tables, and image replacement/bounds changes for supported rectangular PNG/JPEG picture placements; stable IDs and ownership, explicit object order, fresh scenes, text ranges and overflow | Picture and table bounds edits reject unsupported graphic placement. Cell edits reject conflicting grids, unsafe partitions and stories also used by ordinary frames; no table topology/styling changes or arbitrary relinking. Native saving accepts only the separate source-edit profile; old references remain snapshots |
+| Object stacking | `PublisherPage.ObjectIds` exposes the mixed back-to-front order; `SetPageObjectOrder` changes an exact permutation on a document/master page, with fresh SVG/PDF scenes and qualified existing-source native saving | Existing IDs, ownership and story links remain fixed. Grouped native artwork, native wrap-exclusion lists and split native sibling scopes are outside the qualified save profile; source-free native output remains unavailable |
 | Table creation | Empty unmerged borderless grids on qualified document/master pages; copied positive finite tracks, one new complete story, shared table/story identifier allocation and current SVG/PDF/Reader projection | No merged-cell authoring, cell decoration or native PUB records; text/model/projection limits and transactional failure behavior apply |
-| Page/master authoring | Source-free `Create` with one empty physical page; appended same-size physical pages, centered single masters and atomic left/right master pairs; typed master-side metadata; explicit qualified direct assignment or clearing; existing-source assignment/clearing can save natively | No resize, deletion, reorder, object moves, automatic parity selection or master inheritance; unqualified background/registration/reference/display records reject assignment; new topology cannot save natively |
+| Page/master authoring | Source-free `Create` with one empty physical page; appended same-size physical pages, centered single masters and atomic left/right master pairs; typed master-side metadata; explicit qualified direct assignment or clearing; existing-source assignment/clearing can save natively | No page resizing, deletion/reordering, cross-page object moves, automatic parity selection or master inheritance; unqualified background/registration/reference/display records reject assignment; new topology cannot save natively |
 | Ordinary text creation | `AddTextFrame` creates a complete independent styled story and resolved one-frame chain on a qualified document/master page; one column, zero gap/insets, top alignment, no paint/transform/wrap; existing continuation API handles document-page chains | Authored ordinary stories have no implicit final terminator; full overflow is retained. Frame/story IDs reserve atomically; master-owned stories cannot continue across physical pages; no native text records are authored |
 | Text-frame layout edits | `SetTextFrameLayout` replaces equal-width columns/full intercolumn gap, Core padding and Top/Center/Bottom alignment on qualified resolved document/master frames, including mixed text artwork. Imported frames can use the bounded native source-save profile; snapshots expose operation-specific eligibility | No table stories/aliases, grouped/transformed/unresolved placement, native balancing, distributed alignment or vertical writing. Unqualified native layout overrides remain read-only for this operation; bounds/read behavior stays separate. Native saving requires exact distances and safely editable local properties/chunk-directory records; fidelity remains Unassessed |
 | Continuation-frame creation | Append an ordinary untransformed text frame to a resolved non-table story's tail on an existing document page; one complete styled story, current links/ranges/overflow, copied columns/padding/alignment, no fill/outline, and shared SVG/PDF/Reader projection | The source chain must contain ordinary visible untransformed document-page frames; master chains, ambiguous links and non-tail insertion are rejected; this is in-memory model creation, not native PUB creation |
@@ -326,6 +327,43 @@ growth while preserving existing resource entries. Fifty-two selected-page and
 768 neighboring-page initial/resaved comparisons match independent native final
 states. These fitting controls do not qualify broader producer/style profiles,
 general table reflow, explicit nonempty-CR styling or repair-free opening.
+
+### Existing page object ordering
+
+`SetPageObjectOrder` accepts every current `PublisherPage.ObjectIds` identifier
+exactly once, in back-to-front order. It copies the supplied order and publishes a
+new scene only after validation and projection succeed. Duplicate, missing and
+foreign IDs refuse the edit; cancellation and failure retain the previous public
+state and immutable snapshots. Document and master pages use the same owner.
+Text-capable artwork has one identity across its shape and text-frame views;
+applied master objects remain listed on the master.
+
+Qualified source saving permutes complete existing OfficeArt sibling records
+without changing IDs, page ownership, stories or frame links. It resolves client
+IDs again after requested property/image-store edits, so earlier FOPT growth does
+not leave stale offsets. Pure ordering retains complete shape bytes, Quill,
+assets and unrelated streams; cached-preview invalidation follows the existing
+save contract. The operation reports `PUB_NATIVE_OBJECT_ORDER_UNQUALIFIED` as
+`Unassessed`, requiring explicit `Allow`.
+
+Independent native controls use overlapping text, rectangles and shared pictures
+on the first and last of three pages, with a blank middle page. Nine public saved
+inputs cover selected/both-page ordering, reverse ordering, column/inset/alignment
+growth, text and selected-picture replacement, linked frames and master content.
+All complete native open/export/save/reopen; native inventories retain the
+requested object names/order and source content. The qualification record's
+`sourceEditing.objectOrdering` separates the 105 page comparisons by boundary:
+27 model/reload, 27 native initial/resave, 27 PowerShell/managed and 24 actual native
+output/independent native reference pairs at 144 dpi. Nine PSWriteOffice conversion
+workflows pass, and six direct PowerShell order/save cycles match .NET bytes.
+
+Grouped native artwork and native wrap-exclusion lists refuse the operation.
+Native saving also refuses a page set split across sibling scopes. The group
+refusal test uses a controlled source group-flag mutation; it does not qualify
+group editing. A new independent wrap-exclusion refusal or mid-work cancellation
+control is not part of this packet. Additional producers/generations, grouped
+ordering and wrap relationships remain open. Native image sampling, universal
+pixel equivalence and repair-free opening remain separate qualification gaps.
 
 ### Empty-paragraph refill with retained formatting
 

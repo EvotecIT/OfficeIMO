@@ -19932,6 +19932,133 @@
         "Native getter/full-gap encoding and initial/resaved stability are qualified separately from general rendering fidelity.",
         "Repair-free opening and general opaque preservation remain unassessed."
       ]
+    },
+    "objectOrdering": {
+      "scope": "Existing document/master page object stacking through one canonical model and complete native sibling-record permutation. No new object identities, ownership, frame-chain or source-free native creation.",
+      "sourceImplementationCommit": "738149124a677b564a698f1701e4592452777195",
+      "api": [
+        "PublisherPage.ObjectIds: owned identifiers in back-to-front order, with text-capable artwork listed once.",
+        "PublisherDocument.SetPageObjectOrder(pageId, objectIds, cancellationToken): exact copied permutation; validation/cancellation/projection failure preserves the document and prior snapshots."
+      ],
+      "nativeProfile": {
+        "method": "Copy complete existing SP containers into their requested page slots after FOPT/image-store rewriting. Native client IDs resolve the final stream; Contents ownership lists, Quill and assets remain unchanged for pure ordering.",
+        "conditions": [
+          "Same existing page/object identity and ownership sets.",
+          "Every selected page object has an exact retained native shape binding.",
+          "Each selected page set resolves once in one complete sibling-record scope.",
+          "Grouped native artwork and native text-wrap exclusion lists refuse the edit.",
+          "Existing protected-storage, record/depth/output limits and explicit loss policy remain enforced."
+        ],
+        "reportCode": "PUB_NATIVE_OBJECT_ORDER_UNQUALIFIED",
+        "reportLossKind": "Unassessed",
+        "requiresExplicitAllow": true
+      },
+      "independentControls": {
+        "producer": "Microsoft Publisher 16.0.20527.20088",
+        "macroSecurity": 3,
+        "method": "Existing objects reversed using Shape.ZOrder(msoBringToFront); first/last pages overlap, middle page stays blank.",
+        "references": [
+          {
+            "case": "MixedObjectOrder",
+            "publicationSha256": "2db9a6f5e1bd9a4ff2c6f54f075f75ae0a2fb665e11b0f51507c04d946762f37",
+            "nativePdfSha256": "915250c62ee140f2c7cf11fc09f1e42bd6ddd8a413b9043a2198d24c986d7fcd",
+            "provenanceSha256": "44e1eee48f6c246d9ba6e264ed797d83258062ccd53f733ecec7bbc778ec96cb"
+          },
+          {
+            "case": "MixedObjectOrderReversed",
+            "publicationSha256": "5a42aa2a51750c04c158c53cae7aedc4273839f97d41220ddcc163bb0d5213a0",
+            "nativePdfSha256": "8cd7c97c2a78cebbdaf0cef2bed4d177ca2c96b3209589efe3b67e59c1977293",
+            "provenanceSha256": "0d530724083dd3dc3aa39a954ca0268aafa70278a324c76b5eec61ef7617e0a7"
+          }
+        ],
+        "contentsOwnershipOrderUnchanged": true,
+        "nativeNormalization": "Publisher also renumbers some text-box metadata and picture names during its own reorder; the qualified source writer retains existing complete records instead.",
+        "wireOnlyNativeOperations": 7,
+        "wireOnlyNativeReferencePixelPairs144Dpi": 6
+      },
+      "publicQualification": {
+        "cases": [
+          "first page",
+          "last page",
+          "both pages",
+          "reverse native source back to original order",
+          "frame column/inset/alignment growth plus order",
+          "styled text replacement plus order",
+          "selected shared-picture replacement plus order",
+          "linked-story page order",
+          "master object order with existing page assignments"
+        ],
+        "savedInputs": 9,
+        "nativeOperations": 63,
+        "initialAndNativeResavedInventoriesEqual": true,
+        "nativeNamesMatchRequestedOrder": true,
+        "pureOrderCasesWithCompleteSourceShapeBytesAndUnrelatedStreamsRetained": 6,
+        "modelAndReloadSvgPagesEqual": 27,
+        "pixelComparisons144Dpi": {
+          "modelVersusNativeReload": 27,
+          "nativeInitialVersusNativeResave": 27,
+          "powerShellWorkflowVersusManaged": 27,
+          "actualNativeOutputVersusIndependentNativeOrderReferences": 24,
+          "total": 105
+        },
+        "visualComparisonInspected": true,
+        "proofSha256": "bbc7253487d1da0390d7d1894cc67ccdf75bcbb9337ebad728588d0b4cb4775c",
+        "arialSha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+      },
+      "managedValidation": {
+        "newFeatureCases": 12,
+        "publisher": [
+          {
+            "framework": "net10.0",
+            "passed": 1060,
+            "failed": 0,
+            "reportSha256": "53cf16f07597b691377a1878ac9c8e1340d49d144c9e3929ea02f99b612dbea9"
+          },
+          {
+            "framework": "net8.0",
+            "passed": 1060,
+            "failed": 0,
+            "reportSha256": "95c488626c92be46fadc81bfa3eda6d006e50d9fc294073cc06379b5110ebd0a"
+          },
+          {
+            "framework": "net472",
+            "passed": 1060,
+            "failed": 0,
+            "reportSha256": "5e95ed9d656d591d3f261fe64b673286d41ac5d155297e8c37b24b672d7ec1b3"
+          }
+        ],
+        "readerPassed": 93,
+        "readerNetstandard20Build": true,
+        "sourcePSWriteOfficeNet8Build": true,
+        "powerShellVersion": "7.6.9",
+        "powerShellConversionWorkflows": 9,
+        "powerShellDirectOrderSaveCyclesMatchingDotNetBytes": 6,
+        "beforeNativeCodec": {
+          "passed": 5,
+          "failed": 5
+        },
+        "nativeRewriteBypass": {
+          "passed": 5,
+          "failed": 5,
+          "observedFailure": "Reloaded order remains original when the actual record rewrite is bypassed; the operation report is retained by the mutation.",
+          "sourceRestored": true
+        },
+        "additionalTests": [
+          "Master_object_order_saves_without_reassigning_pages_or_rebinding_stories",
+          "Group_flagged_source_records_refuse_order_changes_before_model_commit"
+        ],
+        "proofSha256": "9784209da59beb4ac57ae15fdf2100db58f58b7ca0ff62007c7cb941273906b5"
+      },
+      "limits": [
+        "A controlled group-flag mutation exercises refusal; native grouped-object editing is not qualified.",
+        "Native wrap-exclusion refusal and cancellation arriving during work are statically reviewed, without an independent new positive/threshold control.",
+        "PowerShell7.6.9 qualified; PowerShell5.1 remains unqualified.",
+        "Native repair-free opening and whole-format/native image-sampling parity remain unqualified.",
+        "Each native page set must occupy one sibling scope; split scopes refuse native output.",
+        "Additional producers, generation profiles, groups and wrap-exclusion handling require separate qualification.",
+        "The exact native reference pixel comparisons cover document-page ordering. Master/linked cases have actual native order and save/reopen evidence without a separately reversed native reference file."
+      ],
+      "canClosePUB00": false
     }
   },
   "characterReading": {

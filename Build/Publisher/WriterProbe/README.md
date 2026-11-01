@@ -639,6 +639,17 @@ unchanged and both owned processes close. The Full attempt remains incomplete;
 no post-open drain, successful repair or native resave is claimed. Accepted
 recovery and the later suppression paths still need positive qualification.
 
+The `sourceEditing.objectOrdering` record covers existing document/master object
+stacking through `ObjectIds` and `SetPageObjectOrder`. Independent native
+`MixedObjectOrder`/`MixedObjectOrderReversed` controls establish drawing-record
+order while the Contents ownership list stays fixed. Whole-record permutation
+composes after supported property/image-store edits; selected IDs must occupy one
+complete sibling scope. Nine actual public outputs complete native save/reopen,
+including linked frames and master content, with 105 separately classified page
+comparisons and PowerShell workflows. Groups, native wrap-exclusion lists and
+split scopes remain outside this source profile. This does not promote the
+source-free native writer or close PUB00.
+
 The `sourceEditing.imageReplacement` record covers public native saves for
 existing PNG/JPEG picture placements, including shared assets, master pictures,
 cropping, repeated replacement, combined frame changes and re-editing a native

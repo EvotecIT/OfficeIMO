@@ -69,7 +69,7 @@ byte[] detachedBytes = result.Value;
 
 `ToPubBytes`, `ToPubBytesResult`, `Save` and `SaveAsync` use the same bounded native
 codec. Unchanged semantic content produces a byte-exact copy of the original
-source. Supported edits include existing ordinary frame/shape/picture bounds,
+source. Supported edits include existing page object ordering, ordinary frame/shape/picture bounds,
 existing solid scalar paint slots, qualified frame columns/full intercolumn gap,
 insets and vertical alignment, and ordinary text stories with bounded
 size, bold, italic, underline pattern, single strikethrough, baseline, font family
@@ -328,6 +328,38 @@ budgets apply, including repeated master use. `GetBytes()` and old page/picture/
 references remain detached from later edits.
 
 ## Edit publication content
+
+### Order existing page objects
+
+`PublisherPage.ObjectIds` lists owned objects from back to front. Text-capable
+artwork appears once, even when it also has a text-frame view. Supply every ID
+exactly once; master objects remain on their master page.
+
+```csharp
+using System.Linq;
+using OfficeIMO;
+using OfficeIMO.Publisher;
+
+var publication = PublisherDocument.Load("flyer.pub");
+var page = publication.Pages[0];
+publication.SetPageObjectOrder(page.Id, page.ObjectIds.Reverse().ToArray());
+
+var result = publication.ToPubBytesResult(new PublisherSaveOptions {
+    LossPolicy = OfficeConversionLossPolicy.Allow
+});
+File.WriteAllBytes("flyer-reordered.pub", result.Value);
+File.WriteAllText("flyer-reordered.svg", publication.ToSvg());
+```
+
+The edit retains identifiers, stories, links, assets and old page snapshots.
+The same operation accepts a qualified master page ID. In-memory authored objects
+also follow the new order in SVG/PDF. Native saving needs an imported source whose
+objects have a complete sibling-record profile; grouped native artwork and native
+text-wrap exclusion lists refuse this operation. The save report includes
+`PUB_NATIVE_OBJECT_ORDER_UNQUALIFIED`, requiring explicit `Allow`. See the
+[qualified ordering contract](SUPPORT.md#existing-page-object-ordering).
+
+### Edit text and layout
 
 For a publication with an ordinary, resolved, untransformed top-level text frame:
 
