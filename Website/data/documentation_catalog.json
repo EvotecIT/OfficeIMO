@@ -9,7 +9,7 @@
     "validationProjectCount": 67,
     "apiReferenceCount": 122,
     "conceptualPageCount": 132,
-    "conceptualWordCount": 60676
+    "conceptualWordCount": 60754
   },
   "categories": [
     {
@@ -1338,7 +1338,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1670,
+      "sourceFileCount": 1672,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -2274,7 +2274,7 @@
       "description": "PSWriteOffice is a focused component in the OfficeIMO managed document platform.",
       "kind": "library",
       "projectPath": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/PSWriteOffice.csproj",
-      "sourceFileCount": 769,
+      "sourceFileCount": 767,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/pswriteoffice/",
       "apiUrl": null,

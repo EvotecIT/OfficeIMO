@@ -143,7 +143,7 @@ $familyDefinitions = @(
     [ordered]@{
         id = 'html'; title = 'HTML assets'; description = 'Export images and review surfaces used by document-to-HTML workflows.'
         docs = 'open-text-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples'
-        samples = @('Export-OfficeHtmlImage')
+        samples = @('New-OfficeHtmlRenderOptions', 'Export-OfficeDocumentImage')
         match = { param($name) $name -match 'OfficeHtml' }
     }
     [ordered]@{

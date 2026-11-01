@@ -568,6 +568,9 @@ Converts objects or a CSV document into CSV text.
 ### [ConvertTo-OfficeDocument](ConvertTo-OfficeDocument.md)
 Converts a file or file batch through the canonical OfficeIMO workflow runner.
 
+### [ConvertTo-OfficeDocumentImage](ConvertTo-OfficeDocumentImage.md)
+Renders native pages, slides, sheets, ranges or charts to image results without writing files.
+
 ### [ConvertTo-OfficeExcelHtml](ConvertTo-OfficeExcelHtml.md)
 Converts an Excel workbook to an HTML review document.
 
@@ -628,12 +631,6 @@ Maps PowerShell rows to a bounded project entity table.
 ### [ConvertTo-OfficeRtf](ConvertTo-OfficeRtf.md)
 Converts Word, HTML, PDF, or Markdown input to RTF.
 
-### [ConvertTo-OfficeVisioPng](ConvertTo-OfficeVisioPng.md)
-Exports a Visio document page to native dependency-free PNG.
-
-### [ConvertTo-OfficeVisioSvg](ConvertTo-OfficeVisioSvg.md)
-Exports a Visio document page to dependency-free SVG.
-
 ### [ConvertTo-OfficeVisioVisual](ConvertTo-OfficeVisioVisual.md)
 Converts CFX semantic visual-artifact input into a native editable OfficeIMO.Visio document.
 
@@ -673,29 +670,17 @@ Exports objects or a CSV document to a CSV file.
 ### [Export-OfficeDocumentAsset](Export-OfficeDocumentAsset.md)
 Writes document media, tables or visuals using the native Reader materializers.
 
+### [Export-OfficeDocumentImage](Export-OfficeDocumentImage.md)
+Renders native pages, slides, sheets, ranges or charts and saves each image atomically.
+
 ### [Export-OfficeDocumentPdf](Export-OfficeDocumentPdf.md)
 Exports Word, Excel, PowerPoint, HTML, Markdown, RTF, and literal text documents to PDF.
 
 ### [Export-OfficeExcel](Export-OfficeExcel.md)
 Exports PowerShell objects to an Excel workbook using an operator-friendly surface.
 
-### [Export-OfficeExcelChartImage](Export-OfficeExcelChartImage.md)
-Exports one named worksheet chart as an image file.
-
 ### [Export-OfficeExcelGoogleSpreadsheet](Export-OfficeExcelGoogleSpreadsheet.md)
 Plans, compiles, or exports an Excel workbook to Google Sheets.
-
-### [Export-OfficeExcelImage](Export-OfficeExcelImage.md)
-Exports workbook sheets as PNG or SVG images with one result per sheet.
-
-### [Export-OfficeExcelRangeImage](Export-OfficeExcelRangeImage.md)
-Exports one worksheet range as an image file.
-
-### [Export-OfficeHtmlImage](Export-OfficeHtmlImage.md)
-Exports an HTML render surface as PNG or SVG with structured diagnostics.
-
-### [Export-OfficePdfImage](Export-OfficePdfImage.md)
-Exports PDF pages through the shared PNG, JPEG, TIFF, SVG, or WebP image contract.
 
 ### [Export-OfficePdfLayoutOverlay](Export-OfficePdfLayoutOverlay.md)
 Exports PDF word, line, region, and reading-order diagnostics as PNG or SVG.
@@ -706,17 +691,11 @@ Exports readable PDF form field values as XFDF.
 ### [Export-OfficePowerPoint](Export-OfficePowerPoint.md)
 Exports objects as a designed presentation with editable tables and optional charts.
 
-### [Export-OfficePowerPointImage](Export-OfficePowerPointImage.md)
-Exports presentation slides as PNG or SVG images with one result per slide.
-
 ### [Export-OfficeProjectReport](Export-OfficeProjectReport.md)
 Exports a captured Project report through the shared PDF, HTML, Word, Excel or PowerPoint adapters.
 
 ### [Export-OfficeProjectTable](Export-OfficeProjectTable.md)
 Returns mapped project tables and explicit projection-loss notices.
-
-### [Export-OfficeVisioImage](Export-OfficeVisioImage.md)
-Exports selected Visio pages through the format-neutral OfficeIMO image pipeline.
 
 ### [Export-OfficeVisioStencilPreviewGallery](Export-OfficeVisioStencilPreviewGallery.md)
 Exports preview artwork from a Visio stencil package into a browsable HTML gallery.
@@ -729,9 +708,6 @@ Exports PowerShell objects to a Word document containing an editable table.
 
 ### [Export-OfficeWordGoogleDocument](Export-OfficeWordGoogleDocument.md)
 Plans, compiles, or exports a Word document to Google Docs.
-
-### [Export-OfficeWordImage](Export-OfficeWordImage.md)
-Exports one or more Word pages through the format-neutral OfficeIMO image pipeline.
 
 ### [Find-OfficeExcel](Find-OfficeExcel.md)
 Finds text in worksheet values.
