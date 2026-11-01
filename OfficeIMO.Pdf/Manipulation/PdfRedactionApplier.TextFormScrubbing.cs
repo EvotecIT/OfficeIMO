@@ -106,7 +106,7 @@ internal static partial class PdfRedactionApplier {
                 xObjects.Items.Remove(replaced.Key);
         }
 
-        return new TextFormScrubContentResult(changed, ClearAlternateTextAroundInvocations(rewrittenContent, changedInvocations, limits));
+        return new TextFormScrubContentResult(changed, ClearAlternateTextAroundInvocations(rewrittenContent, changedInvocations, ReadPropertyAlternateText(objects, resources), limits));
     }
 
     private static TextFormScrubContentResult ScrubFormContent(
@@ -166,7 +166,7 @@ internal static partial class PdfRedactionApplier {
             formDecoders,
             formWidthProviders,
             formVerticalWritingFonts);
-        string scrubbed = ScrubTextObjects(formContent, textTargets, formDecoders, formWidthProviders, effectiveTransforms, limits, formGraphicsState, formExtGStateFonts, formVerticalWritingFonts);
+        string scrubbed = ScrubTextObjects(formContent, textTargets, formDecoders, formWidthProviders, effectiveTransforms, ReadPropertyAlternateText(objects, formResources), limits, formGraphicsState, formExtGStateFonts, formVerticalWritingFonts);
         bool changed = !string.Equals(formContent, scrubbed, StringComparison.Ordinal);
         TextFormScrubContentResult nestedResult = ScrubFormInvocations(
             objects,

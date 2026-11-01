@@ -426,7 +426,7 @@ public sealed class PdfRedactionPlan {
                 identity.Append("|R:ExtGState:");
                 PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("ExtGState", out PdfObject? states) ? states : null, document.Objects);
                 identity.Append("|R:Properties:");
-                PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("Properties", out PdfObject? properties) ? properties : null, document.Objects);
+                PdfRedactionImageIdentity.AppendObjectGraph(identity, FindOptionalContentProperties(document.Objects, resources), document.Objects);
                 AppendFormRenderingResourceIdentity(identity, document.Objects, resources,
                     PdfRedactionApplier.FindUnpaintedFormsHoldingSearch(document.Objects, page.PageDictionary, reviewedAreas, document.ReadOptions.Limits));
                 break;
@@ -438,6 +438,16 @@ public sealed class PdfRedactionPlan {
                 parentIndirect.Value is not PdfDictionary parentDictionary) return;
             current = parentDictionary;
         }
+    }
+
+    // Only optional-content lists affect what a page paints. Others describe it, and redaction clears those.
+    private static PdfDictionary FindOptionalContentProperties(Dictionary<int, PdfIndirectObject> objects, PdfDictionary resources) {
+        var rendering = new PdfDictionary();
+        if (PdfObjectLookup.Resolve(objects, resources.Items.TryGetValue("Properties", out PdfObject? properties) ? properties : null) is not PdfDictionary lists) return rendering;
+        foreach (KeyValuePair<string, PdfObject> entry in lists.Items) {
+            if (PdfObjectLookup.Resolve(objects, entry.Value) is PdfDictionary list && list.Get<PdfName>("Type")?.Name is "OCG" or "OCMD") rendering.Items[entry.Key] = entry.Value;
+        }
+        return rendering;
     }
 
     private static void AppendFormRenderingResourceIdentity(
@@ -479,7 +489,7 @@ public sealed class PdfRedactionPlan {
                 formIdentity.Append(":Properties:");
                 PdfRedactionImageIdentity.AppendObjectGraph(
                     formIdentity,
-                    effectiveResources.Items.TryGetValue("Properties", out PdfObject? properties) ? properties : null,
+                    FindOptionalContentProperties(objects, effectiveResources),
                     objects);
                 if (declaredResources != null) {
                     formIdentity.Append(":Font:");

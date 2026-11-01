@@ -10,15 +10,19 @@ internal static partial class PdfRedactionApplier {
 
     // Tagged alternate text repeats wording outside the page content. Search marks remove the entries
     // holding what was searched, whatever the cleanup scope, and leave every other description in place.
-    private static bool RemoveAlternateTextHoldingMatches(Dictionary<int, PdfIndirectObject> objects, PdfRedactionArea[] areas, PdfReadLimits limits, HashSet<PdfStream> sourceStreamIdentities) {
+    private static bool RemoveAlternateTextHoldingMatches(Dictionary<int, PdfIndirectObject> objects, PdfRedactionArea[] areas, int[] pages, PdfReadLimits limits, HashSet<PdfStream> sourceStreamIdentities) {
         PdfRedactionSearchCriteria[] criteria = GetSearchCriteria(areas);
         if (criteria.Length == 0) return false;
+        DetachUnnamedSearchedProperties(objects, pages, criteria, limits, sourceStreamIdentities);
+        HashSet<PdfObject> excluded = FindExcludedSearchObjects(objects, pages, criteria, default);
         bool changed = false;
-        foreach (PdfIndirectObject item in objects.Values) changed = RemoveMatchingAlternateText(objects, item.Value, criteria) || changed;
+        foreach (PdfIndirectObject item in objects.Values) {
+            if (!excluded.Contains(item.Value)) changed = RemoveMatchingAlternateText(objects, item.Value, criteria) || changed;
+        }
         HashSet<int> pageContentStreams = GetPageContentStreamNumbers(objects);
         var budget = new PdfDecodedStreamBudget(limits);
         foreach (PdfIndirectObject item in objects.Values.ToArray()) {
-            if (!IsContentOwner(pageContentStreams, item, out PdfStream? stream) || stream.DecodingFailed) continue;
+            if (!IsContentOwner(pageContentStreams, item, out PdfStream? stream) || stream.DecodingFailed || excluded.Contains(stream)) continue;
             byte[] decoded;
             try {
                 decoded = budget.DecodeRequired(stream, objects, GetMutationDecodeLimit(stream, limits, sourceStreamIdentities));
@@ -33,6 +37,27 @@ internal static partial class PdfRedactionApplier {
             changed = true;
         }
         return changed;
+    }
+
+    // Everything whose content names resources. A form or pattern without its own /Resources reports null.
+    private static IEnumerable<(PdfDictionary? Resources, IReadOnlyList<PdfStream> Streams)> EnumerateResourceOwners(Dictionary<int, PdfIndirectObject> objects) {
+        foreach (PdfIndirectObject item in objects.Values.ToArray()) {
+            if (item.Value is PdfDictionary page && string.Equals(page.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal)) {
+                if (GetInheritedDictionary(objects, page, "Resources") is not PdfDictionary pageResources || !page.Items.TryGetValue("Contents", out PdfObject? contents)) continue;
+                var streams = new List<PdfStream>();
+                foreach (PdfReference reference in EnumerateContentStreamReferences(objects, contents)) {
+                    if (PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) && indirect.Value is PdfStream stream) streams.Add(stream);
+                }
+                yield return (pageResources, streams);
+            } else if (item.Value is PdfStream stream && (string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal) ||
+                stream.Dictionary.Get<PdfNumber>("PatternType")?.Value == 1D)) {
+                yield return (ResolveDictionary(objects, stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? own) ? own : null), new[] { stream });
+            } else if ((item.Value as PdfDictionary)?.Get<PdfName>("Subtype")?.Name == "Type3" &&
+                ResolveDictionary(objects, ((PdfDictionary)item.Value).Items.TryGetValue("CharProcs", out PdfObject? charProcs) ? charProcs : null) is PdfDictionary procs) {
+                yield return (ResolveDictionary(objects, ((PdfDictionary)item.Value).Items.TryGetValue("Resources", out PdfObject? own) ? own : null),
+                    procs.Items.Values.Select(value => PdfObjectLookup.Resolve(objects, value)).OfType<PdfStream>().ToArray());
+            }
+        }
     }
 
     private static HashSet<int> GetPageContentStreamNumbers(Dictionary<int, PdfIndirectObject> objects) {
@@ -122,23 +147,7 @@ internal static partial class PdfRedactionApplier {
         var paintedNames = new Dictionary<PdfDictionary, HashSet<string>>();
         bool hasUnreadableOwner = false;
         var inheritedNames = new HashSet<string>(StringComparer.Ordinal);
-        foreach (PdfIndirectObject item in objects.Values.ToArray()) {
-            if (item.Value is PdfDictionary page && string.Equals(page.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal)) {
-                if (GetInheritedDictionary(objects, page, "Resources") is not PdfDictionary pageResources || !page.Items.TryGetValue("Contents", out PdfObject? contents)) continue;
-                var streams = new List<PdfStream>();
-                foreach (PdfReference reference in EnumerateContentStreamReferences(objects, contents)) {
-                    if (PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) && indirect.Value is PdfStream stream) streams.Add(stream);
-                }
-                AddOwner(pageResources, streams);
-            } else if (item.Value is PdfStream stream && (string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal) ||
-                stream.Dictionary.Get<PdfNumber>("PatternType")?.Value == 1D)) {
-                AddOwner(ResolveDictionary(objects, stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? own) ? own : null), new[] { stream });
-            } else if ((item.Value as PdfDictionary)?.Get<PdfName>("Subtype")?.Name == "Type3" &&
-                ResolveDictionary(objects, ((PdfDictionary)item.Value).Items.TryGetValue("CharProcs", out PdfObject? charProcs) ? charProcs : null) is PdfDictionary procs) {
-                AddOwner(ResolveDictionary(objects, ((PdfDictionary)item.Value).Items.TryGetValue("Resources", out PdfObject? own) ? own : null),
-                    procs.Items.Values.Select(value => PdfObjectLookup.Resolve(objects, value)).OfType<PdfStream>().ToArray());
-            }
-        }
+        foreach ((PdfDictionary? resources, IReadOnlyList<PdfStream> streams) in EnumerateResourceOwners(objects)) AddOwner(resources, streams);
 
         // Content that can't be read may paint any entry, so nothing can be called unpainted.
         if (hasUnreadableOwner) return false;
@@ -204,9 +213,10 @@ internal static partial class PdfRedactionApplier {
         Dictionary<int, PdfIndirectObject> objects = document.Objects;
         PdfReadLimits limits = readOptions?.Limits ?? new PdfReadLimits();
         var issues = new List<PdfRedactionVerificationIssue>();
+        HashSet<PdfObject> excluded = FindExcludedSearchObjects(objects, document.Pages.Select(static page => page.ObjectNumber).ToArray(), criteria, cancellationToken);
         foreach (PdfIndirectObject item in objects.Values) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!HoldsSearchedAlternateText(objects, item.Value, criteria)) continue;
+            if (excluded.Contains(item.Value) || !HoldsSearchedAlternateText(objects, item.Value, criteria)) continue;
             issues.Add(new PdfRedactionVerificationIssue("RedactedContentOutsidePageContent", "AlternateText",
                 "Alternate text in object " + item.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " still holds searched text."));
         }
@@ -214,7 +224,7 @@ internal static partial class PdfRedactionApplier {
         HashSet<int> pageContentStreams = GetPageContentStreamNumbers(objects);
         foreach (PdfIndirectObject item in objects.Values.ToArray()) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (criteria.Length == 0 || !IsContentOwner(pageContentStreams, item, out PdfStream? stream) || !TryDecodeContent(stream, objects, limits, out string markedContent)) continue;
+            if (criteria.Length == 0 || !IsContentOwner(pageContentStreams, item, out PdfStream? stream) || excluded.Contains(stream) || !TryDecodeContent(stream, objects, limits, out string markedContent)) continue;
             RewriteMarkedContentHoldingMatches(markedContent, criteria, limits, out bool found);
             if (found) issues.Add(new PdfRedactionVerificationIssue("RedactedContentOutsidePageContent", "AlternateText",
                 "Marked content in object " + item.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " still holds searched text."));

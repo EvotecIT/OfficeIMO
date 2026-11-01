@@ -323,7 +323,7 @@ internal static partial class PdfRedactionApplier {
         foreach (PdfDictionary owner in searchedMetadata.Owners) owner.Items.Remove("Metadata");
         bool cleanupChanged = searchedMetadata.Owners.Count > 0 || searchedMetadata.Info;
         cleanupChanged = ApplyCleanupPolicy(objects, catalogObjectNumber, effectiveOptions.CleanupScope) || cleanupChanged;
-        cleanupChanged = RemoveAlternateTextHoldingMatches(objects, areaArray, limits, sourceStreamIdentities) || cleanupChanged;
+        cleanupChanged = RemoveAlternateTextHoldingMatches(objects, areaArray, document.Pages.Select(static page => page.ObjectNumber).ToArray(), limits, sourceStreamIdentities) || cleanupChanged;
         if (mutationScope == RedactionMutationScope.All) {
             int nextFormObjectNumber = objects.Keys.Max() + 1;
             cleanupChanged = ClearFormFieldsHoldingSearch(objects, (PdfDictionary)objects[catalogObjectNumber].Value, document, areaArray, limits, ref nextFormObjectNumber) || cleanupChanged;
@@ -331,6 +331,7 @@ internal static partial class PdfRedactionApplier {
                 .Where(static match => match.Kind == PdfRedactionMatchKind.ImagePlacement && match.RequiresRemoval)
                 .Select(static match => match.ObjectNumber).OfType<int>(), areaArray, limits, sourceStreamIdentities) || cleanupChanged;
         }
+        if (mutation.HasChanges || cleanupChanged) cleanupChanged = RemoveUnnamedAlternateTextProperties(objects, limits, sourceStreamIdentities) || cleanupChanged;
         if (!mutation.HasChanges && !cleanupChanged &&
             !(mutationOperation == PdfMutationOperation.Redact && !document.Security.HasEncryption && PdfSyntax.RequiresRedactionNormalization(document))) {
             generatedGrowth = default;

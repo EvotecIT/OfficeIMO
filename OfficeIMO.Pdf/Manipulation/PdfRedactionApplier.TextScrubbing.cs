@@ -54,6 +54,7 @@ internal static partial class PdfRedactionApplier {
                 fontWidthProviders,
                 new[] { Matrix2D.Identity },
                 graphicsState: null,
+                ReadPropertyAlternateText(objects, pageResources),
                 limits,
                 verticalWritingFonts,
                 extGStateFonts: extGStateFonts);
@@ -85,7 +86,7 @@ internal static partial class PdfRedactionApplier {
                 }
 
                 string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream, objects, GetMutationDecodeLimit(stream, limits, sourceStreamIdentities)));
-                string scrubbed = ScrubTextObjects(content, textTargets, fontDecoders, fontWidthProviders, new[] { Matrix2D.Identity }, limits, graphicsState, extGStateFonts, verticalWritingFonts);
+                string scrubbed = ScrubTextObjects(content, textTargets, fontDecoders, fontWidthProviders, new[] { Matrix2D.Identity }, ReadPropertyAlternateText(objects, pageResources), limits, graphicsState, extGStateFonts, verticalWritingFonts);
                 changed = ReplacePageContentStreamIfChanged(
                     objects,
                     pageDictionary,
@@ -257,11 +258,12 @@ internal static partial class PdfRedactionApplier {
         IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders,
         IReadOnlyDictionary<string, Func<byte[], double>> fontWidthProviders,
         IReadOnlyList<Matrix2D> transforms,
+        PropertyAlternateText propertyText,
         PdfReadLimits limits,
         TextScrubGraphicsState? graphicsState = null,
         IReadOnlyDictionary<string, PdfExtGStateFontSelection>? extGStateFonts = null,
         ISet<string>? verticalWritingFonts = null) {
-        TextObjectRewrite[] rewrites = FindMatchingTextObjectRewrites(content, targets, fontDecoders, fontWidthProviders, transforms, graphicsState, limits, verticalWritingFonts, extGStateFonts);
+        TextObjectRewrite[] rewrites = FindMatchingTextObjectRewrites(content, targets, fontDecoders, fontWidthProviders, transforms, graphicsState, propertyText, limits, verticalWritingFonts, extGStateFonts);
         return RewriteTextObjectSpans(content, 0, rewrites);
     }
 
@@ -272,6 +274,7 @@ internal static partial class PdfRedactionApplier {
         IReadOnlyDictionary<string, Func<byte[], double>> fontWidthProviders,
         IReadOnlyList<Matrix2D> transforms,
         TextScrubGraphicsState? graphicsState,
+        PropertyAlternateText propertyText,
         PdfReadLimits limits,
         ISet<string>? verticalWritingFonts = null,
         IReadOnlyDictionary<string, PdfExtGStateFontSelection>? extGStateFonts = null) {
@@ -317,7 +320,7 @@ internal static partial class PdfRedactionApplier {
                 return new TextObjectRewrite(span.Index, span.Length, replacement);
             })
             .ToArray();
-        return ClearAlternateTextAroundRewrites(content, rewrites, limits);
+        return ClearAlternateTextAroundRewrites(content, rewrites, propertyText, limits);
     }
 
     private static List<RedactionTextObject> CollectTextObjects(

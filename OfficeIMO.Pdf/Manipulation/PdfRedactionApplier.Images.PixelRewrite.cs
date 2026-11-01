@@ -160,7 +160,7 @@ internal static partial class PdfRedactionApplier {
             }
         }
 
-        return new ImagePixelRewriteContentResult(changed, ClearAlternateTextAroundInvocations(rewrittenContent, changedInvocations, limits));
+        return new ImagePixelRewriteContentResult(changed, ClearAlternateTextAroundInvocations(rewrittenContent, changedInvocations, ReadPropertyAlternateText(objects, resources), limits));
     }
 
     private static ImagePixelRewriteContentResult RewriteImagePixelsInForm(
