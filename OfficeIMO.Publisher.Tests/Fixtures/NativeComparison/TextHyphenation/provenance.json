@@ -1,0 +1,41 @@
+{
+  "schema": "officeimo.publisher.native-hyphenation-fixture.v1",
+  "reproduction": "New-NativeComparisonCorpus -Case TextHyphenation -OutputDirectory <empty-directory>",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "fonts": [
+    {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    }
+  ],
+  "files": [
+    {
+      "name": "native-texthyphenation.json",
+      "sha256": "17301bb1b8115bf5416e7975b0a79bc3fa45f2951015518802e2aae07dc3c11b"
+    },
+    {
+      "name": "native-texthyphenation.pdf",
+      "sha256": "5b9a36a054462b3a8776d5bf33ca0687b756309be214d6affdbeb638131bf018"
+    },
+    {
+      "name": "native-texthyphenation.pub",
+      "sha256": "50aa7ed69016d9fdcbc1b4df31bdaa708c24f60c0aa5afadd18d8f7f18888ab0"
+    }
+  ],
+  "observed": "15 independent US English frames on 15 pages: narrow-word and full-line word breaks, pair-kerning defaults and a three-frame linked story. Application options are observed without changing them.",
+  "limits": "Font binary and existing native option profile are recorded. Native dictionary breaks, pair kerning and source-versus-display hyphen transport remain separate managed implementation work. Native repair is unassessed."
+}

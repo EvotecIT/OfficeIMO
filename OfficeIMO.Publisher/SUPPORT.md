@@ -556,6 +556,16 @@ Other fonts, device resolutions, complex scripts, mixed-baseline native geometry
 language-dependent wrapping and broader frame-break equivalence require separate
 qualification. Automatic hyphenation still produces different linked-frame ranges
 in the existing long-word specimens; short-token controls do not establish that contract.
+The `TextHyphenation` reference adds 15 US English frames, including narrow words
+and a linked story. It records the existing 18 pt hyphenation zone, 14 pt automatic
+pair-kerning threshold and zero manual kerning without changing application options.
+A separate source-derived disabled control retains its false story flag after
+native resaving; all four frame ranges match the current non-hyphenating managed
+layout. Core's versioned English patterns and Publisher choose different breaks
+for some words, including `creative`. Shared automatic hyphenation, native kerning
+policy and generated-hyphen transport across frame boundaries remain open work;
+the controls do not enable those behaviors in the product. The `hyphenationReference`
+qualification record identifies the native inputs and comparison limits.
 Complete stories and source styles survive overflow; byte-exact no-op native saving
 remains independent of rendering. Native/managed pixel fidelity and repair-free
 opening are not established by this font profile.

@@ -1,0 +1,41 @@
+{
+  "schema": "officeimo.publisher.native-story-hyphenation-fixture.v1",
+  "source": "../LinkedStory/native-linkedstory.pub",
+  "sourceSha256": "ec10e028c6fea8b4ebee31200c7c9e14e18d6cc20ebcf9096aa26b5a62364000",
+  "derivation": "Source-derived counterfactual: both existing OplQsb story entries receive field4=false (type00) using shared compound/Opl primitives. Microsoft Publisher then saves and reopens the candidate. The retained file is the native-resaved output, not template-free creation.",
+  "reproduction": "Replace story-catalog field4 with the false marker in a copy of the named source, relocate Contents directory pointers, rewrite only Contents, then run Invoke-NativePublisherOperation -Operation Validate -Stage Full. Preserve source stories and other compound streams.",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "fonts": [
+    {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    }
+  ],
+  "nativeInputSha256": "f1ddb70646a717baa66f00440fd6833576c1de7d23ea809cd9c3aaa416538210",
+  "files": [
+    {
+      "name": "native-storyhyphenationdisabled.pdf",
+      "sha256": "00df6e8db072bacdaaeb423d213b683961ef11a6a5a65adaa59bee51fa3c5d6a"
+    },
+    {
+      "name": "native-storyhyphenationdisabled.pub",
+      "sha256": "f7927b6cfee3b77b60548f64161f73381273bd1acccea81e95a114932ad61ebb"
+    }
+  ],
+  "observed": "The disabled story flag survives native save. Four assigned frame ranges match the current managed non-hyphenating layout. Source text is unchanged and native initial/resaved pixels agree at144dpi.",
+  "limits": "This is a source-derived native interoperability control. It does not establish native creation, a public setting editor, managed automatic hyphenation, dictionary parity or repair-free opening."
+}
