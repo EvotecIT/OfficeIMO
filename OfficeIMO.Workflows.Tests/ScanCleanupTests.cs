@@ -97,4 +97,69 @@ public sealed class ScanCleanupTests {
             Assert.False(File.Exists(output));
         } finally { Directory.Delete(root, true); }
     }
+
+    [Theory]
+    [InlineData("user-open", PdfStandardPermissions.All, "user-open")]
+    [InlineData("user-open", PdfStandardPermissions.Print, "owner-only")]
+    [InlineData("", PdfStandardPermissions.Print, "owner-only")]
+    public async Task ProtectedSourceKeepsItsSecurityInTheRasterCopy(string userPassword, PdfStandardPermissions allowed, string suppliedPassword) {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-scan-protected-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            const string ownerPassword = "owner-only";
+            PdfStandardEncryptionOptions encryption = userPassword.Length == 0
+                ? PdfStandardEncryptionOptions.ForPermissions(ownerPassword, allowed)
+                : new PdfStandardEncryptionOptions(userPassword) { OwnerPassword = ownerPassword, AllowedPermissions = allowed };
+            byte[] source = PdfDocument.Create(compose => {
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(200)));
+            }).Security.Encrypt(encryption).Pdf;
+            string input = Path.Combine(root, "source.pdf"), output = Path.Combine(root, "cleaned.pdf");
+            await File.WriteAllBytesAsync(input, source);
+
+            OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+                Operation = OfficeWorkflowOperation.ScanCleanup, InputPath = input, OutputPath = output, PdfPassword = suppliedPassword,
+                ScanCleanup = new() { AcknowledgeRasterOutput = true, Preparation = new() { Dpi = 72 } }
+            });
+
+            Assert.True(result.Status == OfficeWorkflowStatus.Completed, result.Summary);
+            byte[] cleaned = await File.ReadAllBytesAsync(output);
+            var ownerOptions = new PdfLoadOptions { Password = ownerPassword };
+            PdfDocumentInfo owner = PdfDocument.Load(cleaned, ownerOptions).Inspect(ownerOptions);
+            Assert.True(owner.Security.HasEncryption);
+            Assert.True(owner.Security.HasOwnerAuthorization);
+            Assert.Equal(allowed, owner.Security.AllowedStandardPermissions);
+            Assert.Equal(2, owner.PageCount);
+            if (userPassword.Length > 0) {
+                Assert.Throws<PdfPasswordRequiredException>(() => PdfDocument.Load(cleaned).Inspect());
+                var userOptions = new PdfLoadOptions { Password = userPassword, PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions };
+                Assert.Equal(OfficeIMO.Pdf.PdfPasswordAuthenticationRole.User, PdfDocument.Load(cleaned, userOptions).Inspect(userOptions).Security.PasswordAuthenticationRole);
+            }
+        } finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
+    public async Task ProtectedSourceWhoseSecurityCannotBeRetainedPublishesNothing() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-scan-unretained-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            byte[] source = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300))))
+                .Security.Encrypt(new PdfStandardEncryptionOptions("user-open")).Pdf;
+            byte[] marker = System.Text.Encoding.ASCII.GetBytes("/ID");
+            int identifier = source.AsSpan().LastIndexOf(marker);
+            Assert.True(identifier > 0);
+            source[identifier + 1] = (byte)'X';
+            string input = Path.Combine(root, "source.pdf"), output = Path.Combine(root, "cleaned.pdf");
+            await File.WriteAllBytesAsync(input, source);
+
+            OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+                Operation = OfficeWorkflowOperation.ScanCleanup, InputPath = input, OutputPath = output, PdfPassword = "user-open",
+                ScanCleanup = new() { AcknowledgeRasterOutput = true, Preparation = new() { Dpi = 72 } }
+            });
+
+            Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+            Assert.Contains("retain encryption", result.Summary);
+            Assert.False(File.Exists(output));
+        } finally { Directory.Delete(root, true); }
+    }
 }

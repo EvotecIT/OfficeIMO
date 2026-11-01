@@ -248,8 +248,7 @@ public sealed partial class OfficeWorkflowRunner {
             string inputPath = await CaptureOneAsync(request.InputPath, request.InputStream, request.Limits.MaximumInputBytes, token).ConfigureAwait(false);
             string? comparisonPath = request.ComparisonPath is null ? null
                 : await CaptureOneAsync(request.ComparisonPath, request.ComparisonStream, request.Limits.MaximumInputBytes, token).ConfigureAwait(false);
-            string[]? protectedSources = request.InputStream is null && request.ComparisonStream is null && request.OutputStream is null
-                ? null : new[] { request.InputPath, request.ComparisonPath }.OfType<string>().ToArray();
+            string[] protectedSources = new[] { request.InputPath, request.ComparisonPath }.OfType<string>().ToArray();
             return request with {
                 InputPath = inputPath,
                 ComparisonPath = comparisonPath,

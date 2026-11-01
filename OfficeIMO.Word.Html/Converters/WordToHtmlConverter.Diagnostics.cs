@@ -352,6 +352,18 @@ namespace OfficeIMO.Word.Html {
             internal long OutputConstructionCharacters { get; }
         }
 
+        private static readonly HtmlUrlPolicy ExportLinkPolicy = HtmlUrlPolicy.CreateHyperlinkProfile();
+
+        // Exported HTML is opened in browsers, so a document link must not carry a script or embedded page.
+        private static bool IsExportableLink(string? href, WordHtmlExportOptions options, string source) {
+            if (string.IsNullOrEmpty(href)) return false;
+            if (HtmlUrlPolicyEvaluator.IsAllowed(href, ExportLinkPolicy)) return true;
+            AddExportDiagnostic(options, "unsafe-link-dropped",
+                source + " used a URL the HTML hyperlink policy rejects, so the link was removed and its text kept.",
+                OfficeConversionLossKind.Omission);
+            return false;
+        }
+
         private static void AddExportDiagnostic(WordHtmlExportOptions options, string code, string message, OfficeConversionLossKind lossKind) {
             options.ConversionReport.Add(
                 "OfficeIMO.Word.Html",

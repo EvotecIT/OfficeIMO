@@ -21,8 +21,9 @@ public static partial class HtmlExcelConverterExtensions {
         int rowOffset = 0;
         int semanticRowIndex = 0;
 
-        IReadOnlyDictionary<IElement, int> rowSpans = HtmlAccessibilitySemantics.ResolveTableRowSpans(EnumerateDirectTableRows(table));
-        foreach (IElement row in EnumerateDirectTableRows(table)) {
+        IReadOnlyList<IElement> tableRows = HtmlAccessibilitySemantics.EnumerateTableRows(table);
+        IReadOnlyDictionary<IElement, int> rowSpans = HtmlAccessibilitySemantics.ResolveTableRowSpans(tableRows);
+        foreach (IElement row in tableRows) {
             int rowIndex = firstRow + rowOffset;
             if (rowIndex > ExcelA1.MaxRows) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
@@ -102,7 +103,7 @@ public static partial class HtmlExcelConverterExtensions {
 
                 ReserveSpan(occupiedCells, cellRow, cellColumn, rowSpan, columnSpan);
 
-                string text = NormalizeText(cell.TextContent);
+                string text = semanticCell?.Text ?? NormalizeText(cell.TextContent);
                 ExcelCell targetCell = sheet.CellAt(cellRow, cellColumn);
                 bool stored = false;
                 bool preserveValue = false;
@@ -382,26 +383,8 @@ public static partial class HtmlExcelConverterExtensions {
         return color.Length > 0;
     }
 
-    private static IEnumerable<IElement> EnumerateDirectTableRows(IElement table) {
-        foreach (IElement child in table.Children) {
-            if (IsTableRow(child)) {
-                yield return child;
-                continue;
-            }
-
-            if (!IsElement(child, "thead") && !IsElement(child, "tbody") && !IsElement(child, "tfoot")
-                && !HtmlAccessibilitySemantics.HasRole(child, "rowgroup")) {
-                continue;
-            }
-
-            foreach (IElement row in child.Children.Where(IsTableRow)) {
-                yield return row;
-            }
-        }
-    }
-
     private static bool HasDirectTableCells(IElement table) =>
-        EnumerateDirectTableRows(table).Any(row => row.Children.Any(IsTableCell));
+        HtmlAccessibilitySemantics.EnumerateTableRows(table).Any(row => row.Children.Any(IsTableCell));
 
     private static bool IsTableRow(IElement element) =>
         IsElement(element, "tr") || HtmlAccessibilitySemantics.HasRole(element, "row");

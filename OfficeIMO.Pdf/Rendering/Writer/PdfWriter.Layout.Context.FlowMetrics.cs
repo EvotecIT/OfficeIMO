@@ -116,8 +116,9 @@ internal static partial class PdfWriter {
             if (style == null || style.KeepTogetherOverflow == PdfKeepTogetherOverflowBehavior.Reject)
                 return PdfKeepTogetherOverflowBehavior.Reject;
             int minimumLines = style.KeepTogether ? lines.Count : Math.Min(ResolveMinimumOrphanLines(style), lines.Count);
+            // Preflight of an enclosing panel runs before its render scope, so its padding is still in the reservation.
             return minimumLines > 1 && MeasureParagraphFirstLinesFrameFitHeight(lines, heights, leading, minimumLines) >
-                GetMaximumBlockContinuationHeight() + .001D ? style.KeepTogetherOverflow : PdfKeepTogetherOverflowBehavior.Reject;
+                GetMaximumBlockContinuationHeight() - imageMeasurementReservedHeight + .001D ? style.KeepTogetherOverflow : PdfKeepTogetherOverflowBehavior.Reject;
         }
 
         private (double Height, PdfKeepTogetherOverflowBehavior Overflow) MeasureParagraphFirstVisual(

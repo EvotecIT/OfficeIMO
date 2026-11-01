@@ -13,6 +13,8 @@ public sealed partial class OfficeWorkflowRunner {
             OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(input)), StringComparison.OrdinalIgnoreCase))
             throw new IOException("The source changed since scan review. Preview the current source before saving.");
         PdfDocument source = PdfDocument.Load(input, request.PdfLoadOptions);
+        // Unsupported source security stops here, before any page is rendered to an unprotected copy.
+        PdfSourceEncryptionContext? sourceProtection = PdfSourceEncryptionContext.Create(source.GetReadDocument(request.PdfLoadOptions, token), token);
         int pageCount = source.Inspect(request.PdfLoadOptions, token).PageCount;
         var preparation = settings.Preparation;
         if (settings.PageSelector is not null)
@@ -42,7 +44,8 @@ public sealed partial class OfficeWorkflowRunner {
         }
         PdfDocument result = documents.Count == 1 ? documents[0] : PdfDocument.Merge(documents, token);
         byte[] bytes = result.ToBytes();
-        if (PdfDocument.Load(bytes).Inspect(options: null, cancellationToken: token).PageCount != pages.Length)
+        if (sourceProtection != null) bytes = sourceProtection.ProtectGenerated(bytes, request.Limits.MaximumOutputBytes, token);
+        if (PdfDocument.Load(bytes, request.OutputPdfLoadOptions).Inspect(request.OutputPdfLoadOptions, token).PageCount != pages.Length)
             throw new IOException("The prepared scan page count could not be verified.");
         diagnostics.Add(new OfficeWorkflowDiagnostic("RasterScanCopy", "Saved rendered page appearances only; native text and interactive content are omitted.", OfficeWorkflowDiagnosticSeverity.Warning, "scan"));
         return new OperationArtifact(bytes, $"Created a prepared raster copy containing {pages.Length} page(s).", null);

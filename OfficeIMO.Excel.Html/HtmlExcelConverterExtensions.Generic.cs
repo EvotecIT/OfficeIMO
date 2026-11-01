@@ -92,7 +92,9 @@ public static partial class HtmlExcelConverterExtensions {
                         }
                         continue;
                     }
-                    if (TrySetCellTextValue(narrativeSheet, row, 1, section.Title, result, budget)) {
+                    // A generated title such as "Imported 1" names the section; it is not document content.
+                    if (section.TitleSource != HtmlSemanticSectionTitleSource.Generated
+                        && TrySetCellTextValue(narrativeSheet, row, 1, section.Title, result, budget)) {
                         narrativeSheet.CellAt(row, 1).SetBold();
                         narrativeSheet.CellWrapText(row, 1);
                         row++;

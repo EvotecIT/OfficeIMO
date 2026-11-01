@@ -101,6 +101,13 @@ public sealed class ConversionOptionsTests {
     }
 
     [Fact]
+    public void TextPreviewChoosesTheCanonicalRouteAmongRoutesSharingTheExtension() {
+        var preview = OfficeWorkflowRunner.PreviewDocument(Encoding.UTF8.GetBytes("Plain text preview"), "txt");
+        Assert.Single(preview.Pages);
+        Assert.NotEmpty(preview.Pages[0].Bytes!);
+    }
+
+    [Fact]
     public async Task PdfCompressionPreservesConvertedTextAndReportsVerification() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-conversion-compression-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);

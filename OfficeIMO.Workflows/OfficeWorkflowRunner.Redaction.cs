@@ -776,7 +776,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
                 OfficeWorkflowPublicationDirectory directory = OfficeWorkflowPublicationDirectory.Open(publicationPath);
                 openedDirectories.Add(directory);
                 string destination = Path.GetFileName(publicationPath);
-                string temp = "." + destination + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                string temp = ".officeimo-" + Guid.NewGuid().ToString("N") + ".tmp";
                 staged.Add((directory, temp, destination));
                 directory.WriteNew(temp, file.Bytes);
             }
@@ -789,7 +789,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
                 }
                 if (conflictPolicy != OfficePublicationPolicy.Replace)
                     throw new NotSupportedException("Redaction transaction publication requires Fail or Replace conflict policy.");
-                string backup = destination + "." + Guid.NewGuid().ToString("N") + ".rollback";
+                string backup = ".officeimo-" + Guid.NewGuid().ToString("N") + ".rollback";
                 string? movedBackup = directory.TryBackup(destination, backup) ? backup : null;
                 published.Add((directory, destination, movedBackup, false));
                 directory.MoveNoReplace(temp, destination);

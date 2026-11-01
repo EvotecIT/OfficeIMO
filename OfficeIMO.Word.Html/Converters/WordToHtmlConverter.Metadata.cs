@@ -71,7 +71,7 @@ namespace OfficeIMO.Word.Html {
 
             foreach (var (rel, href) in options.AdditionalLinkTags) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!string.IsNullOrEmpty(rel) && !string.IsNullOrEmpty(href)) {
+                if (!string.IsNullOrEmpty(rel) && IsExportableLink(href, options, "AdditionalLink")) {
                     var link = CreateOutputElement(htmlDoc, "link");
                     SetOutputAttribute(htmlDoc, link, "rel", rel, "AdditionalLink:rel");
                     SetOutputAttribute(htmlDoc, link, "href", href, "AdditionalLink:href");

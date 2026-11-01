@@ -25,6 +25,34 @@ public static partial class HtmlAccessibilitySemantics {
             || cell.LocalName.Equals("th", StringComparison.OrdinalIgnoreCase)
             || cell.HasAttribute(nativeAttribute) ? nativeAttribute : "aria-" + nativeAttribute;
 
+    /// <summary>Returns a table's rows in rendered order, whichever order its row groups were authored in.</summary>
+    internal static IReadOnlyList<IElement> EnumerateTableRows(IElement table) {
+        var header = new List<IElement>();
+        var body = new List<IElement>();
+        var footer = new List<IElement>();
+        foreach (IElement child in table.Children) {
+            if (IsTableRowElement(child)) {
+                body.Add(child);
+                continue;
+            }
+
+            List<IElement>? rows = child.LocalName.ToLowerInvariant() switch {
+                "thead" => header,
+                "tfoot" => footer,
+                "tbody" => body,
+                _ => HasRole(child, "rowgroup") ? body : null
+            };
+            rows?.AddRange(child.Children.Where(IsTableRowElement));
+        }
+
+        header.AddRange(body);
+        header.AddRange(footer);
+        return header;
+    }
+
+    private static bool IsTableRowElement(IElement element) =>
+        element.LocalName.Equals("tr", StringComparison.OrdinalIgnoreCase) || HasRole(element, "row");
+
     /// <summary>Resolves row spans in linear time, clamping them to each authored row group.</summary>
     internal static IReadOnlyDictionary<IElement, int> ResolveTableRowSpans(IEnumerable<IElement> rows) {
         var remainingByGroup = new Dictionary<IElement, int>();

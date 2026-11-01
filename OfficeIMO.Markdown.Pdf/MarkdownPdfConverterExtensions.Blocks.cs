@@ -26,7 +26,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 RenderTable(pdf, table, options, visualTheme);
                 break;
             case CodeBlock code:
-                RenderCodeBlock(pdf, code, visualTheme);
+                RenderCodeBlock(pdf, code, options, visualTheme);
                 break;
             case SemanticFencedBlock semantic:
                 RenderSemanticFencedBlock(pdf, semantic, options, visualTheme);
@@ -284,6 +284,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 style.CellFills = fills;
             }
 
+            FitTableColumns(style, 2, options);
             pdf.Table(rows, style: style);
         }
     }
@@ -313,7 +314,8 @@ public static partial class MarkdownPdfConverterExtensions {
             Background = null,
             BorderColor = null,
             BorderWidth = OfficeLength.Zero,
-            PaddingX = OfficeLength.Points(indent),
+            LeftInset = OfficeLength.Points(indent),
+            PaddingX = OfficeLength.Zero,
             PaddingY = OfficeLength.Zero,
             SpacingBefore = OfficeLength.Zero,
             SpacingAfter = OfficeLength.Points(4D)

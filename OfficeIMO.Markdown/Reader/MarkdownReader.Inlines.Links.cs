@@ -253,7 +253,8 @@ internal static partial class MarkdownReader {
                 out _,
                 out _,
                 out _,
-                inlineHtmlWrapperMatches)) {
+                inlineHtmlWrapperMatches,
+                checkNestedLinks: false)) {
                 return true;
             }
 
@@ -336,7 +337,8 @@ internal static partial class MarkdownReader {
         out int hrefLength,
         out int? titleStart,
         out int? titleLength,
-        InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null) {
+        InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null,
+        bool checkNestedLinks = true) {
         consumed = 0; label = href = string.Empty; title = null;
         hrefStart = 0; hrefLength = 0; titleStart = null; titleLength = null;
         if (start >= text.Length || text[start] != '[') return false;
@@ -347,7 +349,9 @@ internal static partial class MarkdownReader {
         int parenClose = FindMatchingParen(text, parenOpen);
         if (parenClose < 0) return false;
         label = text.Substring(start + 1, labelEnd - (start + 1));
-        if (ContainsResolvedLinkInLabel(label, options, state)) return false;
+        // The label scan visits every inner bracket, so an inner candidate needs no scan of its own:
+        // any link it contains is also found directly. Rescanning would be exponential in the depth.
+        if (checkNestedLinks && ContainsResolvedLinkInLabel(label, options, state)) return false;
 
         string inner = text.Substring(parenOpen + 1, parenClose - (parenOpen + 1));
         if (!TrySplitUrlAndOptionalTitle(

@@ -107,9 +107,12 @@ public static partial class HtmlExcelConverterExtensions {
             preserveValue = true;
             return true;
         } else if (kind.Equals("error", StringComparison.OrdinalIgnoreCase)) {
-            sheet.CellError(row, column, rawValue!);
-            preserveValue = true;
-            return true;
+            if (ExcelErrorCode.IsLiteral(rawValue)) {
+                sheet.CellError(row, column, rawValue!);
+                preserveValue = true;
+                return true;
+            }
+            AddInvalidCellValueDiagnostic(row, column, "error", result);
         }
 
         return TrySetCellTextValue(sheet, row, column, fallbackText, result, budget);

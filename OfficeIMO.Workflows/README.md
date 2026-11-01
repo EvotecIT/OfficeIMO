@@ -132,7 +132,7 @@ var html = await OfficeConverter.ConvertAsync(
     cancellationToken: cancellationToken);
 ```
 
-`Word`, `Excel`, `PowerPoint`, `Html`, `Markdown` and `PlainText` accept their owning adapter's typed options. `OfficeWorkflowRouteSettings` supplies RTF, Draw, Visio, XPS and other Tier 2 settings. A mixed batch selects the settings applicable to each route. Explicit renderer options take precedence over the cross-format `OutputProfile`. For ambiguous source extensions, use `RouteId = "html-pdf"` on single conversion options or `ConversionRouteId` on the batch; TXT otherwise remains literal text. Encrypted Office inputs use `ConversionOptions.SourcePassword`; PDF inputs use `PdfLoad.Password`. Passwords remain runtime inputs and are not stored in checkpoints.
+`Word`, `Excel`, `PowerPoint`, `Html`, `Markdown` and `PlainText` accept their owning adapter's typed options. `OfficeWorkflowRouteSettings` supplies RTF, Draw, Visio, XPS and other Tier 2 settings. A mixed batch selects the settings applicable to each route. Explicit renderer options take precedence over the cross-format `OutputProfile`. For ambiguous source extensions, use `RouteId = "html-pdf"` on single conversion options or `ConversionRouteId` on the batch; TXT otherwise remains literal text. Encrypted Office inputs use `ConversionOptions.SourcePassword`; PDF inputs use `PdfLoad.Password`. Passwords remain runtime inputs and are not stored in checkpoints. Receipts record only a slow derivation of the rendering settings, keyed by a random salt in the checkpoint manifest, so a checkpoint offers no cheap password check.
 
 Draw conversion uses original page sizes and print-visible layers, including blank pages. `OfficeWorkflowRouteSettings.Draw` accepts the [owning converter settings](../OfficeIMO.OpenDocument.Odg.Pdf/README.md). Its `ConversionEvidence` contains page-qualified source projection losses and PDF save-time diagnostics; successful publication does not mean lossless drawing fidelity. Set `OfficeConversionOptions.FailOnLoss` to reject source and PDF-stage losses before publication. Rejections retain both stages' diagnostics and preserve existing destinations.
 
@@ -152,7 +152,7 @@ OfficeConversionReport diagram = await OfficeConverter.ConvertAsync("drawing.vdx
     });
 ```
 
-`OfficeWorkflowLimits.MaximumXmlCharactersInPart` bounds each XML part read by built-in DOCX, XLSX, PPTX, Draw and Visio conversions, including Office inputs normalized during PDF assembly. For VDX and VTX it bounds the complete XML source. Its default is 10 MiB. `OfficeBatchOptions` exposes the same setting per document; both APIs capture it before asynchronous source access.
+`OfficeOperationLimits.MaximumXmlCharactersInPart` bounds each XML part read by built-in DOCX, XLSX, PPTX, Draw and Visio conversions, including Office inputs normalized during PDF assembly. For VDX and VTX it bounds the complete XML source. Its default is 10 MiB. `OfficeBatchOptions` exposes the same setting per document; both APIs capture it before asynchronous source access.
 
 Both `.xps` and `.oxps` select `xps-pdf`, using the native fixed-page reader and
 PDF bridge. Single conversion, batches, PDF assembly and document preview share

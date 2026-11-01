@@ -2,7 +2,7 @@ using OfficeIMO.Pdf.Ocr;
 
 namespace OfficeIMO.Workflows;
 
-/// <summary>Creates a separate raster-only PDF from selected, prepared scan pages.</summary>
+/// <summary>Creates a separate raster-only PDF from selected, prepared scan pages. An encrypted source keeps its passwords, permissions and encryption settings.</summary>
 public sealed class OfficeScanCleanupOptions {
     /// <summary>Page selection, sampling density, region cropping, perspective, and tonal settings.</summary>
     public PdfOcrMergeOptions Preparation { get; set; } = new();

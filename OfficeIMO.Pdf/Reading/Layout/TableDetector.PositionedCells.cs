@@ -209,6 +209,9 @@ internal static partial class TableDetector {
                 consumeWork,
                 cancellationCheck);
             if (bodyLines.Count == 0) return;
+            List<List<TextLayoutEngine.TextLine>> sparseRows = centeredAnchors.Contains(anchorIndex)
+                ? new List<List<TextLayoutEngine.TextLine>>()
+                : TakeSparseRowsBelowAnchor(bodyLines, anchors[anchorIndex].Row.Y, rowPitch);
             (string[] Row, TextLayoutEngine.TextLine Source) = MergeWrappedCellLines(
                 bodyLines,
                 splits,
@@ -218,6 +221,15 @@ internal static partial class TableDetector {
             table.Rows.Add(Row);
             sourceLines.Add(Source);
             sourceRuns.AddRange(Source.Spans);
+            foreach (List<TextLayoutEngine.TextLine> sparseRow in sparseRows) {
+                (string[] SparseCells, TextLayoutEngine.TextLine SparseSource) = MergeWrappedCellLines(
+                    sparseRow,
+                    splits,
+                    sparseRow[0].Y);
+                table.Rows.Add(SparseCells);
+                sourceLines.Add(SparseSource);
+                sourceRuns.AddRange(SparseSource.Spans);
+            }
         }
 
         AppendTrailingPartialNumericRows(
@@ -239,6 +251,35 @@ internal static partial class TableDetector {
             result.Any(existing => IsSubsumedByPositionedTable(table, existing, consumeWork, cancellationCheck))) return;
         result.RemoveAll(existing => IsSubsumedByPositionedTable(existing, table, consumeWork, cancellationCheck));
         result.Add(table);
+    }
+
+    /// <summary>
+    /// Removes from <paramref name="bodyLines"/> the lines that start a sparse row of their own. A wrapped cell line
+    /// sits a line height below the text above it, whereas a row that leaves the anchor columns empty sits a full
+    /// row pitch below. Lines under such a row stay with it as its own wrapped text.
+    /// </summary>
+    private static List<List<TextLayoutEngine.TextLine>> TakeSparseRowsBelowAnchor(
+        List<TextLayoutEngine.TextLine> bodyLines,
+        double anchorY,
+        double rowPitch) {
+        var sparseRows = new List<List<TextLayoutEngine.TextLine>>();
+        double fontSize = bodyLines.SelectMany(static line => line.Spans).Select(static span => span.FontSize).DefaultIfEmpty(10D).Max();
+        double rowGap = Math.Max(rowPitch * 0.9D, fontSize * 1.6D);
+        double previousY = anchorY;
+        for (int index = 0; index < bodyLines.Count;) {
+            TextLayoutEngine.TextLine line = bodyLines[index];
+            if (line.Y < previousY && previousY - line.Y >= rowGap) {
+                sparseRows.Add(new List<TextLayoutEngine.TextLine> { line });
+                bodyLines.RemoveAt(index);
+            } else if (sparseRows.Count > 0) {
+                sparseRows[sparseRows.Count - 1].Add(line);
+                bodyLines.RemoveAt(index);
+            } else {
+                index++;
+            }
+            previousY = Math.Min(previousY, line.Y);
+        }
+        return sparseRows;
     }
 
     private static void AppendTrailingPartialNumericRows(

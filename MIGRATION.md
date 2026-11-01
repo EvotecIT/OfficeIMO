@@ -31,6 +31,9 @@ For .NET code:
 - **Conversions** are called on the source: `SaveAs{Target}(path or stream)` writes the file and returns `OfficeConversionReport`; `To{Target}()` returns the target model. The throwing and `...Result` pairs merge. `OfficeConverter` is the entry point for file-to-file and batch work.
 - **Units and colors.** Geometry takes `OfficeLength` (`OfficeLength.Centimeters(2.5)`, `OfficeLength.Parse("12pt")`) instead of raw EMUs, twips or unit-suffixed parameters. `OfficeColor` is the only color type and moves to the `OfficeIMO` namespace.
 - **Packages.** Format packages no longer carry other format engines, and `OfficeIMO.Word.Pdf` and `OfficeIMO.PowerPoint.Pdf` change direction. See [.NET packages](#net-packages).
+- **Conversion limits.** Lists deeper than `MarkdownLoadOptions.MaxNestingDepth` (default 64) now throw `InvalidDataException`; raise the option if you parse deeper lists. `WordHtmlExportOptions.AdditionalLinkTags` now follow the hyperlink URL policy, so `file:` and `data:` entries such as an embedded favicon are dropped with an `unsafe-link-dropped` diagnostic; serve them over `https:` or add them to the page after export.
+- **Conversion checkpoints.** Checkpoints written before 3.6 can no longer be resumed: `ConvertAsync` rejects them with `InvalidDataException`. Start the job with a new `ResumeFrom` manifest and a new output folder.
+- **Renames in option and inspection types.** `OfficeWorkflowLimits` is now `OfficeOperationLimits` with the same properties, and `ExcelDocument.CreateInspectionSnapshot` is now `ExcelDocument.Inspect`, which takes `ExcelReaderOptions` and returns `ExcelWorkbookInfo`.
 
 ### Common jobs
 

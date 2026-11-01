@@ -7,6 +7,12 @@ namespace OfficeIMO.Html;
 
 /// <summary>Builds the canonical typed semantic document consumed by generic target adapters.</summary>
 internal static class HtmlSemanticDocumentBuilder {
+    private static readonly HashSet<string> BlockBoundaryElements = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+        "address", "article", "aside", "blockquote", "caption", "center", "dd", "details", "dialog", "div", "dl", "dt",
+        "fieldset", "figcaption", "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hgroup",
+        "hr", "li", "main", "menu", "nav", "ol", "p", "pre", "search", "section", "summary", "table", "td", "th", "tr", "ul"
+    };
+
     internal static HtmlSemanticDocument FromDocument(
         IHtmlDocument document,
         HtmlCssMediaContext mediaContext,
@@ -16,6 +22,7 @@ internal static class HtmlSemanticDocumentBuilder {
 
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles =
             HtmlComputedStyleEngine.Compute(document, mediaContext, limits);
+        (document, styles) = RemoveHiddenElements(document, styles);
         var sections = new List<HtmlSemanticSection>();
         var resources = new List<HtmlSemanticResource>();
         foreach (HtmlGenericSectionProjection projection in HtmlGenericDocumentProjector.CreateSections(document)) {
@@ -60,6 +67,36 @@ internal static class HtmlSemanticDocumentBuilder {
             rootTables.AsReadOnly(),
             resourceOccurrences,
             DeduplicateResources(resources));
+    }
+
+    // Adapters read both the semantic blocks and their source elements, so hidden content has to leave the
+    // document they share. Removal runs on a copy, keeping the cascade computed for the authored tree.
+    private static (IHtmlDocument Document, IReadOnlyDictionary<IElement, HtmlComputedStyle> Styles) RemoveHiddenElements(
+        IHtmlDocument document,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        List<IElement> elements = document.All.ToList();
+        if (!elements.Any(element => IsHidden(element, document, styles))) return (document, styles);
+
+        IHtmlDocument visible = HtmlDocumentParser.CloneDocument(document);
+        List<IElement> copies = visible.All.ToList();
+        var visibleStyles = new Dictionary<IElement, HtmlComputedStyle>(styles.Count);
+        var hidden = new List<IElement>();
+        for (int index = 0; index < elements.Count; index++) {
+            if (styles.TryGetValue(elements[index], out HtmlComputedStyle? style)) visibleStyles[copies[index]] = style;
+            if (IsHidden(elements[index], document, styles)) hidden.Add(copies[index]);
+        }
+        foreach (IElement element in hidden) element.Remove();
+        return (visible, visibleStyles);
+    }
+
+    private static bool IsHidden(IElement element, IHtmlDocument document, IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        if (HtmlGenericDocumentProjector.IsIgnoredElement(element) || document.Body?.Contains(element) != true) return false;
+        styles.TryGetValue(element, out HtmlComputedStyle? style);
+        string display = (style?.GetValue("display") ?? string.Empty).Trim();
+        if (display.Equals("none", StringComparison.OrdinalIgnoreCase)) return true;
+        return element.HasAttribute("hidden")
+            && !string.Equals(element.GetAttribute("hidden")?.Trim(), "until-found", StringComparison.OrdinalIgnoreCase)
+            && (style == null || !(style.IsSpecifiedValue("display") || style.IsInheritedValue("display")));
     }
 
     private static HtmlSemanticBlock BuildBlock(
@@ -191,8 +228,9 @@ internal static class HtmlSemanticDocumentBuilder {
         string title) {
         var rows = new List<HtmlSemanticTableRow>();
         int sourceRowIndex = 0;
-        IReadOnlyDictionary<IElement, int> rowSpans = HtmlAccessibilitySemantics.ResolveTableRowSpans(DirectRows(table));
-        foreach (IElement rowElement in DirectRows(table)) {
+        IReadOnlyList<IElement> tableRows = HtmlAccessibilitySemantics.EnumerateTableRows(table);
+        IReadOnlyDictionary<IElement, int> rowSpans = HtmlAccessibilitySemantics.ResolveTableRowSpans(tableRows);
+        foreach (IElement rowElement in tableRows) {
             var cells = new List<HtmlSemanticTableCell>();
             foreach (IElement cell in rowElement.Children.Where(IsTableCell)) {
                 styles.TryGetValue(cell, out HtmlComputedStyle? style);
@@ -226,7 +264,8 @@ internal static class HtmlSemanticDocumentBuilder {
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
         bool skipNestedLists = false) {
         var runs = new List<HtmlSemanticRun>();
-        AppendRuns(element, styles, runs, default, skipNestedLists, isRoot: true);
+        bool pendingBlockBreak = false;
+        AppendRuns(element, styles, runs, default, skipNestedLists, ref pendingBlockBreak, isRoot: true);
         styles.TryGetValue(element, out HtmlComputedStyle? rootStyle);
         string whiteSpace = (rootStyle?.GetValue("white-space") ?? string.Empty).Trim().ToLowerInvariant();
         bool preserve = Is(element, "pre") || whiteSpace == "pre" || whiteSpace == "pre-wrap" || whiteSpace == "break-spaces";
@@ -240,9 +279,16 @@ internal static class HtmlSemanticDocumentBuilder {
         ICollection<HtmlSemanticRun> runs,
         InlineState state,
         bool skipNestedLists,
+        ref bool pendingBlockBreak,
         bool isRoot = false) {
         if (node is IText text) {
             if (text.Data.Length == 0) return;
+            if (pendingBlockBreak) {
+                // Whitespace between blocks is markup formatting, not content.
+                if (string.IsNullOrWhiteSpace(text.Data)) return;
+                pendingBlockBreak = false;
+                if (runs.Count > 0) runs.Add(CreateLineBreakRun(state, state.Location));
+            }
             runs.Add(new HtmlSemanticRun(text.Data, state.Hyperlink, state.Bold, state.Italic,
                 state.Underline, state.UnderlineStyle, state.Strikethrough, state.StrikethroughStyle,
                 state.Superscript, state.Subscript,
@@ -253,19 +299,26 @@ internal static class HtmlSemanticDocumentBuilder {
         if (!isRoot && HtmlGenericDocumentProjector.IsIgnoredElement(element)) return;
         if (!isRoot && skipNestedLists && (Is(element, "ul") || Is(element, "ol") || Is(element, "dl"))) return;
         if (Is(element, "br")) {
-            runs.Add(new HtmlSemanticRun("\n", state.Hyperlink, state.Bold, state.Italic,
-                state.Underline, state.UnderlineStyle, state.Strikethrough, state.StrikethroughStyle,
-                state.Superscript, state.Subscript,
-                state.Style, HtmlSemanticSourceLocation.FromElement(element), isLineBreak: true, state.DataAttributes, state.BackgroundColor));
+            pendingBlockBreak = false;
+            runs.Add(CreateLineBreakRun(state, HtmlSemanticSourceLocation.FromElement(element)));
             return;
         }
 
+        bool isBlock = !isRoot && BlockBoundaryElements.Contains(element.LocalName);
+        pendingBlockBreak |= isBlock;
         styles.TryGetValue(element, out HtmlComputedStyle? style);
         InlineState nested = state.With(element, style, HtmlSemanticSourceLocation.FromElement(element));
         foreach (INode child in element.ChildNodes) {
-            AppendRuns(child, styles, runs, nested, skipNestedLists);
+            AppendRuns(child, styles, runs, nested, skipNestedLists, ref pendingBlockBreak);
         }
+        pendingBlockBreak |= isBlock;
     }
+
+    private static HtmlSemanticRun CreateLineBreakRun(InlineState state, HtmlSemanticSourceLocation? location) =>
+        new HtmlSemanticRun("\n", state.Hyperlink, state.Bold, state.Italic,
+            state.Underline, state.UnderlineStyle, state.Strikethrough, state.StrikethroughStyle,
+            state.Superscript, state.Subscript,
+            state.Style, location, isLineBreak: true, state.DataAttributes, state.BackgroundColor);
 
     private static HtmlSemanticRun CopyRun(HtmlSemanticRun run, string text) =>
         new HtmlSemanticRun(text, run.Hyperlink, run.Bold, run.Italic, run.Underline, run.UnderlineStyle,
@@ -536,19 +589,6 @@ internal static class HtmlSemanticDocumentBuilder {
         HtmlIntegerSemantics.TryParsePositiveInteger(element.GetAttribute(attribute), out int value)
             ? value
             : 1;
-
-    private static IEnumerable<IElement> DirectRows(IElement table) {
-        foreach (IElement child in table.Children) {
-            if (IsTableRow(child)) yield return child;
-            else if (Is(child, "thead") || Is(child, "tbody") || Is(child, "tfoot")
-                || HtmlAccessibilitySemantics.HasRole(child, "rowgroup")) {
-                foreach (IElement row in child.Children.Where(IsTableRow)) yield return row;
-            }
-        }
-    }
-
-    private static bool IsTableRow(IElement element) =>
-        Is(element, "tr") || HtmlAccessibilitySemantics.HasRole(element, "row");
 
     private static bool IsTableCell(IElement element) =>
         Is(element, "th") || Is(element, "td")

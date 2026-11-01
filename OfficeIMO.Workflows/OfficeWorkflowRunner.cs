@@ -101,9 +101,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             Directory.CreateDirectory(outputDirectory);
             if (validated.OutputStream is null && stagingGuard is not null)
                 await stagingGuard.EnsureStagingDirectoryAllowedAsync(outputDirectory, cancellationToken).ConfigureAwait(false);
-            stagingPath = Path.Combine(
-                outputDirectory,
-                "." + Path.GetFileName(validated.OutputStream?.Name ?? validated.OutputPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+            stagingPath = Path.Combine(outputDirectory, ".officeimo-" + Guid.NewGuid().ToString("N") + ".tmp");
             await OfficeRuntimeCompatibility.WriteAllBytesAsync(stagingPath, artifact.Bytes, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -590,10 +588,15 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     cancellationToken: cancellationToken).ConfigureAwait(false)) { }
                 break;
             case ".html":
+                // The output byte limit bounds this artifact. Ingestion size budgets would reject valid large output.
+                HtmlConversionLimits htmlLimits = HtmlConversionLimits.CreateUntrustedProfile();
+                htmlLimits.MaxInputCharacters = (int)Math.Min(loadOptions.Limits.MaxInputBytes, int.MaxValue);
+                htmlLimits.MaxHtmlNodes = null;
                 _ = await HtmlConversionDocument.LoadAsync(
                     stagingPath,
-                    encoding: Encoding.UTF8,
-                    cancellationToken: cancellationToken).ConfigureAwait(false);
+                    new HtmlConversionDocumentOptions { Limits = htmlLimits },
+                    Encoding.UTF8,
+                    cancellationToken).ConfigureAwait(false);
                 break;
             case ".md":
                 using (FileStream stream = OpenStagedArtifact(stagingPath)) {
