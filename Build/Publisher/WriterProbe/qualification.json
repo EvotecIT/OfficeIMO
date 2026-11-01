@@ -23476,5 +23476,375 @@
       "Requested terminal CR does not establish the saved empty-paragraph count; complete native stories and their source formatting remain authoritative.",
       "Native Full operations and resave stability do not establish repair-free opening, generic public native creation or legacy-generation coverage."
     ]
+  },
+  "fontLineGeometry": {
+    "sourceCommit": "9a0e42f5a97ca2c61ad7350d00a097f0dcd24720",
+    "scope": "Shared Publisher paragraph PDF-reference font geometry and scoped-font flow/render transport; no generic native-writer promotion.",
+    "reference": {
+      "pointsPerPixel": 0.12,
+      "dpi": 600,
+      "sampling": "Managed VDMX or scaled Windows ascent; selected design content extent remains independent of device glyph extent.",
+      "metricSelection": "Recognized non-kerning Latin default-language GSUB/GPOS features select OS/2 typo ascent, positive gap and descent; otherwise Windows design metrics.",
+      "ordinaryCoreWordCssDefaultsChanged": false
+    },
+    "contracts": [
+      "Content extent controls terminal fitting and alignment; line advance remains between lines.",
+      "Full line advance and paragraph-after spacing precede following text.",
+      "Complete stories, source ranges, typing styles, labels, placement copies and overflow remain distinct.",
+      "PublisherReadOptions.Fonts clones scoped resources, retained drawings preserve them, and Publisher.Pdf overlays the existing PDF rendering profile.",
+      "Fallback metrics use the same selected font runs as width and paint, including output-scale normalization."
+    ],
+    "fixtures": [
+      {
+        "directory": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFontMetrics",
+        "provenanceSha256": "9ce9a7734a43cbfb3696c9aa2d16d86de1f2280cda8249a754ff0d3721542d02",
+        "files": [
+          {
+            "name": "native-textfontmetrics.json",
+            "sha256": "9812321703eb259d5c6408cb17830078bd7d2492f3752656468a4f84d961266a"
+          },
+          {
+            "name": "native-textfontmetrics.pdf",
+            "sha256": "cd2e3bd640892f4d5f1e524bac56df6b07fdec83ca24c8de7ab6047c29e78b33"
+          },
+          {
+            "name": "native-textfontmetrics.pub",
+            "sha256": "a178081c386acd1e8dcd7b8d26621f276d89c078e77f1d40d6fdac683de535c6"
+          }
+        ]
+      },
+      {
+        "directory": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFallbackAlignment",
+        "provenanceSha256": "1519d62b1447f284ef0ca435fe07fbad6a1f25e2ececfccf0ea24286c12d55d3",
+        "files": [
+          {
+            "name": "native-textfallbackalignment.json",
+            "sha256": "28b363b3a7813c36e4302bad133ff04f1ceff6722a65dada858e71bdf12b3adb"
+          },
+          {
+            "name": "native-textfallbackalignment.pdf",
+            "sha256": "b4fb90e5a9e81551022f97ef4d00d0038414aed90732e55aa9eccc6e53e5bc85"
+          },
+          {
+            "name": "native-textfallbackalignment.pub",
+            "sha256": "8d4a431038363d7807561adf463619d3adc6780842ea3ed5c287b99072fdbb3f"
+          }
+        ]
+      },
+      {
+        "directory": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextVerticalPlacement",
+        "provenanceSha256": "3e1a5eda66a1fe87e9997f82873c5942c37689cd4601f347ffdfe7e040d407fa",
+        "files": [
+          {
+            "name": "native-textverticalplacement.json",
+            "sha256": "a736b62ff864e78537cd9b8dfd6b9079009c54cf129fb18b96d44077ca445594"
+          },
+          {
+            "name": "native-textverticalplacement.pdf",
+            "sha256": "d7d6141fb768b1ed170193b8110c91b1576d9071fe5938cdac170e9335ad9ee3"
+          },
+          {
+            "name": "native-textverticalplacement.pub",
+            "sha256": "d6a42c0c52313d867c8d5c16b26bbcfef0cb6a3f544b833a8812c4d68eed3e50"
+          }
+        ]
+      }
+    ],
+    "managedReference": {
+      "profiles": 80,
+      "producerPages": 28,
+      "coordinateComparisonsIncludingNativeNormalizedInputs": 241,
+      "comparedPagesIncludingNativeNormalizedInputs": 48,
+      "maximumHorizontalErrorPoints": 2.6702880859375e-05,
+      "maximumBaselineErrorPoints": 0.15899658203125,
+      "matchedFontsRequired": true,
+      "cases": [
+        {
+          "case": "arial-alignment",
+          "pages": 8,
+          "spans": 33,
+          "nativeSha256": "d7d6141fb768b1ed170193b8110c91b1576d9071fe5938cdac170e9335ad9ee3",
+          "managedSha256": "b5cad46b9f02035ed20af3f9c0adaa7a9486153cf88aab1ff400151323744a80",
+          "maxX": 2.288818359375e-05,
+          "maxY": 0.11895751953125
+        },
+        {
+          "case": "TextFallbackAlignment-normalized",
+          "pages": 4,
+          "spans": 12,
+          "nativeSha256": "ab7a0e0d4b3924e9e857160af3c674de741672607c2fa5422eb29fa8505911c2",
+          "managedSha256": "7ea580bb4d90e2e697d0d7f1f08794c2fb77a9483b3a08ebe89b4fb0b03e6c74",
+          "maxX": 1.52587890625e-05,
+          "maxY": 0.15899658203125
+        },
+        {
+          "case": "TextFallbackAlignment-producer",
+          "pages": 4,
+          "spans": 12,
+          "nativeSha256": "b4fb90e5a9e81551022f97ef4d00d0038414aed90732e55aa9eccc6e53e5bc85",
+          "managedSha256": "7ea580bb4d90e2e697d0d7f1f08794c2fb77a9483b3a08ebe89b4fb0b03e6c74",
+          "maxX": 1.52587890625e-05,
+          "maxY": 0.15899658203125
+        },
+        {
+          "case": "TextFontMetrics-normalized",
+          "pages": 16,
+          "spans": 92,
+          "nativeSha256": "b174f3b6eb23b0a914f7e422dc05c3b6bfa322c3a5a3e6f9dfbe7135504c57e7",
+          "managedSha256": "b8abd0f1416b8101d2aa7e5d04f23add88021b9a20cf8520fc59e7d2419d5e0f",
+          "maxX": 2.6702880859375e-05,
+          "maxY": 0.1529541015625
+        },
+        {
+          "case": "TextFontMetrics-producer",
+          "pages": 16,
+          "spans": 92,
+          "nativeSha256": "cd2e3bd640892f4d5f1e524bac56df6b07fdec83ca24c8de7ab6047c29e78b33",
+          "managedSha256": "b8abd0f1416b8101d2aa7e5d04f23add88021b9a20cf8520fc59e7d2419d5e0f",
+          "maxX": 2.6702880859375e-05,
+          "maxY": 0.1529541015625
+        }
+      ]
+    },
+    "nativeReferenceStability": {
+      "inputs": 2,
+      "qualifiedOperations": 14,
+      "pages": 20,
+      "producerInitialAndInitialResavedPixelPairs": 40,
+      "dpi": 144,
+      "allEqual": true,
+      "sourceUnchanged": true
+    },
+    "preservation": {
+      "priorSourceFreeNativeSpecimensByteIdentical": 30,
+      "priorPublicSourceSavesByteIdentical": 19,
+      "corpusWorkingGitAndProvenancePayloadHashesVerified": 204
+    },
+    "validation": {
+      "publisher": {
+        "net10.0": 963,
+        "net8.0": 963,
+        "net472": 963
+      },
+      "drawing": {
+        "net10.0": 6263,
+        "net8.0": 6263,
+        "net472": 6235
+      },
+      "existingNotExecutedDrawingCasesPerFramework": 5,
+      "readerPublisherNet10": 95,
+      "netstandard20PublisherPdfAndReaderPublisherBuilds": "Passed unsigned",
+      "sourcePowerShell": {
+        "runtime": "7.6.9",
+        "files": 3,
+        "pages": 28,
+        "directManagedEqualPixelPairsAt144Dpi": 28,
+        "coreSourceOwnerBound": true
+      },
+      "nativeScriptsParseOnly": {
+        "PowerShell7": "7.6.9",
+        "WindowsPowerShell": "5.1.26100.9711",
+        "files": 5,
+        "nativeComQualificationOnWindowsPowerShell51": false
+      },
+      "focusedRegressions": [
+        "SelectedFontControlsContentExtentAndIndependentReferenceBaseline",
+        "TerminalContentFitsWithoutItsUnusedAdvanceAndFlowRetainsTheNextLine",
+        "FollowingParagraphStillRequiresFullAdvanceAndAfterSpacing",
+        "OrdinaryParagraphKeepsGenericGeometryWithTheSameScopedFont",
+        "EmptyNativeParagraphRetainsItsTypingFontAndContentHeight",
+        "LabelTypingStyleAndScaledIntrinsicPlacementKeepResolvedGeometry",
+        "FallbackFacesShareTheWidthPaintAndFlowGeometry",
+        "Scoped_fonts_survive_options_cloning_projection_and_pdf_export"
+      ]
+    },
+    "review": {
+      "remainingActionableFindings": 0,
+      "fallbackMetricSelectionRegression": "Both complementary-range and complete-fallback cases fail before the fix and pass after it. Public flow and PDF/SVG transport agree on the source range and shared baseline.",
+      "nativeMixedFaceAppearanceQualified": false
+    },
+    "limits": [
+      "Other font binaries, resolutions, complex scripts and native mixed-baseline geometry remain unqualified.",
+      "Native frame-break, balancing and wrapping equivalence require separate controls.",
+      "No native-managed pixel-parity or repair-free-opening claim."
+    ],
+    "sourceFiles": [
+      {
+        "path": "Build/Publisher/Add-NativeFallbackAlignmentControl.ps1",
+        "sha256": "79baae0e8c9132ad80074dbef585d41e3076b89f132be04afc492d3d95a56fb9"
+      },
+      {
+        "path": "Build/Publisher/Add-NativeFontMetricControl.ps1",
+        "sha256": "9b43ba1c1bb69fd119b3093f80eac24ce0414c2502267a15c2e586a94cd60a7b"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "sha256": "ee5ea9ca6b7cfa073f563a761391518ede1b8e5f796ab66f514142f02ea0b3a7"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+        "sha256": "b25a5cb2b93eecb5373489ef37b64750b7cf0b5634389a2ac93ba27cddd46941"
+      },
+      {
+        "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+        "sha256": "5f0517ca5e9aa10c8dd31c2152318c2034d185f998fe6c6b7b32d6e2dc04dcdb"
+      },
+      {
+        "path": "Docs/ROADMAP.md",
+        "sha256": "7821b582e170acb25d40618c460b1706972bafe58145a33cd23cdaeda483d899"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawing.ColorTint.cs",
+        "sha256": "ae0ee577a6e9925df92d0336c615b165ff724df419c5029aec17fe5f06449ffb"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.Labels.cs",
+        "sha256": "145f466c78b9502190bcb95659073913197e7e492ea19c74f775207cb818ce4a"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.Paragraphs.cs",
+        "sha256": "a829b80dd717a9d21b907f2127b4279e8e84c70a4c4c732a89b97943b3c73946"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.Projection.cs",
+        "sha256": "f8742a3a353d5df52b834d20be7f81d6a16081695dee9ab1591a31ff39f484c7"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.Publisher.cs",
+        "sha256": "90b4474ee76db981fc5d9125af6153f482a5f27aaff4b5162da8c648ade34161"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.Sizing.cs",
+        "sha256": "c84c8f9a7579576aa2d2b736567a73f18b63d195af51e7adc5373b67bc41fa3c"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.TextArea.cs",
+        "sha256": "86ad7be57b2bff40020116eb41a45a17f8ce163ed4c6e194a0b47fb83224bd4e"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.cs",
+        "sha256": "e9fd5bec4c53032444bb7c5e6a9f60df09b5020f21fba46fa327c6ad29303fb0"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextMetrics.cs",
+        "sha256": "d2e050088ae5082678c9b0dddcc2c8d77b90aaf88b0f6b68e7f5a261b02dd135"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeOpenTypeLayoutFeatures.cs",
+        "sha256": "9276459acaa65d3be764fde3c611f0ff9bd4abfd6debf4e73c74c1380c5225b2"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeOpenTypeSubstitution.LatinDefaults.cs",
+        "sha256": "b1160fabea6e6ff28682e508ab17b23aa561e9a7a7ae4d8557261754fd0385d6"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficePublisherFontMetrics.cs",
+        "sha256": "62135821dccc691bff0bac7b16953723fbac7a9bfaed7fc543b95ce0e9655f08"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextFlow.cs",
+        "sha256": "8f48dcb584d96897898f4f217343133ba96b2c2cb6d952300c92a2dbc761c205"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextLine.cs",
+        "sha256": "8d8886fade3d45d912e72672e4fc309ade9a131874136d928efa212c170e17f7"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextParagraph.cs",
+        "sha256": "f7819cb2342e5c7ce4c6c99d0888583326ff5ca3acd47f8f6b25760e6fbef600"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextBlockRenderer.cs",
+        "sha256": "750b5f4318af71f94d4587e7136c697452bb1a933d60572e9fa7b0b856a44ffd"
+      },
+      {
+        "path": "OfficeIMO.Core/Raster/OfficeRasterCanvas.PublisherMetrics.cs",
+        "sha256": "1cf6007f883a64e27319cb8a3f973f73b1fef40397fc9a4f457816042d34aa7c"
+      },
+      {
+        "path": "OfficeIMO.Drawing.Tests/Drawing.RichText.PublisherMetrics.cs",
+        "sha256": "8a91c0a3e8f32dc8e1527138853c8c6103583621e9d215a5086cd0aae4e6cb87"
+      },
+      {
+        "path": "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.DrawingTextMetrics.cs",
+        "sha256": "91cffa200bf1d0711c8c3fcf3b1169d1debda744da608c1019a311a3e1b03739"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Pdf/PublisherPdfConversionExtensions.cs",
+        "sha256": "6c85756ae562b9a793f609e8f5258beec51acf28d9791942b3406bb9eed89910"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Pdf/README.md",
+        "sha256": "a9dd7de23f18eebac31ed511dd3f4ef796419af504f9cf4f33e2de37fa9311f3"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFallbackAlignment/native-textfallbackalignment.json",
+        "sha256": "28b363b3a7813c36e4302bad133ff04f1ceff6722a65dada858e71bdf12b3adb"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFallbackAlignment/native-textfallbackalignment.pdf",
+        "sha256": "b4fb90e5a9e81551022f97ef4d00d0038414aed90732e55aa9eccc6e53e5bc85"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFallbackAlignment/native-textfallbackalignment.pub",
+        "sha256": "8d4a431038363d7807561adf463619d3adc6780842ea3ed5c287b99072fdbb3f"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFallbackAlignment/provenance.json",
+        "sha256": "1519d62b1447f284ef0ca435fe07fbad6a1f25e2ececfccf0ea24286c12d55d3"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFontMetrics/native-textfontmetrics.json",
+        "sha256": "9812321703eb259d5c6408cb17830078bd7d2492f3752656468a4f84d961266a"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFontMetrics/native-textfontmetrics.pdf",
+        "sha256": "cd2e3bd640892f4d5f1e524bac56df6b07fdec83ca24c8de7ab6047c29e78b33"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFontMetrics/native-textfontmetrics.pub",
+        "sha256": "a178081c386acd1e8dcd7b8d26621f276d89c078e77f1d40d6fdac683de535c6"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFontMetrics/provenance.json",
+        "sha256": "9ce9a7734a43cbfb3696c9aa2d16d86de1f2280cda8249a754ff0d3721542d02"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/OfficeIMO.Publisher.Tests.csproj",
+        "sha256": "3b77b74209de9c9950a7c6e866e267e7e7adf1e44be58f733b337ef750316858"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherFontMetricsTests.cs",
+        "sha256": "9ce435e3351316b8b3a289ffd93be3752ca3e445fc7efb7376fbc4b14a28d8c1"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherPageProjector.Flow.cs",
+        "sha256": "2398ef8869eea64070ca5582718c6461e7a642263d6aa497ea7efd48fb03ae10"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherPageProjector.Text.cs",
+        "sha256": "dde08708bc51385954855f14428061647b6e765206df1fa20eb4d0e5aa0142ab"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherPageProjector.cs",
+        "sha256": "b8a0a32ddb08a020f303e2d7028d73ec6b0bafef969f6c47cae45e3e3145ed0d"
+      },
+      {
+        "path": "OfficeIMO.Publisher/PublisherReadOptions.cs",
+        "sha256": "2ef9042eff9b142eccf4bc44d29c929de8fe9377d2aadd844a1e35055e5d6cac"
+      },
+      {
+        "path": "OfficeIMO.Publisher/PublisherTextStory.cs",
+        "sha256": "9a684b6548f25f2f6b7ba5b0b6773e776f714a2069e189d5b8b113eb86d820c3"
+      },
+      {
+        "path": "OfficeIMO.Publisher/README.md",
+        "sha256": "8a4ecbb5439bd9e438c9fbd1451ccc522be8ebf301e87cd957beb59c619625f7"
+      },
+      {
+        "path": "OfficeIMO.Publisher/SUPPORT.md",
+        "sha256": "4e828c1506de836fb217e009d8fcf26a4e4bf0c5c9cd8778c46ab0bb10e0d575"
+      }
+    ]
   }
 }

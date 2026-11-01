@@ -524,6 +524,13 @@ The independently authored `TextFontMetrics`, `TextFallbackAlignment` and
 `TextVerticalPlacement` controls cover ten exact font binaries, 12/18 pt and
 fractional Courier sizes, inherited/single/1.19 spacing, terminal empty paragraphs
 and top/center/bottom placement. Fixture provenance records the font hashes.
+Across the 80 profiles on 28 producer pages, selected text origins agree within 0.001 pt horizontally and 0.16 pt in
+baseline position when the scoped font binaries match. The comparison also covers
+the two new controls after native resaving. Their 20 native pages retain identical
+producer/initial/resaved pixels at 144 dpi; this native-only stability check is
+separate from managed coordinate agreement. The `fontLineGeometry` section of the
+[qualification record](../Build/Publisher/WriterProbe/qualification.json) binds the
+source, fixtures and measured limits.
 Other fonts, device resolutions, complex scripts, mixed-baseline native geometry,
 wrapping and native frame-break equivalence require separate qualification.
 Complete stories and source styles survive overflow; byte-exact no-op native saving
