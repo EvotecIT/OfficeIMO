@@ -45,6 +45,78 @@ public sealed class WordTableMergedStructureTests {
         return WordDocument.Load(stream);
     }
 
+    [Fact]
+    public void RowsAddedAfterASpanningRowCoverEveryGridColumn() {
+        using WordDocument document = LoadWithSpanningRow(2);
+        WordTable table = document.Tables.Single();
+
+        WordTableRow added = table.AddRow();
+
+        Assert.Equal(3, added.CellsCount);
+    }
+
+    [Fact]
+    public void RowsInsertedBelowASpanningHeaderTakeAValueForEveryGridColumn() {
+        using WordDocument document = LoadWithSpanningRow(0);
+        WordTable table = document.Tables.Single();
+
+        WordTableRow row = table.InsertRow(1, "A", "B", "C");
+
+        Assert.Equal(new[] { "A", "B", "C" }, row.Cells.Select(Text));
+    }
+
+    [Fact]
+    public void AColumnInsertedThroughASpanningCellWidensIt() {
+        using WordDocument document = LoadWithSpanningRow(0);
+        WordTable table = document.Tables.Single();
+
+        IReadOnlyList<WordTableCell> added = table.InsertColumn(1, "wide", "B", "C");
+
+        TableRow header = table.Rows[0]._tableRow;
+        Assert.Equal(4, header.Elements<TableCell>().Single().TableCellProperties!.GridSpan!.Val!.Value);
+        Assert.Equal("R0C0|wide", Text(added[0]));
+        Assert.Equal(new[] { "R1C0", "B", "R1C1", "R1C2" }, table.Rows[1].Cells.Select(Text));
+    }
+
+    [Fact]
+    public void ARowInsertedInsideAVerticalMergeJoinsIt() {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = CreateTable(document, 3, 2);
+        table.MergeCells(0, 0, 3, 1);
+
+        table.InsertRow(1, "kept", "plain");
+
+        Assert.Equal(WordCellMerge.Continue, table.Rows[1].Cells[0].VerticalMerge);
+        Assert.Equal("R0C0|kept", Text(table.Rows[0].Cells[0]));
+        Assert.Equal("plain", Text(table.Rows[1].Cells[1]));
+    }
+
+    [Fact]
+    public void AColumnInsertedInsideAHorizontalMergeJoinsIt() {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = CreateTable(document, 2, 3);
+        table.MergeCells(0, 0, 1, 3);
+
+        table.InsertColumn(1, "kept", "plain");
+
+        Assert.Equal(WordCellMerge.Continue, table.Rows[0].Cells[1].HorizontalMerge);
+        Assert.Equal("R0C0|kept", Text(table.Rows[0].Cells[0]));
+        Assert.Equal("plain", Text(table.Rows[1].Cells[1]));
+    }
+
+    [Fact]
+    public void RemovingTheFirstRowOfAMergeHandsTheCellToTheNextRow() {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = CreateTable(document, 3, 2);
+        table.MergeCells(0, 0, 3, 1);
+
+        table.Rows[0].Remove();
+
+        Assert.Equal(WordCellMerge.Restart, table.Rows[0].Cells[0].VerticalMerge);
+        Assert.Equal("R0C0", Text(table.Rows[0].Cells[0]));
+        Assert.Equal(WordCellMerge.Continue, table.Rows[1].Cells[0].VerticalMerge);
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(2)]
