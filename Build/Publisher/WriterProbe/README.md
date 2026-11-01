@@ -599,7 +599,13 @@ capture; a one-byte signature-invalid copy produces a severity-4 diagnostic and
 native rejection. The combined candidate produces no selected diagnostic or message
 request during its initial open, writable open or resave reopen. This calibrates
 diagnostic capture, but repair-positive controls and other recovery paths remain
-unqualified, so PUB00 stays open. Compare the original and reopened native
+unqualified, so PUB00 stays open. The `repairControlBoundaries` record adds
+single-scalar native-text controls: zero font size and primary font index 65535
+survive save without selected diagnostics; the former has no body paint in its
+native PDF, while the latter renders through fallback. An unresolved text-frame
+catalog kind `0x7FF` produces another severity-4 rejection. These distinguish
+accepted malformed character data from strict structural rejection; none is a
+successfully repaired publication. Compare the original and reopened native
 text, styles, geometry and image pixels against explicit expectations.
 OfficeIMO read/render success establishes only the managed result. Evidence for
 these bounded cases does not qualify arbitrary Publisher features or a public

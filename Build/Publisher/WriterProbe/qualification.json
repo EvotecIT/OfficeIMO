@@ -26887,5 +26887,255 @@
         "sha256": "44fef2ce8c3ffcf5c487d5e645c63fd8cfeac09d8d4ceeb2ba73de464e4ba6f9"
       }
     ]
+  },
+  "repairControlBoundaries": {
+    "sourceCommit": "761ff2887a9adb89b0bc6c7bb1b8345fd9e40c2a",
+    "scope": "Bounded native recovery-control investigation; these controls do not establish successful repair or repair-free opening.",
+    "sourcePublication": {
+      "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+      "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+      "origin": "Independently native-authored synthetic publication; original unchanged"
+    },
+    "originalMixedCandidateSha256": "37e0e91a36c900f2b1a7c73fe3cb606b477464787e60a70375d8985ebd520bcf",
+    "nativeExecutable": {
+      "version": "16.0.20527.20088",
+      "sha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed"
+    },
+    "observer": {
+      "runtime": "Existing Python3.13.15/Frida17.19.0; isolated validation only",
+      "syntheticCallsPreserved": 3,
+      "ownedSyntheticChildClosed": true,
+      "scriptCount": 40,
+      "onlyReplayChange": "Reviewed bounded five-second pre/post gates around the three existing Open calls; no added COM call or argument/result/native-data write.",
+      "selectedSites": "Same six decoded load/reset/validation/diagnostic/consent/message sites as observations.diagnosticObservation.",
+      "replayIdentitySha256": "897eb0669a7ce5dac43175830ea9866c01cb53e37a8657aab1f80003636fff72",
+      "fingerprints": {
+        "observe.py": "50e8b183f0ef0c92f2c43ffa0ed984fd28f3d97654adc518149e29331370af8c",
+        "hooks.js": "ab04a8bc3d03d1f8b3f70aa20beac59d1ca7f98938fa93ac003022a56b21323c",
+        "process-identity.py": "b807b28654921e188f8b7fe074dbd8a741c199adbe5b69da630dce5565c8684e",
+        "prepare-replay.py": "d1d76c26c445be4e6dbf7e4fbdc7d7529123e2f24dfdd0f4267fb3547cfc86f3",
+        "assess-controls.py": "ac433897726f5ebef8d593cc3877899e12009e4a4d1214f591499aee4f460f64"
+      }
+    },
+    "controls": [
+      {
+        "run": "native-text-baseline",
+        "candidateSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+        "nativeStageCompleted": true,
+        "observerCoverage": "selected-paths-only",
+        "controllerExitCode": 0,
+        "sourceUnchanged": true,
+        "recordedProcessesClosed": true,
+        "repairPositive": false,
+        "observation": {
+          "phases": [
+            "OpenCandidateReadOnly"
+          ],
+          "pairedSameThreadIntervals": true,
+          "closedPostGates": 1,
+          "diagnosticSeverities": [],
+          "distinctValidationResults": [
+            0
+          ],
+          "finalMaximumSeverity": [
+            0
+          ],
+          "consentEntries": 0,
+          "messageEntries": 0
+        },
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory"
+        ],
+        "traceSha256": "704fe57aa424fa7ec7a4b8130d70f197cca601bb7779b6104c87ad20e7f7a495"
+      },
+      {
+        "run": "size-zero-full",
+        "candidateSha256": "1310fd5c1290a35074441868b3098022d86f5ec9242c749d899598479bf6edbd",
+        "nativeStageCompleted": true,
+        "observerCoverage": "selected-paths-only",
+        "controllerExitCode": 0,
+        "sourceUnchanged": true,
+        "recordedProcessesClosed": true,
+        "repairPositive": false,
+        "observation": {
+          "phases": [
+            "OpenCandidateReadOnly",
+            "OpenSnapshotWritable",
+            "ReopenNativeResave"
+          ],
+          "pairedSameThreadIntervals": true,
+          "closedPostGates": 3,
+          "diagnosticSeverities": [],
+          "distinctValidationResults": [
+            0
+          ],
+          "finalMaximumSeverity": [
+            0
+          ],
+          "consentEntries": 0,
+          "messageEntries": 0
+        },
+        "mutation": {
+          "name": "size-zero",
+          "sourceSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+          "candidateSha256": "1310fd5c1290a35074441868b3098022d86f5ec9242c749d899598479bf6edbd",
+          "stream": "Quill/QuillSub/CONTENTS",
+          "streamOffset": 19832,
+          "field": "0xc",
+          "type": "0x22",
+          "before": 152400,
+          "after": 0,
+          "fileByteDifferences": [
+            35192,
+            35193,
+            35194
+          ],
+          "otherStreamsUnchanged": true
+        },
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "resavedSizeScalar": 0,
+        "resavedPrimaryFontIndex": 32,
+        "nativeFontGetter": "",
+        "nativeSizeGetter": -9999999.0,
+        "nativeExports": {
+          "initialResavedPixelPairEqual": true,
+          "text": " \n",
+          "nonWhiteRGBChannels": 0,
+          "dpi": 144,
+          "pixelSha256": "9e42baaf9b7de8fe155b6cb9c373d068b8cde6d3177f2d6735791942d78515cb"
+        },
+        "traceSha256": "1a0848eae6455ddcde937405dac355dfa23e3d45045ca6b9cc8fd6a055fd7546"
+      },
+      {
+        "run": "font-index-full",
+        "candidateSha256": "cf09140c9ac1086039261247119716c6ae188579c3682ae98ab7f2c276aeb51a",
+        "nativeStageCompleted": true,
+        "observerCoverage": "selected-paths-only",
+        "controllerExitCode": 0,
+        "sourceUnchanged": true,
+        "recordedProcessesClosed": true,
+        "repairPositive": false,
+        "observation": {
+          "phases": [
+            "OpenCandidateReadOnly",
+            "OpenSnapshotWritable",
+            "ReopenNativeResave"
+          ],
+          "pairedSameThreadIntervals": true,
+          "closedPostGates": 3,
+          "diagnosticSeverities": [],
+          "distinctValidationResults": [
+            0
+          ],
+          "finalMaximumSeverity": [
+            0
+          ],
+          "consentEntries": 0,
+          "messageEntries": 0
+        },
+        "mutation": {
+          "name": "font-index-out-of-range",
+          "sourceSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+          "candidateSha256": "cf09140c9ac1086039261247119716c6ae188579c3682ae98ab7f2c276aeb51a",
+          "stream": "Quill/QuillSub/CONTENTS",
+          "streamOffset": 19856,
+          "field": "0x0",
+          "type": "0x18",
+          "before": 32,
+          "after": 65535,
+          "fileByteDifferences": [
+            35216,
+            35217
+          ],
+          "otherStreamsUnchanged": true
+        },
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "resavedSizeScalar": 152400,
+        "resavedPrimaryFontIndex": 65535,
+        "nativeFontGetter": "",
+        "nativeSizeGetter": -9999999.0,
+        "nativeExports": {
+          "initialResavedPixelPairEqual": true,
+          "text": "Publisher text \n",
+          "nonWhiteRGBChannels": 3474,
+          "dpi": 144,
+          "pixelSha256": "656593cd3f9002eb5963131d49f3804894b6c6ac53faad67ac829057d4f36f54"
+        },
+        "traceSha256": "19edfbc529251bda6f0b97e34e4b9833609aa5ae7fbff77e3b9c722a1fe1d531"
+      },
+      {
+        "run": "catalog-kind-full",
+        "candidateSha256": "cc27181cfa15650c7aca5e779f0269ac340597a3d78679e2b26e79a2f0fe88ff",
+        "nativeStageCompleted": false,
+        "observerCoverage": "incomplete",
+        "controllerExitCode": 1,
+        "sourceUnchanged": true,
+        "recordedProcessesClosed": true,
+        "repairPositive": false,
+        "observation": {
+          "phases": [
+            "OpenCandidateReadOnly"
+          ],
+          "pairedSameThreadIntervals": true,
+          "closedPostGates": 0,
+          "diagnosticSeverities": [
+            4
+          ],
+          "distinctValidationResults": [
+            2147745893
+          ],
+          "finalMaximumSeverity": [
+            4
+          ],
+          "consentEntries": 0,
+          "messageEntries": 0
+        },
+        "mutation": {
+          "sourceSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+          "candidateSha256": "cc27181cfa15650c7aca5e779f0269ac340597a3d78679e2b26e79a2f0fe88ff",
+          "stream": "Contents",
+          "streamOffset": 9616,
+          "catalogIndex": 293,
+          "before": 1,
+          "after": 2047,
+          "fileByteDifferences": [
+            14736,
+            14737
+          ],
+          "otherStreamsUnchanged": true
+        },
+        "traceSha256": "77c27e085ebb551335b1fdd629ef4a97ba1d543e5653b252c64d6d693a9e806a"
+      }
+    ],
+    "conclusions": [
+      "Zero size is retained through native resave; stored source text survives but initial/resaved PDF body paint is absent. All selected validation counters remain zero.",
+      "Out-of-range primary font index65535 is retained through native resave while PDF renders the source text through native fallback. All selected validation counters remain zero.",
+      "Unresolved text-frame catalog kind0x7FF is rejected with severity4/strict1/count1 and validation HRESULT0x80040065; no consent/message branch or completed Full stage.",
+      "These distinguish malformed-character handling and strict structural rejection. They are not repair-positive controls and do not qualify alternate successful recovery paths."
+    ],
+    "repairPositiveControls": 0,
+    "canClosePUB00": false,
+    "limitations": [
+      "No direct native UI observation, accepted repair-consent branch, successful structural repair or alternate/silent recovery coverage.",
+      "Selected zero diagnostics and successful open/save/export do not establish complete validity or visible text recovery.",
+      "The exact mixed candidate remains internal; no public native-writer promotion, dependency or lifecycle support expansion inferred."
+    ]
   }
 }

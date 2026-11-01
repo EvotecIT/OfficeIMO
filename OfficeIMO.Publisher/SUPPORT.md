@@ -27,6 +27,13 @@ The [qualification record](../Build/Publisher/WriterProbe/qualification.json)
 separates this result from repair-free acceptance, which still lacks a repair-positive
 control and complete recovery-path coverage.
 
+Malformed native character controls further bound that observation: Publisher
+opens and saves a zero font size with no selected diagnostic, while its PDF body
+paint is absent. An invalid primary font index also survives native save and
+renders through fallback. Neither is a repair-positive control. The
+`repairControlBoundaries` record separates these outcomes from a strict catalog
+kind rejection and from the validity of the exact generated specimen.
+
 The opt-in [native writer probe](../Build/Publisher/WriterProbe/README.md)
 separately qualifies source-free closed specimens. Its two-image page profile
 retains distinct embedded PNGs and their page bindings through native resave;
