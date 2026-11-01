@@ -3526,6 +3526,8 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 </details>
 <!-- officeimo-api-map:end -->
 
+Search redaction now accepts bookmarks and local GoTo opening actions on proven classic and compressed graphs. Matching bookmark titles are cleared in full, retaining the item and its navigation links. Check the plan findings: matching destination identifiers and URI opening/outline or unsupported navigation actions still refuse. Existing URI link-annotation handling is unchanged. `CleanupScope.None` does not preserve a matching bookmark title. Handle the new `PdfRedactionMatchKind.BookmarkTitle` value when switching on match kinds; its `Text` is omitted. Presentation navigation remains refused. Other mutation operations keep their existing navigation rules.
+
 Search redaction accepts unencrypted object-stream and cross-reference-stream PDFs, including hybrid, linearized, incremental and `/Extends` inputs, when the complete winning xref map agrees with the reader. It follows empty newest hybrid sections and writes classic output, including empty searches. Free or missing reference targets are written as null. Disagreeing graphs, retained historical matches and compressed encryption remain refused.
 
 

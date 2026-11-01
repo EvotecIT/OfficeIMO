@@ -322,6 +322,9 @@ internal static partial class PdfRedactionApplier {
             document.Pages.Select(static page => page.ObjectNumber).ToArray(), textSearch, limits);
         foreach (PdfDictionary owner in searchedMetadata.Owners) owner.Items.Remove("Metadata");
         bool cleanupChanged = searchedMetadata.Owners.Count > 0 || searchedMetadata.Info;
+        var navigation = PdfRedactionNavigation.Search(objects, (PdfDictionary)objects[catalogObjectNumber].Value, textSearch, effectiveOptions.CancellationToken);
+        foreach (PdfDictionary title in navigation.Titles) title.Items["Title"] = new PdfStringObj(string.Empty);
+        cleanupChanged |= navigation.Titles.Count > 0;
         cleanupChanged = ApplyCleanupPolicy(objects, catalogObjectNumber, effectiveOptions.CleanupScope) || cleanupChanged;
         cleanupChanged = RemoveAlternateTextHoldingMatches(objects, areaArray, limits) || cleanupChanged;
         if (mutationScope == RedactionMutationScope.All) {

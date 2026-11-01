@@ -1053,10 +1053,12 @@ internal static class PdfMutationPlanner {
         PdfDocumentSecurityInfo security = preflight.Probe.Security;
         if (security.HasSignatures || security.HasDocMDPPermissions || security.HasUsageRights) return false;
         if (!preflight.CanNormalizeRedactionObjectGraph) return false;
+        if (!preflight.CanPreserveRedactionNavigation) return false;
         if (security.HasEncryption && !CanUseAuthenticatedEncryptedRewrite(preflight, PdfMutationOperation.Redact)) return false;
         for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
             PdfRewriteBlockerKind kind = preflight.RewriteBlockers[i].Kind;
             if (kind == PdfRewriteBlockerKind.Encryption) continue;
+            if (kind is PdfRewriteBlockerKind.Outlines or PdfRewriteBlockerKind.OpenActions or PdfRewriteBlockerKind.ActiveContent) continue;
             if (kind == PdfRewriteBlockerKind.Forms || kind == PdfRewriteBlockerKind.TaggedContent || kind == PdfRewriteBlockerKind.XmpMetadata || kind == PdfRewriteBlockerKind.OptionalContent || kind == PdfRewriteBlockerKind.EmbeddedFiles) continue;
             return false;
         }

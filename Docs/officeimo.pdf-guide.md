@@ -2282,6 +2282,10 @@ Redaction search, matching, and verification include artifact text, including pa
 
 `MatchCase` applies to every copy a search reaches, including alternate text, annotations, form values and metadata, so a copy in different case stays when `MatchCase` is true.
 
+Search also includes live bookmark titles. A matching title is cleared in full, including when it is the only match; the item, its children, sibling links, counts, and destinations remain. Literal, escaped, hex, UTF-16 and PDFDocEncoding titles use the same search criteria and saved-output residue checks. Bookmark titles are document-level data, so page limits do not exclude matching titles. This cleanup runs regardless of `CleanupScope`. Plans and evidence list each removal as `BookmarkTitle`, with no title value in `Text`.
+
+Redaction preserves local destination arrays and `/GoTo` opening actions, including safe `/Next` chains and additional actions. A matching named-destination identifier or outline `/Dest` string blocks the plan because renaming it could break navigation bindings. URI opening and outline actions, and every other unsupported navigation action type, remain refused. Existing URI link-annotation handling remains available; its destination strings use the annotation search and residue checks. Presentation navigation (`/PresSteps`, `/NA`, `/PA`) remains refused. These navigation permissions apply only to Redact; other mutation operations keep their existing rules.
+
 Use `PdfRedactionSearchOptions.PageNumbers` to restrict candidate discovery to selected one-based pages. An empty set searches all pages. By default, search marks complete matching logical text blocks, so present the resulting areas for review rather than assuming that only the matched substring will be removed.
 
 Set `TextSelection` to `MatchedGlyphs` to select only the encoded glyphs belonging

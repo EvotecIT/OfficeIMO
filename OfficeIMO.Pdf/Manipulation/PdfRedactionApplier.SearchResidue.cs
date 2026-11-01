@@ -16,6 +16,8 @@ internal static partial class PdfRedactionApplier {
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         var issues = new List<PdfRedactionVerificationIssue>();
         Inspect(document, pdf, historical: false);
+        if (PdfRedactionNavigation.Search(document.Objects, document.CatalogDictionary, criteria, cancellationToken).DestinationMatch)
+            issues.Add(new PdfRedactionVerificationIssue("SearchResidue", "Destination", "A saved navigation destination still holds searched text."));
         // Do not attest retained compressed containers using a live-object projection alone.
         // Normalized output has no such containers; unproven historical inputs remain findings.
         if (!PdfSyntax.CanNormalizeRedactionObjectGraph(pdf, document, cancellationToken))

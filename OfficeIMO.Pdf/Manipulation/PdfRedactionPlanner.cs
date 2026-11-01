@@ -183,6 +183,19 @@ internal static partial class PdfRedactionPlanner {
 
         var searchedMetadata = PdfRedactionApplier.SearchMetadataHolders(readDocument.Objects, readDocument.CatalogDictionary, readDocument.TrailerRaw,
             readDocument.Pages.Select(static page => page.ObjectNumber).ToArray(), areaArray.Select(static area => area.SearchCriteria).OfType<PdfRedactionSearchCriteria>().Distinct().ToArray(), readDocument.ReadOptions.Limits);
+        var navigation = PdfRedactionNavigation.Search(readDocument.Objects, readDocument.CatalogDictionary,
+            areaArray.Select(static area => area.SearchCriteria).OfType<PdfRedactionSearchCriteria>().Distinct().ToArray(), cancellationToken);
+        foreach (PdfDictionary title in navigation.Titles) {
+            PdfRedactionArea anchor = areaArray[0];
+            matches.Add(new PdfRedactionMatch(PdfRedactionMatchKind.BookmarkTitle, anchor, anchor.PageNumber,
+                0D, 0D, 0D, 0D, null, "BookmarkTitle", null));
+        }
+        if (navigation.Titles.Count > 0) findings.Add(new PdfDiagnosticFinding(PdfDiagnosticSeverity.Info,
+            "redaction-search-outline-titles", "Matching bookmark titles will be cleared while their navigation links are retained."));
+        if (navigation.DestinationMatch) findings.Add(new PdfDiagnosticFinding(PdfDiagnosticSeverity.Error,
+            "redaction-search-destination-unsupported", "A navigation destination identifier holds searched text and cannot be renamed safely."));
+        if ((preflight.Probe.HasOutlines || preflight.Probe.HasOpenActions) && !PdfRedactionNavigation.CanPlanNavigation(readDocument, cancellationToken)) findings.Add(new PdfDiagnosticFinding(PdfDiagnosticSeverity.Error,
+            "redaction-navigation-unsupported", "PDF navigation contains an unsupported action or destination and cannot be preserved safely."));
         if (searchedMetadata.Owners.Count > 0 || searchedMetadata.Info) findings.Add(new PdfDiagnosticFinding(PdfDiagnosticSeverity.Info,
             "redaction-search-metadata", "Metadata holding searched text will be removed, including matching catalog or page XMP and the Info dictionary."));
 
