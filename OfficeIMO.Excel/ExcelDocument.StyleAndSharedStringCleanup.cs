@@ -88,41 +88,36 @@ namespace OfficeIMO.Excel {
             foreach (var worksheetPart in workbookPart.WorksheetParts) {
                 var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
                 bool worksheetChanged = false;
-                var sheetData = worksheet.GetFirstChild<SheetData>();
-                if (sheetData != null) {
-                    foreach (var row in sheetData.Elements<Row>()) {
-                        foreach (var cell in row.Elements<Cell>()) {
-                            if (!IsSharedStringCell(cell)) {
-                                continue;
-                            }
-
-                            string rawValue = cell.CellValue?.Text ?? cell.InnerText ?? string.Empty;
-                            if (!TryParseSharedStringIndex(rawValue, out int sharedStringIndex)) {
-                                ConvertSharedStringCellToInlineString(cell, rawValue);
-                                worksheetChanged = true;
-                                continue;
-                            }
-
-                            if (sharedStringIndex >= itemCount) {
-                                long repairGap = (long)sharedStringIndex - itemCount + 1L;
-                                if (sharedStringTablePart == null || repairGap > remainingSharedStringRepairItems) {
-                                    ConvertSharedStringCellToInlineString(cell, rawValue);
-                                    worksheetChanged = true;
-                                    continue;
-                                }
-
-                                sharedStringTable ??= sharedStringTablePart.SharedStringTable = new SharedStringTable();
-                                remainingSharedStringRepairItems -= (int)repairGap;
-                                while (itemCount <= sharedStringIndex) {
-                                    sharedStringTable.AppendChild(new SharedStringItem(new Text(string.Empty)));
-                                    itemCount++;
-                                }
-                                sharedStringTableChanged = true;
-                            }
-
-                            sharedStringCellCount++;
-                        }
+                foreach (Cell cell in ExcelWorksheetScan.Cells(worksheet)) {
+                    if (!IsSharedStringCell(cell)) {
+                        continue;
                     }
+
+                    string rawValue = ExcelWorksheetScan.FindValue(cell)?.Text ?? cell.InnerText ?? string.Empty;
+                    if (!TryParseSharedStringIndex(rawValue, out int sharedStringIndex)) {
+                        ConvertSharedStringCellToInlineString(cell, rawValue);
+                        worksheetChanged = true;
+                        continue;
+                    }
+
+                    if (sharedStringIndex >= itemCount) {
+                        long repairGap = (long)sharedStringIndex - itemCount + 1L;
+                        if (sharedStringTablePart == null || repairGap > remainingSharedStringRepairItems) {
+                            ConvertSharedStringCellToInlineString(cell, rawValue);
+                            worksheetChanged = true;
+                            continue;
+                        }
+
+                        sharedStringTable ??= sharedStringTablePart.SharedStringTable = new SharedStringTable();
+                        remainingSharedStringRepairItems -= (int)repairGap;
+                        while (itemCount <= sharedStringIndex) {
+                            sharedStringTable.AppendChild(new SharedStringItem(new Text(string.Empty)));
+                            itemCount++;
+                        }
+                        sharedStringTableChanged = true;
+                    }
+
+                    sharedStringCellCount++;
                 }
 
                 if (worksheetChanged) {

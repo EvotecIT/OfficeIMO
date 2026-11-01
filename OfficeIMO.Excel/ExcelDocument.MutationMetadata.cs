@@ -163,7 +163,7 @@ namespace OfficeIMO.Excel {
             }
 
             var affectedContainers = new HashSet<OpenXmlElement>();
-            foreach (OpenXmlElement tag in worksheet.Descendants()
+            foreach (OpenXmlElement tag in worksheet.MetadataDescendants<OpenXmlElement>()
                 .Where(element => string.Equals(element.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase)
                     && string.Equals(element.NamespaceUri, SpreadsheetNamespace, StringComparison.Ordinal))
                 .ToList()) {

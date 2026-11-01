@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
@@ -14,7 +15,8 @@ namespace OfficeIMO.Excel {
             int maxCol = 0;
             int previousRowIndex = 0;
 
-            foreach (var row in sheetData.Elements<Row>()) {
+            for (OpenXmlElement? rowElement = sheetData.FirstChild; rowElement != null; rowElement = rowElement.NextSibling()) {
+                if (rowElement is not Row row) continue;
                 uint? declaredRowIndex = row.RowIndex?.Value;
                 int rowIndex = declaredRowIndex.HasValue && (declaredRowIndex.Value < 1U || declaredRowIndex.Value > ExcelA1.MaxRows)
                     ? 0
@@ -23,7 +25,8 @@ namespace OfficeIMO.Excel {
 
                 int cellOrdinal = 0;
                 int nextColumnIndex = 1;
-                foreach (var cell in row.Elements<Cell>()) {
+                for (OpenXmlElement? cellElement = row.FirstChild; cellElement != null; cellElement = cellElement.NextSibling()) {
+                    if (cellElement is not Cell cell) continue;
                     cellOrdinal++;
                     int resolvedRow = rowIndex;
                     int resolvedCol = 0;

@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
@@ -68,9 +69,11 @@ namespace OfficeIMO.Excel {
         }
 
         private CellFormatCacheRevision? GetCurrentCellFormatCacheRevision() {
-            CellFormats? formats = GetKnownStylesPart()?.Stylesheet?.CellFormats;
-            return formats == null ? null
-                : CellFormatCacheRevisions.GetValue(formats, static _ => new CellFormatCacheRevision());
+            // The typed property walks the schema particle, which allocates, and this runs per date cell.
+            for (OpenXmlElement? child = GetKnownStylesPart()?.Stylesheet?.FirstChild; child != null; child = child.NextSibling()) {
+                if (child is CellFormats formats) return CellFormatCacheRevisions.GetValue(formats, static _ => new CellFormatCacheRevision());
+            }
+            return null;
         }
     }
 }

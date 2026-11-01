@@ -101,13 +101,34 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        /// <summary>Returns the descendants of <paramref name="worksheet"/> outside its cell grid, in document order.</summary>
+        /// <summary>
+        /// Returns the descendants of <paramref name="worksheet"/> outside its cell grid, in document order.
+        /// Structural edits ask this for each kind of metadata on each edit, so it follows element links rather than
+        /// start a typed descendant search below every top-level element.
+        /// </summary>
         internal static IEnumerable<T> MetadataDescendants<T>(this Worksheet worksheet) where T : OpenXmlElement {
             for (OpenXmlElement? part = worksheet.FirstChild; part != null; part = part.NextSibling()) {
                 if (part is SheetData) continue;
-                if (part is T typed) yield return typed;
-                foreach (T descendant in part.Descendants<T>()) yield return descendant;
+                for (OpenXmlElement? element = part; element != null; element = NextInDocumentOrder(element, part)) {
+                    if (element is T typed) yield return typed;
+                }
             }
+        }
+
+        /// <summary>Reports whether any text below <paramref name="root"/> holds a carriage return, which SDK serialization does not keep.</summary>
+        internal static bool HasCarriageReturnText(OpenXmlElement root) {
+            for (OpenXmlElement? element = root; element != null; element = NextInDocumentOrder(element, root)) {
+                if (element is OpenXmlLeafTextElement text && text.Text?.IndexOf('\r') >= 0) return true;
+            }
+            return false;
+        }
+
+        private static OpenXmlElement? NextInDocumentOrder(OpenXmlElement element, OpenXmlElement top) {
+            if (element.FirstChild is { } child) return child;
+            for (OpenXmlElement? current = element; current != null && !ReferenceEquals(current, top); current = current.Parent) {
+                if (current.NextSibling() is { } sibling) return sibling;
+            }
+            return null;
         }
     }
 }

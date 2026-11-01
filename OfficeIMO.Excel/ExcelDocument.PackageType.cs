@@ -11,6 +11,7 @@ namespace OfficeIMO.Excel {
             // The SDK copies persisted main-part bytes, so save its DOM before replacing it.
             WorkbookPartRoot.Workbook?.Save();
             _spreadSheetDocument.ChangeDocumentType(target);
+            ForgetKnownWorkbookPart();
             _workBookPart = _spreadSheetDocument.WorkbookPart
                 ?? throw new InvalidOperationException("WorkbookPart is missing after the document type change.");
             _cachedSheets = null;

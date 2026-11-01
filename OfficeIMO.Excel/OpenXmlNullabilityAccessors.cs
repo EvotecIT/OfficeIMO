@@ -3,8 +3,33 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
-        internal WorkbookPart WorkbookPartRoot =>
-            _spreadSheetDocument?.WorkbookPart ?? _workBookPart ?? throw new InvalidOperationException("WorkbookPart is null.");
+        private SpreadsheetDocument? _workbookPartOwner;
+        private WorkbookPart? _knownWorkbookPart;
+
+        /// <summary>
+        /// The SDK resolves the main part through feature lookups that allocate, and this runs per cell. Only exposed
+        /// SDK access and a document type change can replace the part of an open document.
+        /// </summary>
+        internal WorkbookPart WorkbookPartRoot {
+            get {
+                SpreadsheetDocument? document = _spreadSheetDocument;
+                if (ReferenceEquals(document, _workbookPartOwner) && _knownWorkbookPart != null && !_openXmlDocumentExposed) {
+                    return _knownWorkbookPart;
+                }
+
+                WorkbookPart? part = document?.WorkbookPart;
+                if (part != null) {
+                    _workbookPartOwner = document;
+                    _knownWorkbookPart = part;
+                }
+                return part ?? _workBookPart ?? throw new InvalidOperationException("WorkbookPart is null.");
+            }
+        }
+
+        private void ForgetKnownWorkbookPart() {
+            _workbookPartOwner = null;
+            _knownWorkbookPart = null;
+        }
 
         internal Workbook WorkbookRoot {
             get => WorkbookPartRoot.Workbook ?? throw new InvalidOperationException("Workbook is null.");
