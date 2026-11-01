@@ -26,6 +26,25 @@ records the XML escaping improvement, package sizes, and remaining long-text cos
 The [2026-09-08 measurement](../Docs/benchmarks/officeimo.excel-csv-buffering-2026-09-08.md)
 records writer buffering and reader allocation results, including ordinary defaults.
 
+## Public scenario shapes
+
+`--compare-xlbench-shapes` compares OfficeIMO with the plain Open XML SDK on the workload shapes of the
+[XLBench](https://github.com/jafin/XLBench) scenarios: write, read all, 20 sheets, report, edit, insert,
+template and properties. Source workbooks are built with ClosedXML outside measurement.
+Number and stock values are deterministic stand-ins with the same dimensions. Before timing, one saved workbook from each
+implementation is reopened with the SDK and ClosedXML, passes `OpenXmlValidator` and has its scenario content checked.
+`edit` and `insert` follow XLBench by not saving on the OfficeIMO side; `edit-save` and `insert-save` include the save.
+
+```powershell
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --compare-xlbench-shapes 9 2
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --compare-xlbench-shapes 15 3 report,edit
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --profile-xlbench-shape report 10
+```
+
+The arguments are measured iterations, warmup iterations and an optional scenario list. Times and
+allocations are medians. `--profile-xlbench-shape` runs one scenario for OfficeIMO alone and prints sampled allocations by type.
+`sales_template.xlsx` is the Excel-authored template from XLBench, copyright (c) 2026 Jason Finch, used under the MIT License.
+
 ## Run benchmarks
 
 ```powershell
