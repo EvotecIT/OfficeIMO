@@ -719,9 +719,8 @@ frames split a colored `A` / `VAV` word as
 0.111 pt horizontally and 0.103 pt vertically. All four new native tight-frame
 initial/resaved page pairs agree at 144 dpi. The [native font-context corpus](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFontContext/provenance.json)
 retains the tight-frame publications, their native PDF references and the merged
-8/18 control. Tight-frame native fitting
-admits a pair that the managed final-line advance places just outside the frame;
-line assignments still differ. Exact device advances, broader tab placement,
+8/18 control. The tight-word fitting qualification below extends the matching
+line assignments to narrower frames and linked continuation. Exact device advances, broader tab placement,
 automatic hyphenation and repair-free opening remain unqualified. These finite
 controls do not establish universal native glyph or pixel parity.
 
@@ -747,12 +746,40 @@ the imported interval; changing it through paragraph formatting refuses output.
 These source-derived controls do not establish independent native creation or
 repair-free opening.
 
-Separate [14.5-point word controls](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFitting/provenance.json)
-discriminate native fitting: `AVAV` and
-`AVAA` place `AV` on the first line, while standalone `AV` and `AVV` split after
-`A`. This is consistent with a lookahead pair affecting admission before the
-visible line is reshaped for painting. Fitting, continuation and clipping still
-need a coordinated implementation; no fixed width allowance is qualified.
+### Native tight-word fitting and continuation
+
+For the qualified plain native font context, broken-word admission includes
+the pair adjustment against the following source glyph. The visible line is
+then shaped independently, removing that final lookahead pair from its painted
+advance. Native center/right placement uses the admission advance. A fixed
+width allowance would not reproduce these decisions.
+
+The [native fitting corpus](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFitting/provenance.json)
+distinguishes the cases at 14.5 points: `AVAV` and `AVAA` place `AV` on the first
+line, while standalone `AV` and `AVV` split after `A`. Eighteen public-caller
+controls cover frame widths from 14.5 through 15.5 points, both kerning-setting
+orders, center/right placement and two-page linked continuation. Every line
+assignment matches the native export; glyph-origin differences reach 0.112 pt
+horizontally and 0.103 pt vertically. The linked control assigns `AV` to the
+first frame and `A` / `V` to the second without adding or dropping source text.
+All five additional native open/export/save/reopen controls preserve their
+inputs; their six initial/resaved page pairs agree at 144 dpi.
+
+Selected native regions retain their visual line boundaries, admission advances
+and tab placements for raster, SVG and PDF. This prevents a shortened final word
+from moving onto the preceding line and preserves aligned-tab fields and
+leaders across soft wraps. Visible overhang survives native-frame PDF clipping
+and isolated raster effects. Reusing the selected paragraphs with a new frame
+width, different tab settings, font fitting or disabled wrapping uses fresh
+layout for that request. Source UTF-16 endpoints and the publication's original
+text remain separate from these rendering choices.
+
+The evidence uses the recorded Arial binary, plain printable-ASCII text and the
+qualified native source profiles. Other fonts, providers, scripts, decorated or
+mixed-baseline contexts, labelled fitting, column balancing and automatic
+hyphenation remain separate qualification work. These source-derived controls
+do not establish independent native creation, repair-free opening or universal
+glyph/pixel parity.
 
 The `nativeLanguageFeasibility` record isolates the language-dependent native
 layout gap. Scratch variants adding character property `0x12` with language ID

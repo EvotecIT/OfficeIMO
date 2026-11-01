@@ -26096,5 +26096,72 @@
       "Generic Core36pt default unchanged; no new public API or dependency.",
       "Exact device glyph placement, native fitting/continuation/clipping, automatic hyphenation and full PUB00-PUB06 lifecycle remain open."
     ]
+  },
+  "nativeTightWordFitting": {
+    "schema": "officeimo.publisher.native-tight-word-fitting.v1",
+    "sourceCommit": "e36ff4f6645cddb0c6a953427cc54467190c08a5",
+    "nativeProducer": {
+      "name": "Microsoft Publisher",
+      "version": "16.0",
+      "executableVersion": "16.0.20527.20088",
+      "automationSecurity": 3
+    },
+    "arialSha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a",
+    "contract": "Qualified broken words retain lookahead pair adjustment for admission/native center-right alignment, then reshape visible lines without the next-line pair. Selected regions retain source endpoints, fitting advances and resolved tab placements. Different width/tab settings/font-fitting scale/no-wrap requests use fresh layout. Generic callbacks and native save bytes remain unchanged.",
+    "corpus": {
+      "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFitting/provenance.json",
+      "sha256": "524e1200c8063992e52b380509c1caf058ecb32500004b0151b3c16247e5e7df",
+      "additionalNativePublications": 5,
+      "additionalNativePdfs": 5
+    },
+    "nativeValidation": {
+      "fullRuns": 5,
+      "qualifiedOperations": 35,
+      "equal144DpiPagePairs": 6,
+      "allInputsUnchanged": true
+    },
+    "publicComparison": {
+      "controls": 18,
+      "matchingLineAssignments": 18,
+      "exactNativeNoOps": 18,
+      "maxGlyphOriginDifferenceX": 0.11100006103515625,
+      "maxGlyphOriginDifferenceY": 0.10296630859375,
+      "unchanged144DpiPairsAfterReviewRemediation": 18,
+      "newNativeCorpusLoadNoOpRenderControls": 5
+    },
+    "validation": {
+      "focusedCore": 20,
+      "relatedCoreEachTarget": 354,
+      "relatedPdfEachTarget": 300,
+      "publisherEachTarget": 996,
+      "targets": [
+        "net10.0",
+        "net8.0",
+        "net472"
+      ],
+      "readerPublisherNet10": 93,
+      "portableReader": "netstandard2.0 nonincremental build0warnings/0errors",
+      "powerShell": {
+        "runtime": "7.6.9",
+        "sourceNet8Build": "0warnings/0errors",
+        "workflowCases": 3,
+        "explicitFontCases": 3,
+        "exactNativeNoOps": 3,
+        "linkedSourceEndpoints": "0+2 and2+3 including terminal newline",
+        "maxGlyphOriginDifferenceX": 0.11100006103515625,
+        "maxGlyphOriginDifferenceY": 0.10296630859375,
+        "fontBinding": "PublisherReadOptions.Fonts through New-OfficeConversionOptions -PublisherReadOptions; unbound default-font transport smoke does not qualify these native glyph tolerances"
+      }
+    },
+    "regressionControls": [
+      "Qualified baseline Core:4failed/4passed.",
+      "Qualified baseline PDF:1failed/11passed, exposing visible glyph clipping.",
+      "Aligned-tab replay3failed before; width/tab-setting reuse2failed before; no-wrap reuse1failed before; final20focused passed."
+    ],
+    "limits": [
+      "Source-derived native controls do not establish independent native creation or repair-free opening.",
+      "Plain printable-ASCII contexts, recorded Arial binary and qualified source profiles only; exact device advances and broader fonts/providers/scripts/baselines/decorations remain open.",
+      "Labelled fitting, column balancing, automatic hyphenation, broader linked-story profiles and the remaining PUB00-PUB06 native lifecycle remain open."
+    ]
   }
 }
