@@ -15,7 +15,8 @@ public sealed class PdfRedactionPlan {
         System.Text.RegularExpressions.RegexOptions searchRegexOptions = System.Text.RegularExpressions.RegexOptions.CultureInvariant,
         TimeSpan? searchRegexTimeout = null,
         IReadOnlyCollection<int>? searchPageNumbers = null,
-        IReadOnlyCollection<string>? alternateTextSections = null) {
+        IReadOnlyCollection<string>? alternateTextSections = null,
+        IReadOnlyDictionary<int, Dictionary<string, int>>? alternateTextPlacements = null) {
         Preflight = preflight;
         Areas = Array.AsReadOnly(areas.ToArray());
         PdfRedactionSearchCriteria[] textCriteria = areas.Select(static area => area.SearchCriteria).OfType<PdfRedactionSearchCriteria>().Distinct().ToArray();
@@ -30,6 +31,7 @@ public sealed class PdfRedactionPlan {
         PageIdentities = pageIdentities ?? Array.Empty<string>();
         ReviewedTextObjectScopes = reviewedTextObjectScopes ?? Array.Empty<IReadOnlyList<PdfRedactionTextObjectScope>>();
         AlternateTextSections = new HashSet<string>(alternateTextSections ?? Array.Empty<string>(), StringComparer.Ordinal);
+        AlternateTextPlacements = alternateTextPlacements ?? new Dictionary<int, Dictionary<string, int>>();
         SearchMatchCase = searchMatchCase;
         SearchRegexOptions = searchRegexOptions;
         SearchRegexTimeout = searchRegexTimeout ?? TimeSpan.FromSeconds(2);
@@ -61,6 +63,9 @@ public sealed class PdfRedactionPlan {
     internal IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>> ReviewedTextObjectScopes { get; }
 
     internal HashSet<string> AlternateTextSections { get; }
+
+    /// <summary>Per page, how many painted sections each alternate-text value describes, keyed by value fingerprint.</summary>
+    internal IReadOnlyDictionary<int, Dictionary<string, int>> AlternateTextPlacements { get; }
 
     internal bool SearchMatchCase { get; }
 

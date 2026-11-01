@@ -27,14 +27,16 @@ internal static partial class PdfRedactionApplier {
         internal int? BodyEnd { get; set; }
 
         // What the section paints, as written. A section never closed runs into whatever follows the page, so it has no body to compare.
-        internal IEnumerable<string> GetFingerprints() {
+        internal IEnumerable<string> GetFingerprints() => Values.Select(GetFingerprint);
+
+        internal string GetFingerprint(string value) {
             string body = BodyEnd is int end ? _painted.ToString(_bodyStart, end - _bodyStart) : string.Empty;
-            return Values.Select(value => PdfRedactionPlan.ComputeSourceSha256(Encoding.UTF8.GetBytes(value + "\0" + body)));
+            return PdfRedactionPlan.ComputeSourceSha256(Encoding.UTF8.GetBytes(value + "\0" + body));
         }
     }
 
     // A section can open outside the text object it describes, so this reads the whole stream, not one BT..ET.
-    private static List<AlternateTextScope> FindAlternateTextScopes(string content, PropertyAlternateText propertyText, PdfReadLimits limits) {
+    private static List<AlternateTextScope> FindAlternateTextScopes(string content, PropertyAlternateText propertyText, PdfReadLimits limits, StructureAlternateText? structureText = null) {
         var scopes = new List<AlternateTextScope>();
         if (content.IndexOf("BDC", StringComparison.Ordinal) < 0) return scopes;
         var open = new Stack<AlternateTextScope?>();
@@ -45,7 +47,7 @@ internal static partial class PdfRedactionApplier {
             previousEnd = Math.Min(content.Length, operation.OperatorOffset + operation.Name.Length);
             if (operation.Name == "BMC") open.Push(null);
             else if (operation.Name == "BDC") {
-                IReadOnlyList<string> values = ReadAlternateText(operation.Operands, propertyText);
+                IReadOnlyList<string> values = ReadAlternateText(operation.Operands, propertyText, structureText);
                 AlternateTextScope? scope = values.Count > 0 ? new AlternateTextScope(start, previousEnd, content.Length, values, painted) : null;
                 if (scope is not null) scopes.Add(scope);
                 open.Push(scope);
@@ -61,15 +63,16 @@ internal static partial class PdfRedactionApplier {
         return scopes;
     }
 
-    private static IReadOnlyList<string> ReadAlternateText(IReadOnlyList<object> operands, PropertyAlternateText propertyText) {
+    private static IReadOnlyList<string> ReadAlternateText(IReadOnlyList<object> operands, PropertyAlternateText propertyText, StructureAlternateText? structureText) {
         // Optional-content sections decide visibility; their property list is never alternate text.
         if (operands.Count < 2 || operands[operands.Count - 2] is "OC") return Array.Empty<string>();
-        if (operands[operands.Count - 1] is string name) return propertyText(name);
         var values = new List<string>();
+        if (operands[operands.Count - 1] is string name) values.AddRange(propertyText(name));
         if (operands[operands.Count - 1] is PdfContentDictionary dictionary) {
             foreach (string key in AlternateTextKeys) {
                 if (dictionary.Items.TryGetValue(key, out object? value) && value is byte[] bytes) values.Add(PdfTextString.Decode(bytes));
             }
+            if (structureText is not null && dictionary.Items.TryGetValue("MCID", out object? mcid) && mcid is double number) values.AddRange(structureText((int)number));
         }
         return values;
     }
@@ -195,9 +198,9 @@ internal static partial class PdfRedactionApplier {
         return names;
     }
 
-    // Resources are commonly shared between pages. A page-scoped search leaves the other pages' sections alone,
-    // so a searched list this page no longer names leaves this page's resources instead of being edited in place.
-    private static void DetachUnnamedSearchedProperties(Dictionary<int, PdfIndirectObject> objects, int[] pages, PdfRedactionSearchCriteria[] criteria, PdfReadLimits limits, HashSet<PdfStream> sourceStreamIdentities) {
+    // Resources are commonly shared between pages. A page-scoped search leaves the other pages' sections alone, so this
+    // page gets its own lists: one it no longer names leaves, and one it still names is edited here rather than for everyone.
+    private static void DetachSearchedProperties(Dictionary<int, PdfIndirectObject> objects, int[] pages, PdfRedactionSearchCriteria[] criteria, AlternateTextMatch matches, PdfReadLimits limits, HashSet<PdfStream> sourceStreamIdentities) {
         for (int index = 0; index < pages.Length; index++) {
             if (!criteria.Any(criterion => criterion.PageNumbers.Contains(index + 1)) || !objects.TryGetValue(pages[index], out PdfIndirectObject? item) ||
                 item.Value is not PdfDictionary page || !page.Items.TryGetValue("Contents", out PdfObject? contents) ||
@@ -207,10 +210,13 @@ internal static partial class PdfRedactionApplier {
                 if (PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) && indirect.Value is PdfStream stream && !stream.DecodingFailed &&
                     StreamDecoder.TryDecode(stream, GetMutationDecodeLimit(stream, limits, sourceStreamIdentities), out byte[] decoded, objects)) names.UnionWith(FindNamedPropertyLists(PdfEncoding.Latin1GetString(decoded), limits));
             }
-            string[] detached = lists.Items.Where(entry => !names.Contains(entry.Key) && HoldsSearchedAlternateText(objects, PdfObjectLookup.Resolve(objects, entry.Value) ?? entry.Value, criteria)).Select(static entry => entry.Key).ToArray();
+            KeyValuePair<string, PdfObject>[] detached = lists.Items.Where(entry => HoldsMatchingAlternateText(objects, PdfObjectLookup.Resolve(objects, entry.Value) ?? entry.Value, matches)).ToArray();
             if (detached.Length == 0) continue;
             PdfDictionary ownResources = CloneDictionary(resources), ownLists = CloneDictionary(lists);
-            foreach (string name in detached) ownLists.Items.Remove(name);
+            foreach (KeyValuePair<string, PdfObject> entry in detached) {
+                if (!names.Contains(entry.Key)) ownLists.Items.Remove(entry.Key);
+                else if (ResolveDictionary(objects, entry.Value) is PdfDictionary list) ownLists.Items[entry.Key] = CloneDictionary(list);
+            }
             ownResources.Items["Properties"] = ownLists;
             page.Items["Resources"] = ownResources;
         }
@@ -235,12 +241,7 @@ internal static partial class PdfRedactionApplier {
             if (pageNumber < 1 || pageNumber > document.Pages.Count ||
                 !objects.TryGetValue(document.Pages[pageNumber - 1].ObjectNumber, out PdfIndirectObject? pageObject) || pageObject.Value is not PdfDictionary page ||
                 !page.Items.TryGetValue("Contents", out PdfObject? contents)) continue;
-            var content = new StringBuilder();
-            foreach (PdfReference reference in EnumerateContentReferences(objects, contents)) {
-                if (PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) && indirect.Value is PdfStream stream &&
-                    TryDecodeContent(stream, objects, limits, out string segment)) content.Append(segment).Append(PdfContentStreamSequenceDecoder.Separator);
-            }
-            yield return (content.ToString(), GetInheritedDictionary(objects, page, "Resources"), "page " + pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            yield return (ReadPageContent(objects, contents, limits), GetInheritedDictionary(objects, page, "Resources"), "page " + pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
         foreach (PdfIndirectObject item in objects.Values) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -248,6 +249,15 @@ internal static partial class PdfRedactionApplier {
                 yield return (formContent, ResolveDictionary(objects, form.Dictionary.Items.TryGetValue("Resources", out PdfObject? own) ? own : null),
                     "object " + item.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
+    }
+
+    private static string ReadPageContent(Dictionary<int, PdfIndirectObject> objects, PdfObject contents, PdfReadLimits limits) {
+        var content = new StringBuilder();
+        foreach (PdfReference reference in EnumerateContentReferences(objects, contents)) {
+            if (PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) && indirect.Value is PdfStream stream &&
+                TryDecodeContent(stream, objects, limits, out string segment)) content.Append(segment).Append(PdfContentStreamSequenceDecoder.Separator);
+        }
+        return content.ToString();
     }
 
     /// <summary>Finds alternate text the rewrite should have cleared: a section that no longer matches any reviewed section, or one repeating reviewed text.</summary>
@@ -264,6 +274,7 @@ internal static partial class PdfRedactionApplier {
                 .Any(scope => scope.Values.Any(reviewed.Contains) || scope.GetFingerprints().Any(fingerprint => !plan.AlternateTextSections.Contains(fingerprint))))
                 issues.Add(new PdfRedactionVerificationIssue("RedactedContentOutsidePageContent", "AlternateText", "Marked content on " + owner + " keeps alternate text for removed content."));
         }
+        issues.AddRange(FindAlternateTextOfRemovedSections(document, plan, cancellationToken));
         return issues;
     }
 }

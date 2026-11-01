@@ -258,7 +258,7 @@ internal static partial class PdfRedactionApplier {
         PdfRedactionSearchCriteria[] criteria, CancellationToken cancellationToken) {
         var included = new HashSet<PdfObject>();
         var excluded = new HashSet<PdfObject>();
-        if (criteria.Any(static criterion => criterion.CoversAllPages)) return excluded;
+        if (criteria.Length == 0 || criteria.Any(static criterion => criterion.CoversAllPages)) return excluded;
         var scope = new HashSet<int>(criteria.SelectMany(static criterion => criterion.PageNumbers));
         PdfObject? rootPage = null;
         for (int index = 0; index < pages.Length; index++) {
@@ -272,6 +272,10 @@ internal static partial class PdfRedactionApplier {
         PdfDictionary? form = catalog is not null && catalog.Items.TryGetValue("AcroForm", out PdfObject? formValue) ? ResolveDictionary(objects, formValue) : null;
         var fieldNodes = new HashSet<PdfObject>();
         if (form is not null && form.Items.TryGetValue("Fields", out PdfObject? fields)) ExcludeUnplacedFields(fields);
+        // A structure element is reached from the tree, not from its page, so its links say which pages it describes.
+        foreach (KeyValuePair<PdfDictionary, HashSet<int>> element in ReadStructureLinks(objects, cancellationToken).Owners) {
+            if (element.Value.Count > 0 && element.Value.All(owner => objects.TryGetValue(owner, out PdfIndirectObject? linked) && excluded.Contains(linked.Value))) excluded.Add(element.Key);
+        }
         excluded.ExceptWith(included);
         return excluded;
 

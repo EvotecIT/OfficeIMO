@@ -2321,9 +2321,12 @@ hidden layers are removed without a mark and without touching what overlaps them
 `ActualText`, `E` and `TU` entries holding the searched text are removed, in property
 lists and inline marked content alike, and the output is refused if those entries or
 a Form XObject that no page paints still hold it. A section that loses content loses its
-alternate text, however it is stored and whichever content stream closes it; a named
-property list stays only for sections that still use it. A page-scoped search leaves a
-shared list with the pages it did not cover.
+alternate text, however it is stored and whichever content stream closes it. When the same
+value also describes retained content, through a shared property list, a repeated section,
+a form painted twice or a structure element, it leaves those holders too: a private copy
+would keep the text in the file, so retained sections keep their marks without the
+description. A page-scoped search leaves a shared list and structure elements with the
+pages it did not cover and edits its own page's copy.
 
 A search mark keeps its full height, but only image pixels follow that rectangle.
 Vector paths and annotations are removed when they overlap the matched glyphs, so a

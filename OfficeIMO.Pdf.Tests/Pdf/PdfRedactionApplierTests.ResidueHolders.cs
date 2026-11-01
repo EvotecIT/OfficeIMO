@@ -218,7 +218,6 @@ public partial class PdfRedactionApplierTests {
         string output = Encoding.GetEncoding("ISO-8859-1").GetString(source.Redactions.Apply(plan).ToBytes());
 
         Assert.True(output.IndexOf("/Span BMC", StringComparison.Ordinal) < output.IndexOf("/Span /P1 BDC", StringComparison.Ordinal));
-        Assert.Contains("/Alt (described)", output, StringComparison.Ordinal);
     }
 
     [Fact]

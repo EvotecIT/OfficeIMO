@@ -203,6 +203,7 @@ internal static partial class PdfRedactionPlanner {
             "This plan reports intersections with the exact reviewed geometry. It does not remove or rewrite PDF content."));
         cancellationToken.ThrowIfCancellationRequested();
 
+        HashSet<string> alternateTextSections = PdfRedactionApplier.CaptureAlternateTextSections(readDocument, cancellationToken);
         return new PdfRedactionPlan(
             preflight,
             areaArray,
@@ -212,7 +213,8 @@ internal static partial class PdfRedactionPlanner {
             PdfRedactionPlan.ComputeSourceSha256(pdf),
             pageIdentities,
             reviewedTextObjectScopes,
-            alternateTextSections: PdfRedactionApplier.CaptureAlternateTextSections(readDocument, cancellationToken));
+            alternateTextSections: alternateTextSections,
+            alternateTextPlacements: PdfRedactionApplier.CaptureAlternateTextPlacements(readDocument, alternateTextSections, cancellationToken));
     }
 
     /// <summary>Plans redaction impact for a PDF file.</summary>

@@ -331,7 +331,10 @@ internal static partial class PdfRedactionApplier {
                 .Where(static match => match.Kind == PdfRedactionMatchKind.ImagePlacement && match.RequiresRemoval)
                 .Select(static match => match.ObjectNumber).OfType<int>(), areaArray, limits, sourceStreamIdentities) || cleanupChanged;
         }
-        if (mutation.HasChanges || cleanupChanged) cleanupChanged = RemoveUnnamedAlternateTextProperties(objects, limits, sourceStreamIdentities) || cleanupChanged;
+        if (mutation.HasChanges || cleanupChanged) {
+            cleanupChanged = RemoveAlternateTextOfRemovedSections(objects, plan, document.Pages.Select(static page => page.ObjectNumber).ToArray(), limits, sourceStreamIdentities, effectiveOptions.CancellationToken) || cleanupChanged;
+            cleanupChanged = RemoveUnnamedAlternateTextProperties(objects, limits, sourceStreamIdentities) || cleanupChanged;
+        }
         if (!mutation.HasChanges && !cleanupChanged &&
             !(mutationOperation == PdfMutationOperation.Redact && !document.Security.HasEncryption && PdfSyntax.RequiresRedactionNormalization(document))) {
             generatedGrowth = default;
