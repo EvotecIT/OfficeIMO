@@ -5828,7 +5828,8 @@
       "action": "keep",
       "new": "Add-OfficePowerPointImage",
       "parameterSet": "Path",
-      "reason": "Geometry parameters take OfficeLength instead of point doubles; -Column/-Span add theme-grid placement. Without placement the image fills the layout's image area."
+      "hint": "PowerPointImage -Slide $slide -Path .\\Photo.png -Width 6cm",
+      "reason": "Geometry parameters take OfficeLength instead of point doubles; -Column/-Span add theme-grid placement. Without placement the image fills the layout's image area. Pass a native slide or one-based slide position with -Slide; slide objects no longer bind from the pipeline, which carries visual inputs."
     },
     {
       "old": "Add-OfficePowerPointPlanCapability",

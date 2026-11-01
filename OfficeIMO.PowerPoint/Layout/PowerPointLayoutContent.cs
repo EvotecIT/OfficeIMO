@@ -153,7 +153,12 @@ namespace OfficeIMO.PowerPoint {
             AlternativeText = alternativeText;
         }
 
-        /// <summary>Local image path.</summary>
+        /// <summary>The materialized picture owns the image payload; no source file is required.</summary>
+        internal PowerPointLayoutImage(PowerPointPicture picture) : this(string.Empty, picture.Description) {
+            NativePicture = picture;
+        }
+
+        /// <summary>Local image path; empty when a materialized native picture owns the payload.</summary>
         public string Path { get; }
         /// <summary>Accessible description of the visual.</summary>
         public string? AlternativeText { get; }

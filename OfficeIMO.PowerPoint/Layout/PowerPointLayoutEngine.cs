@@ -89,7 +89,10 @@ namespace OfficeIMO.PowerPoint {
             slide.Blocks.Any(b => b is PowerPointLayoutKpi or PowerPointLayoutCard or PowerPointLayoutStep or PowerPointLayoutLocation or PowerPointLayoutQuote);
 
         private static bool IsFullBleedCandidate(PowerPointLayoutImage image) {
-            if (!PowerPointImageSize.TryRead(image.Path, out int width, out int height) || height == 0) return false;
+            bool sized = image.NativePicture != null
+                ? image.NativePicture.TryGetPixelSize(out int width, out int height)
+                : PowerPointImageSize.TryRead(image.Path, out width, out height);
+            if (!sized || height == 0) return false;
             double aspect = width / (double)height;
             return width >= 1600 && Math.Abs(aspect / (16D / 9D) - 1D) <= 0.15D;
         }

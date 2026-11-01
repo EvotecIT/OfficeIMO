@@ -30,7 +30,7 @@ New-OfficeExcel -Path (Join-Path $documents 'service-map.xlsx') {
 }
 
 New-OfficePowerPoint -Path (Join-Path $documents 'service-map.pptx') {
-    PptSlide { $officeVisual | Add-OfficePowerPointVisual -X 48 -Y 72  }
+    PowerPointSlide { $officeVisual | Add-OfficePowerPointImage -X 48 -Y 72  }
 }
 
 New-OfficePdf -Path (Join-Path $documents 'service-map.pdf') {
