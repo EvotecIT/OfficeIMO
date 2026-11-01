@@ -40,9 +40,9 @@ Describe 'PSWriteOffice public API consistency' {
             @{ Command = 'Resolve-OfficeWordRevision'; Parameter = 'Filter'; Builder = 'New-OfficeWordRevisionFilter' }
             @{ Command = 'Read-OfficeDocument'; Parameter = 'HierarchyOptions'; Builder = 'New-OfficeDocumentHierarchyOptions' }
             @{ Command = 'Compare-OfficePdfVisual'; Parameter = 'Options'; Builder = 'New-OfficePdfVisualComparisonOptions' }
-            @{ Command = 'ConvertTo-OfficePdfWord'; Parameter = 'Options'; Builder = 'New-OfficePdfToWordOptions' }
-            @{ Command = 'ConvertTo-OfficePdfExcel'; Parameter = 'Options'; Builder = 'New-OfficePdfExcelImportOptions' }
-            @{ Command = 'ConvertTo-OfficePdfPowerPoint'; Parameter = 'Options'; Builder = 'New-OfficePdfToPowerPointOptions' }
+            @{ Command = 'ConvertTo-OfficePdfWord'; Parameter = 'Options'; Builder = 'New-OfficePdfWordOptions' }
+            @{ Command = 'ConvertTo-OfficePdfExcel'; Parameter = 'Options'; Builder = 'New-OfficePdfExcelOptions' }
+            @{ Command = 'ConvertTo-OfficePdfPowerPoint'; Parameter = 'Options'; Builder = 'New-OfficePdfPowerPointOptions' }
             @{ Command = 'ConvertTo-OfficeOpenDocument'; Parameter = 'WordOptions'; Builder = 'New-OfficeWordOpenDocumentOptions' }
             @{ Command = 'ConvertTo-OfficeOpenDocument'; Parameter = 'ExcelOptions'; Builder = 'New-OfficeExcelOpenDocumentOptions' }
             @{ Command = 'ConvertTo-OfficeOpenDocument'; Parameter = 'PowerPointOptions'; Builder = 'New-OfficePowerPointOpenDocumentOptions' }
@@ -240,19 +240,6 @@ Describe 'PSWriteOffice public API consistency' {
             $passThruOutput | Should -HaveCount 1 -Because "$($case.Name) PassThru should emit the saved file"
             $passThruOutput[0] | Should -BeOfType System.IO.FileInfo
             $passThruOutput[0].FullName | Should -Be $passThruPath
-        }
-    }
-
-    It 'preserves published PDF import option builders as compatibility aliases' {
-        $aliases = [ordered]@{
-            'New-OfficePdfWordImportOptions' = 'New-OfficePdfToWordOptions'
-            'New-OfficePdfPowerPointImportOptions' = 'New-OfficePdfToPowerPointOptions'
-        }
-
-        foreach ($entry in $aliases.GetEnumerator()) {
-            $alias = Get-Command $entry.Key
-            $alias | Should -BeOfType System.Management.Automation.AliasInfo
-            $alias.ResolvedCommandName | Should -Be $entry.Value
         }
     }
 

@@ -16991,7 +16991,7 @@
       "alias": null,
       "status": "renamed",
       "synopsis": "Creates PDF-to-Excel table reconstruction options for Convert-OfficeDocument -To Excel.",
-      "outputType": "PdfTablesToExcelOptions",
+      "outputType": "OfficeIMO.Pdf.Excel.ExcelPdfImportOptions",
       "parameterSets": [
         {
           "name": "Default",
@@ -17062,7 +17062,7 @@
               "type": "CultureInfo",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Replaces -NumericCulture."
+              "notes": "Replaces -NumericCulture. Defaults to the current culture; pass [System.Globalization.CultureInfo]::InvariantCulture to retain invariant parsing."
             },
             {
               "name": "NoPageContinuationMerge",
@@ -17116,7 +17116,7 @@
       "alias": null,
       "status": "renamed",
       "synopsis": "Creates PDF-to-Word reconstruction options for Convert-OfficeDocument -To Word.",
-      "outputType": "PdfToWordOptions",
+      "outputType": "OfficeIMO.Pdf.Word.WordPdfImportOptions",
       "parameterSets": [
         {
           "name": "Default",
@@ -17282,7 +17282,7 @@
       "alias": null,
       "status": "renamed",
       "synopsis": "Creates PDF-to-PowerPoint reconstruction options for Convert-OfficeDocument -To PowerPoint.",
-      "outputType": "PdfToPowerPointOptions",
+      "outputType": "OfficeIMO.Pdf.PowerPoint.PowerPointPdfImportOptions",
       "parameterSets": [
         {
           "name": "Default",
@@ -17290,7 +17290,7 @@
           "parameters": [
             {
               "name": "Mode",
-              "type": "PdfToPowerPointMode",
+              "type": "PowerPointPdfImportMode",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -17302,7 +17302,7 @@
             },
             {
               "name": "Dpi",
-              "type": "int",
+              "type": "double",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -17368,7 +17368,7 @@
             },
             {
               "name": "TableStyle",
-              "type": "string",
+              "type": "PowerPointTableStylePreset",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -19139,7 +19139,7 @@
         "ConvertBooleanColumns": "NoBooleanConversion (inverted)",
         "ConvertDateTimeColumns": "NoDateTimeConversion (inverted)",
         "ConvertPercentageColumns": "NoPercentageConversion (inverted)",
-        "NumericCulture": "Culture",
+        "NumericCulture": "Culture (defaults to current culture; pass [System.Globalization.CultureInfo]::InvariantCulture for invariant parsing)",
         "MergePageContinuations": "NoPageContinuationMerge (inverted)",
         "SuppressRepeatedBodyHeaderRows": "KeepRepeatedHeaderRows (inverted)",
         "ContinuationGeometryTolerancePoints": "ContinuationGeometryTolerance"

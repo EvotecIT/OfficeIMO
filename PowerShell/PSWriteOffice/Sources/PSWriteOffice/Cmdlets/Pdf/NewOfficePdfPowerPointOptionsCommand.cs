@@ -2,31 +2,30 @@ using OfficeIMO.Pdf.PowerPoint;
 using System.Management.Automation;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
-using OfficeIMO.PowerPoint.Pdf;
+using PSWriteOffice.Foundation;
 
-namespace PSWriteOffice.Cmdlets.PowerPoint;
+namespace PSWriteOffice.Cmdlets.Pdf;
 
 /// <summary>Creates discoverable PDF-to-PowerPoint reconstruction settings.</summary>
-/// <example>
-///   <summary>Import selected PDF pages as bounded slide content.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$options = New-OfficePdfToPowerPointOptions -PageRange '1-5' -MaxPages 5 -IncludeSourceTitles
-/// ConvertTo-OfficePdfPowerPoint -Path .\Source.pdf -OutputPath .\Slides.pptx -Options $options</code>
-/// </example>
-[Cmdlet(VerbsCommon.New, "OfficePdfToPowerPointOptions")]
-[Alias("New-OfficePdfPowerPointImportOptions")]
+/// <example><summary>Reconstruct selected PDF pages as editable slide content.</summary>
+/// <code>$options = New-OfficePdfPowerPointOptions -Page '1-5' -MaxPages 5
+/// Convert-OfficeDocument -Path ./Source.pdf -To PowerPoint -OutputPath ./Slides.pptx -Options $options</code></example>
+/// <example><summary>Create bounded visual pages for a review deck.</summary>
+/// <code>$options = New-OfficePdfPowerPointOptions -Mode VisualPages -Dpi 96 -MaximumPixelCountPerPage 2000000
+/// Convert-OfficeDocument -Path ./Review.pdf -To PowerPoint -OutputPath ./Review.pptx -Options $options</code></example>
+[Cmdlet(VerbsCommon.New, "OfficePdfPowerPointOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(PowerPointPdfImportOptions))]
-public sealed class NewOfficePdfToPowerPointOptionsCommand : PSCmdlet {
+public sealed class NewOfficePdfPowerPointOptionsCommand : OfficeCmdlet {
     /// <summary>Visual, editable-table, hybrid, editable-content, or automatic import mode.</summary>
-    [Parameter] public PowerPointPdfImportMode? Mode { get; set; }
+    [Parameter(ParameterSetName = "Default")] public PowerPointPdfImportMode? Mode { get; set; }
     /// <summary>Optional one-based page ranges such as 1-3,5.</summary>
-    [Parameter] public string? PageRange { get; set; }
+    [Parameter, OfficePageRangeTransformation] public OfficePageRange? Page { get; set; }
     /// <summary>Raster resolution used by visual import.</summary>
     [Parameter] [ValidateRange(double.Epsilon, double.MaxValue)] public double? Dpi { get; set; }
     /// <summary>Maximum pages imported.</summary>
     [Parameter] [ValidateRange(1, int.MaxValue)] public int? MaxPages { get; set; }
     /// <summary>Maximum pixels per rendered page.</summary>
-    [Parameter] [ValidateRange(1, long.MaxValue)] public long? MaxPixelsPerPage { get; set; }
+    [Parameter] [ValidateRange(1, long.MaxValue)] public long? MaximumPixelCountPerPage { get; set; }
     /// <summary>Maximum encoded bytes per rendered page.</summary>
     [Parameter] [ValidateRange(1, long.MaxValue)] public long? MaxOutputBytesPerPage { get; set; }
     /// <summary>Maximum aggregate encoded output bytes.</summary>
@@ -62,13 +61,13 @@ public sealed class NewOfficePdfToPowerPointOptionsCommand : PSCmdlet {
     protected override void ProcessRecord() {
         var options = new PowerPointPdfImportOptions();
         if (Mode.HasValue) options.Mode = Mode.Value;
-        if (!string.IsNullOrWhiteSpace(PageRange))
+        if (Page != null)
         {
-            options.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.Parse(PageRange!) };
+            options.ReadOptions = new PdfLoadOptions { PageSelection = Page.Selection };
         }
         if (Dpi.HasValue) options.Dpi = Dpi.Value;
         if (MaxPages.HasValue) options.MaxPages = MaxPages.Value;
-        if (MaxPixelsPerPage.HasValue) options.MaxPixelsPerPage = MaxPixelsPerPage.Value;
+        if (MaximumPixelCountPerPage.HasValue) options.MaxPixelsPerPage = MaximumPixelCountPerPage.Value;
         if (MaxOutputBytesPerPage.HasValue) options.MaxOutputBytesPerPage = MaxOutputBytesPerPage.Value;
         if (MaxTotalOutputBytes.HasValue) options.MaxTotalOutputBytes = MaxTotalOutputBytes.Value;
         if (MaxEditableObjectsPerPage.HasValue) options.MaxEditableObjectsPerPage = MaxEditableObjectsPerPage.Value;
@@ -88,7 +87,6 @@ public sealed class NewOfficePdfToPowerPointOptionsCommand : PSCmdlet {
     }
 
     private void Apply(string name, System.Action<bool> setter) {
-        if (!MyInvocation.BoundParameters.ContainsKey(name)) return;
-        setter(((SwitchParameter)MyInvocation.BoundParameters[name]).IsPresent);
+        if (BoundSwitch(name) is bool value) setter(value);
     }
 }
