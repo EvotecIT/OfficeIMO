@@ -7,7 +7,8 @@ $conflict = [Reflection.Assembly]::LoadFrom($ConflictPath)
 Import-Module $ModulePath -Force
 if ($WithoutLoaderAssembly) {
     $module = Get-Module PSWriteOffice
-    $registrationPath = Join-Path (Split-Path $ModulePath) 'Private/Register-OfficeCommandHints.ps1'
+    # The packaged loader inlines private scripts. Exercise the owning registrar in that module's scope.
+    $registrationPath = Join-Path $PSScriptRoot '../Private/Register-OfficeCommandHints.ps1'
     & $module { param($path) $script:ModuleAssembly = $null; . $path } $registrationPath
 }
 $command = Get-Command New-OfficeWord -ErrorAction Stop
