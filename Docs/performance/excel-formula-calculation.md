@@ -81,7 +81,7 @@ separate output roots. Never treat an incomplete baseline as equivalent work.
 
 The [expansion evidence](excel-formula-expansion-2026-11-01.json) compares the
 complete shared-string-optimized source `67ab8dd54bcc17697df755b5b69bb36316056827`
-with `427b0c3bc3f9538e6061c2b4f221bdedfffa80e7`. It records the exact Excel/Core
+with `ef7fc8843ef80862d250d97fc0fd3e3906072689`. It records the exact Excel/Core
 assembly hashes, all 144 measured report operations and the complete summaries.
 Both versions calculate the same four inputs and validate all 2,048 cached values.
 
@@ -89,25 +89,27 @@ The candidate adds lookup modes, reference/array INDEX and named expressions.
 Lazy reference-backed lookup sources avoid eager materialization, per-pass name
 catalogs avoid repeated definition scans, and literal lookup keys avoid wildcard
 regex construction. Nine measured iterations per engine/case use rotated order
-and each fixed processor domain, with one warmup. A preceding three-sample check
-showed an inconclusive VLOOKUP timing regression on one domain; inspecting the
-literal-key path identified unnecessary regex work. The final comparison includes
-that fix and uses nine samples to examine the common-case concern.
+and each fixed processor domain, with one warmup. The final comparison includes
+the shared blank-key correction as well as the literal-key regex optimization.
+VLOOKUP timing remains mixed across domains, so this comparison establishes its
+allocation reduction without claiming a consistent timing improvement.
 
 | Report | Domain 0 median, baseline → candidate | Domain 1 median, baseline → candidate | Formula allocation, baseline → candidate |
 | --- | --- | --- | --- |
-| INDEX/MATCH hit | 208.45 → 135.15 ms | 176.25 → 119.33 ms | 252.0 → 150.3–151.0 MB |
-| INDEX/MATCH missing product | 198.09 → 127.25 ms | 175.62 → 120.81 ms | 252.0 → 153.3 MB |
-| VLOOKUP missing product | 130.90 → 125.93 ms | 112.63 → 109.43 ms | 155.0 → 148.3 MB |
-| XLOOKUP missing product | 307.72 → 132.18 ms | 281.65 → 108.48 ms | 414.8 → 150.7 MB |
+| INDEX/MATCH hit | 236.95 → 148.70 ms | 191.74 → 115.64 ms | 251.6–252.0 → 150.3–151.1 MB |
+| INDEX/MATCH missing product | 224.37 → 138.98 ms | 180.31 → 125.35 ms | 251.6–252.0 → 153.0–153.4 MB |
+| VLOOKUP missing product | 144.96 → 127.83 ms | 115.11 → 122.44 ms | 154.6–155.0 → 148.0–148.4 MB |
+| XLOOKUP missing product | 352.56 → 143.94 ms | 296.79 → 116.64 ms | 414.4–414.8 → 150.4–150.7 MB |
 
 Allocation is cumulative managed allocation inside Calculate, expressed in decimal
 MB; it is not peak or retained RAM. INDEX/MATCH allocation falls approximately
 39–40%, XLOOKUP approximately 64%, and VLOOKUP approximately 4%. INDEX/MATCH medians
-improve approximately 1.46–1.56 times and XLOOKUP 2.33–2.60 times against this already
-optimized baseline. The small VLOOKUP timing margin is workload/host evidence,
-not a general speedup claim. Background development activity remains uncontrolled;
-the recorded 27.8% CPU snapshot before the final run is not a continuous trace.
+improve approximately 1.44–1.66 times and XLOOKUP 2.45–2.54 times against this already
+optimized baseline. VLOOKUP is approximately 12% faster on domain 0 and 6% slower
+on domain 1, with overlapping sample ranges and 13–18 ms standard deviations.
+Those mixed timings do not establish a portable speedup or regression. Background
+development activity remains uncontrolled; the recorded 12% CPU snapshot before
+the final run is not a continuous trace.
 
 ## Binary lookup scale
 
