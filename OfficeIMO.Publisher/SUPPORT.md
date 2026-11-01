@@ -543,8 +543,9 @@ lines retain their font size, so glyphs can overlap adjacent line allocations.
 An unobstructed ordinary text frame with positive content height can assign its
 first line even when the line allocation is taller than the frame. The assigned
 line retains its visible vertical overhang in drawing and PDF output; page clips
-still apply. Later lines must fit normally. Labelled paragraphs, object-exclusion
-regions and table text retain strict fitting pending separate native controls.
+still apply. Later lines must fit normally. The qualified labelled profile below
+uses the same first-line rule. Object-exclusion regions and table text retain
+strict fitting pending separate native controls.
 The `TextFrameBreaks` fixture covers 51 frames on 28 pages: Arial and Courier New
 at 12 pt, compressed and expanded exact spacing, first-line overhang, later-line
 thresholds, short-token wrapping and a three-frame linked story. All 51 assigned
@@ -572,6 +573,27 @@ transport from native dictionary equivalence.
 Complete stories and source styles survive overflow; byte-exact no-op native saving
 remains independent of rendering. Native/managed pixel fidelity and repair-free
 opening are not established by this font profile.
+
+### Native labelled first-line fitting
+
+An unobstructed ordinary frame can assign its first labelled line even when the
+frame is shorter than that line's allocation. The marker contributes to the
+first line's font geometry; exact line spacing retains its explicit allocation.
+Later lines must fit normally. Linked continuation retains the source paragraph
+without repeating its marker or first-line indentation. A marker consumes no
+story characters. Generic drawing and table/exclusion fitting are unchanged.
+
+The independently authored `TextLabelFitting` corpus contains 23 frames on eight
+pages: Arial 12 pt body text, explicit Arial `*` markers at 12 and 24 pt, exact
+18 pt and multiple 1.19 spacing, heights from 6 to 36 pt, and a three-frame chain
+whose physical placement differs from its reading order. All 23 managed source
+assignments match the original native inventory. All visible non-whitespace
+glyph text matches the native PDF; maximum origin differences are below 0.123 pt
+horizontally and 0.153 pt vertically with the recorded scoped font. Native
+initial/resaved page pairs are identical at 144 dpi. Managed glyph pixels and
+device quantization are not identical. Other marker fonts, numbering sequences,
+scripts, layout modes and repair-free native opening remain unqualified. The
+`labelledFirstLineFitting` qualification record binds the source and measurements.
 
 ### Native hyphenation settings
 

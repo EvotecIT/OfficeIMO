@@ -426,6 +426,7 @@ public sealed partial class PublisherNativeComparisonTests {
     [DataContract]
     private sealed class ExpectedShape {
         [DataMember(Name = "frameBreakProfile")] public FrameBreakProfile? FrameBreak { get; set; }
+        [DataMember(Name = "labelFittingProfile")] public LabelFittingProfile? LabelFitting { get; set; }
         [DataMember(Name = "name")] public string Name { get; set; } = null!;
         [DataMember(Name = "pageIndex")] public int PageIndex { get; set; }
         [DataMember(Name = "pageRole")] public string? PageRole { get; set; }
@@ -442,6 +443,12 @@ public sealed partial class PublisherNativeComparisonTests {
     [DataContract]
     private sealed class FrameBreakProfile {
         [DataMember(Name = "kind")] public string Kind { get; set; } = null!;
+    }
+
+    [DataContract]
+    private sealed class LabelFittingProfile {
+        [DataMember(Name = "kind")] public string Kind { get; set; } = null!;
+        [DataMember(Name = "rule")] public int Rule { get; set; }
     }
 
     [DataContract]

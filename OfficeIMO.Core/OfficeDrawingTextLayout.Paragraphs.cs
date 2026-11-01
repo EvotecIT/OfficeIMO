@@ -139,7 +139,7 @@ internal static partial class OfficeDrawingTextLayout {
                 if (i == 0 && label != null && !line.ContentHeight.HasValue && !paragraph.LineHeight.HasValue) lineHeight = Math.Max(lineHeight, label.Height);
                 if (lines.Count >= OfficeTextLayoutEngine.MaximumLayoutLines ||
                     usedHeight + (line.ContentHeight ?? lineHeight) > height + .000001D &&
-                    !(allowFirstLineOverflow && !hasText && paragraph.Label == null)) {
+                    !(allowFirstLineOverflow && !hasText)) {
                     clipped = true; paragraphTruncated = true; break;
                 }
                 OfficeRichTextLine placed = PlaceParagraphLine(paragraph, measured, line, i, lineHeight, width,
