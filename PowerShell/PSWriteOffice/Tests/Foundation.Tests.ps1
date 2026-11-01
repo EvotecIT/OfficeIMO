@@ -199,7 +199,17 @@ Describe 'Bounded background execution' {
         $fast = Join-Path $TestDrive 'fast.txt'; Set-Content -LiteralPath $fast -Value fast -NoNewline
         $bad = Join-Path $TestDrive 'bad.txt'; Set-Content -LiteralPath $bad -Value fail -NoNewline
         $errors = @()
-        $results = @(Test-OfficeFoundationBatch -LiteralPath $slow,$fast,$bad -ThrottleLimit 2 -ErrorVariable errors -ErrorAction SilentlyContinue)
+        $release = [System.Threading.Tasks.TaskCompletionSource[bool]]::new([System.Threading.Tasks.TaskCreationOptions]::RunContinuationsAsynchronously)
+        try {
+            $results = @(Test-OfficeFoundationBatch -LiteralPath $slow,$fast,$bad -ThrottleLimit 2 -SlowRelease $release.Task -ErrorVariable errors -ErrorAction SilentlyContinue | ForEach-Object {
+                if ($_ -eq 'fast') {
+                    $release.TrySetResult($true) | Out-Null
+                }
+                $_
+            })
+        } finally {
+            $release.TrySetCanceled() | Out-Null
+        }
         $results | Should -Be @('fast','slow')
         $errors.Count | Should -Be 1
         $errors[0].TargetObject | Should -Be $bad
