@@ -830,5 +830,45 @@
   {
     "Row": 2071,
     "Formula": "SUMPRODUCT(Data!F5:F6,Data!A1:A2)"
+  },
+  {
+    "Row": 2081,
+    "Formula": "SUMPRODUCT({1,2},{3;4})"
+  },
+  {
+    "Row": 2091,
+    "Formula": "SUMPRODUCT({1,2;3,4},{5;6;7;8})"
+  },
+  {
+    "Row": 2101,
+    "Formula": "SUMPRODUCT({1,2;3,4},{5,6;7,8})"
+  },
+  {
+    "Row": 2111,
+    "Formula": "SUMPRODUCT({1;2},{3;4;5})"
+  },
+  {
+    "Row": 2121,
+    "Formula": "SUMPRODUCT(2,{3;4})"
+  },
+  {
+    "Row": 2131,
+    "Formula": "SUMPRODUCT(NA(),{3;4})"
+  },
+  {
+    "Row": 2141,
+    "Formula": "SUMPRODUCT({1;2},{#N/A;2;3})"
+  },
+  {
+    "Row": 2151,
+    "Formula": "SUMPRODUCT({#N/A;2},{1;2;3})"
+  },
+  {
+    "Row": 2161,
+    "Formula": "SUMPRODUCT({#N/A},{1;2})"
+  },
+  {
+    "Row": 2171,
+    "Formula": "SUMPRODUCT(Data!F6,{1;2})"
   }
 ]

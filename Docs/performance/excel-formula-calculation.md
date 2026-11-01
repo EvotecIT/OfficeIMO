@@ -142,7 +142,7 @@ cohorts separate when interpreting variation.
 All final report operations and scale cases pass output validation. No persistent
 lookup index, parser cache, timing assertion or memory budget is added to ordinary
 correctness CI. The [native Excel lookup corpus](../../OfficeIMO.TestAssets/Documents/ExcelFormulaCorpus/lookup-conformance.provenance.json)
-separately qualifies 208 formulas, 232 typed result cells and 12 spill ranges after
+separately qualifies 218 formulas, 242 typed result cells and 12 spill ranges after
 save/reopen. The timed engine in both report lanes is OfficeIMO; desktop Excel
 produces the independent correctness fixture.
 

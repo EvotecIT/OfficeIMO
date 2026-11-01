@@ -177,30 +177,34 @@ namespace OfficeIMO.Excel {
 
             var argumentSets = new List<List<FormulaArgumentValue>>();
             FormulaArgumentValue firstError = default;
+            int rows = -1, columns = -1;
+            bool mismatchedShape = false;
             int remainingCellBudget = MaxResolvedFormulaRangeCells;
             foreach (string token in tokens) {
-                if (!TryResolveFormulaRange(token, out var values, ref remainingCellBudget, out bool isReference)) {
-                    if (isReference || !TryResolveFormulaArgument(token, out FormulaArgumentValue scalar)) return false;
-                    values = new List<FormulaArgumentValue> { scalar };
-                }
-                for (int index = 0; index < values.Count; index++) {
-                    FormulaArgumentValue value = values[index];
+                if (!TryResolveLookupSource(token, ref remainingCellBudget, out FormulaLookupSource source)) return false;
+                if (rows < 0) { rows = source.Rows; columns = source.Columns; }
+                else if (rows != source.Rows || columns != source.Columns) mismatchedShape = true;
+                var values = new List<FormulaArgumentValue>(source.Count);
+                for (int index = 0; index < source.Count; index++) {
+                    FormulaArgumentValue value = source[index];
                     if (value.IsUnresolvedFormula) return false;
                     if (value.IsError) { if (!firstError.IsError) firstError = value; }
                     else if (!value.HasValue || value.IsBoolean || !value.IsNumericAggregateValue) {
                         if (value.IsUnevaluatedFormulaCache) return false;
                         // Array blanks and nonnumeric elements contribute zero;
                         // Excel rejects a single blank argument with #VALUE!.
-                        if (!value.HasValue && values.Count == 1 && !firstError.IsError)
+                        if (!value.HasValue && source.Count == 1 && !firstError.IsError)
                             firstError = FormulaArgumentValue.Error("#VALUE!");
-                        values[index] = new FormulaArgumentValue(0d, "0");
+                        value = new FormulaArgumentValue(0d, "0");
                     } else if (!IsFinite(value.Number!.Value)) return false;
+                    values.Add(value);
                 }
                 argumentSets.Add(values);
             }
             if (_formulaReferenceError.IsError) return true;
-            if (argumentSets.Any(values => values.Count == 0 || values.Count != argumentSets[0].Count)) return false;
+            if (argumentSets.Any(values => values.Count == 0)) return false;
             if (firstError.IsError) { result = firstError; return true; }
+            if (mismatchedShape) { result = FormulaArgumentValue.Error("#VALUE!"); return true; }
 
             double sum = 0;
             for (int index = 0; index < argumentSets[0].Count; index++) {

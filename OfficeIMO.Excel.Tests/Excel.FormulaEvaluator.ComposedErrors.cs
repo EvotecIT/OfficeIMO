@@ -42,6 +42,7 @@ namespace OfficeIMO.Tests {
         [InlineData("TEXTBEFORE(\"a:b\",\":\",1,0,NA())")]
         [InlineData("TEXTAFTER(\"a:b\",\":\",1,0,NA())")]
         [InlineData("SUMPRODUCT(A1:A2,B1:B2)")]
+        [InlineData("SUMPRODUCT(A1:A2,B1:B3)")]
         public void Test_FormulaEvaluator_ComposedErrorsRemainTyped(string expression) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Errors");
@@ -64,7 +65,6 @@ namespace OfficeIMO.Tests {
         [InlineData("MID(NA(),-1,2)")]
         [InlineData("REPT(NA(),1000000)")]
         [InlineData("SUMPRODUCT(A1:A2,B1:B100001)")]
-        [InlineData("SUMPRODUCT(A1:A2,B1:B3)")]
         public void Test_FormulaEvaluator_UnsupportedCompositionDoesNotActivateFallback(string expression) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Errors");
