@@ -56,7 +56,7 @@ New-OfficeWord -Path $path {
         Set-OfficeWordDocumentProperty -Name ShowcaseProduct -Value 'Word' -Custom
 
         WordParagraph {
-            WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true
+            Set-OfficeWordParagraph -SpacingAfter 12 -KeepWithNext:$true
             WordText 'Executive Service Health Report' -Size 24 -Bold -Color '#17365D'
         }
         WordParagraph 'Generated from PowerShell objects with PSWriteOffice and OfficeIMO.'
@@ -93,12 +93,12 @@ New-OfficeWord -Path $path {
         $table | Get-OfficeWordTableCell | Set-OfficeWordTableCell -MarginTopCentimeters 0.12 -MarginBottomCentimeters 0.12 -MarginLeftCentimeters 0.16 -MarginRightCentimeters 0.16
 
         WordParagraph {
-            WordParagraphStyle -Style Heading1 -PageBreakBefore $true -KeepWithNext $true -SpacingAfterPoints 8
+            Set-OfficeWordParagraph -Style Heading1 -PageBreakBefore:$true -KeepWithNext:$true -SpacingAfter 8
             WordText 'Incident trend'
         }
         WordParagraph 'Recorded incidents fell from eight in January to three in June. June availability is 99.82%; percentages and incident counts use different units and are reported separately.'
         WordParagraph {
-            WordParagraphStyle -SpacingBeforePoints 12 -SpacingAfterPoints 12
+            Set-OfficeWordParagraph -SpacingBefore 12 -SpacingAfter 12
             WordChart -Type Line -Data $trend -Category Month -Value Incidents -Title 'Incidents by month' -XAxisTitle 'Month' -YAxisTitle 'Incidents' -FitToPageWidth -WidthFraction 1 -HeightPixels 240
         }
 

@@ -265,8 +265,8 @@ Describe 'PSWriteOffice public API consistency' {
             @{ Command = 'Add-OfficeExcelPivotTable'; Parameter = 'Layout'; Type = 'ExcelPivotLayout' }
             @{ Command = 'Import-OfficeExcel'; Parameter = 'FormulaMode'; Type = 'OfficeExcelFormulaMode' }
             @{ Command = 'Add-OfficeWordTable'; Parameter = 'Layout'; Type = 'OfficeWordTableLayout' }
-            @{ Command = 'Set-OfficeWordParagraphStyle'; Parameter = 'Alignment'; Type = 'WordParagraphAlignment' }
-            @{ Command = 'Set-OfficeWordTextStyle'; Parameter = 'Underline'; Type = 'WordUnderlineStyle' }
+            @{ Command = 'Set-OfficeWordParagraph'; Parameter = 'Alignment'; Type = 'OfficeAlignment' }
+            @{ Command = 'Set-OfficeWordText'; Parameter = 'Underline'; Type = 'WordUnderlineStyle' }
             @{ Command = 'Add-OfficePowerPointShape'; Parameter = 'Type'; Type = 'OfficePresetShapeType' }
             @{ Command = 'Get-OfficePowerPointShape'; Parameter = 'Kind'; Type = 'OfficePowerPointShapeKind[]' }
             @{ Command = 'Set-OfficePdfPage'; Parameter = 'BoxName'; Type = 'PdfPageBoundaryBox' }

@@ -4506,7 +4506,7 @@
           ]
         }
       ],
-      "notes": "Was Set-OfficeWordParagraphStyle. bool? parameters become switches; -KeepWithNext:$false turns a setting off. Without -Paragraph it formats the current DSL paragraph, so it works inside WordParagraph blocks without an alias.",
+      "notes": "Was Set-OfficeWordParagraphStyle. bool? parameters become switches; -KeepWithNext:$false turns a setting off. Without -Paragraph it formats the current DSL paragraph, so it works inside WordParagraph blocks without an alias. -LineSpacing is a physical height and defaults to Exact; use AtLeast explicitly or retain an existing minimum height. Auto line multiples cannot be combined with a physical height.",
       "examples": [
         {
           "title": "Keep a paragraph with the next one",
@@ -9848,8 +9848,8 @@
         "SpacingBeforePoints": "SpacingBefore",
         "SpacingAfterPoints": "SpacingAfter"
       },
-      "hint": "$p | Set-OfficeWordParagraph -SpacingAfter 6pt -KeepWithNext",
-      "reason": "It sets any paragraph property, not only the style; unit-suffixed names become lengths and bool? becomes switches."
+      "hint": "$p | Set-OfficeWordParagraph -SpacingAfter 6pt -KeepWithNext (physical LineSpacing uses Exact or AtLeast; use native WordLineSpacing for Auto multiples)",
+      "reason": "It sets any paragraph property, not only the style; unit-suffixed names become lengths and bool? becomes switches. Physical -LineSpacing uses Exact or AtLeast; Auto multiples require the native WordLineSpacing API."
     },
     {
       "old": "Set-OfficeWordShape",

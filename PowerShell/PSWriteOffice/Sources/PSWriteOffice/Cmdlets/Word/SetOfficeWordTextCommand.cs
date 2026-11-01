@@ -1,6 +1,8 @@
+using System;
 using System.Management.Automation;
+using OfficeIMO;
+using PSWriteOffice.Foundation;
 using OfficeIMO.Word;
-using PSWriteOffice.Services;
 using PSWriteOffice.Services.Word;
 
 namespace PSWriteOffice.Cmdlets.Word;
@@ -9,17 +11,16 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Style text inside a Word paragraph.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>WordParagraph -Text 'Warning' -PassThru | Set-OfficeWordTextStyle -Bold $true -Color '#C00000'</code>
-///   <para>Applies bold red styling to matching text.</para>
+///   <code>WordParagraph -Text 'Warning' -PassThru | Set-OfficeWordText -Bold -Color '#C00000'</code>
+///   <para>Applies bold red styling to the supplied paragraph or scoped run.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeWordTextStyle")]
-[Alias("WordTextStyle")]
+[Cmdlet(VerbsCommon.Set, "OfficeWordText", DefaultParameterSetName = "Default")]
 [OutputType(typeof(WordParagraph))]
-public sealed class SetOfficeWordTextStyleCommand : PSCmdlet
+public sealed class SetOfficeWordTextCommand : OfficeCmdlet
 {
     /// <summary>Word text item to update.</summary>
-    [Parameter(ValueFromPipeline = true, Position = 0)]
-    public WordParagraph? InputObject { get; set; }
+    [Parameter(ValueFromPipeline = true, Position = 0, ParameterSetName = "Default")]
+    public WordParagraph? Paragraph { get; set; }
 
     /// <summary>Replace the text.</summary>
     [Parameter]
@@ -35,11 +36,11 @@ public sealed class SetOfficeWordTextStyleCommand : PSCmdlet
 
     /// <summary>Set or clear bold formatting.</summary>
     [Parameter]
-    public bool? Bold { get; set; }
+    public SwitchParameter Bold { get; set; }
 
     /// <summary>Set or clear italic formatting.</summary>
     [Parameter]
-    public bool? Italic { get; set; }
+    public SwitchParameter Italic { get; set; }
 
     /// <summary>Underline style to apply.</summary>
     [Parameter]
@@ -47,17 +48,16 @@ public sealed class SetOfficeWordTextStyleCommand : PSCmdlet
 
     /// <summary>Text color. Named colors and hexadecimal values are accepted.</summary>
     [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? Color { get; set; }
+    [OfficeColorTransformation]
+    public OfficeColor? Color { get; set; }
 
     /// <summary>Font size in points.</summary>
-    [Parameter]
-    public double? FontSize { get; set; }
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? Size { get; set; }
 
     /// <summary>Font family name.</summary>
     [Parameter]
-    public string? FontFamily { get; set; }
+    public string? Font { get; set; }
 
     /// <summary>Highlight color.</summary>
     [Parameter]
@@ -65,11 +65,11 @@ public sealed class SetOfficeWordTextStyleCommand : PSCmdlet
 
     /// <summary>Set or clear strikethrough.</summary>
     [Parameter]
-    public bool? Strike { get; set; }
+    public SwitchParameter Strikethrough { get; set; }
 
     /// <summary>Set or clear double strikethrough.</summary>
     [Parameter]
-    public bool? DoubleStrike { get; set; }
+    public SwitchParameter DoubleStrikethrough { get; set; }
 
     /// <summary>Capitalization style.</summary>
     [Parameter]
@@ -81,15 +81,15 @@ public sealed class SetOfficeWordTextStyleCommand : PSCmdlet
 
     /// <summary>Set or clear outline effect.</summary>
     [Parameter]
-    public bool? Outline { get; set; }
+    public SwitchParameter Outline { get; set; }
 
     /// <summary>Set or clear shadow effect.</summary>
     [Parameter]
-    public bool? Shadow { get; set; }
+    public SwitchParameter Shadow { get; set; }
 
     /// <summary>Set or clear emboss effect.</summary>
     [Parameter]
-    public bool? Emboss { get; set; }
+    public SwitchParameter Emboss { get; set; }
 
     /// <summary>Emit the updated text item.</summary>
     [Parameter]
@@ -98,7 +98,7 @@ public sealed class SetOfficeWordTextStyleCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        var text = InputObject ?? WordDslContext.Current?.CurrentParagraph;
+        var text = Paragraph ?? WordDslContext.Current?.CurrentParagraph;
         if (text == null)
         {
             throw new PSInvalidOperationException("Provide a Word text item or run this command inside a Word paragraph DSL scope.");
@@ -107,20 +107,20 @@ public sealed class SetOfficeWordTextStyleCommand : PSCmdlet
         if (IsBound(nameof(Text))) text.Text = Text ?? string.Empty;
         if (Style.HasValue) text.SetCharacterStyle(Style.Value);
         if (!string.IsNullOrWhiteSpace(StyleId)) text.SetCharacterStyleId(StyleId!);
-        if (IsBound(nameof(Bold))) text.Bold = Bold ?? false;
-        if (IsBound(nameof(Italic))) text.Italic = Italic ?? false;
+        if (BoundSwitch(nameof(Bold)) is bool bold) text.Bold = bold;
+        if (BoundSwitch(nameof(Italic)) is bool italic) text.Italic = italic;
         if (Underline.HasValue) text.Underline = Underline.Value;
-        if (IsBound(nameof(Color))) text.ColorHex = Color ?? string.Empty;
-        if (IsBound(nameof(FontSize))) text.FontSize = FontSize.HasValue ? global::OfficeIMO.OfficeLength.Points(FontSize.Value) : null;
-        if (IsBound(nameof(FontFamily))) text.FontFamily = FontFamily;
+        if (IsBound(nameof(Color))) { if (Color.HasValue) text.Color = Color; else text.ColorHex = string.Empty; }
+        if (IsBound(nameof(Size))) text.FontSize = Size;
+        if (IsBound(nameof(Font))) text.FontFamily = Font;
         if (Highlight.HasValue) text.Highlight = Highlight.Value;
-        if (IsBound(nameof(Strike))) text.Strike = Strike ?? false;
-        if (IsBound(nameof(DoubleStrike))) text.DoubleStrike = DoubleStrike ?? false;
+        if (BoundSwitch(nameof(Strikethrough)) is bool strikethrough) text.Strike = strikethrough;
+        if (BoundSwitch(nameof(DoubleStrikethrough)) is bool doublestrikethrough) text.DoubleStrike = doublestrikethrough;
         if (CapsStyle.HasValue) text.CapsStyle = CapsStyle.Value;
         if (IsBound(nameof(Spacing))) text.Spacing = Spacing.HasValue ? OfficeIMO.OfficeLength.Emus((long)Spacing.Value * 635) : (OfficeIMO.OfficeLength?)null;
-        if (IsBound(nameof(Outline))) text.Outline = Outline ?? false;
-        if (IsBound(nameof(Shadow))) text.Shadow = Shadow ?? false;
-        if (IsBound(nameof(Emboss))) text.Emboss = Emboss ?? false;
+        if (BoundSwitch(nameof(Outline)) is bool outline) text.Outline = outline;
+        if (BoundSwitch(nameof(Shadow)) is bool shadow) text.Shadow = shadow;
+        if (BoundSwitch(nameof(Emboss)) is bool emboss) text.Emboss = emboss;
 
         if (PassThru.IsPresent)
         {
