@@ -17,5 +17,8 @@ internal static partial class PdfFormFiller {
         internal double Width { get; }
         internal double Height { get; }
         internal int AppearanceObjectNumber { get; }
+        internal bool IsNotPainted => AppearanceObjectNumber == 0;
+
+        internal static FlattenWidgetState NotPainted(int widgetObjectNumber) => new FlattenWidgetState(widgetObjectNumber, 0D, 0D, 0D, 0D, 0);
     }
 }

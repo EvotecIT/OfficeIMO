@@ -59,6 +59,11 @@ internal static partial class PdfFormFiller {
             : value;
 
         if (IsWidget(field)) {
+            if (fieldObjectNumber.HasValue && IsNeverDisplayedWidget(objects, field)) {
+                widgets[fieldObjectNumber.Value] = FlattenWidgetState.NotPainted(fieldObjectNumber.Value);
+                return;
+            }
+
             if (!fieldObjectNumber.HasValue ||
                 !TryReadRectCoordinates(field, out double x, out double y, out double width, out double height)) {
                 throw new NotSupportedException(UnsupportedFlattenWidgetMessage);
@@ -159,6 +164,7 @@ internal static partial class PdfFormFiller {
         for (int i = 0; i < widgets.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             FlattenWidgetState widget = widgets[i];
+            if (widget.IsNotPainted) continue;
             if (!objects.TryGetValue(widget.AppearanceObjectNumber, out var appearanceObject) ||
                 appearanceObject.Value is not PdfStream appearanceStream)
                 throw new InvalidOperationException("The form appearance stream is missing.");
@@ -177,6 +183,10 @@ internal static partial class PdfFormFiller {
 
         return builder.ToString();
     }
+
+    // Painting a hidden widget would turn a value no viewer shows into page text. Its annotation still goes with the form.
+    private static bool IsNeverDisplayedWidget(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget) =>
+        widget.Items.TryGetValue("F", out PdfObject? flags) && ResolveObject(objects, flags) is PdfNumber number && ((int)number.Value & (HiddenAnnotationFlag | NoViewAnnotationFlag)) != 0;
 
     private static PdfDictionary EnsurePageXObjects(Dictionary<int, PdfIndirectObject> objects, PdfDictionary page) {
         return PdfPageResourceHelper.EnsurePageXObjects(objects, page, "form flattening");
