@@ -72,6 +72,8 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData("XMATCH(\"A-2\",A1:A2,1)")]
         [InlineData("XMATCH(\"A-2\",A1:A2,0,2)")]
+        [InlineData("XMATCH(\"A1\",A1:A2,2,2)")]
+        [InlineData("XLOOKUP(\"A1\",A1:A2,A1:A2,,2,-2)")]
         public void FormulaEvaluator_UnqualifiedOrderedTextDoesNotBecomeMissingMatch(string formula) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Ordering");

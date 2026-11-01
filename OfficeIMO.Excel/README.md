@@ -1421,6 +1421,8 @@ numeric-looking text and Booleans.
 Ordered text search uses the qualified case-insensitive ASCII letter-and-digit
 profile shared with array `SORT`. Locale-dependent punctuation and Unicode
 ordering remain unevaluated; exact and wildcard searches do not require sorting.
+Wildcard matching uses linear search; combining wildcard match mode with binary
+search remains unevaluated.
 Invalid shapes return typed errors; unsupported signatures and resource limits
 remain unevaluated inside error handlers.
 

@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
             if (Math.Abs(searchMode) == 2) {
-                if (matchMode == 2) { failure = FormulaArgumentValue.Error("#VALUE!"); return false; }
+                if (matchMode == 2) { failure = FormulaArgumentValue.UnresolvedFormula(); return false; }
                 return TryFindBinaryLookupPosition(lookupValue, values, matchMode, searchMode, out position, out failure);
             }
             Regex? wildcard = matchMode == 2 && !lookupValue.Number.HasValue && lookupValue.Text != null
