@@ -474,7 +474,9 @@ namespace OfficeIMO.Excel {
             }
 
             string effectiveSheetName = validationMode == ExcelDefinedNameValidationMode.Sanitize
-                ? SheetNameLookup.ResolveExistingOrRequested(Sheets, requestedSheetName)
+                ? SheetNameLookup.ResolveExistingOrRequested(
+                    HasPendingDirectCellValues ? Locking.ExecuteWrite(EnsureLock(), GetSheetsForLockedOperation) : Sheets,
+                    requestedSheetName)
                 : requestedSheetName;
 
             return $"'{EscapeSheetName(effectiveSheetName)}'";

@@ -42,7 +42,7 @@ namespace OfficeIMO.Excel {
             var sharedStringMeasurements = new HashSet<(int TargetIndex, uint StyleIndex, int SharedStringId)>();
             var simpleTextMaxLengths = new Dictionary<(int TargetIndex, uint StyleIndex), int>();
             var textContext = CreateAutoFitTextContext();
-            var scratch = new Cell();
+            var scratchCells = new Dictionary<ExcelBufferedCellKind, Cell>();
             for (int rowIndex = 0; rowIndex < buffer.WrittenRowCount; rowIndex++) {
                 ct.ThrowIfCancellationRequested();
                 int end = buffer.GetEndCellIndex(rowIndex);
@@ -71,11 +71,11 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    if (!TryLoadAutoFitScratchCell(scratch, cell)) {
+                    if (!TryLoadAutoFitScratchCell(scratchCells, cell, out Cell? scratch)) {
                         return null;
                     }
 
-                    AddAutoFitMeasurement(scratch, targetIndex, textContext, uniqueMeasurements, sharedStringMeasurements, simpleTextMaxLengths, measurements);
+                    AddAutoFitMeasurement(scratch!, targetIndex, textContext, uniqueMeasurements, sharedStringMeasurements, simpleTextMaxLengths, measurements);
                 }
             }
 
@@ -121,14 +121,13 @@ namespace OfficeIMO.Excel {
             return texts;
         }
 
-        private bool TryLoadAutoFitScratchCell(Cell scratch, in ExcelBufferedCell cell) {
+        // One reusable cell per kind keeps measurement from allocating Open XML objects per cell.
+        private bool TryLoadAutoFitScratchCell(Dictionary<ExcelBufferedCellKind, Cell> scratchCells, in ExcelBufferedCell cell, out Cell? scratch) {
+            scratch = null;
             string raw;
-            XCellValues type = XCellValues.Number;
-            uint? style = null;
             switch (cell.Kind) {
                 case ExcelBufferedCellKind.Text:
                     raw = (string)cell.Reference!;
-                    type = XCellValues.String;
                     break;
                 case ExcelBufferedCellKind.Number:
                     raw = InvariantNumberText.Get(cell.NumberValue);
@@ -141,19 +140,30 @@ namespace OfficeIMO.Excel {
                     break;
                 case ExcelBufferedCellKind.Boolean:
                     raw = cell.Bits != 0L ? "1" : "0";
-                    type = XCellValues.Boolean;
                     break;
                 case ExcelBufferedCellKind.DateTime:
                     raw = InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(cell.DateTimeValue, _excelDocument.DateSystem));
-                    style = GetAutomaticNumberFormatStyleIndex(0U, duration: false);
                     break;
                 default:
                     return false;
             }
 
-            scratch.CellValue = new CellValue(raw);
-            scratch.DataType = type;
-            scratch.StyleIndex = style;
+            if (!scratchCells.TryGetValue(cell.Kind, out scratch)) {
+                scratch = new Cell {
+                    CellValue = new CellValue(raw),
+                    DataType = cell.Kind == ExcelBufferedCellKind.Text ? XCellValues.String
+                        : cell.Kind == ExcelBufferedCellKind.Boolean ? XCellValues.Boolean
+                        : XCellValues.Number
+                };
+                if (cell.Kind == ExcelBufferedCellKind.DateTime) {
+                    scratch.StyleIndex = GetAutomaticNumberFormatStyleIndex(0U, duration: false);
+                }
+
+                scratchCells.Add(cell.Kind, scratch);
+            } else {
+                scratch.CellValue!.Text = raw;
+            }
+
             return true;
         }
     }
