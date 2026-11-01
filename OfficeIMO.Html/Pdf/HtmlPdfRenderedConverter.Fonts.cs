@@ -482,10 +482,10 @@ internal static partial class HtmlPdfRenderedConverter {
         cancellationToken.ThrowIfCancellationRequested();
         var embedded = new PdfCore.PdfEmbeddedFontFamily(
             family,
-            regular.Data,
-            bold.Data,
-            italic.Data,
-            boldItalic.Data);
+            regular.DataSnapshot,
+            bold.DataSnapshot,
+            italic.DataSnapshot,
+            boldItalic.DataSnapshot);
         if (!string.Equals(family, regular.FamilyName, StringComparison.OrdinalIgnoreCase))
             embedded = embedded.WithProgramFontNames();
         return pdf.Options.TryRegisterNamedFontFamily(embedded);

@@ -11,6 +11,21 @@ public sealed class HtmlRenderRequestTests {
     private const string TallHtml = "<style>html,body{margin:0}.block{height:700px;background:#336699}</style><div class='block'>Tall</div>";
 
     [Fact]
+    public async Task ConcurrentRendersShareInstalledFontsWithoutChangingOutput() {
+        const string html = "<style>body{font-family:Arial,sans-serif}h1{font-weight:700}em{font-style:italic}</style>"
+            + "<h1>Quarterly review</h1><p>Plain text with <em>emphasis</em>, numbers 12345 and a minus \u2212 sign.</p>";
+        static byte[] Render(string source) {
+            using OfficeIMO.Pdf.PdfDocument pdf = HtmlConversionDocument.Parse(source).ToPdf();
+            return pdf.ToBytes();
+        }
+
+        byte[] expected = Render(html);
+        byte[][] rendered = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() => Render(html))));
+
+        Assert.All(rendered, output => Assert.Equal(expected, output));
+    }
+
+    [Fact]
     public void ChangingAConvertedDocumentReachesItsSavedOutput() {
         using OfficeIMO.Pdf.PdfDocument unchanged = HtmlConversionDocument.Parse("<p>Body</p>").ToPdf();
         int originalPages = OfficeIMO.Pdf.PdfDocument.Load(new MemoryStream(unchanged.ToBytes())).Pages.Count;
