@@ -945,6 +945,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         }
         ApplyBackgroundLayers(computed, style, backgroundShorthand);
         ApplyBorderImage(computed, style);
+        ReportUnimplementedProperties(element, computed);
         ApplyOpacity(computed.GetValue("opacity"), style);
         style.Transform = NormalizeCssValue(computed.GetValue("transform"), "none");
         if (HtmlCssTransformParser.TryParseIndividualScale(computed.GetValue("scale"), out string scale)
@@ -1107,6 +1108,23 @@ internal sealed partial class HtmlRenderStyleResolver {
                 HtmlDiagnosticSeverity.Warning, "border-image", "border-image=" + source, OfficeConversionLossKind.Omission);
         }
     }
+
+    private static readonly string[] UnimplementedProperties = {
+        "shape-outside", "text-emphasis", "text-emphasis-style", "-webkit-text-emphasis", "-webkit-text-emphasis-style"
+    };
+
+    private void ReportUnimplementedProperties(IElement element, HtmlComputedStyle computed) {
+        foreach (string property in UnimplementedProperties) {
+            string value = computed.GetValue(property).Trim();
+            if (value.Length == 0 || value.Equals("none", StringComparison.OrdinalIgnoreCase)
+                || !_reportedUnimplementedProperties.Add(property)) continue;
+            _diagnostics.Add("OfficeIMO.Html", HtmlRenderDiagnosticCodes.CssPropertyUnsupported,
+                "The CSS property " + property + " is not implemented and had no effect.",
+                HtmlDiagnosticSeverity.Warning, DescribeSource(element), property + "=" + value, OfficeConversionLossKind.Omission);
+        }
+    }
+
+    private readonly HashSet<string> _reportedUnimplementedProperties = new(StringComparer.Ordinal);
 
     private HtmlRenderBackgroundLayer? TryCreateGradientLayer(string value) {
         const string position = "0% 0%", repeat = "no-repeat", size = "100% 100%", box = "border-box", attachment = "scroll";

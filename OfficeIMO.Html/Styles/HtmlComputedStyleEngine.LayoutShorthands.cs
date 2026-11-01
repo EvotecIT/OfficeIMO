@@ -11,7 +11,8 @@ public static partial class HtmlComputedStyleEngine {
         "overflow-wrap", "word-break",
         // The provider grammar rejects container units in these shorthands.
         "margin", "margin-top", "margin-right", "margin-bottom", "margin-left",
-        "padding", "padding-top", "padding-right", "padding-bottom", "padding-left"
+        "padding", "padding-top", "padding-right", "padding-bottom", "padding-left",
+        "shape-outside"
     };
     private static readonly string[] GapLonghands = { "row-gap", "column-gap" };
 

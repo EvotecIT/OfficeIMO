@@ -129,6 +129,18 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(10D, Assert.Single(DrawingTestTraversal.Elements(rendered.Pages[0].CreateDrawing()).OfType<OfficeDrawingText>()).X, 2);
     }
 
+    [Theory]
+    [InlineData("shape-outside:circle(50%)", "shape-outside")]
+    [InlineData("text-emphasis:filled dot", "text-emphasis")]
+    public void HtmlRendering_UnimplementedPaintPropertyIsReportedNotSilentlyDropped(string declaration, string property) {
+        string html = "<style>.x{" + declaration + "}</style><p class='x'>Text</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions());
+
+        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.CssPropertyUnsupported
+            && item.Message.Contains(property, StringComparison.Ordinal));
+    }
+
     [Fact]
     public void HtmlContainerQueries_FlexItemQueriesItsLaidOutWidthNotItsParents() {
         const string html = "<style>.c{container-type:inline-size}.t{height:10px;background:#ff0000}"

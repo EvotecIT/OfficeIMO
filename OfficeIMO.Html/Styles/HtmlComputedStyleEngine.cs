@@ -82,7 +82,12 @@ public static partial class HtmlComputedStyleEngine {
     };
     private static readonly HashSet<string> SupportedProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "all",
+        "-webkit-text-emphasis",
+        "-webkit-text-emphasis-style",
         "-webkit-text-fill-color",
+        "shape-outside",
+        "text-emphasis",
+        "text-emphasis-style",
         "border-image",
         "border-image-source",
         "background",
