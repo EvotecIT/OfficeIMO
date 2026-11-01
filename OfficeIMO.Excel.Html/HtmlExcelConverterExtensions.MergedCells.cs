@@ -103,7 +103,7 @@ public static partial class HtmlExcelConverterExtensions {
 
                 ReserveSpan(occupiedCells, cellRow, cellColumn, rowSpan, columnSpan);
 
-                string text = NormalizeText(cell.TextContent);
+                string text = semanticCell?.Text ?? NormalizeText(cell.TextContent);
                 ExcelCell targetCell = sheet.CellAt(cellRow, cellColumn);
                 bool stored = false;
                 bool preserveValue = false;
