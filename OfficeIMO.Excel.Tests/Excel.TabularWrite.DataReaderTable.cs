@@ -101,8 +101,8 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(output, false);
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
             var savedTable = worksheetPart.TableDefinitionParts.Single().Table!;
-            Assert.Equal("A1:B1", savedTable.Reference?.Value);
-            Assert.Equal("A1:B1", savedTable.AutoFilter?.Reference?.Value);
+            Assert.Equal("A1:B2", savedTable.Reference?.Value);
+            Assert.Equal("A1:B2", savedTable.AutoFilter?.Reference?.Value);
             Assert.Equal(2U, savedTable.TableColumns?.Count?.Value);
             Assert.Equal(2, worksheetPart.Worksheet.Descendants<Cell>().Count());
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
