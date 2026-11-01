@@ -199,6 +199,9 @@ public sealed class MarkdownPdfExportOptions {
         return this;
     }
 
+    /// <summary>Width taken by the panels currently open during an export, in points.</summary>
+    internal double PanelReservedWidth { get; set; }
+
     /// <summary>Warnings recorded during the latest export.</summary>
     internal IList<MarkdownPdfExportWarning> Warnings { get; private set; } = new List<MarkdownPdfExportWarning>();
 

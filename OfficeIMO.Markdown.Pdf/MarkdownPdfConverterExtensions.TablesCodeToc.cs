@@ -42,6 +42,7 @@ public static partial class MarkdownPdfConverterExtensions {
         ApplyMarkdownTableCellAlignments(style, table);
         ApplyMarkdownTableColumnWidths(style, table, columnCount);
         ApplyMarkdownTableCellBackgrounds(style, table, columnCount);
+        FitTableColumns(style, columnCount, options);
 
         pdf.Table(rows, style: style);
     }
@@ -437,11 +438,11 @@ public static partial class MarkdownPdfConverterExtensions {
             : new[] { CreateRun(markdown, style) };
     }
 
-    private static void RenderCodeBlock(PdfCore.PdfDocument pdf, CodeBlock code, MarkdownPdfStyle visualTheme) {
+    private static void RenderCodeBlock(PdfCore.PdfDocument pdf, CodeBlock code, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
         string content = code.Content ?? string.Empty;
         string language = code.Language?.Trim() ?? string.Empty;
 
-        pdf.Panel(contentBuilder => contentBuilder.Paragraph(builder => {
+        RenderPanel(pdf, ShortCodePanelStyle(visualTheme.CodeBlockPanelStyleSnapshot, content), options, contentBuilder => contentBuilder.Paragraph(builder => {
             if (language.Length > 0) {
                 builder.FontSize(visualTheme.CodeBlockLabelFontSizeSnapshot)
                     .Bold(language, visualTheme.CodeBlockLabelColorSnapshot)
@@ -458,7 +459,7 @@ public static partial class MarkdownPdfConverterExtensions {
             LineHeight = 1.25D,
             SpacingBefore = OfficeLength.Zero,
             SpacingAfter = OfficeLength.Zero
-        }), ShortCodePanelStyle(visualTheme.CodeBlockPanelStyleSnapshot, content));
+        }));
 
         if (!string.IsNullOrWhiteSpace(code.Caption)) {
             pdf.Paragraph(builder => builder.Italic(code.Caption!), style: new PdfCore.PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(8) });
@@ -497,7 +498,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 .FontSize(visualTheme.SemanticBlockFontSizeSnapshot)
                 .Color(visualTheme.SemanticBlockTextColorSnapshot);
             AppendTextWithLineBreaks(builder, semantic.Content ?? string.Empty);
-        }, visualTheme.SemanticBlockPanelStyleSnapshot);
+        }, FitPanelStyle(visualTheme.SemanticBlockPanelStyleSnapshot, options, out _));
 
         if (!string.IsNullOrWhiteSpace(semantic.Caption)) {
             pdf.Paragraph(builder => builder.Italic(semantic.Caption!), style: new PdfCore.PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(8) });
@@ -511,7 +512,7 @@ public static partial class MarkdownPdfConverterExtensions {
         bool canRenderChildrenInsidePanel = children.Count > 0 && CanRenderBlocksInsidePanel(children);
         PdfCore.PdfPanelStyle panelStyle = visualTheme.CreateCalloutPanelStyle(callout.Kind);
         if (canRenderChildrenInsidePanel) {
-            pdf.Panel(panel => {
+            RenderPanel(pdf, panelStyle, options, panel => {
                 panel.Paragraph(builder => {
                     if (IsEmpty(callout.TitleInlines)) {
                         builder.Bold(title);
@@ -520,12 +521,12 @@ public static partial class MarkdownPdfConverterExtensions {
                     }
                 });
                 RenderBlocks(pdf, children, document, options, visualTheme);
-            }, panelStyle);
+            });
             return;
         }
 
         if (children.Count == 0 && !string.IsNullOrWhiteSpace(callout.Body)) {
-            pdf.Panel(panel => {
+            RenderPanel(pdf, panelStyle, options, panel => {
                 panel.Paragraph(builder => {
                     if (IsEmpty(callout.TitleInlines)) {
                         builder.Bold(title);
@@ -536,7 +537,7 @@ public static partial class MarkdownPdfConverterExtensions {
                     builder.LineBreak();
                     AppendTextWithLineBreaks(builder, callout.Body);
                 });
-            }, panelStyle);
+            });
             return;
         }
 
@@ -551,7 +552,7 @@ public static partial class MarkdownPdfConverterExtensions {
             pdf.PanelParagraph(builder => {
                 if (IsEmpty(callout.TitleInlines)) builder.Bold(title);
                 else AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme, options.Anchors).With(bold: true));
-            }, panelStyle);
+            }, FitPanelStyle(panelStyle, options, out _));
         }
     }
 
@@ -560,7 +561,7 @@ public static partial class MarkdownPdfConverterExtensions {
             pdf.PanelParagraph(builder => {
                 builder.Bold(details.Open ? "Details: " : "Collapsed details: ");
                 AppendInlines(builder, details.Summary.Inlines, CreateInlineStyle(visualTheme, options.Anchors).With(bold: true));
-            }, visualTheme.DetailsPanelStyleSnapshot);
+            }, FitPanelStyle(visualTheme.DetailsPanelStyleSnapshot, options, out _));
         }
 
         RenderBlocks(pdf, details.ChildBlocks, document, options, visualTheme);
