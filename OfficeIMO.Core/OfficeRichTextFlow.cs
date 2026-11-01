@@ -37,9 +37,13 @@ internal sealed class OfficeRichTextFlow {
         OfficeDrawingTextMetrics metrics, CancellationToken cancellationToken) =>
         TakeCore(width, height, metrics.MeasureText, metrics, cancellationToken);
 
+    internal IReadOnlyList<OfficeRichTextParagraph> Take(double width, double height,
+        OfficeDrawingTextMetrics metrics, CancellationToken cancellationToken, bool allowFirstLineOverflow) =>
+        TakeCore(width, height, metrics.MeasureText, metrics, cancellationToken, allowFirstLineOverflow);
+
     private IReadOnlyList<OfficeRichTextParagraph> TakeCore(double width, double height,
         Func<string?, double, string?, OfficeFontStyle, double> measure, OfficeDrawingTextMetrics? metrics,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, bool allowFirstLineOverflow = false) {
         cancellationToken.ThrowIfCancellationRequested();
         var visible = new List<OfficeRichTextParagraph>();
         if (width <= 0 || height <= 0) return visible;
@@ -50,9 +54,8 @@ internal sealed class OfficeRichTextFlow {
             int length = TextLength(source);
             OfficeRichTextParagraph tail = Slice(source, _offset, length - _offset, complete: true);
             _accountMeasurement(length - _offset);
-            OfficeRichTextBlockLayout layout = metrics == null
-                ? OfficeDrawingTextLayout.CreateParagraphs(new[] { tail }, width, remainingHeight, measure, cancellationToken: cancellationToken)
-                : OfficeDrawingTextLayout.CreateParagraphsWithMetrics(new[] { tail }, width, remainingHeight, metrics, cancellationToken: cancellationToken);
+            OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.CreateFlowParagraphs(new[] { tail },
+                width, remainingHeight, measure, metrics, allowFirstLineOverflow && visible.Count == 0, cancellationToken);
             int consumed = 0;
             bool sourceEndVisible = false;
             double measuredHeight = 0D, completedHeight = 0D;

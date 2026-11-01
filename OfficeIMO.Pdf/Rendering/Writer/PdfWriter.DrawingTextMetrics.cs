@@ -51,16 +51,12 @@ internal static partial class PdfWriter {
         }
 
         OfficePublisherFontMetrics? MeasurePublisherFont(string? text, double size, string? family, OfficeFontStyle style) {
-            double ascent = 0D, descent = 0D, baseline = 0D;
-            bool resolved = false;
+            var combined = new OfficePublisherFontMetrics.Union();
             foreach (var part in Resolve(string.IsNullOrEmpty(text) ? " " : text, size, family, style)) {
                 double partSize = part.Run.FontSize ?? size;
-                OfficePublisherFontMetrics? selected = part.Canvas?.MeasurePublisherFont(part.Run.Text, partSize, part.Family, style);
-                OfficePublisherFontMetrics value = selected ?? new OfficePublisherFontMetrics(partSize * .84D, partSize * .16D, partSize * .84D);
-                ascent = Math.Max(ascent, value.Ascent); descent = Math.Max(descent, value.Descent);
-                baseline = Math.Max(baseline, value.Baseline); resolved |= selected.HasValue;
+                combined.Include(part.Canvas?.MeasurePublisherFont(part.Run.Text, partSize, part.Family, style), partSize);
             }
-            return resolved ? new OfficePublisherFontMetrics(ascent, descent, baseline) : null;
+            return combined.Value;
         }
 
         double Measure(string? text, double size, string? family, OfficeFontStyle style) {

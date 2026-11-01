@@ -500,8 +500,8 @@ fonts is required for the separately qualified baseline profile below; substitut
 fonts and broader native layout retain approximation reports.
 
 Publisher paragraphs use a shared Core font profile that separates selected design
-content height, line advance and the rendered baseline. A region's final line fits
-and aligns by its content height; its unused advance is omitted. The full advance
+content height, line advance and the rendered baseline. With inherited or multiple
+spacing, a region's final line fits and aligns by its content height; its unused advance is omitted. The full advance
 and paragraph-after spacing still separate following text. Ordinary drawing
 paragraphs retain their existing layout defaults.
 
@@ -531,8 +531,31 @@ producer/initial/resaved pixels at 144 dpi; this native-only stability check is
 separate from managed coordinate agreement. The `fontLineGeometry` section of the
 [qualification record](../Build/Publisher/WriterProbe/qualification.json) binds the
 source, fixtures and measured limits.
+Exact line spacing uses the complete declared line allocation for fitting and
+vertical alignment. The baseline uses the selected face's sampled device ascent
+and descent: expanded allocations retain the descent below the baseline, while
+compressed allocations divide the height in the sampled ascent/descent ratio.
+The baseline rounds to the nearest pixel of the same 600 dpi reference. Condensed
+lines retain their font size, so glyphs can overlap adjacent line allocations.
+
+An unobstructed ordinary text frame with positive content height can assign its
+first line even when the line allocation is taller than the frame. The assigned
+line retains its visible vertical overhang in drawing and PDF output; page clips
+still apply. Later lines must fit normally. Labelled paragraphs, object-exclusion
+regions and table text retain strict fitting pending separate native controls.
+The `TextFrameBreaks` fixture covers 51 frames on 28 pages: Arial and Courier New
+at 12 pt, compressed and expanded exact spacing, first-line overhang, later-line
+thresholds, short-token wrapping and a three-frame linked story. All 51 assigned
+ranges match both the producer file and its native-resaved copy. Across 218 text
+origins, the maximum difference is below 0.001 pt horizontally and 0.16 pt in
+baseline position with matching scoped fonts. Its 56 native-only page comparisons
+are pixel-identical at 144 dpi. The `textFrameBreaks` qualification record binds
+these fixtures, source and measured limits.
+
 Other fonts, device resolutions, complex scripts, mixed-baseline native geometry,
-wrapping and native frame-break equivalence require separate qualification.
+language-dependent wrapping and broader frame-break equivalence require separate
+qualification. Automatic hyphenation still produces different linked-frame ranges
+in the existing long-word specimens; short-token controls do not establish that contract.
 Complete stories and source styles survive overflow; byte-exact no-op native saving
 remains independent of rendering. Native/managed pixel fidelity and repair-free
 opening are not established by this font profile.

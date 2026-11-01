@@ -78,7 +78,7 @@ internal static partial class OfficeDrawingTextLayout {
         return new OfficeTextPaintBounds(top, bottom);
     }
 
-    private static OfficeTextPaintBounds PaintedBounds(OfficeRichTextBlockLayout layout,
+    internal static OfficeTextPaintBounds PaintedBounds(OfficeRichTextBlockLayout layout,
         Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint,
         Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?>? measureSegmentPaint = null) {
         double lineTop = 0D, top = 0D, bottom = 0D;

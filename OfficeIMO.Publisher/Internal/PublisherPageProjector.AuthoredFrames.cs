@@ -7,8 +7,11 @@ internal sealed partial class PublisherPageProjector {
     private void ProjectAuthoredTextFrame(PublisherFrameState definition, OfficeDrawing page) {
         var local = new OfficeDrawing(definition.Width, definition.Height);
         if (_textFrames.TryGetValue(definition.Id, out PreparedTextFrame? frame))
-            foreach (PreparedTextRegion region in frame.Regions) local.AddRichTextParagraphs(region.Paragraphs,
-                region.X, region.Y, region.Width, region.Height, verticalAlignment: definition.VerticalAlignment);
+            foreach (PreparedTextRegion region in frame.Regions) {
+                local.AddRichTextParagraphs(region.Paragraphs,
+                    region.X, region.Y, region.Width, region.Height, verticalAlignment: definition.VerticalAlignment);
+                ((OfficeDrawingRichText)local.Elements[local.Elements.Count - 1]).NativePublisherFrame = region.NativePublisherFrame;
+            }
         if (definition.X < 0 || definition.Y < 0 || definition.X + definition.Width > page.Width || definition.Y + definition.Height > page.Height)
             _context.Add("PUB_PAGE_BLEED_CLIPPED", "Artwork outside the publication page remains in the scene but is clipped to the printable page in exports.",
                 OfficeConversionLossKind.Approximation, "publication/frame/" + definition.Id);

@@ -56,6 +56,7 @@ public sealed partial class OfficeDrawing {
                     richText.FlipHorizontal, richText.FlipVertical, richText.Padding, richText.ParagraphIndent, allowOverflow: true)
                     .WithParagraphs(paragraphs).WithTextAreaAlignment(richText.TextAreaAlignment);
                 ((OfficeDrawingRichText)replacement).NormalizeHorizontalPaint = richText.NormalizeHorizontalPaint;
+                ((OfficeDrawingRichText)replacement).NativePublisherFrame = richText.NativePublisherFrame;
             } else if (current is OfficeDrawingGroup group) {
                 OfficeDrawing child = group.InnerDrawing.Clone();
                 child.ApplyColorTint(tint);

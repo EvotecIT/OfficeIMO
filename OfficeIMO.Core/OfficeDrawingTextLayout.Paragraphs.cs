@@ -29,7 +29,8 @@ internal static partial class OfficeDrawingTextLayout {
         Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? measurePublisherFont = null) =>
         CreateParagraphsWithArea(text.Paragraphs, width, height, measure, text.TextAreaAlignment, text.WrapText, scale, measurePaint,
             shrinkToFit: text.ShrinkToFit, minimumFontSize: 6D * scale,
-            reportUnwrappedWidthOverflow: reportUnwrappedWidthOverflow, measureSegmentPaint: measureSegmentPaint, measurePublisherFont: measurePublisherFont);
+            reportUnwrappedWidthOverflow: reportUnwrappedWidthOverflow, measureSegmentPaint: measureSegmentPaint, measurePublisherFont: measurePublisherFont,
+            allowFirstLineOverflow: text.NativePublisherFrame);
 
     /// <summary>Places paragraph runs with shared measured wrapping and paragraph-relative line offsets.</summary>
     internal static OfficeRichTextBlockLayout CreateParagraphs(IReadOnlyList<OfficeRichTextParagraph> paragraphs,
@@ -47,6 +48,15 @@ internal static partial class OfficeDrawingTextLayout {
             wrap, scale, metrics.MeasurePaintBounds, cancellationToken, shrinkToFit, minimumFontSize,
             measureSegmentPaint: metrics.MeasureSegmentPaintBounds, measurePublisherFont: metrics.MeasurePublisherFont);
 
+    // Native frame flow uses the same placement owner, forcing only the region's first line.
+    internal static OfficeRichTextBlockLayout CreateFlowParagraphs(IReadOnlyList<OfficeRichTextParagraph> paragraphs,
+        double width, double height, Func<string?, double, string?, OfficeFontStyle, double> measure,
+        OfficeDrawingTextMetrics? metrics, bool allowFirstLineOverflow, CancellationToken cancellationToken) =>
+        CreateParagraphsWithArea(paragraphs, width, height, measure, OfficeTextAreaAlignment.FullWidth,
+            measurePaint: metrics?.MeasurePaintBounds, cancellationToken: cancellationToken,
+            measureSegmentPaint: metrics?.MeasureSegmentPaintBounds, measurePublisherFont: metrics?.MeasurePublisherFont,
+            allowFirstLineOverflow: allowFirstLineOverflow);
+
     // The friend-callable method above retains its CLR signature across Core package upgrades.
     private static OfficeRichTextBlockLayout CreateParagraphsWithArea(IReadOnlyList<OfficeRichTextParagraph> paragraphs,
         double width, double height, Func<string?, double, string?, OfficeFontStyle, double> measure,
@@ -55,7 +65,8 @@ internal static partial class OfficeDrawingTextLayout {
         CancellationToken cancellationToken = default, bool shrinkToFit = false, double minimumFontSize = 1D,
         bool reportUnwrappedWidthOverflow = true,
         Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?>? measureSegmentPaint = null,
-        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? measurePublisherFont = null) {
+        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? measurePublisherFont = null,
+        bool allowFirstLineOverflow = false) {
         cancellationToken.ThrowIfCancellationRequested();
         if (!Enum.IsDefined(typeof(OfficeTextAreaAlignment), areaAlignment)) throw new ArgumentOutOfRangeException(nameof(areaAlignment));
         double fontScale = 1D;
@@ -71,14 +82,14 @@ internal static partial class OfficeDrawingTextLayout {
                 OfficeRichTextBlockLayout measured = CreateParagraphsCore(paragraphs, width, double.MaxValue,
                     measure, wrap, scale, candidate, measurePaint, cancellationToken, reportLeaderPaintClipping: false,
                     areaAlignment: areaAlignment == OfficeTextAreaAlignment.FullWidth ? areaAlignment : OfficeTextAreaAlignment.Left,
-                    measurePublisherFont: measurePublisherFont);
+                    measurePublisherFont: measurePublisherFont, allowFirstLineOverflow: allowFirstLineOverflow);
                 return !measured.Clipped && measured.Width <= width + .01D
                     && RequiredFrameHeight(measured, measurePaint, measureSegmentPaint) <= height + .000001D;
             }, cancellationToken);
         }
         OfficeRichTextBlockLayout layout = CreateParagraphsCore(paragraphs, width, height, measure, wrap,
             scale, fontScale, measurePaint, cancellationToken, areaAlignment: areaAlignment,
-            reportUnwrappedWidthOverflow: reportUnwrappedWidthOverflow, measurePublisherFont: measurePublisherFont);
+            reportUnwrappedWidthOverflow: reportUnwrappedWidthOverflow, measurePublisherFont: measurePublisherFont, allowFirstLineOverflow: allowFirstLineOverflow);
         return shrinkToFit ? IncludePaintedHeight(layout, height, measurePaint, measureSegmentPaint) : layout;
     }
 
@@ -89,16 +100,17 @@ internal static partial class OfficeDrawingTextLayout {
         CancellationToken cancellationToken, bool reportLeaderPaintClipping = true,
         OfficeTextAreaAlignment areaAlignment = OfficeTextAreaAlignment.FullWidth,
         bool reportUnwrappedWidthOverflow = true,
-        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? measurePublisherFont = null) {
+        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? measurePublisherFont = null,
+        bool allowFirstLineOverflow = false) {
         if (areaAlignment != OfficeTextAreaAlignment.FullWidth)
             return CreateIntrinsicParagraphs(paragraphs, width, height, measure, wrap, scale, fontScale,
-                measurePaint, cancellationToken, reportLeaderPaintClipping, areaAlignment, reportUnwrappedWidthOverflow, measurePublisherFont);
+                measurePaint, cancellationToken, reportLeaderPaintClipping, areaAlignment, reportUnwrappedWidthOverflow, measurePublisherFont, allowFirstLineOverflow);
         var lines = new List<OfficeRichTextLine>();
         // Truncated decorative paint cannot be recovered by shrinking the body.
         // Fit probes still enforce the budget, but fit against body geometry.
         var leaderBudget = new OfficeTextTabLeaderLayout.Budget(reportLeaderPaintClipping);
         double usedHeight = 0, usedWidth = 0, maximumLineHeight = 1, terminalAdvance = 0;
-        bool clipped = false;
+        bool clipped = false, hasText = false;
         foreach (OfficeRichTextParagraph paragraph in paragraphs) {
             cancellationToken.ThrowIfCancellationRequested();
             MeasuredParagraph? measured = MeasureParagraph(paragraph, width, measure, wrap, scale, fontScale,
@@ -115,12 +127,14 @@ internal static partial class OfficeDrawingTextLayout {
                 OfficeRichTextLine line = measured.Line(i);
                 double lineHeight = paragraph.LineHeight * scale ?? OfficeTextBlockRenderer.ResolveRichTextRenderLineHeight(line, paragraphLayout.LineHeight);
                 if (i == 0 && label != null && !line.ContentHeight.HasValue && !paragraph.LineHeight.HasValue) lineHeight = Math.Max(lineHeight, label.Height);
-                if (lines.Count >= OfficeTextLayoutEngine.MaximumLayoutLines || usedHeight + (line.ContentHeight ?? lineHeight) > height + .000001D) {
+                if (lines.Count >= OfficeTextLayoutEngine.MaximumLayoutLines ||
+                    usedHeight + (line.ContentHeight ?? lineHeight) > height + .000001D &&
+                    !(allowFirstLineOverflow && !hasText && paragraph.Label == null)) {
                     clipped = true; paragraphTruncated = true; break;
                 }
                 OfficeRichTextLine placed = PlaceParagraphLine(paragraph, measured, line, i, lineHeight, width,
                     wrap, paragraph.Alignment, measure);
-                lines.Add(placed); usedHeight += lineHeight;
+                lines.Add(placed); usedHeight += lineHeight; hasText = true;
                 terminalAdvance = lineHeight - (line.ContentHeight ?? lineHeight);
                 maximumLineHeight = Math.Max(maximumLineHeight, lineHeight);
                 usedWidth = Math.Max(usedWidth, placed.OffsetX + placed.Width + margin.Right);
@@ -178,7 +192,7 @@ internal static partial class OfficeDrawingTextLayout {
             hardBreakStartsParagraph: false, tabStops: paragraph.TabStops?.Scale(scale, originalLeft - margin.Left, fontScale),
             cancellationToken: cancellationToken, leaderBudget: leaderBudget);
         if (paragraph.UsesPublisherFontMetrics && measurePublisherFont != null)
-            layout = ApplyPublisherLineGeometry(layout, runs, paragraph, measurePublisherFont, label);
+            layout = ApplyPublisherLineGeometry(layout, runs, paragraph, measurePublisherFont, scale, label);
         clipped |= layout.Clipped && (reportUnwrappedWidthOverflow || !layout.OnlyUnwrappedWidthOverflow);
         return new MeasuredParagraph(layout, margin, indent, label);
     }

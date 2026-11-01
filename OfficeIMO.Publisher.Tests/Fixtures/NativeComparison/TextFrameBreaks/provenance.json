@@ -1,0 +1,46 @@
+{
+  "schema": "officeimo.publisher.native-frame-break-fixture.v1",
+  "reproduction": "New-NativeComparisonCorpus -Case TextFrameBreaks -OutputDirectory <empty-directory>",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "fonts": [
+    {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    {
+      "family": "Courier New",
+      "file": "cour.ttf",
+      "sha256": "e4a66a0259718d0c8f4b6e14319b4803ced45afbddf3abba8b8c3e2006856206"
+    }
+  ],
+  "files": [
+    {
+      "name": "native-textframebreaks.pub",
+      "sha256": "dcc18f07fd009767d47401ee14d1c8ddc91cc8def1f3392c0bf57c8ddb412342"
+    },
+    {
+      "name": "native-textframebreaks.pdf",
+      "sha256": "2532888f602d5370898dbb5445344627489fcd9acf77075c9070b8fe6d434031"
+    },
+    {
+      "name": "native-textframebreaks.json",
+      "sha256": "9a5ba59588ed232473a1aa55a86ea133c0b3da47541c09141573531356943a75"
+    }
+  ],
+  "observed": "51 frames on 28 pages: exact-line metrics and placement, positive frames shorter than one line, subsequent-line thresholds, numeric short-token wrapping and a linked chain ordered independently of physical placement.",
+  "limits": "Exact reference font binaries and default native PDF profile; automatic language hyphenation, labelled first-line fitting, exclusion bands, table-cell first-line behavior and broader device/script profiles remain separate. Native repair status is unassessed."
+}

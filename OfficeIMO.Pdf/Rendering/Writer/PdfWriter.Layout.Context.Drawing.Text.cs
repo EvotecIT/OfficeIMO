@@ -156,6 +156,14 @@ internal static partial class PdfWriter {
                 clipWidth = right - left;
             }
             double lineTop = OfficeTextPlacement.ResolveTop(0D, height, layout.Height, text.VerticalAlignment) + layout.ContentOffsetY;
+            double clipTop = 0D, clipBottom = height;
+            if (text.NativePublisherFrame) {
+                OfficeTextPaintBounds paint = OfficeDrawingTextLayout.PaintedBounds(layout,
+                    textMetrics.MeasurePaintBounds, textMetrics.MeasureSegmentPaintBounds);
+                clipTop = Math.Min(clipTop, lineTop + paint.Top);
+                clipBottom = Math.Max(clipBottom, lineTop + paint.Bottom);
+            }
+            double clipY = contentTopY - clipBottom, clipHeight = clipBottom - clipTop;
             for (int index = 0; index < layout.Lines.Count; index++) {
                 OfficeRichTextLine line = layout.Lines[index];
                 double lineHeight = OfficeTextBlockRenderer.ResolveRichTextRenderLineHeight(line, layout.LineHeight);
@@ -192,7 +200,7 @@ internal static partial class PdfWriter {
                 double renderedBaseline = OfficeTextBlockRenderer.ResolveRichTextRenderedBaseline(segment, baseline);
                 if (segment.TabLinePaint is { } leader) {
                     var content = new ContentStreamBuilder(sb).SaveState()
-                        .Rectangle(clipX, contentTopY - height, clipWidth, height).ClipPath().EndPath();
+                        .Rectangle(clipX, clipY, clipWidth, clipHeight).ClipPath().EndPath();
                     DrawShapeGeometryAt(leader.ToShape(), x + leader.Left, contentTopY - renderedBaseline - leader.Bottom);
                     content.RestoreState();
                 }
@@ -204,7 +212,7 @@ internal static partial class PdfWriter {
                     fontFamily: segment.FontFamily, underlineStyle: segment.UnderlineStyle,
                     strikeStyle: segment.StrikethroughStyle, decorationColor: ToPdfColor(decorationColor));
                 WriteDrawingPositionedRun(run, x, contentTopY - renderedBaseline, advance,
-                    clipX, contentTopY - height, clipWidth, height, segment.Color, decorationColor);
+                    clipX, clipY, clipWidth, clipHeight, segment.Color, decorationColor);
             }
         }
 

@@ -8,7 +8,7 @@ using Xunit.Abstractions;
 
 namespace OfficeIMO.Publisher.Tests;
 
-public sealed class PublisherNativeComparisonTests {
+public sealed partial class PublisherNativeComparisonTests {
     private readonly ITestOutputHelper _output;
     public PublisherNativeComparisonTests(ITestOutputHelper output) => _output = output;
 
@@ -425,6 +425,7 @@ public sealed class PublisherNativeComparisonTests {
 
     [DataContract]
     private sealed class ExpectedShape {
+        [DataMember(Name = "frameBreakProfile")] public FrameBreakProfile? FrameBreak { get; set; }
         [DataMember(Name = "name")] public string Name { get; set; } = null!;
         [DataMember(Name = "pageIndex")] public int PageIndex { get; set; }
         [DataMember(Name = "pageRole")] public string? PageRole { get; set; }
@@ -436,6 +437,11 @@ public sealed class PublisherNativeComparisonTests {
         [DataMember(Name = "rows")] public int Rows { get; set; }
         [DataMember(Name = "columns")] public int Columns { get; set; }
         [DataMember(Name = "cells")] public string[] Cells { get; set; } = null!;
+    }
+
+    [DataContract]
+    private sealed class FrameBreakProfile {
+        [DataMember(Name = "kind")] public string Kind { get; set; } = null!;
     }
 
     [DataContract]

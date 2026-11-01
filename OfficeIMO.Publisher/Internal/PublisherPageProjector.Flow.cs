@@ -39,8 +39,8 @@ internal sealed partial class PublisherPageProjector {
                         foreach (OfficeTextFlowRegion region in regions) {
                             if (!flow.HasRemaining) break;
                             IReadOnlyList<OfficeRichTextParagraph> paragraphs = flow.Take(region.Width, region.Height,
-                                _textMetrics.CreateDrawingTextMetrics(), _context.Token);
-                            if (paragraphs.Count != 0) content.Add(new PreparedTextRegion(paragraphs, region.X, region.Y, region.Width, region.Height));
+                                _textMetrics.CreateDrawingTextMetrics(), _context.Token, allowFirstLineOverflow: exclusions.Count == 0);
+                            if (paragraphs.Count != 0) content.Add(new PreparedTextRegion(paragraphs, region.X, region.Y, region.Width, region.Height, exclusions.Count == 0));
                         }
                     }
                 } else if (!unavailable) _context.Add("PUB_TEXT_FRAME_HAS_NO_CONTENT_AREA",
@@ -72,5 +72,5 @@ internal sealed partial class PublisherPageProjector {
     }
 
     private sealed record PreparedTextFrame(PublisherTextFrame Model, IReadOnlyList<PreparedTextRegion> Regions);
-    private sealed record PreparedTextRegion(IReadOnlyList<OfficeRichTextParagraph> Paragraphs, double X, double Y, double Width, double Height);
+    private sealed record PreparedTextRegion(IReadOnlyList<OfficeRichTextParagraph> Paragraphs, double X, double Y, double Width, double Height, bool NativePublisherFrame);
 }

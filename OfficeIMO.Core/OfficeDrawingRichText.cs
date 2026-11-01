@@ -181,12 +181,14 @@ public sealed class OfficeDrawingRichText : OfficeDrawingElement {
 
     /// <summary>Creates a detached copy of this positioned rich text box.</summary>
     public OfficeDrawingRichText Clone() => new OfficeDrawingRichText(Runs, X, Y, Width, Height, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText, ShrinkToFit, FlipHorizontal, FlipVertical, Padding, ParagraphIndent, allowOverflow: true) {
-        NormalizeHorizontalPaint = NormalizeHorizontalPaint
+        NormalizeHorizontalPaint = NormalizeHorizontalPaint, NativePublisherFrame = NativePublisherFrame
     }.WithParagraphs(Paragraphs).WithTextAreaAlignment(TextAreaAlignment);
 
     // Used by qualified measured frame growth. Renderers reserve horizontal ink
     // insets before alignment; ordinary authored fixed frames keep their placement.
     internal bool NormalizeHorizontalPaint { get; set; }
+    // Qualified unobstructed Publisher frames force their first line and retain its vertical paint.
+    internal bool NativePublisherFrame { get; set; }
 
     internal override OfficeDrawingElement CloneElement() => Clone();
 

@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 internal static partial class OfficeDrawingTextLayout {
     private static OfficeRichTextBlockLayout ApplyPublisherLineGeometry(OfficeRichTextBlockLayout layout,
         IReadOnlyList<OfficeRichTextRun> runs, OfficeRichTextParagraph paragraph,
-        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?> measure, ParagraphLabelLayout? label = null) {
+        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?> measure, double scale, ParagraphLabelLayout? label = null) {
         var lines = new List<OfficeRichTextLine>(layout.Lines.Count);
         double height = 0D, maximumAdvance = 1D;
         foreach (OfficeRichTextLine line in layout.Lines) {
@@ -18,7 +18,7 @@ internal static partial class OfficeDrawingTextLayout {
                 combined.AddRange(label.Line.Segments);
                 measured = line.WithPlacement(combined, line.LineHeight, line.OffsetX);
             }
-            OfficeRichTextLine resolved = ResolvePublisherLineGeometry(measured, runs, paragraph, measure, empty);
+            OfficeRichTextLine resolved = ResolvePublisherLineGeometry(measured, runs, paragraph, measure, empty, scale);
             resolved = resolved.WithPlacement(line.Segments, resolved.LineHeight, line.OffsetX);
             lines.Add(resolved);
             height += resolved.LineHeight;
@@ -33,8 +33,8 @@ internal static partial class OfficeDrawingTextLayout {
 
     private static OfficeRichTextLine ResolvePublisherLineGeometry(OfficeRichTextLine line,
         IReadOnlyList<OfficeRichTextRun> runs, OfficeRichTextParagraph paragraph,
-        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?> measure, bool includeTypingRuns) {
-        double ascent = 0D, descent = 0D, baseline = 0D;
+        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?> measure, bool includeTypingRuns, double scale) {
+        double ascent = 0D, descent = 0D, baseline = 0D, deviceAscent = 0D, deviceDescent = 0D;
         bool resolved = false;
         foreach (OfficeRichTextSegment segment in line.Segments) {
             // Advance-only tab/label separators have no font strut of their own.
@@ -48,7 +48,16 @@ internal static partial class OfficeDrawingTextLayout {
         }
         if (!resolved) return line;
         double content = ascent + descent;
-        double advance = content * (paragraph.LineHeightFactor ?? 1.2D);
+        double advance = paragraph.LineHeight * scale ?? content * (paragraph.LineHeightFactor ?? 1.2D);
+        if (paragraph.LineHeight.HasValue) {
+            double deviceHeight = deviceAscent + deviceDescent;
+            if (deviceHeight > 0D) {
+                baseline = advance >= deviceHeight ? advance - deviceDescent : advance * deviceAscent / deviceHeight;
+                double quantum = OfficePublisherFontMetrics.ReferencePointsPerPixel * scale;
+                baseline = Math.Round(baseline / quantum, MidpointRounding.AwayFromZero) * quantum;
+            }
+            content = advance;
+        }
         var result = line.WithPlacement(line.Segments, advance, line.OffsetX);
         result.ContentHeight = content; result.BaselineOffset = baseline;
         return result;
@@ -62,6 +71,8 @@ internal static partial class OfficeDrawingTextLayout {
             ascent = Math.Max(ascent, metrics.Ascent - shift);
             descent = Math.Max(descent, metrics.Descent + shift);
             baseline = Math.Max(baseline, metrics.Baseline - shift);
+            deviceAscent = Math.Max(deviceAscent, metrics.DeviceAscent - shift);
+            deviceDescent = Math.Max(deviceDescent, metrics.DeviceDescent + shift);
             resolved |= selected.HasValue;
         }
     }

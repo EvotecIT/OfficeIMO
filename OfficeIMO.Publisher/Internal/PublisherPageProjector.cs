@@ -152,9 +152,12 @@ internal sealed partial class PublisherPageProjector {
         else if (_publication.Text.Frames.TryGetValue(shape.Id, out PublisherFrameState? definition)) {
             if (_publication.Text.Stories.ContainsKey(definition.StoryId)) {
                 if (_textFrames.TryGetValue(shape.Id, out PreparedTextFrame? frame)) {
-                    foreach (PreparedTextRegion region in frame.Regions) local.AddRichTextParagraphs(region.Paragraphs,
-                        region.X, region.Y, region.Width, region.Height,
-                        verticalAlignment: definition.VerticalAlignment);
+                    foreach (PreparedTextRegion region in frame.Regions) {
+                        local.AddRichTextParagraphs(region.Paragraphs,
+                            region.X, region.Y, region.Width, region.Height,
+                            verticalAlignment: definition.VerticalAlignment);
+                        ((OfficeDrawingRichText)local.Elements[local.Elements.Count - 1]).NativePublisherFrame = region.NativePublisherFrame;
+                    }
                 }
                 _context.Add("PUB_TEXT_LAYOUT_APPROXIMATED", "Native text stories use the shared drawing paragraph layout. Font availability, line breaking, fitting, and overflow may differ from Publisher.",
                     OfficeConversionLossKind.Approximation, "Quill");
