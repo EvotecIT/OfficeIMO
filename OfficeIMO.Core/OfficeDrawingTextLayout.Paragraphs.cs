@@ -208,7 +208,8 @@ internal static partial class OfficeDrawingTextLayout {
             paragraphMeasure, wrap,
             overflowBehavior: OfficeTextOverflowBehavior.Clip, paragraphIndent: indent, measurePaint: measurePaint,
             hardBreakStartsParagraph: false, tabStops: scaledTabs,
-            cancellationToken: cancellationToken, leaderBudget: leaderBudget);
+            cancellationToken: cancellationToken, leaderBudget: leaderBudget,
+            hyphenation: paragraph.SuppressAutomaticHyphenation == false ? paragraph.Hyphenation : null, hyphenationScale: scale);
         if (paragraph.UsesPublisherFontMetrics && measurePublisherFont != null)
             layout = ApplyPublisherLineGeometry(layout, runs, paragraph, measurePublisherFont, scale, label);
         clipped |= layout.Clipped && (reportUnwrappedWidthOverflow && !replayFlow || !layout.OnlyUnwrappedWidthOverflow);

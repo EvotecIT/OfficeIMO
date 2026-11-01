@@ -25,6 +25,6 @@ public sealed class PublisherTextStory {
     public string Text { get; }
     /// <summary>Current paragraphs and styled runs, initially recovered from the native text stream.</summary>
     public IReadOnlyList<OfficeRichTextParagraph> Paragraphs { get; }
-    /// <summary>Native story automatic-hyphenation setting, including the qualified enabled default when its catalog entry omits the flag. Null means the setting is unavailable or unassessed. Managed layout does not yet generate automatic hyphens.</summary>
+    /// <summary>Native story automatic-hyphenation setting, including the qualified enabled default when its catalog entry omits the flag. Null means the setting is unavailable or unassessed. Managed display uses supported shared patterns while preserving the original source text.</summary>
     public bool? AutomaticHyphenation { get; }
 }

@@ -12,6 +12,7 @@ public sealed class OfficeRichTextLine {
     internal int SourceTextEnd { get; set; }
     // A terminal hard break has a second, empty source line at the same endpoint.
     internal bool CompletesSource { get; set; }
+    internal bool EndsWithGeneratedHyphen { get; set; }
     // Content extent controls fitting/alignment; LineHeight remains the advance.
     internal double? ContentHeight { get; set; }
     internal double? BaselineOffset { get; set; }
@@ -22,7 +23,7 @@ public sealed class OfficeRichTextLine {
 
     internal OfficeRichTextLine WithPlacement(IReadOnlyList<OfficeRichTextSegment> segments, double advance, double offset) =>
         new OfficeRichTextLine(segments, advance, offset) {
-            SourceTextEnd = SourceTextEnd, CompletesSource = CompletesSource,
+            SourceTextEnd = SourceTextEnd, CompletesSource = CompletesSource, EndsWithGeneratedHyphen = EndsWithGeneratedHyphen,
             ContentHeight = ContentHeight, BaselineOffset = BaselineOffset,
             FittingBounds = FittingBounds,
             NativeTabs = NativeTabs,

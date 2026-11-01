@@ -8,7 +8,7 @@ public sealed class OfficeRichTextSegment {
     public double? AutomaticPairKerningThreshold { get; internal set; }
     internal OfficeTextFeatureSettings? KerningFeatures => OfficeTextKerning.Features(AutomaticPairKerningThreshold, FontSize);
     internal OfficePreparedTextShaping? PreparedShaping { get; set; }
-    /// <summary>Optional language identifier retained from the source run. Layout does not add language-specific hyphenation.</summary>
+    /// <summary>Optional language identifier retained from the source run, including a generated hyphen painted with that run's style.</summary>
     public uint? LanguageId { get; internal set; }
     // Native document adapters keep annotations attached through wrapping and shrinking.
     internal string? LinkUri { get; set; }

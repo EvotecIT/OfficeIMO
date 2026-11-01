@@ -36,12 +36,15 @@ public static partial class OfficeTextLayoutEngine {
         var normalized = NormalizeRichTextRuns(runs, out bool truncated, token);
         int length = 0;
         foreach (var run in normalized) length += run.Text.Length;
-        var lineEnds = new List<int>();
-        foreach (var line in plan.Lines) if (line.SourceEnd < length) lineEnds.Add(line.SourceEnd);
+        var lineEnds = new List<int>(); var hyphens = new List<int>();
+        foreach (var line in plan.Lines) {
+            if (line.SourceEnd < length) lineEnds.Add(line.SourceEnd);
+            if (line.GeneratedHyphen) hyphens.Add(line.SourceEnd);
+        }
         var layout = LayoutRichTextBlockCore(normalized, width, double.MaxValue, lineHeightFactor, measure,
             false, OfficeTextOverflowBehavior.Clip, indent, truncated, token,
             hardBreakStartsParagraph: false, tabStops: tabs, leaderBudget: leaderBudget, nativeFlowLineEnds: lineEnds,
-            nativeFlowTabs: plan.Tabs, nativeFlowScale: scale);
+            nativeFlowTabs: plan.Tabs, nativeFlowScale: scale, nativeGeneratedHyphens: hyphens);
         for (int i = 0; i < layout.Lines.Count && i < plan.Lines.Count; i++) {
             if (plan.Lines[i].FittingWidth is double fittingWidth) {
                 var line = layout.Lines[i];
@@ -52,10 +55,11 @@ public static partial class OfficeTextLayoutEngine {
     }
 
     private static IEnumerable<RichTextToken> ApplyNativeFlowLineEnds(IEnumerable<RichTextToken> tokens,
-        IReadOnlyList<int> lineEnds, CancellationToken cancellationToken) {
-        int index = 0;
+        IReadOnlyList<int> lineEnds, IReadOnlyList<int>? hyphens, CancellationToken cancellationToken) {
+        int index = 0, lastEnd = 0; OfficeRichTextRun? lastRun = null;
         foreach (var token in tokens) {
             cancellationToken.ThrowIfCancellationRequested();
+            lastEnd = token.SourceEnd; lastRun = token.Run;
             if (token.HardBreak) {
                 while (index < lineEnds.Count && lineEnds[index] <= token.SourceEnd) index++;
                 yield return token;
@@ -67,11 +71,14 @@ public static partial class OfficeTextLayoutEngine {
                 if (end <= start) continue;
                 yield return RichTextToken.CreateText(token.Run,
                     token.Text.Substring(start - token.SourceStart, end - start), token.IsWhitespace, start, end);
+                if (hyphens != null && ContainsSourceEnd(hyphens, end)) yield return RichTextToken.CreateGeneratedHyphen(token.Run, end);
                 yield return RichTextToken.CreateHardBreak(token.Run, end);
                 start = end;
             }
             if (start < token.SourceEnd) yield return start == token.SourceStart ? token : RichTextToken.CreateText(token.Run,
                 token.Text.Substring(start - token.SourceStart), token.IsWhitespace, start, token.SourceEnd);
         }
+        if (lastRun != null && hyphens != null && ContainsSourceEnd(hyphens, lastEnd)
+            && !ContainsSourceEnd(lineEnds, lastEnd)) yield return RichTextToken.CreateGeneratedHyphen(lastRun, lastEnd);
     }
 }

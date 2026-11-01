@@ -15,6 +15,7 @@ public sealed class OfficeRichTextParagraph {
     // A native region has already selected these exclusive source endpoints.
     // Reflowing its shortened last word could change that selection.
     internal OfficeRichTextFlowPlan? NativeFlowPlan { get; set; }
+    internal OfficeRichTextHyphenation? Hyphenation { get; set; }
     /// <summary>Creates a paragraph with independent alignment, line spacing, margins and indentation.</summary>
     /// <param name="runs">Styled inline content. The collection and runs are copied.</param>
     /// <param name="alignment">Horizontal alignment within the paragraph's margins.</param>
@@ -78,7 +79,7 @@ public sealed class OfficeRichTextParagraph {
 
     /// <summary>Optional measured tab settings. Null retains the legacy space-expansion behavior.</summary>
     public OfficeTextTabStops? TabStops { get; private set; }
-    /// <summary>Whether automatic word hyphenation is suppressed for this paragraph. False is the default; null means a native adapter encountered an unassessed setting. Shared layout does not yet generate automatic hyphens.</summary>
+    /// <summary>Whether an adapter's automatic word hyphenation is suppressed for this paragraph. False is the default; null means a native adapter encountered an unassessed setting. Ordinary drawing does not enable automatic hyphenation implicitly.</summary>
     public bool? SuppressAutomaticHyphenation { get; internal set; } = false;
 
     /// <summary>Returns an independent paragraph with automatic word hyphenation suppressed or allowed.</summary>
@@ -95,6 +96,7 @@ public sealed class OfficeRichTextParagraph {
             new OfficeRichTextParagraph(Runs, Label, Alignment, LineHeight, Margins, Indent, LineHeightFactor);
         copy.TabStops = tabStops;
         copy.SuppressAutomaticHyphenation = SuppressAutomaticHyphenation;
+        copy.Hyphenation = Hyphenation;
         copy.ContinuesInNextRegion = ContinuesInNextRegion;
         copy.UsesPublisherFontMetrics = UsesPublisherFontMetrics;
         copy.UsesPublisherKerningContext = UsesPublisherKerningContext;

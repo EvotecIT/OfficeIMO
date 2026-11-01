@@ -122,9 +122,13 @@ publication.ReplaceStoryParagraphs(story.Id, story.Paragraphs.Select((paragraph,
 
 This enables native story hyphenation while suppressing it in the first
 paragraph. The native flags save independently of the stored text; generated
-hyphens are never inserted into story text. Managed rendering does not yet
-generate automatic hyphens. The application's hyphenation zone is not a recovered
-document setting. See the [native setting contract](SUPPORT.md#native-hyphenation-settings).
+hyphens are never inserted into story text. Managed rendering uses the shared
+versioned US English and reformed German patterns, with the observed 18 pt native
+application-zone profile. Unknown or mixed word languages do not select an
+invented dictionary. Generated display hyphens retain their source offsets and
+continue across linked frames. Native dictionaries can choose different breaks.
+The application's zone is not a recovered document setting. See the
+[native setting contract](SUPPORT.md#native-hyphenation-settings).
 
 Frame-layout saves retain links and page/master ownership. They can add missing
 default fields and relocate native records; changed distances must be exact
@@ -320,9 +324,10 @@ File.WriteAllText("edited.svg", publication.ToSvg());
 `OfficeRichTextRun.WithLanguageId(1033)` tags a run as English (United States);
 `1036` selects French. Native source saves can set this value while retaining
 unrelated native formatting. An unspecified language leaves an imported override
-intact; it does not clear it. Language IDs are 16-bit Windows identifiers, and
-shared managed layout does not perform language-specific hyphenation. Paragraph
-and drawing copies retain the annotation. See the [qualified language
+intact; it does not clear it. Language IDs are 16-bit Windows identifiers.
+Enabled automatic hyphenation uses supported language patterns; the current
+English and German resources do not supply French breaks. Paragraph and drawing
+copies retain the annotation. See the [qualified language
 profile](SUPPORT.md) for native creation/editing coverage and limits.
 
 `OfficeRichTextRun.WithAutomaticPairKerningThreshold(8)` returns a copy carrying

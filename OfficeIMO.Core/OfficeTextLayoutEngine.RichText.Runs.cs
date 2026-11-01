@@ -235,6 +235,7 @@ public static partial class OfficeTextLayoutEngine {
         internal int SourceStart { get; }
         internal int SourceEnd { get; }
         internal bool IsTab => Text == "\t";
+        internal bool GeneratedHyphen { get; private init; }
         internal IReadOnlyList<RichTextToken>? Parts { get; private init; }
 
         internal static RichTextToken CreateWord(IReadOnlyList<RichTextToken> parts) {
@@ -246,6 +247,9 @@ public static partial class OfficeTextLayoutEngine {
 
         internal static RichTextToken CreateText(OfficeRichTextRun run, string text, bool isWhitespace, int sourceStart, int sourceEnd) =>
             new RichTextToken(run, text, false, isWhitespace, sourceStart, sourceEnd);
+
+        internal static RichTextToken CreateGeneratedHyphen(OfficeRichTextRun run, int sourceEnd) =>
+            new RichTextToken(run, "-", false, false, sourceEnd, sourceEnd) { GeneratedHyphen = true };
 
         internal static RichTextToken CreateHardBreak(OfficeRichTextRun run, int sourceEnd) =>
             new RichTextToken(run, string.Empty, true, false, sourceEnd - 1, sourceEnd);
@@ -264,6 +268,7 @@ public static partial class OfficeTextLayoutEngine {
         internal double Width { get; private set; }
         private double? _fittingWidth;
         private List<OfficeTextTabPlacement>? _nativeTabs;
+        private bool _generatedHyphen;
 
         internal double OffsetX { get; private set; }
         internal int SourceTextEnd { get; set; }
@@ -337,13 +342,17 @@ public static partial class OfficeTextLayoutEngine {
             return paint.Limited || lineLimited;
         }
 
+        internal void AddGeneratedHyphen(OfficeRichTextRun run) { Add(run, "-"); _generatedHyphen = true; }
+
         internal void RetainNativeTab(int sourceEnd, double advance, int stopIndex) {
             if (_measure.UsesPublisherContext) (_nativeTabs ??= new List<OfficeTextTabPlacement>())
                 .Add(new OfficeTextTabPlacement(sourceEnd, advance, stopIndex));
         }
 
         internal OfficeRichTextLine ToLine() {
-            var line = new OfficeRichTextLine(new List<OfficeRichTextSegment>(_segments), offsetX: OffsetX) { SourceTextEnd = SourceTextEnd };
+            var line = new OfficeRichTextLine(new List<OfficeRichTextSegment>(_segments), offsetX: OffsetX) {
+                SourceTextEnd = SourceTextEnd, EndsWithGeneratedHyphen = _generatedHyphen
+            };
             if (_fittingWidth.HasValue) line.FittingBounds = (OffsetX, OffsetX + _fittingWidth.Value);
             if (_nativeTabs != null) line.NativeTabs = new List<OfficeTextTabPlacement>(_nativeTabs).AsReadOnly();
             if (_measure.UsesPublisherContext) line.RenderTokens = OfficeTextBlockRenderer.CreateRichTextRenderTokens(line, _measure);
@@ -352,6 +361,7 @@ public static partial class OfficeTextLayoutEngine {
 
         internal void Clear() {
             _fittingWidth = null;
+            _generatedHyphen = false;
             _nativeTabs?.Clear();
             _pendingContext = null;
             _segments.Clear();

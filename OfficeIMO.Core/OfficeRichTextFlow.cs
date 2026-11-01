@@ -59,8 +59,9 @@ internal sealed class OfficeRichTextFlow {
             int consumed = 0;
             bool sourceEndVisible = false;
             double measuredHeight = 0D, completedHeight = 0D;
-            var selectedLines = source.UsesPublisherKerningContext ? new List<(int SourceEnd, double? FittingWidth)>() : null;
-            var selectedTabs = source.UsesPublisherKerningContext ? new List<OfficeTextTabPlacement>() : null;
+            var selectedLines = source.UsesPublisherKerningContext || source.Hyphenation != null
+                ? new List<(int SourceEnd, double? FittingWidth, bool GeneratedHyphen)>() : null;
+            var selectedTabs = selectedLines != null ? new List<OfficeTextTabPlacement>() : null;
             foreach (OfficeRichTextLine line in layout.Lines) {
                 // Ordinary drawing wrapping may force an indivisible glyph onto
                 // a narrow line. Flow must retain it for a region that can hold it.
@@ -69,7 +70,7 @@ internal sealed class OfficeRichTextFlow {
                 measuredHeight += OfficeTextBlockRenderer.ResolveRichTextRenderLineHeight(line, layout.LineHeight);
                 consumed = Math.Max(consumed, line.SourceTextEnd);
                 if (line.SourceTextEnd > 0 || line.CompletesSource) selectedLines?.Add((line.SourceTextEnd,
-                    line.FittingBounds.HasValue ? line.FittingBounds.Value.Right - line.FittingBounds.Value.Left : null));
+                    line.FittingBounds.HasValue ? line.FittingBounds.Value.Right - line.FittingBounds.Value.Left : null, line.EndsWithGeneratedHyphen));
                 selectedTabs?.AddRange(line.NativeTabs);
                 sourceEndVisible |= line.CompletesSource;
                 if (line.CompletesSource) completedHeight = measuredHeight + tail.Margins.Bottom;
@@ -105,6 +106,7 @@ internal sealed class OfficeRichTextFlow {
             trimmed.UsesPublisherKerningContext = last.UsesPublisherKerningContext;
             trimmed = trimmed.WithTabStops(last.TabStops);
             trimmed.SuppressAutomaticHyphenation = last.SuppressAutomaticHyphenation;
+            trimmed.Hyphenation = last.Hyphenation;
             trimmed.NativeFlowPlan = last.NativeFlowPlan;
             visible[visible.Count - 1] = trimmed;
         }
@@ -154,6 +156,7 @@ internal sealed class OfficeRichTextFlow {
         result.UsesPublisherFontMetrics = source.UsesPublisherFontMetrics;
         result.UsesPublisherKerningContext = source.UsesPublisherKerningContext;
         result.SuppressAutomaticHyphenation = source.SuppressAutomaticHyphenation;
+        result.Hyphenation = source.Hyphenation?.Slice(start, length);
         return result.WithTabStops(source.TabStops);
     }
 }

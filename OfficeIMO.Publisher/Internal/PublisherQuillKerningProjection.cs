@@ -26,6 +26,7 @@ internal sealed class PublisherQuillKerningProjection {
                     OfficeConversionLossKind.Unassessed, "Quill/story/" + story.Id);
             else result = effective;
         }
+        result = PublisherHyphenationProjection.Project(story, result, _context);
         _stories.Add(story.Id, result);
         return result;
     }

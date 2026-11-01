@@ -556,18 +556,19 @@ these fixtures, source and measured limits.
 
 Other fonts, device resolutions, complex scripts, mixed-baseline native geometry,
 language-dependent wrapping and broader frame-break equivalence require separate
-qualification. Automatic hyphenation still produces different linked-frame ranges
-in the existing long-word specimens; short-token controls do not establish that contract.
+qualification. Broader automatic-hyphenation dictionary and linked-frame profiles
+remain separate from the short-token controls.
 The `TextHyphenation` reference adds 15 US English frames, including narrow words
 and a linked story. It records the existing 18 pt hyphenation zone, 14 pt automatic
 pair-kerning threshold and zero manual kerning without changing application options.
 A separate source-derived disabled control retains its false story flag after
 native resaving; all four frame ranges match the current non-hyphenating managed
 layout. Core's versioned English patterns and Publisher choose different breaks
-for some words, including `creative`. Shared automatic hyphenation
-and generated-hyphen transport across frame boundaries remain open work;
-the controls do not enable those behaviors in the product. The `hyphenationReference`
-qualification record identifies the native inputs and comparison limits.
+for some words, including `creative` and `extraordinary`. The current shared
+breaker uses those versioned patterns; the `hyphenationReference` qualification
+record preserves the earlier native inputs and comparison limits. The current
+[hyphenation contract](#native-hyphenation-settings) separates implemented source
+transport from native dictionary equivalence.
 Complete stories and source styles survive overflow; byte-exact no-op native saving
 remains independent of rendering. Native/managed pixel fidelity and repair-free
 opening are not established by this font profile.
@@ -596,10 +597,28 @@ false to omission. These flags do not insert hyphens into stored story text.
 The recorded 18 pt zone belongs to the observed native application option
 profile. Its getter reads application-wide state; a file carrier and
 cross-profile default are not established. No global option changes are required
-by reading or editing publications. Managed layout does not yet apply automatic
-hyphenation, its zone, or generated display hyphens; dictionary equivalence and
-source-range transport across linked frames remain open. Native operation
-acceptance does not establish repair-free opening or general opaque preservation.
+by reading or editing publications.
+
+Managed layout applies enabled story flags and qualified paragraph suppression
+through the shared Core rich-text breaker. Original-word opportunities come from
+the versioned US English and reformed German resources using run language IDs;
+unknown, unsupported or mixed word languages do not select a dictionary. A small
+remaining gap within the observed 18 pt zone moves the next word to a new line
+before hyphenation. Generic drawing defaults are unchanged. The approximation
+report identifies the language-pattern and application-zone boundary.
+
+Generated hyphens paint with the last prefix run and consume no source UTF-16
+characters. Region slices retain original-word opportunities rather than looking
+up a shortened suffix. Selected line ends, generated suffixes, fitting widths
+and tabs survive frame replay and drawing scale. The linked-boundary control in
+the [corpus provenance](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextHyphenation/provenance.json)
+ends one native frame on `order across publi-` and starts the next at `cation`.
+Native and managed display agree while the ending frame consumes 18 source
+characters. English/German resource differences can still change word and frame
+breaks: `creative` and `extraordinary` are retained counterexamples. Other zone
+profiles, dictionary equivalence, complex scripts and broader native layout
+remain unqualified. Native operation acceptance does not establish repair-free
+opening or general opaque preservation.
 
 The `linkedStoryCreation` record covers source-free creation of one story shared
 by three frames flowing through pages 1, 3 and 2, beside an independent story.

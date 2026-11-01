@@ -55,5 +55,23 @@
         "sha256": "6d190557740cf3a7bbac7f1b93e34021927dbda31bf8d3cbfd2d65c8bd17646c"
       }
     ]
+  },
+  "linkedHyphenBoundary": {
+    "source": "native-texthyphenation.pub",
+    "sourceSha256": "50aa7ed69016d9fdcbc1b4df31bdaa708c24f60c0aa5afadd18d8f7f18888ab0",
+    "controlledInputSha256": "37364aa7a82d0f79598f8d89a34b9e3d7b57ccf708523a9187541163e1f31eda",
+    "derivation": "Set the existing linked frame on physical page15 to height18pt through PublisherDocument.SetTextFrameBounds; retain every story character, other frame bounds and source settings. Native read-only open, initial PDF, SaveAs, reopen and second PDF. Stored artifacts are native-resaved outputs.",
+    "observed": "Frame341 on page13 consumes source0..37, frame349 on page15 consumes37..55 and paints order across publi-, frame345 on page14 starts at55 with cation pages. Publication stories. The generated hyphen is not a source character. Initial/resaved native15page pairs are identical at144dpi.",
+    "limits": "Source-derived existing-frame edit; no template-free native creation, repair-free opening or whole-corpus dictionary parity claim. Exact line placement uses recorded Arial font and native option profile.",
+    "files": [
+      {
+        "name": "native-linked-hyphen-boundary.pub",
+        "sha256": "311ad4d9dbb3f971f17316950d9875863b71e47ffbf2399d96070cbb59eb1435"
+      },
+      {
+        "name": "native-linked-hyphen-boundary.pdf",
+        "sha256": "3b254941f6593267b684fec2a22b0cbb1bf670cd99c827066a158db6ce420cb0"
+      }
+    ]
   }
 }

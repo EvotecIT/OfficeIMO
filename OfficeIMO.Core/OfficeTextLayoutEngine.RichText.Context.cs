@@ -10,7 +10,7 @@ public static partial class OfficeTextLayoutEngine {
         var word = new List<RichTextToken>();
         foreach (var item in tokens) {
             token.ThrowIfCancellationRequested();
-            if (!item.HardBreak && !item.IsWhitespace && !item.IsTab) { word.Add(item); continue; }
+            if (!item.HardBreak && !item.IsWhitespace && !item.IsTab && !item.GeneratedHyphen) { word.Add(item); continue; }
             if (word.Count != 0) {
                 yield return word.Count == 1 ? word[0] : RichTextToken.CreateWord(word.ToArray());
                 word.Clear();
@@ -40,6 +40,13 @@ public static partial class OfficeTextLayoutEngine {
             var candidate = new RichTextLineBuilder(_measure) { Width = Width };
             candidate._segments.AddRange(_segments);
             candidate.Add(token);
+            return candidate.Width;
+        }
+
+        internal double MeasureHyphenatedWidthAfter(RichTextToken prefix, OfficeRichTextRun suffixRun) {
+            var candidate = new RichTextLineBuilder(_measure) { Width = Width };
+            candidate._segments.AddRange(_segments);
+            candidate.Add(prefix); candidate.Add(suffixRun, "-");
             return candidate.Width;
         }
 

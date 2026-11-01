@@ -157,7 +157,7 @@ public sealed class OfficeRichTextRun {
     /// <summary>Optional first-line and continuation offsets for the paragraph beginning at this run.</summary>
     public OfficeTextParagraphIndent? ParagraphIndent { get; }
 
-    /// <summary>Optional Windows language identifier for native document adapters. Null leaves language unspecified; it does not request removal of an imported override. Shared layout does not perform language-specific hyphenation.</summary>
+    /// <summary>Optional Windows language identifier for native document adapters. Null leaves language unspecified; it does not request removal of an imported override. When an adapter enables automatic hyphenation, supported language identifiers select the shared versioned pattern resources.</summary>
     public uint? LanguageId { get; internal set; }
 
     /// <summary>Creates a copy with an explicit 16-bit language identifier, or an unspecified language when null. All text, styling and annotations are retained.</summary>

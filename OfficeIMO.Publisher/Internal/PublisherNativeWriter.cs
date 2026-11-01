@@ -71,7 +71,7 @@ internal sealed partial class PublisherNativeWriter {
         token.ThrowIfCancellationRequested();
         var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
         if (writer._storyHyphenation.Count > 0) diagnostics.Add(Finding("PUB_NATIVE_STORY_HYPHENATION_UNQUALIFIED",
-            "Selected native story automatic-hyphenation flags changed without modifying source text or Quill formatting. Managed layout does not yet generate automatic hyphens. Repair-free opening and opaque semantic preservation remain unassessed.",
+            "Selected native story automatic-hyphenation flags changed without modifying source text or Quill formatting. Repair-free opening and opaque semantic preservation remain unassessed.",
             OfficeConversionLossKind.Unassessed, "Contents/stories"));
         if (writer._masterAssignments.Count > 0)
             diagnostics.Add(Finding("PUB_NATIVE_MASTER_ASSIGNMENT_UNQUALIFIED",

@@ -248,7 +248,8 @@ public static partial class OfficeTextLayoutEngine {
         Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint = null,
         bool hardBreakStartsParagraph = true, OfficeTextTabStops? tabStops = null,
         OfficeTextTabLeaderLayout.Budget? leaderBudget = null,
-        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?>? measureSegmentPaint = null) {
+        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?>? measureSegmentPaint = null,
+        OfficeRichTextHyphenation? hyphenation = null, double hyphenationScale = 1D) {
         cancellationToken.ThrowIfCancellationRequested();
         if (runs == null) {
             throw new ArgumentNullException(nameof(runs));
@@ -293,7 +294,7 @@ public static partial class OfficeTextLayoutEngine {
             effectiveParagraphIndent,
             inputTruncated,
             cancellationToken,
-            hardBreakStartsParagraph, tabStops, leaderBudget);
+            hardBreakStartsParagraph, tabStops, leaderBudget, hyphenation: hyphenation, hyphenationScale: hyphenationScale);
     }
 
     private static OfficeRichTextBlockLayout LayoutRichTextBlockCore(
@@ -309,7 +310,9 @@ public static partial class OfficeTextLayoutEngine {
         CancellationToken cancellationToken,
         bool hardBreakStartsParagraph = true, OfficeTextTabStops? tabStops = null,
         OfficeTextTabLeaderLayout.Budget? leaderBudget = null, IReadOnlyList<int>? nativeFlowLineEnds = null,
-        IReadOnlyList<OfficeTextTabPlacement>? nativeFlowTabs = null, double nativeFlowScale = 1D) {
+        IReadOnlyList<OfficeTextTabPlacement>? nativeFlowTabs = null, double nativeFlowScale = 1D,
+        IReadOnlyList<int>? nativeGeneratedHyphens = null,
+        OfficeRichTextHyphenation? hyphenation = null, double hyphenationScale = 1D) {
         cancellationToken.ThrowIfCancellationRequested();
         double width = NormalizeNonNegative(maxWidth);
         double height = NormalizeNonNegative(maxHeight);
@@ -327,8 +330,8 @@ public static partial class OfficeTextLayoutEngine {
         bool processingStopped = false;
 
         IEnumerable<RichTextToken> sourceTokens = CreateRichTextTokens(runs, cancellationToken, preserveTabs: tabStops != null);
-        if (nativeFlowLineEnds != null) sourceTokens = ApplyNativeFlowLineEnds(sourceTokens, nativeFlowLineEnds, cancellationToken);
-        if (measure.UsesPublisherContext) sourceTokens = CombineContextWords(sourceTokens, cancellationToken);
+        if (nativeFlowLineEnds != null) sourceTokens = ApplyNativeFlowLineEnds(sourceTokens, nativeFlowLineEnds, nativeGeneratedHyphens, cancellationToken);
+        if (measure.UsesPublisherContext || hyphenation != null) sourceTokens = CombineContextWords(sourceTokens, cancellationToken);
         IReadOnlyList<RichTextToken>? tabTokens = tabStops == null ? null : new List<RichTextToken>(sourceTokens);
         int tokenIndex = 0;
         leaderBudget ??= new OfficeTextTabLeaderLayout.Budget();
@@ -341,6 +344,11 @@ public static partial class OfficeTextLayoutEngine {
                 clipped = true;
                 processingStopped = true;
                 break;
+            }
+            if (token.GeneratedHyphen) {
+                builder.AddGeneratedHyphen(token.Run);
+                builder.SourceTextEnd = token.SourceEnd;
+                continue;
             }
             if (token.HardBreak) {
                 builder.SourceTextEnd = token.SourceEnd;
@@ -399,6 +407,12 @@ public static partial class OfficeTextLayoutEngine {
 
             double tokenWidth = MeasureRichToken(token, measure);
             double availableWidth = Math.Max(0D, width - builder.OffsetX);
+            if (wrap && hyphenation != null && !token.IsWhitespace && builder.MeasureWidthAfter(token) > availableWidth
+                && TryAddHyphenatedRichTextToken(lines, builder, token, width, currentParagraphIndent, hyphenation,
+                    hyphenationScale, cancellationToken, out bool completed)) {
+                if (!completed) { clipped = true; processingStopped = true; break; }
+                continue;
+            }
             // A wrapped region can consume a space without painting it. Keep
             // that source endpoint when replaying its selected final line.
             if (nativeFlowLineEnds != null && token.IsWhitespace && !builder.IsEmpty

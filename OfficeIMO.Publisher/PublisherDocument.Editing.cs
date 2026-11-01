@@ -7,7 +7,7 @@ public sealed partial class PublisherDocument {
     internal void AttachModel(PublisherModelState model, PublisherReadReport sourceReport) { _model = model; SourceReadReport = sourceReport; }
 
     /// <summary>Sets an ordinary story's native automatic-hyphenation flag without changing its source text or formatting.</summary>
-    /// <remarks>Managed layout does not yet generate automatic hyphens. Native source saving requires a qualified existing story-catalog entry. Table stories are unsupported. Failed edits leave the publication unchanged; fetch current snapshots after an edit.</remarks>
+    /// <remarks>Managed display uses the shared supported language patterns and qualified application-zone profile; native dictionaries can select different breaks. Native source saving requires a qualified existing story-catalog entry. Table story flag edits are unsupported. Failed edits leave the publication unchanged; fetch current snapshots after an edit.</remarks>
     public void SetStoryAutomaticHyphenation(uint storyId, bool enabled, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PublisherModelState model = _model ?? throw new NotSupportedException("This publication has no editable native model.");
