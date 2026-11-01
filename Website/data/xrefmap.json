@@ -1,7 +1,7 @@
 {
-  "generatedAtUtc": "2026-11-01T18:29:55.8902390Z",
+  "generatedAtUtc": "2026-11-01T21:29:40.9445370Z",
   "sourceCount": 122,
-  "referenceCount": 100442,
+  "referenceCount": 100461,
   "duplicateCount": 0,
   "references": [
     {
@@ -548410,15 +548410,15 @@
       ]
     },
     {
-      "uid": "New-OfficePdfExcelImportOptions",
-      "name": "New-OfficePdfExcelImportOptions",
-      "href": "/api/powershell/new-officepdfexcelimportoptions/",
+      "uid": "New-OfficePdfExcelOptions",
+      "name": "New-OfficePdfExcelOptions",
+      "href": "/api/powershell/new-officepdfexceloptions/",
       "aliases": [
-        "command:New-OfficePdfExcelImportOptions",
-        "ps:New-OfficePdfExcelImportOptions",
-        "PSWriteOffice::New-OfficePdfExcelImportOptions",
-        "PSWriteOffice:New-OfficePdfExcelImportOptions",
-        "PSWriteOffice\\New-OfficePdfExcelImportOptions"
+        "command:New-OfficePdfExcelOptions",
+        "ps:New-OfficePdfExcelOptions",
+        "PSWriteOffice::New-OfficePdfExcelOptions",
+        "PSWriteOffice:New-OfficePdfExcelOptions",
+        "PSWriteOffice\\New-OfficePdfExcelOptions"
       ]
     },
     {
@@ -548431,6 +548431,18 @@
         "PSWriteOffice::New-OfficePdfFormFillOptions",
         "PSWriteOffice:New-OfficePdfFormFillOptions",
         "PSWriteOffice\\New-OfficePdfFormFillOptions"
+      ]
+    },
+    {
+      "uid": "New-OfficePdfHtmlOptions",
+      "name": "New-OfficePdfHtmlOptions",
+      "href": "/api/powershell/new-officepdfhtmloptions/",
+      "aliases": [
+        "command:New-OfficePdfHtmlOptions",
+        "ps:New-OfficePdfHtmlOptions",
+        "PSWriteOffice::New-OfficePdfHtmlOptions",
+        "PSWriteOffice:New-OfficePdfHtmlOptions",
+        "PSWriteOffice\\New-OfficePdfHtmlOptions"
       ]
     },
     {
@@ -548467,6 +548479,30 @@
         "PSWriteOffice::New-OfficePdfLayoutOverlayOptions",
         "PSWriteOffice:New-OfficePdfLayoutOverlayOptions",
         "PSWriteOffice\\New-OfficePdfLayoutOverlayOptions"
+      ]
+    },
+    {
+      "uid": "New-OfficePdfPowerPointOptions",
+      "name": "New-OfficePdfPowerPointOptions",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/",
+      "aliases": [
+        "command:New-OfficePdfPowerPointOptions",
+        "ps:New-OfficePdfPowerPointOptions",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions"
+      ]
+    },
+    {
+      "uid": "New-OfficePdfReadOptions",
+      "name": "New-OfficePdfReadOptions",
+      "href": "/api/powershell/new-officepdfreadoptions/",
+      "aliases": [
+        "command:New-OfficePdfReadOptions",
+        "ps:New-OfficePdfReadOptions",
+        "PSWriteOffice::New-OfficePdfReadOptions",
+        "PSWriteOffice:New-OfficePdfReadOptions",
+        "PSWriteOffice\\New-OfficePdfReadOptions"
       ]
     },
     {
@@ -548542,30 +548578,6 @@
       ]
     },
     {
-      "uid": "New-OfficePdfToPowerPointOptions",
-      "name": "New-OfficePdfToPowerPointOptions",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/",
-      "aliases": [
-        "command:New-OfficePdfToPowerPointOptions",
-        "ps:New-OfficePdfToPowerPointOptions",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions"
-      ]
-    },
-    {
-      "uid": "New-OfficePdfToWordOptions",
-      "name": "New-OfficePdfToWordOptions",
-      "href": "/api/powershell/new-officepdftowordoptions/",
-      "aliases": [
-        "command:New-OfficePdfToWordOptions",
-        "ps:New-OfficePdfToWordOptions",
-        "PSWriteOffice::New-OfficePdfToWordOptions",
-        "PSWriteOffice:New-OfficePdfToWordOptions",
-        "PSWriteOffice\\New-OfficePdfToWordOptions"
-      ]
-    },
-    {
       "uid": "New-OfficePdfVisualComparisonOptions",
       "name": "New-OfficePdfVisualComparisonOptions",
       "href": "/api/powershell/new-officepdfvisualcomparisonoptions/",
@@ -548575,6 +548587,18 @@
         "PSWriteOffice::New-OfficePdfVisualComparisonOptions",
         "PSWriteOffice:New-OfficePdfVisualComparisonOptions",
         "PSWriteOffice\\New-OfficePdfVisualComparisonOptions"
+      ]
+    },
+    {
+      "uid": "New-OfficePdfWordOptions",
+      "name": "New-OfficePdfWordOptions",
+      "href": "/api/powershell/new-officepdfwordoptions/",
+      "aliases": [
+        "command:New-OfficePdfWordOptions",
+        "ps:New-OfficePdfWordOptions",
+        "PSWriteOffice::New-OfficePdfWordOptions",
+        "PSWriteOffice:New-OfficePdfWordOptions",
+        "PSWriteOffice\\New-OfficePdfWordOptions"
       ]
     },
     {
@@ -940446,227 +940470,227 @@
       ]
     },
     {
-      "uid": "parameter:New-OfficePdfExcelImportOptions.AutoFitColumns",
-      "name": "New-OfficePdfExcelImportOptions -AutoFitColumns",
-      "href": "/api/powershell/new-officepdfexcelimportoptions/#method-new-officepdfexcelimportoptions-switchparameter-double-switchparameter-switchparameter-switchparameter-switchparameter-string-switchparameter-int32-int32-switchparameter-string-string-switchparameter-string-exceltablestyle",
+      "uid": "parameter:New-OfficePdfExcelOptions.ContinuationGeometryTolerance",
+      "name": "New-OfficePdfExcelOptions -ContinuationGeometryTolerance",
+      "href": "/api/powershell/new-officepdfexceloptions/#method-new-officepdfexceloptions-officelength-cultureinfo-string-switchparameter-int32-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-string-string-exceltablestyle",
       "aliases": [
-        "New-OfficePdfExcelImportOptions.AutoFitColumns",
-        "New-OfficePdfExcelImportOptions/AutoFitColumns",
-        "param:New-OfficePdfExcelImportOptions.AutoFitColumns",
-        "parameter:New-OfficePdfExcelImportOptions/AutoFitColumns",
-        "PSWriteOffice::New-OfficePdfExcelImportOptions.AutoFitColumns",
-        "PSWriteOffice:New-OfficePdfExcelImportOptions.AutoFitColumns",
-        "PSWriteOffice\\New-OfficePdfExcelImportOptions.AutoFitColumns"
+        "New-OfficePdfExcelOptions.ContinuationGeometryTolerance",
+        "New-OfficePdfExcelOptions/ContinuationGeometryTolerance",
+        "param:New-OfficePdfExcelOptions.ContinuationGeometryTolerance",
+        "parameter:New-OfficePdfExcelOptions/ContinuationGeometryTolerance",
+        "PSWriteOffice::New-OfficePdfExcelOptions.ContinuationGeometryTolerance",
+        "PSWriteOffice:New-OfficePdfExcelOptions.ContinuationGeometryTolerance",
+        "PSWriteOffice\\New-OfficePdfExcelOptions.ContinuationGeometryTolerance"
       ]
     },
     {
-      "uid": "parameter:New-OfficePdfExcelImportOptions.ContinuationGeometryTolerancePoints",
-      "name": "New-OfficePdfExcelImportOptions -ContinuationGeometryTolerancePoints",
-      "href": "/api/powershell/new-officepdfexcelimportoptions/#method-new-officepdfexcelimportoptions-switchparameter-double-switchparameter-switchparameter-switchparameter-switchparameter-string-switchparameter-int32-int32-switchparameter-string-string-switchparameter-string-exceltablestyle",
+      "uid": "parameter:New-OfficePdfExcelOptions.Culture",
+      "name": "New-OfficePdfExcelOptions -Culture",
+      "href": "/api/powershell/new-officepdfexceloptions/#method-new-officepdfexceloptions-officelength-cultureinfo-string-switchparameter-int32-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-string-string-exceltablestyle",
       "aliases": [
-        "New-OfficePdfExcelImportOptions.ContinuationGeometryTolerancePoints",
-        "New-OfficePdfExcelImportOptions/ContinuationGeometryTolerancePoints",
-        "param:New-OfficePdfExcelImportOptions.ContinuationGeometryTolerancePoints",
-        "parameter:New-OfficePdfExcelImportOptions/ContinuationGeometryTolerancePoints",
-        "PSWriteOffice::New-OfficePdfExcelImportOptions.ContinuationGeometryTolerancePoints",
-        "PSWriteOffice:New-OfficePdfExcelImportOptions.ContinuationGeometryTolerancePoints",
-        "PSWriteOffice\\New-OfficePdfExcelImportOptions.ContinuationGeometryTolerancePoints"
+        "New-OfficePdfExcelOptions.Culture",
+        "New-OfficePdfExcelOptions/Culture",
+        "param:New-OfficePdfExcelOptions.Culture",
+        "parameter:New-OfficePdfExcelOptions/Culture",
+        "PSWriteOffice::New-OfficePdfExcelOptions.Culture",
+        "PSWriteOffice:New-OfficePdfExcelOptions.Culture",
+        "PSWriteOffice\\New-OfficePdfExcelOptions.Culture"
       ]
     },
     {
-      "uid": "parameter:New-OfficePdfExcelImportOptions.ConvertBooleanColumns",
-      "name": "New-OfficePdfExcelImportOptions -ConvertBooleanColumns",
-      "href": "/api/powershell/new-officepdfexcelimportoptions/#method-new-officepdfexcelimportoptions-switchparameter-double-switchparameter-switchparameter-switchparameter-switchparameter-string-switchparameter-int32-int32-switchparameter-string-string-switchparameter-string-exceltablestyle",
+      "uid": "parameter:New-OfficePdfExcelOptions.EmptyWorkbookSheetName",
+      "name": "New-OfficePdfExcelOptions -EmptyWorkbookSheetName",
+      "href": "/api/powershell/new-officepdfexceloptions/#method-new-officepdfexceloptions-officelength-cultureinfo-string-switchparameter-int32-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-string-string-exceltablestyle",
       "aliases": [
-        "New-OfficePdfExcelImportOptions.ConvertBooleanColumns",
-        "New-OfficePdfExcelImportOptions/ConvertBooleanColumns",
-        "param:New-OfficePdfExcelImportOptions.ConvertBooleanColumns",
-        "parameter:New-OfficePdfExcelImportOptions/ConvertBooleanColumns",
-        "PSWriteOffice::New-OfficePdfExcelImportOptions.ConvertBooleanColumns",
-        "PSWriteOffice:New-OfficePdfExcelImportOptions.ConvertBooleanColumns",
-        "PSWriteOffice\\New-OfficePdfExcelImportOptions.ConvertBooleanColumns"
+        "New-OfficePdfExcelOptions.EmptyWorkbookSheetName",
+        "New-OfficePdfExcelOptions/EmptyWorkbookSheetName",
+        "param:New-OfficePdfExcelOptions.EmptyWorkbookSheetName",
+        "parameter:New-OfficePdfExcelOptions/EmptyWorkbookSheetName",
+        "PSWriteOffice::New-OfficePdfExcelOptions.EmptyWorkbookSheetName",
+        "PSWriteOffice:New-OfficePdfExcelOptions.EmptyWorkbookSheetName",
+        "PSWriteOffice\\New-OfficePdfExcelOptions.EmptyWorkbookSheetName"
       ]
     },
     {
-      "uid": "parameter:New-OfficePdfExcelImportOptions.ConvertDateTimeColumns",
-      "name": "New-OfficePdfExcelImportOptions -ConvertDateTimeColumns",
-      "href": "/api/powershell/new-officepdfexcelimportoptions/#method-new-officepdfexcelimportoptions-switchparameter-double-switchparameter-switchparameter-switchparameter-switchparameter-string-switchparameter-int32-int32-switchparameter-string-string-switchparameter-string-exceltablestyle",
+      "uid": "parameter:New-OfficePdfExcelOptions.KeepRepeatedHeaderRows",
+      "name": "New-OfficePdfExcelOptions -KeepRepeatedHeaderRows",
+      "href": "/api/powershell/new-officepdfexceloptions/#method-new-officepdfexceloptions-officelength-cultureinfo-string-switchparameter-int32-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-string-string-exceltablestyle",
       "aliases": [
-        "New-OfficePdfExcelImportOptions.ConvertDateTimeColumns",
-        "New-OfficePdfExcelImportOptions/ConvertDateTimeColumns",
-        "param:New-OfficePdfExcelImportOptions.ConvertDateTimeColumns",
-        "parameter:New-OfficePdfExcelImportOptions/ConvertDateTimeColumns",
-        "PSWriteOffice::New-OfficePdfExcelImportOptions.ConvertDateTimeColumns",
-        "PSWriteOffice:New-OfficePdfExcelImportOptions.ConvertDateTimeColumns",
-        "PSWriteOffice\\New-OfficePdfExcelImportOptions.ConvertDateTimeColumns"
+        "New-OfficePdfExcelOptions.KeepRepeatedHeaderRows",
+        "New-OfficePdfExcelOptions/KeepRepeatedHeaderRows",
+        "param:New-OfficePdfExcelOptions.KeepRepeatedHeaderRows",
+        "parameter:New-OfficePdfExcelOptions/KeepRepeatedHeaderRows",
+        "PSWriteOffice::New-OfficePdfExcelOptions.KeepRepeatedHeaderRows",
+        "PSWriteOffice:New-OfficePdfExcelOptions.KeepRepeatedHeaderRows",
+        "PSWriteOffice\\New-OfficePdfExcelOptions.KeepRepeatedHeaderRows"
       ]
     },
     {
-      "uid": "parameter:New-OfficePdfExcelImportOptions.ConvertNumericColumns",
-      "name": "New-OfficePdfExcelImportOptions -ConvertNumericColumns",
-      "href": "/api/powershell/new-officepdfexcelimportoptions/#method-new-officepdfexcelimportoptions-switchparameter-double-switchparameter-switchparameter-switchparameter-switchparameter-string-switchparameter-int32-int32-switchparameter-string-string-switchparameter-string-exceltablestyle",
+      "uid": "parameter:New-OfficePdfExcelOptions.MaximumContinuationSegments",
+      "name": "New-OfficePdfExcelOptions -MaximumContinuationSegments",
+      "href": "/api/powershell/new-officepdfexceloptions/#method-new-officepdfexceloptions-officelength-cultureinfo-string-switchparameter-int32-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-string-string-exceltablestyle",
       "aliases": [
-        "New-OfficePdfExcelImportOptions.ConvertNumericColumns",
-        "New-OfficePdfExcelImportOptions/ConvertNumericColumns",
-        "param:New-OfficePdfExcelImportOptions.ConvertNumericColumns",
-        "parameter:New-OfficePdfExcelImportOptions/ConvertNumericColumns",
-        "PSWriteOffice::New-OfficePdfExcelImportOptions.ConvertNumericColumns",
-        "PSWriteOffice:New-OfficePdfExcelImportOptions.ConvertNumericColumns",
-        "PSWriteOffice\\New-OfficePdfExcelImportOptions.ConvertNumericColumns"
+        "New-OfficePdfExcelOptions.MaximumContinuationSegments",
+        "New-OfficePdfExcelOptions/MaximumContinuationSegments",
+        "param:New-OfficePdfExcelOptions.MaximumContinuationSegments",
+        "parameter:New-OfficePdfExcelOptions/MaximumContinuationSegments",
+        "PSWriteOffice::New-OfficePdfExcelOptions.MaximumContinuationSegments",
+        "PSWriteOffice:New-OfficePdfExcelOptions.MaximumContinuationSegments",
+        "PSWriteOffice\\New-OfficePdfExcelOptions.MaximumContinuationSegments"
       ]
     },
     {
-      "uid": "parameter:New-OfficePdfExcelImportOptions.ConvertPercentageColumns",
-      "name": "New-OfficePdfExcelImportOptions -ConvertPercentageColumns",
-      "href": "/api/powershell/new-officepdfexcelimportoptions/#method-new-officepdfexcelimportoptions-switchparameter-double-switchparameter-switchparameter-switchparameter-switchparameter-string-switchparameter-int32-int32-switchparameter-string-string-switchparameter-string-exceltablestyle",
+      "uid": "parameter:New-OfficePdfExcelOptions.MaxRows",
+      "name": "New-OfficePdfExcelOptions -MaxRows",
+      "href": "/api/powershell/new-officepdfexceloptions/#method-new-officepdfexceloptions-officelength-cultureinfo-string-switchparameter-int32-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-string-string-exceltablestyle",
       "aliases": [
-        "New-OfficePdfExcelImportOptions.ConvertPercentageColumns",
-        "New-OfficePdfExcelImportOptions/ConvertPercentageColumns",
-        "param:New-OfficePdfExcelImportOptions.ConvertPercentageColumns",
-        "parameter:New-OfficePdfExcelImportOptions/ConvertPercentageColumns",
-        "PSWriteOffice::New-OfficePdfExcelImportOptions.ConvertPercentageColumns",
-        "PSWriteOffice:New-OfficePdfExcelImportOptions.ConvertPercentageColumns",
-        "PSWriteOffice\\New-OfficePdfExcelImportOptions.ConvertPercentageColumns"
+        "New-OfficePdfExcelOptions.MaxRows",
+        "New-OfficePdfExcelOptions/MaxRows",
+        "param:New-OfficePdfExcelOptions.MaxRows",
+        "parameter:New-OfficePdfExcelOptions/MaxRows",
+        "PSWriteOffice::New-OfficePdfExcelOptions.MaxRows",
+        "PSWriteOffice:New-OfficePdfExcelOptions.MaxRows",
+        "PSWriteOffice\\New-OfficePdfExcelOptions.MaxRows"
       ]
     },
     {
-      "uid": "parameter:New-OfficePdfExcelImportOptions.EmptyWorkbookSheetName",
-      "name": "New-OfficePdfExcelImportOptions -EmptyWorkbookSheetName",
-      "href": "/api/powershell/new-officepdfexcelimportoptions/#method-new-officepdfexcelimportoptions-switchparameter-double-switchparameter-switchparameter-switchparameter-switchparameter-string-switchparameter-int32-int32-switchparameter-string-string-switchparameter-string-exceltablestyle",
+      "uid": "parameter:New-OfficePdfExcelOptions.NoAutoFilter",
+      "name": "New-OfficePdfExcelOptions -NoAutoFilter",
+      "href": "/api/powershell/new-officepdfexceloptions/#method-new-officepdfexceloptions-officelength-cultureinfo-string-switchparameter-int32-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-string-string-exceltablestyle",
       "aliases": [
-        "New-OfficePdfExcelImportOptions.EmptyWorkbookSheetName",
-        "New-OfficePdfExcelImportOptions/EmptyWorkbookSheetName",
-        "param:New-OfficePdfExcelImportOptions.EmptyWorkbookSheetName",
-        "parameter:New-OfficePdfExcelImportOptions/EmptyWorkbookSheetName",
-        "PSWriteOffice::New-OfficePdfExcelImportOptions.EmptyWorkbookSheetName",
-        "PSWriteOffice:New-OfficePdfExcelImportOptions.EmptyWorkbookSheetName",
-        "PSWriteOffice\\New-OfficePdfExcelImportOptions.EmptyWorkbookSheetName"
+        "New-OfficePdfExcelOptions.NoAutoFilter",
+        "New-OfficePdfExcelOptions/NoAutoFilter",
+        "param:New-OfficePdfExcelOptions.NoAutoFilter",
+        "parameter:New-OfficePdfExcelOptions/NoAutoFilter",
+        "PSWriteOffice::New-OfficePdfExcelOptions.NoAutoFilter",
+        "PSWriteOffice:New-OfficePdfExcelOptions.NoAutoFilter",
+        "PSWriteOffice\\New-OfficePdfExcelOptions.NoAutoFilter"
       ]
     },
     {
-      "uid": "parameter:New-OfficePdfExcelImportOptions.IncludeAutoFilter",
-      "name": "New-OfficePdfExcelImportOptions -IncludeAutoFilter",
-      "href": "/api/powershell/new-officepdfexcelimportoptions/#method-new-officepdfexcelimportoptions-switchparameter-double-switchparameter-switchparameter-switchparameter-switchparameter-string-switchparameter-int32-int32-switchparameter-string-string-switchparameter-string-exceltablestyle",
+      "uid": "parameter:New-OfficePdfExcelOptions.NoAutoFit",
+      "name": "New-OfficePdfExcelOptions -NoAutoFit",
+      "href": "/api/powershell/new-officepdfexceloptions/#method-new-officepdfexceloptions-officelength-cultureinfo-string-switchparameter-int32-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-string-string-exceltablestyle",
       "aliases": [
-        "New-OfficePdfExcelImportOptions.IncludeAutoFilter",
-        "New-OfficePdfExcelImportOptions/IncludeAutoFilter",
-        "param:New-OfficePdfExcelImportOptions.IncludeAutoFilter",
-        "parameter:New-OfficePdfExcelImportOptions/IncludeAutoFilter",
-        "PSWriteOffice::New-OfficePdfExcelImportOptions.IncludeAutoFilter",
-        "PSWriteOffice:New-OfficePdfExcelImportOptions.IncludeAutoFilter",
-        "PSWriteOffice\\New-OfficePdfExcelImportOptions.IncludeAutoFilter"
+        "New-OfficePdfExcelOptions.NoAutoFit",
+        "New-OfficePdfExcelOptions/NoAutoFit",
+        "param:New-OfficePdfExcelOptions.NoAutoFit",
+        "parameter:New-OfficePdfExcelOptions/NoAutoFit",
+        "PSWriteOffice::New-OfficePdfExcelOptions.NoAutoFit",
+        "PSWriteOffice:New-OfficePdfExcelOptions.NoAutoFit",
+        "PSWriteOffice\\New-OfficePdfExcelOptions.NoAutoFit"
       ]
     },
     {
-      "uid": "parameter:New-OfficePdfExcelImportOptions.MaximumContinuationSegments",
-      "name": "New-OfficePdfExcelImportOptions -MaximumContinuationSegments",
-      "href": "/api/powershell/new-officepdfexcelimportoptions/#method-new-officepdfexcelimportoptions-switchparameter-double-switchparameter-switchparameter-switchparameter-switchparameter-string-switchparameter-int32-int32-switchparameter-string-string-switchparameter-string-exceltablestyle",
+      "uid": "parameter:New-OfficePdfExcelOptions.NoBooleanConversion",
+      "name": "New-OfficePdfExcelOptions -NoBooleanConversion",
+      "href": "/api/powershell/new-officepdfexceloptions/#method-new-officepdfexceloptions-officelength-cultureinfo-string-switchparameter-int32-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-string-string-exceltablestyle",
       "aliases": [
-        "New-OfficePdfExcelImportOptions.MaximumContinuationSegments",
-        "New-OfficePdfExcelImportOptions/MaximumContinuationSegments",
-        "param:New-OfficePdfExcelImportOptions.MaximumContinuationSegments",
-        "parameter:New-OfficePdfExcelImportOptions/MaximumContinuationSegments",
-        "PSWriteOffice::New-OfficePdfExcelImportOptions.MaximumContinuationSegments",
-        "PSWriteOffice:New-OfficePdfExcelImportOptions.MaximumContinuationSegments",
-        "PSWriteOffice\\New-OfficePdfExcelImportOptions.MaximumContinuationSegments"
+        "New-OfficePdfExcelOptions.NoBooleanConversion",
+        "New-OfficePdfExcelOptions/NoBooleanConversion",
+        "param:New-OfficePdfExcelOptions.NoBooleanConversion",
+        "parameter:New-OfficePdfExcelOptions/NoBooleanConversion",
+        "PSWriteOffice::New-OfficePdfExcelOptions.NoBooleanConversion",
+        "PSWriteOffice:New-OfficePdfExcelOptions.NoBooleanConversion",
+        "PSWriteOffice\\New-OfficePdfExcelOptions.NoBooleanConversion"
       ]
     },
     {
-      "uid": "parameter:New-OfficePdfExcelImportOptions.MaxRows",
-      "name": "New-OfficePdfExcelImportOptions -MaxRows",
-      "href": "/api/powershell/new-officepdfexcelimportoptions/#method-new-officepdfexcelimportoptions-switchparameter-double-switchparameter-switchparameter-switchparameter-switchparameter-string-switchparameter-int32-int32-switchparameter-string-string-switchparameter-string-exceltablestyle",
+      "uid": "parameter:New-OfficePdfExcelOptions.NoDateTimeConversion",
+      "name": "New-OfficePdfExcelOptions -NoDateTimeConversion",
+      "href": "/api/powershell/new-officepdfexceloptions/#method-new-officepdfexceloptions-officelength-cultureinfo-string-switchparameter-int32-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-string-string-exceltablestyle",
       "aliases": [
-        "New-OfficePdfExcelImportOptions.MaxRows",
-        "New-OfficePdfExcelImportOptions/MaxRows",
-        "param:New-OfficePdfExcelImportOptions.MaxRows",
-        "parameter:New-OfficePdfExcelImportOptions/MaxRows",
-        "PSWriteOffice::New-OfficePdfExcelImportOptions.MaxRows",
-        "PSWriteOffice:New-OfficePdfExcelImportOptions.MaxRows",
-        "PSWriteOffice\\New-OfficePdfExcelImportOptions.MaxRows"
+        "New-OfficePdfExcelOptions.NoDateTimeConversion",
+        "New-OfficePdfExcelOptions/NoDateTimeConversion",
+        "param:New-OfficePdfExcelOptions.NoDateTimeConversion",
+        "parameter:New-OfficePdfExcelOptions/NoDateTimeConversion",
+        "PSWriteOffice::New-OfficePdfExcelOptions.NoDateTimeConversion",
+        "PSWriteOffice:New-OfficePdfExcelOptions.NoDateTimeConversion",
+        "PSWriteOffice\\New-OfficePdfExcelOptions.NoDateTimeConversion"
       ]
     },
     {
-      "uid": "parameter:New-OfficePdfExcelImportOptions.MergePageContinuations",
-      "name": "New-OfficePdfExcelImportOptions -MergePageContinuations",
-      "href": "/api/powershell/new-officepdfexcelimportoptions/#method-new-officepdfexcelimportoptions-switchparameter-double-switchparameter-switchparameter-switchparameter-switchparameter-string-switchparameter-int32-int32-switchparameter-string-string-switchparameter-string-exceltablestyle",
+      "uid": "parameter:New-OfficePdfExcelOptions.NoNumericConversion",
+      "name": "New-OfficePdfExcelOptions -NoNumericConversion",
+      "href": "/api/powershell/new-officepdfexceloptions/#method-new-officepdfexceloptions-officelength-cultureinfo-string-switchparameter-int32-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-string-string-exceltablestyle",
       "aliases": [
-        "New-OfficePdfExcelImportOptions.MergePageContinuations",
-        "New-OfficePdfExcelImportOptions/MergePageContinuations",
-        "param:New-OfficePdfExcelImportOptions.MergePageContinuations",
-        "parameter:New-OfficePdfExcelImportOptions/MergePageContinuations",
-        "PSWriteOffice::New-OfficePdfExcelImportOptions.MergePageContinuations",
-        "PSWriteOffice:New-OfficePdfExcelImportOptions.MergePageContinuations",
-        "PSWriteOffice\\New-OfficePdfExcelImportOptions.MergePageContinuations"
+        "New-OfficePdfExcelOptions.NoNumericConversion",
+        "New-OfficePdfExcelOptions/NoNumericConversion",
+        "param:New-OfficePdfExcelOptions.NoNumericConversion",
+        "parameter:New-OfficePdfExcelOptions/NoNumericConversion",
+        "PSWriteOffice::New-OfficePdfExcelOptions.NoNumericConversion",
+        "PSWriteOffice:New-OfficePdfExcelOptions.NoNumericConversion",
+        "PSWriteOffice\\New-OfficePdfExcelOptions.NoNumericConversion"
       ]
     },
     {
-      "uid": "parameter:New-OfficePdfExcelImportOptions.NumericCulture",
-      "name": "New-OfficePdfExcelImportOptions -NumericCulture",
-      "href": "/api/powershell/new-officepdfexcelimportoptions/#method-new-officepdfexcelimportoptions-switchparameter-double-switchparameter-switchparameter-switchparameter-switchparameter-string-switchparameter-int32-int32-switchparameter-string-string-switchparameter-string-exceltablestyle",
+      "uid": "parameter:New-OfficePdfExcelOptions.NoPageContinuationMerge",
+      "name": "New-OfficePdfExcelOptions -NoPageContinuationMerge",
+      "href": "/api/powershell/new-officepdfexceloptions/#method-new-officepdfexceloptions-officelength-cultureinfo-string-switchparameter-int32-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-string-string-exceltablestyle",
       "aliases": [
-        "New-OfficePdfExcelImportOptions.NumericCulture",
-        "New-OfficePdfExcelImportOptions/NumericCulture",
-        "param:New-OfficePdfExcelImportOptions.NumericCulture",
-        "parameter:New-OfficePdfExcelImportOptions/NumericCulture",
-        "PSWriteOffice::New-OfficePdfExcelImportOptions.NumericCulture",
-        "PSWriteOffice:New-OfficePdfExcelImportOptions.NumericCulture",
-        "PSWriteOffice\\New-OfficePdfExcelImportOptions.NumericCulture"
+        "New-OfficePdfExcelOptions.NoPageContinuationMerge",
+        "New-OfficePdfExcelOptions/NoPageContinuationMerge",
+        "param:New-OfficePdfExcelOptions.NoPageContinuationMerge",
+        "parameter:New-OfficePdfExcelOptions/NoPageContinuationMerge",
+        "PSWriteOffice::New-OfficePdfExcelOptions.NoPageContinuationMerge",
+        "PSWriteOffice:New-OfficePdfExcelOptions.NoPageContinuationMerge",
+        "PSWriteOffice\\New-OfficePdfExcelOptions.NoPageContinuationMerge"
       ]
     },
     {
-      "uid": "parameter:New-OfficePdfExcelImportOptions.SheetNamePrefix",
-      "name": "New-OfficePdfExcelImportOptions -SheetNamePrefix",
-      "href": "/api/powershell/new-officepdfexcelimportoptions/#method-new-officepdfexcelimportoptions-switchparameter-double-switchparameter-switchparameter-switchparameter-switchparameter-string-switchparameter-int32-int32-switchparameter-string-string-switchparameter-string-exceltablestyle",
+      "uid": "parameter:New-OfficePdfExcelOptions.NoPercentageConversion",
+      "name": "New-OfficePdfExcelOptions -NoPercentageConversion",
+      "href": "/api/powershell/new-officepdfexceloptions/#method-new-officepdfexceloptions-officelength-cultureinfo-string-switchparameter-int32-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-string-string-exceltablestyle",
       "aliases": [
-        "New-OfficePdfExcelImportOptions.SheetNamePrefix",
-        "New-OfficePdfExcelImportOptions/SheetNamePrefix",
-        "param:New-OfficePdfExcelImportOptions.SheetNamePrefix",
-        "parameter:New-OfficePdfExcelImportOptions/SheetNamePrefix",
-        "PSWriteOffice::New-OfficePdfExcelImportOptions.SheetNamePrefix",
-        "PSWriteOffice:New-OfficePdfExcelImportOptions.SheetNamePrefix",
-        "PSWriteOffice\\New-OfficePdfExcelImportOptions.SheetNamePrefix"
+        "New-OfficePdfExcelOptions.NoPercentageConversion",
+        "New-OfficePdfExcelOptions/NoPercentageConversion",
+        "param:New-OfficePdfExcelOptions.NoPercentageConversion",
+        "parameter:New-OfficePdfExcelOptions/NoPercentageConversion",
+        "PSWriteOffice::New-OfficePdfExcelOptions.NoPercentageConversion",
+        "PSWriteOffice:New-OfficePdfExcelOptions.NoPercentageConversion",
+        "PSWriteOffice\\New-OfficePdfExcelOptions.NoPercentageConversion"
       ]
     },
     {
-      "uid": "parameter:New-OfficePdfExcelImportOptions.SuppressRepeatedBodyHeaderRows",
-      "name": "New-OfficePdfExcelImportOptions -SuppressRepeatedBodyHeaderRows",
-      "href": "/api/powershell/new-officepdfexcelimportoptions/#method-new-officepdfexcelimportoptions-switchparameter-double-switchparameter-switchparameter-switchparameter-switchparameter-string-switchparameter-int32-int32-switchparameter-string-string-switchparameter-string-exceltablestyle",
+      "uid": "parameter:New-OfficePdfExcelOptions.SheetNamePrefix",
+      "name": "New-OfficePdfExcelOptions -SheetNamePrefix",
+      "href": "/api/powershell/new-officepdfexceloptions/#method-new-officepdfexceloptions-officelength-cultureinfo-string-switchparameter-int32-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-string-string-exceltablestyle",
       "aliases": [
-        "New-OfficePdfExcelImportOptions.SuppressRepeatedBodyHeaderRows",
-        "New-OfficePdfExcelImportOptions/SuppressRepeatedBodyHeaderRows",
-        "param:New-OfficePdfExcelImportOptions.SuppressRepeatedBodyHeaderRows",
-        "parameter:New-OfficePdfExcelImportOptions/SuppressRepeatedBodyHeaderRows",
-        "PSWriteOffice::New-OfficePdfExcelImportOptions.SuppressRepeatedBodyHeaderRows",
-        "PSWriteOffice:New-OfficePdfExcelImportOptions.SuppressRepeatedBodyHeaderRows",
-        "PSWriteOffice\\New-OfficePdfExcelImportOptions.SuppressRepeatedBodyHeaderRows"
+        "New-OfficePdfExcelOptions.SheetNamePrefix",
+        "New-OfficePdfExcelOptions/SheetNamePrefix",
+        "param:New-OfficePdfExcelOptions.SheetNamePrefix",
+        "parameter:New-OfficePdfExcelOptions/SheetNamePrefix",
+        "PSWriteOffice::New-OfficePdfExcelOptions.SheetNamePrefix",
+        "PSWriteOffice:New-OfficePdfExcelOptions.SheetNamePrefix",
+        "PSWriteOffice\\New-OfficePdfExcelOptions.SheetNamePrefix"
       ]
     },
     {
-      "uid": "parameter:New-OfficePdfExcelImportOptions.TableNamePrefix",
-      "name": "New-OfficePdfExcelImportOptions -TableNamePrefix",
-      "href": "/api/powershell/new-officepdfexcelimportoptions/#method-new-officepdfexcelimportoptions-switchparameter-double-switchparameter-switchparameter-switchparameter-switchparameter-string-switchparameter-int32-int32-switchparameter-string-string-switchparameter-string-exceltablestyle",
+      "uid": "parameter:New-OfficePdfExcelOptions.TableNamePrefix",
+      "name": "New-OfficePdfExcelOptions -TableNamePrefix",
+      "href": "/api/powershell/new-officepdfexceloptions/#method-new-officepdfexceloptions-officelength-cultureinfo-string-switchparameter-int32-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-string-string-exceltablestyle",
       "aliases": [
-        "New-OfficePdfExcelImportOptions.TableNamePrefix",
-        "New-OfficePdfExcelImportOptions/TableNamePrefix",
-        "param:New-OfficePdfExcelImportOptions.TableNamePrefix",
-        "parameter:New-OfficePdfExcelImportOptions/TableNamePrefix",
-        "PSWriteOffice::New-OfficePdfExcelImportOptions.TableNamePrefix",
-        "PSWriteOffice:New-OfficePdfExcelImportOptions.TableNamePrefix",
-        "PSWriteOffice\\New-OfficePdfExcelImportOptions.TableNamePrefix"
+        "New-OfficePdfExcelOptions.TableNamePrefix",
+        "New-OfficePdfExcelOptions/TableNamePrefix",
+        "param:New-OfficePdfExcelOptions.TableNamePrefix",
+        "parameter:New-OfficePdfExcelOptions/TableNamePrefix",
+        "PSWriteOffice::New-OfficePdfExcelOptions.TableNamePrefix",
+        "PSWriteOffice:New-OfficePdfExcelOptions.TableNamePrefix",
+        "PSWriteOffice\\New-OfficePdfExcelOptions.TableNamePrefix"
       ]
     },
     {
-      "uid": "parameter:New-OfficePdfExcelImportOptions.TableStyle",
-      "name": "New-OfficePdfExcelImportOptions -TableStyle",
-      "href": "/api/powershell/new-officepdfexcelimportoptions/#method-new-officepdfexcelimportoptions-switchparameter-double-switchparameter-switchparameter-switchparameter-switchparameter-string-switchparameter-int32-int32-switchparameter-string-string-switchparameter-string-exceltablestyle",
+      "uid": "parameter:New-OfficePdfExcelOptions.TableStyle",
+      "name": "New-OfficePdfExcelOptions -TableStyle",
+      "href": "/api/powershell/new-officepdfexceloptions/#method-new-officepdfexceloptions-officelength-cultureinfo-string-switchparameter-int32-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-string-string-exceltablestyle",
       "aliases": [
-        "New-OfficePdfExcelImportOptions.TableStyle",
-        "New-OfficePdfExcelImportOptions/TableStyle",
-        "param:New-OfficePdfExcelImportOptions.TableStyle",
-        "parameter:New-OfficePdfExcelImportOptions/TableStyle",
-        "PSWriteOffice::New-OfficePdfExcelImportOptions.TableStyle",
-        "PSWriteOffice:New-OfficePdfExcelImportOptions.TableStyle",
-        "PSWriteOffice\\New-OfficePdfExcelImportOptions.TableStyle"
+        "New-OfficePdfExcelOptions.TableStyle",
+        "New-OfficePdfExcelOptions/TableStyle",
+        "param:New-OfficePdfExcelOptions.TableStyle",
+        "parameter:New-OfficePdfExcelOptions/TableStyle",
+        "PSWriteOffice::New-OfficePdfExcelOptions.TableStyle",
+        "PSWriteOffice:New-OfficePdfExcelOptions.TableStyle",
+        "PSWriteOffice\\New-OfficePdfExcelOptions.TableStyle"
       ]
     },
     {
@@ -940709,6 +940733,146 @@
         "PSWriteOffice::New-OfficePdfFormFillOptions.MaxValueCharacters",
         "PSWriteOffice:New-OfficePdfFormFillOptions.MaxValueCharacters",
         "PSWriteOffice\\New-OfficePdfFormFillOptions.MaxValueCharacters"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfHtmlOptions.DocumentTitleFallback",
+      "name": "New-OfficePdfHtmlOptions -DocumentTitleFallback",
+      "href": "/api/powershell/new-officepdfhtmloptions/#method-new-officepdfhtmloptions-string-switchparameter-pdfhtmlimageexportmode-switchparameter-switchparameter-int64-switchparameter-switchparameter-switchparameter-pdfhtmlprofile",
+      "aliases": [
+        "New-OfficePdfHtmlOptions.DocumentTitleFallback",
+        "New-OfficePdfHtmlOptions/DocumentTitleFallback",
+        "param:New-OfficePdfHtmlOptions.DocumentTitleFallback",
+        "parameter:New-OfficePdfHtmlOptions/DocumentTitleFallback",
+        "PSWriteOffice::New-OfficePdfHtmlOptions.DocumentTitleFallback",
+        "PSWriteOffice:New-OfficePdfHtmlOptions.DocumentTitleFallback",
+        "PSWriteOffice\\New-OfficePdfHtmlOptions.DocumentTitleFallback"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfHtmlOptions.Fragment",
+      "name": "New-OfficePdfHtmlOptions -Fragment",
+      "href": "/api/powershell/new-officepdfhtmloptions/#method-new-officepdfhtmloptions-string-switchparameter-pdfhtmlimageexportmode-switchparameter-switchparameter-int64-switchparameter-switchparameter-switchparameter-pdfhtmlprofile",
+      "aliases": [
+        "New-OfficePdfHtmlOptions.Fragment",
+        "New-OfficePdfHtmlOptions/Fragment",
+        "param:New-OfficePdfHtmlOptions.Fragment",
+        "parameter:New-OfficePdfHtmlOptions/Fragment",
+        "PSWriteOffice::New-OfficePdfHtmlOptions.Fragment",
+        "PSWriteOffice:New-OfficePdfHtmlOptions.Fragment",
+        "PSWriteOffice\\New-OfficePdfHtmlOptions.Fragment"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfHtmlOptions.ImageExportMode",
+      "name": "New-OfficePdfHtmlOptions -ImageExportMode",
+      "href": "/api/powershell/new-officepdfhtmloptions/#method-new-officepdfhtmloptions-string-switchparameter-pdfhtmlimageexportmode-switchparameter-switchparameter-int64-switchparameter-switchparameter-switchparameter-pdfhtmlprofile",
+      "aliases": [
+        "New-OfficePdfHtmlOptions.ImageExportMode",
+        "New-OfficePdfHtmlOptions/ImageExportMode",
+        "param:New-OfficePdfHtmlOptions.ImageExportMode",
+        "parameter:New-OfficePdfHtmlOptions/ImageExportMode",
+        "PSWriteOffice::New-OfficePdfHtmlOptions.ImageExportMode",
+        "PSWriteOffice:New-OfficePdfHtmlOptions.ImageExportMode",
+        "PSWriteOffice\\New-OfficePdfHtmlOptions.ImageExportMode"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfHtmlOptions.IncludeFormWidgets",
+      "name": "New-OfficePdfHtmlOptions -IncludeFormWidgets",
+      "href": "/api/powershell/new-officepdfhtmloptions/#method-new-officepdfhtmloptions-string-switchparameter-pdfhtmlimageexportmode-switchparameter-switchparameter-int64-switchparameter-switchparameter-switchparameter-pdfhtmlprofile",
+      "aliases": [
+        "New-OfficePdfHtmlOptions.IncludeFormWidgets",
+        "New-OfficePdfHtmlOptions/IncludeFormWidgets",
+        "param:New-OfficePdfHtmlOptions.IncludeFormWidgets",
+        "parameter:New-OfficePdfHtmlOptions/IncludeFormWidgets",
+        "PSWriteOffice::New-OfficePdfHtmlOptions.IncludeFormWidgets",
+        "PSWriteOffice:New-OfficePdfHtmlOptions.IncludeFormWidgets",
+        "PSWriteOffice\\New-OfficePdfHtmlOptions.IncludeFormWidgets"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfHtmlOptions.IncludeLinkAnnotations",
+      "name": "New-OfficePdfHtmlOptions -IncludeLinkAnnotations",
+      "href": "/api/powershell/new-officepdfhtmloptions/#method-new-officepdfhtmloptions-string-switchparameter-pdfhtmlimageexportmode-switchparameter-switchparameter-int64-switchparameter-switchparameter-switchparameter-pdfhtmlprofile",
+      "aliases": [
+        "New-OfficePdfHtmlOptions.IncludeLinkAnnotations",
+        "New-OfficePdfHtmlOptions/IncludeLinkAnnotations",
+        "param:New-OfficePdfHtmlOptions.IncludeLinkAnnotations",
+        "parameter:New-OfficePdfHtmlOptions/IncludeLinkAnnotations",
+        "PSWriteOffice::New-OfficePdfHtmlOptions.IncludeLinkAnnotations",
+        "PSWriteOffice:New-OfficePdfHtmlOptions.IncludeLinkAnnotations",
+        "PSWriteOffice\\New-OfficePdfHtmlOptions.IncludeLinkAnnotations"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfHtmlOptions.MaxEmbeddedImageSize",
+      "name": "New-OfficePdfHtmlOptions -MaxEmbeddedImageSize",
+      "href": "/api/powershell/new-officepdfhtmloptions/#method-new-officepdfhtmloptions-string-switchparameter-pdfhtmlimageexportmode-switchparameter-switchparameter-int64-switchparameter-switchparameter-switchparameter-pdfhtmlprofile",
+      "aliases": [
+        "New-OfficePdfHtmlOptions.MaxEmbeddedImageSize",
+        "New-OfficePdfHtmlOptions/MaxEmbeddedImageSize",
+        "param:New-OfficePdfHtmlOptions.MaxEmbeddedImageSize",
+        "parameter:New-OfficePdfHtmlOptions/MaxEmbeddedImageSize",
+        "PSWriteOffice::New-OfficePdfHtmlOptions.MaxEmbeddedImageSize",
+        "PSWriteOffice:New-OfficePdfHtmlOptions.MaxEmbeddedImageSize",
+        "PSWriteOffice\\New-OfficePdfHtmlOptions.MaxEmbeddedImageSize"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfHtmlOptions.NoImagePlaceholders",
+      "name": "New-OfficePdfHtmlOptions -NoImagePlaceholders",
+      "href": "/api/powershell/new-officepdfhtmloptions/#method-new-officepdfhtmloptions-string-switchparameter-pdfhtmlimageexportmode-switchparameter-switchparameter-int64-switchparameter-switchparameter-switchparameter-pdfhtmlprofile",
+      "aliases": [
+        "New-OfficePdfHtmlOptions.NoImagePlaceholders",
+        "New-OfficePdfHtmlOptions/NoImagePlaceholders",
+        "param:New-OfficePdfHtmlOptions.NoImagePlaceholders",
+        "parameter:New-OfficePdfHtmlOptions/NoImagePlaceholders",
+        "PSWriteOffice::New-OfficePdfHtmlOptions.NoImagePlaceholders",
+        "PSWriteOffice:New-OfficePdfHtmlOptions.NoImagePlaceholders",
+        "PSWriteOffice\\New-OfficePdfHtmlOptions.NoImagePlaceholders"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfHtmlOptions.NoMetadata",
+      "name": "New-OfficePdfHtmlOptions -NoMetadata",
+      "href": "/api/powershell/new-officepdfhtmloptions/#method-new-officepdfhtmloptions-string-switchparameter-pdfhtmlimageexportmode-switchparameter-switchparameter-int64-switchparameter-switchparameter-switchparameter-pdfhtmlprofile",
+      "aliases": [
+        "New-OfficePdfHtmlOptions.NoMetadata",
+        "New-OfficePdfHtmlOptions/NoMetadata",
+        "param:New-OfficePdfHtmlOptions.NoMetadata",
+        "parameter:New-OfficePdfHtmlOptions/NoMetadata",
+        "PSWriteOffice::New-OfficePdfHtmlOptions.NoMetadata",
+        "PSWriteOffice:New-OfficePdfHtmlOptions.NoMetadata",
+        "PSWriteOffice\\New-OfficePdfHtmlOptions.NoMetadata"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfHtmlOptions.NoPageContainers",
+      "name": "New-OfficePdfHtmlOptions -NoPageContainers",
+      "href": "/api/powershell/new-officepdfhtmloptions/#method-new-officepdfhtmloptions-string-switchparameter-pdfhtmlimageexportmode-switchparameter-switchparameter-int64-switchparameter-switchparameter-switchparameter-pdfhtmlprofile",
+      "aliases": [
+        "New-OfficePdfHtmlOptions.NoPageContainers",
+        "New-OfficePdfHtmlOptions/NoPageContainers",
+        "param:New-OfficePdfHtmlOptions.NoPageContainers",
+        "parameter:New-OfficePdfHtmlOptions/NoPageContainers",
+        "PSWriteOffice::New-OfficePdfHtmlOptions.NoPageContainers",
+        "PSWriteOffice:New-OfficePdfHtmlOptions.NoPageContainers",
+        "PSWriteOffice\\New-OfficePdfHtmlOptions.NoPageContainers"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfHtmlOptions.Profile",
+      "name": "New-OfficePdfHtmlOptions -Profile",
+      "href": "/api/powershell/new-officepdfhtmloptions/#method-new-officepdfhtmloptions-string-switchparameter-pdfhtmlimageexportmode-switchparameter-switchparameter-int64-switchparameter-switchparameter-switchparameter-pdfhtmlprofile",
+      "aliases": [
+        "New-OfficePdfHtmlOptions.Profile",
+        "New-OfficePdfHtmlOptions/Profile",
+        "param:New-OfficePdfHtmlOptions.Profile",
+        "parameter:New-OfficePdfHtmlOptions/Profile",
+        "PSWriteOffice::New-OfficePdfHtmlOptions.Profile",
+        "PSWriteOffice:New-OfficePdfHtmlOptions.Profile",
+        "PSWriteOffice\\New-OfficePdfHtmlOptions.Profile"
       ]
     },
     {
@@ -941073,6 +941237,384 @@
         "PSWriteOffice::New-OfficePdfLayoutOverlayOptions.WordColor",
         "PSWriteOffice:New-OfficePdfLayoutOverlayOptions.WordColor",
         "PSWriteOffice\\New-OfficePdfLayoutOverlayOptions.WordColor"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.AlignNumericColumns",
+      "name": "New-OfficePdfPowerPointOptions -AlignNumericColumns",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.AlignNumericColumns",
+        "New-OfficePdfPowerPointOptions/AlignNumericColumns",
+        "param:New-OfficePdfPowerPointOptions.AlignNumericColumns",
+        "parameter:New-OfficePdfPowerPointOptions/AlignNumericColumns",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.AlignNumericColumns",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.AlignNumericColumns",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.AlignNumericColumns"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.BandedRows",
+      "name": "New-OfficePdfPowerPointOptions -BandedRows",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.BandedRows",
+        "New-OfficePdfPowerPointOptions/BandedRows",
+        "param:New-OfficePdfPowerPointOptions.BandedRows",
+        "parameter:New-OfficePdfPowerPointOptions/BandedRows",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.BandedRows",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.BandedRows",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.BandedRows"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.Dpi",
+      "name": "New-OfficePdfPowerPointOptions -Dpi",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.Dpi",
+        "New-OfficePdfPowerPointOptions/Dpi",
+        "param:New-OfficePdfPowerPointOptions.Dpi",
+        "parameter:New-OfficePdfPowerPointOptions/Dpi",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.Dpi",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.Dpi",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.Dpi"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.EmptyPresentationMessage",
+      "name": "New-OfficePdfPowerPointOptions -EmptyPresentationMessage",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.EmptyPresentationMessage",
+        "New-OfficePdfPowerPointOptions/EmptyPresentationMessage",
+        "param:New-OfficePdfPowerPointOptions.EmptyPresentationMessage",
+        "parameter:New-OfficePdfPowerPointOptions/EmptyPresentationMessage",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.EmptyPresentationMessage",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.EmptyPresentationMessage",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.EmptyPresentationMessage"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.EmptyPresentationTitle",
+      "name": "New-OfficePdfPowerPointOptions -EmptyPresentationTitle",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.EmptyPresentationTitle",
+        "New-OfficePdfPowerPointOptions/EmptyPresentationTitle",
+        "param:New-OfficePdfPowerPointOptions.EmptyPresentationTitle",
+        "parameter:New-OfficePdfPowerPointOptions/EmptyPresentationTitle",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.EmptyPresentationTitle",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.EmptyPresentationTitle",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.EmptyPresentationTitle"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.IncludeColumnHeaderRows",
+      "name": "New-OfficePdfPowerPointOptions -IncludeColumnHeaderRows",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.IncludeColumnHeaderRows",
+        "New-OfficePdfPowerPointOptions/IncludeColumnHeaderRows",
+        "param:New-OfficePdfPowerPointOptions.IncludeColumnHeaderRows",
+        "parameter:New-OfficePdfPowerPointOptions/IncludeColumnHeaderRows",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.IncludeColumnHeaderRows",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.IncludeColumnHeaderRows",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.IncludeColumnHeaderRows"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.IncludeSourceTitles",
+      "name": "New-OfficePdfPowerPointOptions -IncludeSourceTitles",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.IncludeSourceTitles",
+        "New-OfficePdfPowerPointOptions/IncludeSourceTitles",
+        "param:New-OfficePdfPowerPointOptions.IncludeSourceTitles",
+        "parameter:New-OfficePdfPowerPointOptions/IncludeSourceTitles",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.IncludeSourceTitles",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.IncludeSourceTitles",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.IncludeSourceTitles"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.MaxColumnsPerSlide",
+      "name": "New-OfficePdfPowerPointOptions -MaxColumnsPerSlide",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.MaxColumnsPerSlide",
+        "New-OfficePdfPowerPointOptions/MaxColumnsPerSlide",
+        "param:New-OfficePdfPowerPointOptions.MaxColumnsPerSlide",
+        "parameter:New-OfficePdfPowerPointOptions/MaxColumnsPerSlide",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.MaxColumnsPerSlide",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.MaxColumnsPerSlide",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.MaxColumnsPerSlide"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.MaxEditableObjectsPerPage",
+      "name": "New-OfficePdfPowerPointOptions -MaxEditableObjectsPerPage",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.MaxEditableObjectsPerPage",
+        "New-OfficePdfPowerPointOptions/MaxEditableObjectsPerPage",
+        "param:New-OfficePdfPowerPointOptions.MaxEditableObjectsPerPage",
+        "parameter:New-OfficePdfPowerPointOptions/MaxEditableObjectsPerPage",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.MaxEditableObjectsPerPage",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.MaxEditableObjectsPerPage",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.MaxEditableObjectsPerPage"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.MaximumPixelCountPerPage",
+      "name": "New-OfficePdfPowerPointOptions -MaximumPixelCountPerPage",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.MaximumPixelCountPerPage",
+        "New-OfficePdfPowerPointOptions/MaximumPixelCountPerPage",
+        "param:New-OfficePdfPowerPointOptions.MaximumPixelCountPerPage",
+        "parameter:New-OfficePdfPowerPointOptions/MaximumPixelCountPerPage",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.MaximumPixelCountPerPage",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.MaximumPixelCountPerPage",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.MaximumPixelCountPerPage"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.MaxOutputBytesPerPage",
+      "name": "New-OfficePdfPowerPointOptions -MaxOutputBytesPerPage",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.MaxOutputBytesPerPage",
+        "New-OfficePdfPowerPointOptions/MaxOutputBytesPerPage",
+        "param:New-OfficePdfPowerPointOptions.MaxOutputBytesPerPage",
+        "parameter:New-OfficePdfPowerPointOptions/MaxOutputBytesPerPage",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.MaxOutputBytesPerPage",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.MaxOutputBytesPerPage",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.MaxOutputBytesPerPage"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.MaxPages",
+      "name": "New-OfficePdfPowerPointOptions -MaxPages",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.MaxPages",
+        "New-OfficePdfPowerPointOptions/MaxPages",
+        "param:New-OfficePdfPowerPointOptions.MaxPages",
+        "parameter:New-OfficePdfPowerPointOptions/MaxPages",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.MaxPages",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.MaxPages",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.MaxPages"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.MaxRows",
+      "name": "New-OfficePdfPowerPointOptions -MaxRows",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.MaxRows",
+        "New-OfficePdfPowerPointOptions/MaxRows",
+        "param:New-OfficePdfPowerPointOptions.MaxRows",
+        "parameter:New-OfficePdfPowerPointOptions/MaxRows",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.MaxRows",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.MaxRows",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.MaxRows"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.MaxRowsPerSlide",
+      "name": "New-OfficePdfPowerPointOptions -MaxRowsPerSlide",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.MaxRowsPerSlide",
+        "New-OfficePdfPowerPointOptions/MaxRowsPerSlide",
+        "param:New-OfficePdfPowerPointOptions.MaxRowsPerSlide",
+        "parameter:New-OfficePdfPowerPointOptions/MaxRowsPerSlide",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.MaxRowsPerSlide",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.MaxRowsPerSlide",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.MaxRowsPerSlide"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.MaxTotalOutputBytes",
+      "name": "New-OfficePdfPowerPointOptions -MaxTotalOutputBytes",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.MaxTotalOutputBytes",
+        "New-OfficePdfPowerPointOptions/MaxTotalOutputBytes",
+        "param:New-OfficePdfPowerPointOptions.MaxTotalOutputBytes",
+        "parameter:New-OfficePdfPowerPointOptions/MaxTotalOutputBytes",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.MaxTotalOutputBytes",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.MaxTotalOutputBytes",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.MaxTotalOutputBytes"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.MergePageContinuations",
+      "name": "New-OfficePdfPowerPointOptions -MergePageContinuations",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.MergePageContinuations",
+        "New-OfficePdfPowerPointOptions/MergePageContinuations",
+        "param:New-OfficePdfPowerPointOptions.MergePageContinuations",
+        "parameter:New-OfficePdfPowerPointOptions/MergePageContinuations",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.MergePageContinuations",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.MergePageContinuations",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.MergePageContinuations"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.Mode",
+      "name": "New-OfficePdfPowerPointOptions -Mode",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.Mode",
+        "New-OfficePdfPowerPointOptions/Mode",
+        "param:New-OfficePdfPowerPointOptions.Mode",
+        "parameter:New-OfficePdfPowerPointOptions/Mode",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.Mode",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.Mode",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.Mode"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.Page",
+      "name": "New-OfficePdfPowerPointOptions -Page",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.Page",
+        "New-OfficePdfPowerPointOptions/Page",
+        "param:New-OfficePdfPowerPointOptions.Page",
+        "parameter:New-OfficePdfPowerPointOptions/Page",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.Page",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.Page",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.Page"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.SuppressRepeatedBodyHeaderRows",
+      "name": "New-OfficePdfPowerPointOptions -SuppressRepeatedBodyHeaderRows",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.SuppressRepeatedBodyHeaderRows",
+        "New-OfficePdfPowerPointOptions/SuppressRepeatedBodyHeaderRows",
+        "param:New-OfficePdfPowerPointOptions.SuppressRepeatedBodyHeaderRows",
+        "parameter:New-OfficePdfPowerPointOptions/SuppressRepeatedBodyHeaderRows",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.SuppressRepeatedBodyHeaderRows",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.SuppressRepeatedBodyHeaderRows",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.SuppressRepeatedBodyHeaderRows"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfPowerPointOptions.TableStyle",
+      "name": "New-OfficePdfPowerPointOptions -TableStyle",
+      "href": "/api/powershell/new-officepdfpowerpointoptions/#method-new-officepdfpowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int64-int32-int32-int32-int64-switchparameter-powerpointpdfimportmode-officepagerange-switchparameter-powerpointtablestylepreset",
+      "aliases": [
+        "New-OfficePdfPowerPointOptions.TableStyle",
+        "New-OfficePdfPowerPointOptions/TableStyle",
+        "param:New-OfficePdfPowerPointOptions.TableStyle",
+        "parameter:New-OfficePdfPowerPointOptions/TableStyle",
+        "PSWriteOffice::New-OfficePdfPowerPointOptions.TableStyle",
+        "PSWriteOffice:New-OfficePdfPowerPointOptions.TableStyle",
+        "PSWriteOffice\\New-OfficePdfPowerPointOptions.TableStyle"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfReadOptions.IgnorePermissionRestrictions",
+      "name": "New-OfficePdfReadOptions -IgnorePermissionRestrictions",
+      "href": "/api/powershell/new-officepdfreadoptions/#method-new-officepdfreadoptions-switchparameter-pdftextlayoutoptions-pdfloadoptions-pdfocrmergeoptions-officepagerange-securestring-pdfreadprofile",
+      "aliases": [
+        "New-OfficePdfReadOptions.IgnorePermissionRestrictions",
+        "New-OfficePdfReadOptions/IgnorePermissionRestrictions",
+        "param:New-OfficePdfReadOptions.IgnorePermissionRestrictions",
+        "parameter:New-OfficePdfReadOptions/IgnorePermissionRestrictions",
+        "PSWriteOffice::New-OfficePdfReadOptions.IgnorePermissionRestrictions",
+        "PSWriteOffice:New-OfficePdfReadOptions.IgnorePermissionRestrictions",
+        "PSWriteOffice\\New-OfficePdfReadOptions.IgnorePermissionRestrictions"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfReadOptions.LayoutOptions",
+      "name": "New-OfficePdfReadOptions -LayoutOptions",
+      "href": "/api/powershell/new-officepdfreadoptions/#method-new-officepdfreadoptions-switchparameter-pdftextlayoutoptions-pdfloadoptions-pdfocrmergeoptions-officepagerange-securestring-pdfreadprofile",
+      "aliases": [
+        "New-OfficePdfReadOptions.LayoutOptions",
+        "New-OfficePdfReadOptions/LayoutOptions",
+        "param:New-OfficePdfReadOptions.LayoutOptions",
+        "parameter:New-OfficePdfReadOptions/LayoutOptions",
+        "PSWriteOffice::New-OfficePdfReadOptions.LayoutOptions",
+        "PSWriteOffice:New-OfficePdfReadOptions.LayoutOptions",
+        "PSWriteOffice\\New-OfficePdfReadOptions.LayoutOptions"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfReadOptions.LoadOptions",
+      "name": "New-OfficePdfReadOptions -LoadOptions",
+      "href": "/api/powershell/new-officepdfreadoptions/#method-new-officepdfreadoptions-switchparameter-pdftextlayoutoptions-pdfloadoptions-pdfocrmergeoptions-officepagerange-securestring-pdfreadprofile",
+      "aliases": [
+        "New-OfficePdfReadOptions.LoadOptions",
+        "New-OfficePdfReadOptions/LoadOptions",
+        "param:New-OfficePdfReadOptions.LoadOptions",
+        "parameter:New-OfficePdfReadOptions/LoadOptions",
+        "PSWriteOffice::New-OfficePdfReadOptions.LoadOptions",
+        "PSWriteOffice:New-OfficePdfReadOptions.LoadOptions",
+        "PSWriteOffice\\New-OfficePdfReadOptions.LoadOptions"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfReadOptions.OcrMergeOptions",
+      "name": "New-OfficePdfReadOptions -OcrMergeOptions",
+      "href": "/api/powershell/new-officepdfreadoptions/#method-new-officepdfreadoptions-switchparameter-pdftextlayoutoptions-pdfloadoptions-pdfocrmergeoptions-officepagerange-securestring-pdfreadprofile",
+      "aliases": [
+        "New-OfficePdfReadOptions.OcrMergeOptions",
+        "New-OfficePdfReadOptions/OcrMergeOptions",
+        "param:New-OfficePdfReadOptions.OcrMergeOptions",
+        "parameter:New-OfficePdfReadOptions/OcrMergeOptions",
+        "PSWriteOffice::New-OfficePdfReadOptions.OcrMergeOptions",
+        "PSWriteOffice:New-OfficePdfReadOptions.OcrMergeOptions",
+        "PSWriteOffice\\New-OfficePdfReadOptions.OcrMergeOptions"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfReadOptions.Page",
+      "name": "New-OfficePdfReadOptions -Page",
+      "href": "/api/powershell/new-officepdfreadoptions/#method-new-officepdfreadoptions-switchparameter-pdftextlayoutoptions-pdfloadoptions-pdfocrmergeoptions-officepagerange-securestring-pdfreadprofile",
+      "aliases": [
+        "New-OfficePdfReadOptions.Page",
+        "New-OfficePdfReadOptions/Page",
+        "param:New-OfficePdfReadOptions.Page",
+        "parameter:New-OfficePdfReadOptions/Page",
+        "PSWriteOffice::New-OfficePdfReadOptions.Page",
+        "PSWriteOffice:New-OfficePdfReadOptions.Page",
+        "PSWriteOffice\\New-OfficePdfReadOptions.Page"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfReadOptions.Password",
+      "name": "New-OfficePdfReadOptions -Password",
+      "href": "/api/powershell/new-officepdfreadoptions/#method-new-officepdfreadoptions-switchparameter-pdftextlayoutoptions-pdfloadoptions-pdfocrmergeoptions-officepagerange-securestring-pdfreadprofile",
+      "aliases": [
+        "New-OfficePdfReadOptions.Password",
+        "New-OfficePdfReadOptions/Password",
+        "param:New-OfficePdfReadOptions.Password",
+        "parameter:New-OfficePdfReadOptions/Password",
+        "PSWriteOffice::New-OfficePdfReadOptions.Password",
+        "PSWriteOffice:New-OfficePdfReadOptions.Password",
+        "PSWriteOffice\\New-OfficePdfReadOptions.Password"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfReadOptions.Profile",
+      "name": "New-OfficePdfReadOptions -Profile",
+      "href": "/api/powershell/new-officepdfreadoptions/#method-new-officepdfreadoptions-switchparameter-pdftextlayoutoptions-pdfloadoptions-pdfocrmergeoptions-officepagerange-securestring-pdfreadprofile",
+      "aliases": [
+        "New-OfficePdfReadOptions.Profile",
+        "New-OfficePdfReadOptions/Profile",
+        "param:New-OfficePdfReadOptions.Profile",
+        "parameter:New-OfficePdfReadOptions/Profile",
+        "PSWriteOffice::New-OfficePdfReadOptions.Profile",
+        "PSWriteOffice:New-OfficePdfReadOptions.Profile",
+        "PSWriteOffice\\New-OfficePdfReadOptions.Profile"
       ]
     },
     {
@@ -942162,608 +942704,6 @@
       ]
     },
     {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.AlignNumericColumns",
-      "name": "New-OfficePdfToPowerPointOptions -AlignNumericColumns",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.AlignNumericColumns",
-        "New-OfficePdfToPowerPointOptions/AlignNumericColumns",
-        "param:New-OfficePdfToPowerPointOptions.AlignNumericColumns",
-        "parameter:New-OfficePdfToPowerPointOptions/AlignNumericColumns",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.AlignNumericColumns",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.AlignNumericColumns",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.AlignNumericColumns"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.BandedRows",
-      "name": "New-OfficePdfToPowerPointOptions -BandedRows",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.BandedRows",
-        "New-OfficePdfToPowerPointOptions/BandedRows",
-        "param:New-OfficePdfToPowerPointOptions.BandedRows",
-        "parameter:New-OfficePdfToPowerPointOptions/BandedRows",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.BandedRows",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.BandedRows",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.BandedRows"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.Dpi",
-      "name": "New-OfficePdfToPowerPointOptions -Dpi",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.Dpi",
-        "New-OfficePdfToPowerPointOptions/Dpi",
-        "param:New-OfficePdfToPowerPointOptions.Dpi",
-        "parameter:New-OfficePdfToPowerPointOptions/Dpi",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.Dpi",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.Dpi",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.Dpi"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.EmptyPresentationMessage",
-      "name": "New-OfficePdfToPowerPointOptions -EmptyPresentationMessage",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.EmptyPresentationMessage",
-        "New-OfficePdfToPowerPointOptions/EmptyPresentationMessage",
-        "param:New-OfficePdfToPowerPointOptions.EmptyPresentationMessage",
-        "parameter:New-OfficePdfToPowerPointOptions/EmptyPresentationMessage",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.EmptyPresentationMessage",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.EmptyPresentationMessage",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.EmptyPresentationMessage"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.EmptyPresentationTitle",
-      "name": "New-OfficePdfToPowerPointOptions -EmptyPresentationTitle",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.EmptyPresentationTitle",
-        "New-OfficePdfToPowerPointOptions/EmptyPresentationTitle",
-        "param:New-OfficePdfToPowerPointOptions.EmptyPresentationTitle",
-        "parameter:New-OfficePdfToPowerPointOptions/EmptyPresentationTitle",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.EmptyPresentationTitle",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.EmptyPresentationTitle",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.EmptyPresentationTitle"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.IncludeColumnHeaderRows",
-      "name": "New-OfficePdfToPowerPointOptions -IncludeColumnHeaderRows",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.IncludeColumnHeaderRows",
-        "New-OfficePdfToPowerPointOptions/IncludeColumnHeaderRows",
-        "param:New-OfficePdfToPowerPointOptions.IncludeColumnHeaderRows",
-        "parameter:New-OfficePdfToPowerPointOptions/IncludeColumnHeaderRows",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.IncludeColumnHeaderRows",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.IncludeColumnHeaderRows",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.IncludeColumnHeaderRows"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.IncludeSourceTitles",
-      "name": "New-OfficePdfToPowerPointOptions -IncludeSourceTitles",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.IncludeSourceTitles",
-        "New-OfficePdfToPowerPointOptions/IncludeSourceTitles",
-        "param:New-OfficePdfToPowerPointOptions.IncludeSourceTitles",
-        "parameter:New-OfficePdfToPowerPointOptions/IncludeSourceTitles",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.IncludeSourceTitles",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.IncludeSourceTitles",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.IncludeSourceTitles"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.MaxColumnsPerSlide",
-      "name": "New-OfficePdfToPowerPointOptions -MaxColumnsPerSlide",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.MaxColumnsPerSlide",
-        "New-OfficePdfToPowerPointOptions/MaxColumnsPerSlide",
-        "param:New-OfficePdfToPowerPointOptions.MaxColumnsPerSlide",
-        "parameter:New-OfficePdfToPowerPointOptions/MaxColumnsPerSlide",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.MaxColumnsPerSlide",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.MaxColumnsPerSlide",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.MaxColumnsPerSlide"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.MaxEditableObjectsPerPage",
-      "name": "New-OfficePdfToPowerPointOptions -MaxEditableObjectsPerPage",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.MaxEditableObjectsPerPage",
-        "New-OfficePdfToPowerPointOptions/MaxEditableObjectsPerPage",
-        "param:New-OfficePdfToPowerPointOptions.MaxEditableObjectsPerPage",
-        "parameter:New-OfficePdfToPowerPointOptions/MaxEditableObjectsPerPage",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.MaxEditableObjectsPerPage",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.MaxEditableObjectsPerPage",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.MaxEditableObjectsPerPage"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.MaxOutputBytesPerPage",
-      "name": "New-OfficePdfToPowerPointOptions -MaxOutputBytesPerPage",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.MaxOutputBytesPerPage",
-        "New-OfficePdfToPowerPointOptions/MaxOutputBytesPerPage",
-        "param:New-OfficePdfToPowerPointOptions.MaxOutputBytesPerPage",
-        "parameter:New-OfficePdfToPowerPointOptions/MaxOutputBytesPerPage",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.MaxOutputBytesPerPage",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.MaxOutputBytesPerPage",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.MaxOutputBytesPerPage"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.MaxPages",
-      "name": "New-OfficePdfToPowerPointOptions -MaxPages",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.MaxPages",
-        "New-OfficePdfToPowerPointOptions/MaxPages",
-        "param:New-OfficePdfToPowerPointOptions.MaxPages",
-        "parameter:New-OfficePdfToPowerPointOptions/MaxPages",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.MaxPages",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.MaxPages",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.MaxPages"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.MaxPixelsPerPage",
-      "name": "New-OfficePdfToPowerPointOptions -MaxPixelsPerPage",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.MaxPixelsPerPage",
-        "New-OfficePdfToPowerPointOptions/MaxPixelsPerPage",
-        "param:New-OfficePdfToPowerPointOptions.MaxPixelsPerPage",
-        "parameter:New-OfficePdfToPowerPointOptions/MaxPixelsPerPage",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.MaxPixelsPerPage",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.MaxPixelsPerPage",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.MaxPixelsPerPage"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.MaxRows",
-      "name": "New-OfficePdfToPowerPointOptions -MaxRows",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.MaxRows",
-        "New-OfficePdfToPowerPointOptions/MaxRows",
-        "param:New-OfficePdfToPowerPointOptions.MaxRows",
-        "parameter:New-OfficePdfToPowerPointOptions/MaxRows",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.MaxRows",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.MaxRows",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.MaxRows"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.MaxRowsPerSlide",
-      "name": "New-OfficePdfToPowerPointOptions -MaxRowsPerSlide",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.MaxRowsPerSlide",
-        "New-OfficePdfToPowerPointOptions/MaxRowsPerSlide",
-        "param:New-OfficePdfToPowerPointOptions.MaxRowsPerSlide",
-        "parameter:New-OfficePdfToPowerPointOptions/MaxRowsPerSlide",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.MaxRowsPerSlide",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.MaxRowsPerSlide",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.MaxRowsPerSlide"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.MaxTotalOutputBytes",
-      "name": "New-OfficePdfToPowerPointOptions -MaxTotalOutputBytes",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.MaxTotalOutputBytes",
-        "New-OfficePdfToPowerPointOptions/MaxTotalOutputBytes",
-        "param:New-OfficePdfToPowerPointOptions.MaxTotalOutputBytes",
-        "parameter:New-OfficePdfToPowerPointOptions/MaxTotalOutputBytes",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.MaxTotalOutputBytes",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.MaxTotalOutputBytes",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.MaxTotalOutputBytes"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.MergePageContinuations",
-      "name": "New-OfficePdfToPowerPointOptions -MergePageContinuations",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.MergePageContinuations",
-        "New-OfficePdfToPowerPointOptions/MergePageContinuations",
-        "param:New-OfficePdfToPowerPointOptions.MergePageContinuations",
-        "parameter:New-OfficePdfToPowerPointOptions/MergePageContinuations",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.MergePageContinuations",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.MergePageContinuations",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.MergePageContinuations"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.Mode",
-      "name": "New-OfficePdfToPowerPointOptions -Mode",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.Mode",
-        "New-OfficePdfToPowerPointOptions/Mode",
-        "param:New-OfficePdfToPowerPointOptions.Mode",
-        "parameter:New-OfficePdfToPowerPointOptions/Mode",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.Mode",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.Mode",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.Mode"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.PageRange",
-      "name": "New-OfficePdfToPowerPointOptions -PageRange",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.PageRange",
-        "New-OfficePdfToPowerPointOptions/PageRange",
-        "param:New-OfficePdfToPowerPointOptions.PageRange",
-        "parameter:New-OfficePdfToPowerPointOptions/PageRange",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.PageRange",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.PageRange",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.PageRange"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.SuppressRepeatedBodyHeaderRows",
-      "name": "New-OfficePdfToPowerPointOptions -SuppressRepeatedBodyHeaderRows",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.SuppressRepeatedBodyHeaderRows",
-        "New-OfficePdfToPowerPointOptions/SuppressRepeatedBodyHeaderRows",
-        "param:New-OfficePdfToPowerPointOptions.SuppressRepeatedBodyHeaderRows",
-        "parameter:New-OfficePdfToPowerPointOptions/SuppressRepeatedBodyHeaderRows",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.SuppressRepeatedBodyHeaderRows",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.SuppressRepeatedBodyHeaderRows",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.SuppressRepeatedBodyHeaderRows"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToPowerPointOptions.TableStyle",
-      "name": "New-OfficePdfToPowerPointOptions -TableStyle",
-      "href": "/api/powershell/new-officepdftopowerpointoptions/#method-new-officepdftopowerpointoptions-switchparameter-switchparameter-double-string-string-switchparameter-switchparameter-int32-int32-int64-int32-int64-int32-int32-int64-switchparameter-powerpointpdfimportmode-string-switchparameter-powerpointtablestylepreset",
-      "aliases": [
-        "New-OfficePdfToPowerPointOptions.TableStyle",
-        "New-OfficePdfToPowerPointOptions/TableStyle",
-        "param:New-OfficePdfToPowerPointOptions.TableStyle",
-        "parameter:New-OfficePdfToPowerPointOptions/TableStyle",
-        "PSWriteOffice::New-OfficePdfToPowerPointOptions.TableStyle",
-        "PSWriteOffice:New-OfficePdfToPowerPointOptions.TableStyle",
-        "PSWriteOffice\\New-OfficePdfToPowerPointOptions.TableStyle"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.AlignNumericColumns",
-      "name": "New-OfficePdfToWordOptions -AlignNumericColumns",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.AlignNumericColumns",
-        "New-OfficePdfToWordOptions/AlignNumericColumns",
-        "param:New-OfficePdfToWordOptions.AlignNumericColumns",
-        "parameter:New-OfficePdfToWordOptions/AlignNumericColumns",
-        "PSWriteOffice::New-OfficePdfToWordOptions.AlignNumericColumns",
-        "PSWriteOffice:New-OfficePdfToWordOptions.AlignNumericColumns",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.AlignNumericColumns"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.AllowedHyperlinkUriScheme",
-      "name": "New-OfficePdfToWordOptions -AllowedHyperlinkUriScheme",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.AllowedHyperlinkUriScheme",
-        "New-OfficePdfToWordOptions/AllowedHyperlinkUriScheme",
-        "param:New-OfficePdfToWordOptions.AllowedHyperlinkUriScheme",
-        "parameter:New-OfficePdfToWordOptions/AllowedHyperlinkUriScheme",
-        "PSWriteOffice::New-OfficePdfToWordOptions.AllowedHyperlinkUriScheme",
-        "PSWriteOffice:New-OfficePdfToWordOptions.AllowedHyperlinkUriScheme",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.AllowedHyperlinkUriScheme"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.BookmarkPrefix",
-      "name": "New-OfficePdfToWordOptions -BookmarkPrefix",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.BookmarkPrefix",
-        "New-OfficePdfToWordOptions/BookmarkPrefix",
-        "param:New-OfficePdfToWordOptions.BookmarkPrefix",
-        "parameter:New-OfficePdfToWordOptions/BookmarkPrefix",
-        "PSWriteOffice::New-OfficePdfToWordOptions.BookmarkPrefix",
-        "PSWriteOffice:New-OfficePdfToWordOptions.BookmarkPrefix",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.BookmarkPrefix"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.EmptyDocumentMessage",
-      "name": "New-OfficePdfToWordOptions -EmptyDocumentMessage",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.EmptyDocumentMessage",
-        "New-OfficePdfToWordOptions/EmptyDocumentMessage",
-        "param:New-OfficePdfToWordOptions.EmptyDocumentMessage",
-        "parameter:New-OfficePdfToWordOptions/EmptyDocumentMessage",
-        "PSWriteOffice::New-OfficePdfToWordOptions.EmptyDocumentMessage",
-        "PSWriteOffice:New-OfficePdfToWordOptions.EmptyDocumentMessage",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.EmptyDocumentMessage"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.FitTablesToPageWidth",
-      "name": "New-OfficePdfToWordOptions -FitTablesToPageWidth",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.FitTablesToPageWidth",
-        "New-OfficePdfToWordOptions/FitTablesToPageWidth",
-        "param:New-OfficePdfToWordOptions.FitTablesToPageWidth",
-        "parameter:New-OfficePdfToWordOptions/FitTablesToPageWidth",
-        "PSWriteOffice::New-OfficePdfToWordOptions.FitTablesToPageWidth",
-        "PSWriteOffice:New-OfficePdfToWordOptions.FitTablesToPageWidth",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.FitTablesToPageWidth"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.ImportHeadings",
-      "name": "New-OfficePdfToWordOptions -ImportHeadings",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.ImportHeadings",
-        "New-OfficePdfToWordOptions/ImportHeadings",
-        "param:New-OfficePdfToWordOptions.ImportHeadings",
-        "parameter:New-OfficePdfToWordOptions/ImportHeadings",
-        "PSWriteOffice::New-OfficePdfToWordOptions.ImportHeadings",
-        "PSWriteOffice:New-OfficePdfToWordOptions.ImportHeadings",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.ImportHeadings"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.ImportImages",
-      "name": "New-OfficePdfToWordOptions -ImportImages",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.ImportImages",
-        "New-OfficePdfToWordOptions/ImportImages",
-        "param:New-OfficePdfToWordOptions.ImportImages",
-        "parameter:New-OfficePdfToWordOptions/ImportImages",
-        "PSWriteOffice::New-OfficePdfToWordOptions.ImportImages",
-        "PSWriteOffice:New-OfficePdfToWordOptions.ImportImages",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.ImportImages"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.ImportInternalLinks",
-      "name": "New-OfficePdfToWordOptions -ImportInternalLinks",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.ImportInternalLinks",
-        "New-OfficePdfToWordOptions/ImportInternalLinks",
-        "param:New-OfficePdfToWordOptions.ImportInternalLinks",
-        "parameter:New-OfficePdfToWordOptions/ImportInternalLinks",
-        "PSWriteOffice::New-OfficePdfToWordOptions.ImportInternalLinks",
-        "PSWriteOffice:New-OfficePdfToWordOptions.ImportInternalLinks",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.ImportInternalLinks"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.ImportLists",
-      "name": "New-OfficePdfToWordOptions -ImportLists",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.ImportLists",
-        "New-OfficePdfToWordOptions/ImportLists",
-        "param:New-OfficePdfToWordOptions.ImportLists",
-        "parameter:New-OfficePdfToWordOptions/ImportLists",
-        "PSWriteOffice::New-OfficePdfToWordOptions.ImportLists",
-        "PSWriteOffice:New-OfficePdfToWordOptions.ImportLists",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.ImportLists"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.ImportParagraphs",
-      "name": "New-OfficePdfToWordOptions -ImportParagraphs",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.ImportParagraphs",
-        "New-OfficePdfToWordOptions/ImportParagraphs",
-        "param:New-OfficePdfToWordOptions.ImportParagraphs",
-        "parameter:New-OfficePdfToWordOptions/ImportParagraphs",
-        "PSWriteOffice::New-OfficePdfToWordOptions.ImportParagraphs",
-        "PSWriteOffice:New-OfficePdfToWordOptions.ImportParagraphs",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.ImportParagraphs"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.ImportTables",
-      "name": "New-OfficePdfToWordOptions -ImportTables",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.ImportTables",
-        "New-OfficePdfToWordOptions/ImportTables",
-        "param:New-OfficePdfToWordOptions.ImportTables",
-        "parameter:New-OfficePdfToWordOptions/ImportTables",
-        "PSWriteOffice::New-OfficePdfToWordOptions.ImportTables",
-        "PSWriteOffice:New-OfficePdfToWordOptions.ImportTables",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.ImportTables"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.ImportUriLinks",
-      "name": "New-OfficePdfToWordOptions -ImportUriLinks",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.ImportUriLinks",
-        "New-OfficePdfToWordOptions/ImportUriLinks",
-        "param:New-OfficePdfToWordOptions.ImportUriLinks",
-        "parameter:New-OfficePdfToWordOptions/ImportUriLinks",
-        "PSWriteOffice::New-OfficePdfToWordOptions.ImportUriLinks",
-        "PSWriteOffice:New-OfficePdfToWordOptions.ImportUriLinks",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.ImportUriLinks"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.IncludeEmptyPages",
-      "name": "New-OfficePdfToWordOptions -IncludeEmptyPages",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.IncludeEmptyPages",
-        "New-OfficePdfToWordOptions/IncludeEmptyPages",
-        "param:New-OfficePdfToWordOptions.IncludeEmptyPages",
-        "parameter:New-OfficePdfToWordOptions/IncludeEmptyPages",
-        "PSWriteOffice::New-OfficePdfToWordOptions.IncludeEmptyPages",
-        "PSWriteOffice:New-OfficePdfToWordOptions.IncludeEmptyPages",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.IncludeEmptyPages"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.IncludeFormFieldPlaceholders",
-      "name": "New-OfficePdfToWordOptions -IncludeFormFieldPlaceholders",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.IncludeFormFieldPlaceholders",
-        "New-OfficePdfToWordOptions/IncludeFormFieldPlaceholders",
-        "param:New-OfficePdfToWordOptions.IncludeFormFieldPlaceholders",
-        "parameter:New-OfficePdfToWordOptions/IncludeFormFieldPlaceholders",
-        "PSWriteOffice::New-OfficePdfToWordOptions.IncludeFormFieldPlaceholders",
-        "PSWriteOffice:New-OfficePdfToWordOptions.IncludeFormFieldPlaceholders",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.IncludeFormFieldPlaceholders"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.IncludeImagePlaceholders",
-      "name": "New-OfficePdfToWordOptions -IncludeImagePlaceholders",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.IncludeImagePlaceholders",
-        "New-OfficePdfToWordOptions/IncludeImagePlaceholders",
-        "param:New-OfficePdfToWordOptions.IncludeImagePlaceholders",
-        "parameter:New-OfficePdfToWordOptions/IncludeImagePlaceholders",
-        "PSWriteOffice::New-OfficePdfToWordOptions.IncludeImagePlaceholders",
-        "PSWriteOffice:New-OfficePdfToWordOptions.IncludeImagePlaceholders",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.IncludeImagePlaceholders"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.IncludeMetadata",
-      "name": "New-OfficePdfToWordOptions -IncludeMetadata",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.IncludeMetadata",
-        "New-OfficePdfToWordOptions/IncludeMetadata",
-        "param:New-OfficePdfToWordOptions.IncludeMetadata",
-        "parameter:New-OfficePdfToWordOptions/IncludeMetadata",
-        "PSWriteOffice::New-OfficePdfToWordOptions.IncludeMetadata",
-        "PSWriteOffice:New-OfficePdfToWordOptions.IncludeMetadata",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.IncludeMetadata"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.MaxTableRows",
-      "name": "New-OfficePdfToWordOptions -MaxTableRows",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.MaxTableRows",
-        "New-OfficePdfToWordOptions/MaxTableRows",
-        "param:New-OfficePdfToWordOptions.MaxTableRows",
-        "parameter:New-OfficePdfToWordOptions/MaxTableRows",
-        "PSWriteOffice::New-OfficePdfToWordOptions.MaxTableRows",
-        "PSWriteOffice:New-OfficePdfToWordOptions.MaxTableRows",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.MaxTableRows"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.PreserveImagePlacementSize",
-      "name": "New-OfficePdfToWordOptions -PreserveImagePlacementSize",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.PreserveImagePlacementSize",
-        "New-OfficePdfToWordOptions/PreserveImagePlacementSize",
-        "param:New-OfficePdfToWordOptions.PreserveImagePlacementSize",
-        "parameter:New-OfficePdfToWordOptions/PreserveImagePlacementSize",
-        "PSWriteOffice::New-OfficePdfToWordOptions.PreserveImagePlacementSize",
-        "PSWriteOffice:New-OfficePdfToWordOptions.PreserveImagePlacementSize",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.PreserveImagePlacementSize"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.PreservePageBreaks",
-      "name": "New-OfficePdfToWordOptions -PreservePageBreaks",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.PreservePageBreaks",
-        "New-OfficePdfToWordOptions/PreservePageBreaks",
-        "param:New-OfficePdfToWordOptions.PreservePageBreaks",
-        "parameter:New-OfficePdfToWordOptions/PreservePageBreaks",
-        "PSWriteOffice::New-OfficePdfToWordOptions.PreservePageBreaks",
-        "PSWriteOffice:New-OfficePdfToWordOptions.PreservePageBreaks",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.PreservePageBreaks"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.RepeatHeaderRows",
-      "name": "New-OfficePdfToWordOptions -RepeatHeaderRows",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.RepeatHeaderRows",
-        "New-OfficePdfToWordOptions/RepeatHeaderRows",
-        "param:New-OfficePdfToWordOptions.RepeatHeaderRows",
-        "parameter:New-OfficePdfToWordOptions/RepeatHeaderRows",
-        "PSWriteOffice::New-OfficePdfToWordOptions.RepeatHeaderRows",
-        "PSWriteOffice:New-OfficePdfToWordOptions.RepeatHeaderRows",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.RepeatHeaderRows"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.TablesOnly",
-      "name": "New-OfficePdfToWordOptions -TablesOnly",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.TablesOnly",
-        "New-OfficePdfToWordOptions/TablesOnly",
-        "param:New-OfficePdfToWordOptions.TablesOnly",
-        "parameter:New-OfficePdfToWordOptions/TablesOnly",
-        "PSWriteOffice::New-OfficePdfToWordOptions.TablesOnly",
-        "PSWriteOffice:New-OfficePdfToWordOptions.TablesOnly",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.TablesOnly"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.TableStyle",
-      "name": "New-OfficePdfToWordOptions -TableStyle",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.TableStyle",
-        "New-OfficePdfToWordOptions/TableStyle",
-        "param:New-OfficePdfToWordOptions.TableStyle",
-        "parameter:New-OfficePdfToWordOptions/TableStyle",
-        "PSWriteOffice::New-OfficePdfToWordOptions.TableStyle",
-        "PSWriteOffice:New-OfficePdfToWordOptions.TableStyle",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.TableStyle"
-      ]
-    },
-    {
-      "uid": "parameter:New-OfficePdfToWordOptions.UseSharedPageReadingOrder",
-      "name": "New-OfficePdfToWordOptions -UseSharedPageReadingOrder",
-      "href": "/api/powershell/new-officepdftowordoptions/#method-new-officepdftowordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
-      "aliases": [
-        "New-OfficePdfToWordOptions.UseSharedPageReadingOrder",
-        "New-OfficePdfToWordOptions/UseSharedPageReadingOrder",
-        "param:New-OfficePdfToWordOptions.UseSharedPageReadingOrder",
-        "parameter:New-OfficePdfToWordOptions/UseSharedPageReadingOrder",
-        "PSWriteOffice::New-OfficePdfToWordOptions.UseSharedPageReadingOrder",
-        "PSWriteOffice:New-OfficePdfToWordOptions.UseSharedPageReadingOrder",
-        "PSWriteOffice\\New-OfficePdfToWordOptions.UseSharedPageReadingOrder"
-      ]
-    },
-    {
       "uid": "parameter:New-OfficePdfVisualComparisonOptions.Alignment",
       "name": "New-OfficePdfVisualComparisonOptions -Alignment",
       "href": "/api/powershell/new-officepdfvisualcomparisonoptions/#method-new-officepdfvisualcomparisonoptions-pdfvisualpagealignment-double-string-byte-int32-int64-int64-int64-double",
@@ -942887,6 +942827,328 @@
         "PSWriteOffice::New-OfficePdfVisualComparisonOptions.Scale",
         "PSWriteOffice:New-OfficePdfVisualComparisonOptions.Scale",
         "PSWriteOffice\\New-OfficePdfVisualComparisonOptions.Scale"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.AlignNumericColumns",
+      "name": "New-OfficePdfWordOptions -AlignNumericColumns",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.AlignNumericColumns",
+        "New-OfficePdfWordOptions/AlignNumericColumns",
+        "param:New-OfficePdfWordOptions.AlignNumericColumns",
+        "parameter:New-OfficePdfWordOptions/AlignNumericColumns",
+        "PSWriteOffice::New-OfficePdfWordOptions.AlignNumericColumns",
+        "PSWriteOffice:New-OfficePdfWordOptions.AlignNumericColumns",
+        "PSWriteOffice\\New-OfficePdfWordOptions.AlignNumericColumns"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.AllowedHyperlinkUriScheme",
+      "name": "New-OfficePdfWordOptions -AllowedHyperlinkUriScheme",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.AllowedHyperlinkUriScheme",
+        "New-OfficePdfWordOptions/AllowedHyperlinkUriScheme",
+        "param:New-OfficePdfWordOptions.AllowedHyperlinkUriScheme",
+        "parameter:New-OfficePdfWordOptions/AllowedHyperlinkUriScheme",
+        "PSWriteOffice::New-OfficePdfWordOptions.AllowedHyperlinkUriScheme",
+        "PSWriteOffice:New-OfficePdfWordOptions.AllowedHyperlinkUriScheme",
+        "PSWriteOffice\\New-OfficePdfWordOptions.AllowedHyperlinkUriScheme"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.BookmarkPrefix",
+      "name": "New-OfficePdfWordOptions -BookmarkPrefix",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.BookmarkPrefix",
+        "New-OfficePdfWordOptions/BookmarkPrefix",
+        "param:New-OfficePdfWordOptions.BookmarkPrefix",
+        "parameter:New-OfficePdfWordOptions/BookmarkPrefix",
+        "PSWriteOffice::New-OfficePdfWordOptions.BookmarkPrefix",
+        "PSWriteOffice:New-OfficePdfWordOptions.BookmarkPrefix",
+        "PSWriteOffice\\New-OfficePdfWordOptions.BookmarkPrefix"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.EmptyDocumentMessage",
+      "name": "New-OfficePdfWordOptions -EmptyDocumentMessage",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.EmptyDocumentMessage",
+        "New-OfficePdfWordOptions/EmptyDocumentMessage",
+        "param:New-OfficePdfWordOptions.EmptyDocumentMessage",
+        "parameter:New-OfficePdfWordOptions/EmptyDocumentMessage",
+        "PSWriteOffice::New-OfficePdfWordOptions.EmptyDocumentMessage",
+        "PSWriteOffice:New-OfficePdfWordOptions.EmptyDocumentMessage",
+        "PSWriteOffice\\New-OfficePdfWordOptions.EmptyDocumentMessage"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.FitTablesToPageWidth",
+      "name": "New-OfficePdfWordOptions -FitTablesToPageWidth",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.FitTablesToPageWidth",
+        "New-OfficePdfWordOptions/FitTablesToPageWidth",
+        "param:New-OfficePdfWordOptions.FitTablesToPageWidth",
+        "parameter:New-OfficePdfWordOptions/FitTablesToPageWidth",
+        "PSWriteOffice::New-OfficePdfWordOptions.FitTablesToPageWidth",
+        "PSWriteOffice:New-OfficePdfWordOptions.FitTablesToPageWidth",
+        "PSWriteOffice\\New-OfficePdfWordOptions.FitTablesToPageWidth"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.IncludeEmptyPages",
+      "name": "New-OfficePdfWordOptions -IncludeEmptyPages",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.IncludeEmptyPages",
+        "New-OfficePdfWordOptions/IncludeEmptyPages",
+        "param:New-OfficePdfWordOptions.IncludeEmptyPages",
+        "parameter:New-OfficePdfWordOptions/IncludeEmptyPages",
+        "PSWriteOffice::New-OfficePdfWordOptions.IncludeEmptyPages",
+        "PSWriteOffice:New-OfficePdfWordOptions.IncludeEmptyPages",
+        "PSWriteOffice\\New-OfficePdfWordOptions.IncludeEmptyPages"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.IncludeFormFieldPlaceholders",
+      "name": "New-OfficePdfWordOptions -IncludeFormFieldPlaceholders",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.IncludeFormFieldPlaceholders",
+        "New-OfficePdfWordOptions/IncludeFormFieldPlaceholders",
+        "param:New-OfficePdfWordOptions.IncludeFormFieldPlaceholders",
+        "parameter:New-OfficePdfWordOptions/IncludeFormFieldPlaceholders",
+        "PSWriteOffice::New-OfficePdfWordOptions.IncludeFormFieldPlaceholders",
+        "PSWriteOffice:New-OfficePdfWordOptions.IncludeFormFieldPlaceholders",
+        "PSWriteOffice\\New-OfficePdfWordOptions.IncludeFormFieldPlaceholders"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.IncludeImagePlaceholders",
+      "name": "New-OfficePdfWordOptions -IncludeImagePlaceholders",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.IncludeImagePlaceholders",
+        "New-OfficePdfWordOptions/IncludeImagePlaceholders",
+        "param:New-OfficePdfWordOptions.IncludeImagePlaceholders",
+        "parameter:New-OfficePdfWordOptions/IncludeImagePlaceholders",
+        "PSWriteOffice::New-OfficePdfWordOptions.IncludeImagePlaceholders",
+        "PSWriteOffice:New-OfficePdfWordOptions.IncludeImagePlaceholders",
+        "PSWriteOffice\\New-OfficePdfWordOptions.IncludeImagePlaceholders"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.IncludeMetadata",
+      "name": "New-OfficePdfWordOptions -IncludeMetadata",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.IncludeMetadata",
+        "New-OfficePdfWordOptions/IncludeMetadata",
+        "param:New-OfficePdfWordOptions.IncludeMetadata",
+        "parameter:New-OfficePdfWordOptions/IncludeMetadata",
+        "PSWriteOffice::New-OfficePdfWordOptions.IncludeMetadata",
+        "PSWriteOffice:New-OfficePdfWordOptions.IncludeMetadata",
+        "PSWriteOffice\\New-OfficePdfWordOptions.IncludeMetadata"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.MaxTableRows",
+      "name": "New-OfficePdfWordOptions -MaxTableRows",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.MaxTableRows",
+        "New-OfficePdfWordOptions/MaxTableRows",
+        "param:New-OfficePdfWordOptions.MaxTableRows",
+        "parameter:New-OfficePdfWordOptions/MaxTableRows",
+        "PSWriteOffice::New-OfficePdfWordOptions.MaxTableRows",
+        "PSWriteOffice:New-OfficePdfWordOptions.MaxTableRows",
+        "PSWriteOffice\\New-OfficePdfWordOptions.MaxTableRows"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.NoHeadings",
+      "name": "New-OfficePdfWordOptions -NoHeadings",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.NoHeadings",
+        "New-OfficePdfWordOptions/NoHeadings",
+        "param:New-OfficePdfWordOptions.NoHeadings",
+        "parameter:New-OfficePdfWordOptions/NoHeadings",
+        "PSWriteOffice::New-OfficePdfWordOptions.NoHeadings",
+        "PSWriteOffice:New-OfficePdfWordOptions.NoHeadings",
+        "PSWriteOffice\\New-OfficePdfWordOptions.NoHeadings"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.NoImages",
+      "name": "New-OfficePdfWordOptions -NoImages",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.NoImages",
+        "New-OfficePdfWordOptions/NoImages",
+        "param:New-OfficePdfWordOptions.NoImages",
+        "parameter:New-OfficePdfWordOptions/NoImages",
+        "PSWriteOffice::New-OfficePdfWordOptions.NoImages",
+        "PSWriteOffice:New-OfficePdfWordOptions.NoImages",
+        "PSWriteOffice\\New-OfficePdfWordOptions.NoImages"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.NoInternalLinks",
+      "name": "New-OfficePdfWordOptions -NoInternalLinks",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.NoInternalLinks",
+        "New-OfficePdfWordOptions/NoInternalLinks",
+        "param:New-OfficePdfWordOptions.NoInternalLinks",
+        "parameter:New-OfficePdfWordOptions/NoInternalLinks",
+        "PSWriteOffice::New-OfficePdfWordOptions.NoInternalLinks",
+        "PSWriteOffice:New-OfficePdfWordOptions.NoInternalLinks",
+        "PSWriteOffice\\New-OfficePdfWordOptions.NoInternalLinks"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.NoLists",
+      "name": "New-OfficePdfWordOptions -NoLists",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.NoLists",
+        "New-OfficePdfWordOptions/NoLists",
+        "param:New-OfficePdfWordOptions.NoLists",
+        "parameter:New-OfficePdfWordOptions/NoLists",
+        "PSWriteOffice::New-OfficePdfWordOptions.NoLists",
+        "PSWriteOffice:New-OfficePdfWordOptions.NoLists",
+        "PSWriteOffice\\New-OfficePdfWordOptions.NoLists"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.NoParagraphs",
+      "name": "New-OfficePdfWordOptions -NoParagraphs",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.NoParagraphs",
+        "New-OfficePdfWordOptions/NoParagraphs",
+        "param:New-OfficePdfWordOptions.NoParagraphs",
+        "parameter:New-OfficePdfWordOptions/NoParagraphs",
+        "PSWriteOffice::New-OfficePdfWordOptions.NoParagraphs",
+        "PSWriteOffice:New-OfficePdfWordOptions.NoParagraphs",
+        "PSWriteOffice\\New-OfficePdfWordOptions.NoParagraphs"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.NoTables",
+      "name": "New-OfficePdfWordOptions -NoTables",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.NoTables",
+        "New-OfficePdfWordOptions/NoTables",
+        "param:New-OfficePdfWordOptions.NoTables",
+        "parameter:New-OfficePdfWordOptions/NoTables",
+        "PSWriteOffice::New-OfficePdfWordOptions.NoTables",
+        "PSWriteOffice:New-OfficePdfWordOptions.NoTables",
+        "PSWriteOffice\\New-OfficePdfWordOptions.NoTables"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.NoUriLinks",
+      "name": "New-OfficePdfWordOptions -NoUriLinks",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.NoUriLinks",
+        "New-OfficePdfWordOptions/NoUriLinks",
+        "param:New-OfficePdfWordOptions.NoUriLinks",
+        "parameter:New-OfficePdfWordOptions/NoUriLinks",
+        "PSWriteOffice::New-OfficePdfWordOptions.NoUriLinks",
+        "PSWriteOffice:New-OfficePdfWordOptions.NoUriLinks",
+        "PSWriteOffice\\New-OfficePdfWordOptions.NoUriLinks"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.PreserveImagePlacementSize",
+      "name": "New-OfficePdfWordOptions -PreserveImagePlacementSize",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.PreserveImagePlacementSize",
+        "New-OfficePdfWordOptions/PreserveImagePlacementSize",
+        "param:New-OfficePdfWordOptions.PreserveImagePlacementSize",
+        "parameter:New-OfficePdfWordOptions/PreserveImagePlacementSize",
+        "PSWriteOffice::New-OfficePdfWordOptions.PreserveImagePlacementSize",
+        "PSWriteOffice:New-OfficePdfWordOptions.PreserveImagePlacementSize",
+        "PSWriteOffice\\New-OfficePdfWordOptions.PreserveImagePlacementSize"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.PreservePageBreaks",
+      "name": "New-OfficePdfWordOptions -PreservePageBreaks",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.PreservePageBreaks",
+        "New-OfficePdfWordOptions/PreservePageBreaks",
+        "param:New-OfficePdfWordOptions.PreservePageBreaks",
+        "parameter:New-OfficePdfWordOptions/PreservePageBreaks",
+        "PSWriteOffice::New-OfficePdfWordOptions.PreservePageBreaks",
+        "PSWriteOffice:New-OfficePdfWordOptions.PreservePageBreaks",
+        "PSWriteOffice\\New-OfficePdfWordOptions.PreservePageBreaks"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.RepeatHeaderRows",
+      "name": "New-OfficePdfWordOptions -RepeatHeaderRows",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.RepeatHeaderRows",
+        "New-OfficePdfWordOptions/RepeatHeaderRows",
+        "param:New-OfficePdfWordOptions.RepeatHeaderRows",
+        "parameter:New-OfficePdfWordOptions/RepeatHeaderRows",
+        "PSWriteOffice::New-OfficePdfWordOptions.RepeatHeaderRows",
+        "PSWriteOffice:New-OfficePdfWordOptions.RepeatHeaderRows",
+        "PSWriteOffice\\New-OfficePdfWordOptions.RepeatHeaderRows"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.TablesOnly",
+      "name": "New-OfficePdfWordOptions -TablesOnly",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.TablesOnly",
+        "New-OfficePdfWordOptions/TablesOnly",
+        "param:New-OfficePdfWordOptions.TablesOnly",
+        "parameter:New-OfficePdfWordOptions/TablesOnly",
+        "PSWriteOffice::New-OfficePdfWordOptions.TablesOnly",
+        "PSWriteOffice:New-OfficePdfWordOptions.TablesOnly",
+        "PSWriteOffice\\New-OfficePdfWordOptions.TablesOnly"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.TableStyle",
+      "name": "New-OfficePdfWordOptions -TableStyle",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.TableStyle",
+        "New-OfficePdfWordOptions/TableStyle",
+        "param:New-OfficePdfWordOptions.TableStyle",
+        "parameter:New-OfficePdfWordOptions/TableStyle",
+        "PSWriteOffice::New-OfficePdfWordOptions.TableStyle",
+        "PSWriteOffice:New-OfficePdfWordOptions.TableStyle",
+        "PSWriteOffice\\New-OfficePdfWordOptions.TableStyle"
+      ]
+    },
+    {
+      "uid": "parameter:New-OfficePdfWordOptions.UseSharedPageReadingOrder",
+      "name": "New-OfficePdfWordOptions -UseSharedPageReadingOrder",
+      "href": "/api/powershell/new-officepdfwordoptions/#method-new-officepdfwordoptions-switchparameter-string-string-string-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-int32-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-switchparameter-wordtablestyle-switchparameter",
+      "aliases": [
+        "New-OfficePdfWordOptions.UseSharedPageReadingOrder",
+        "New-OfficePdfWordOptions/UseSharedPageReadingOrder",
+        "param:New-OfficePdfWordOptions.UseSharedPageReadingOrder",
+        "parameter:New-OfficePdfWordOptions/UseSharedPageReadingOrder",
+        "PSWriteOffice::New-OfficePdfWordOptions.UseSharedPageReadingOrder",
+        "PSWriteOffice:New-OfficePdfWordOptions.UseSharedPageReadingOrder",
+        "PSWriteOffice\\New-OfficePdfWordOptions.UseSharedPageReadingOrder"
       ]
     },
     {
@@ -967007,6 +967269,6 @@
     }
   ],
   "previousReferenceCount": 100442,
-  "referenceDeltaCount": 0,
-  "referenceDeltaPercent": 0
+  "referenceDeltaCount": 19,
+  "referenceDeltaPercent": 0.0189
 }

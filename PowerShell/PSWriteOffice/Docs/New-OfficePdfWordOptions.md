@@ -4,14 +4,14 @@ Module Name: PSWriteOffice
 online version: https://github.com/EvotecIT/OfficeIMO
 schema: 2.0.0
 ---
-# New-OfficePdfToWordOptions
+# New-OfficePdfWordOptions
 ## SYNOPSIS
 Creates discoverable PDF-to-Word reconstruction settings.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
-New-OfficePdfToWordOptions [-TablesOnly] [-IncludeMetadata] [-PreservePageBreaks] [-IncludeEmptyPages] [-ImportHeadings] [-ImportParagraphs] [-UseSharedPageReadingOrder] [-ImportLists] [-ImportTables] [-ImportUriLinks] [-ImportInternalLinks] [-BookmarkPrefix <string>] [-AllowedHyperlinkUriScheme <string[]>] [-ImportImages] [-PreserveImagePlacementSize] [-IncludeImagePlaceholders] [-IncludeFormFieldPlaceholders] [-MaxTableRows <Int32>] [-TableStyle <WordTableStyle>] [-RepeatHeaderRows] [-FitTablesToPageWidth] [-AlignNumericColumns] [-EmptyDocumentMessage <string>] [<CommonParameters>]
+New-OfficePdfWordOptions [-TablesOnly] [-IncludeMetadata] [-PreservePageBreaks] [-IncludeEmptyPages] [-NoHeadings] [-NoParagraphs] [-UseSharedPageReadingOrder] [-NoLists] [-NoTables] [-NoUriLinks] [-NoInternalLinks] [-BookmarkPrefix <string>] [-AllowedHyperlinkUriScheme <string[]>] [-NoImages] [-PreserveImagePlacementSize] [-IncludeImagePlaceholders] [-IncludeFormFieldPlaceholders] [-MaxTableRows <Int32>] [-TableStyle <WordTableStyle>] [-RepeatHeaderRows] [-FitTablesToPageWidth] [-AlignNumericColumns] [-EmptyDocumentMessage <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,8 +21,15 @@ Creates discoverable PDF-to-Word reconstruction settings.
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficePdfToWordOptions -ImportHeadings -ImportParagraphs -ImportLists -ImportTables
-ConvertTo-OfficePdfWord -Path .\Source.pdf -OutputPath .\Rebuilt.docx -Options $options
+$options = New-OfficePdfWordOptions -NoImages
+Convert-OfficeDocument -Path ./Source.pdf -To Word -OutputPath ./Rebuilt.docx -Options $options
+```
+
+
+### EXAMPLE 2
+```powershell
+$options = New-OfficePdfWordOptions -TablesOnly
+Convert-OfficeDocument -Path ./Tables.pdf -To Word -OutputPath ./Tables.docx -Options $options
 ```
 
 
@@ -33,7 +40,7 @@ Right-align inferred numeric columns.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +56,7 @@ Allowed absolute hyperlink URI schemes.
 
 ```yaml
 Type: String[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +72,7 @@ Prefix for generated Word bookmarks.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +88,7 @@ Text used when no supported content is detected.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -97,119 +104,7 @@ Fit imported tables to page width.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ImportHeadings
-Import detected headings.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ImportImages
-Import supported embedded images.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ImportInternalLinks
-Import supported internal links.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ImportLists
-Import detected lists.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ImportParagraphs
-Import detected paragraphs.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ImportTables
-Import detected tables.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ImportUriLinks
-Import safe URI links.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -225,7 +120,7 @@ Represent empty PDF pages.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -241,7 +136,7 @@ Represent AcroForm widgets with editable placeholders.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -257,7 +152,7 @@ Use paragraphs when an image cannot be embedded.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -273,7 +168,7 @@ Copy PDF metadata into Word properties.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -289,7 +184,119 @@ Maximum body rows imported per table; zero means unlimited.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoHeadings
+Exclude detected headings.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoImages
+Exclude supported embedded images.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoInternalLinks
+Exclude supported internal links.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoLists
+Exclude detected lists.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoParagraphs
+Exclude detected paragraphs.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoTables
+Exclude detected tables.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoUriLinks
+Exclude safe URI links.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -305,7 +312,7 @@ Preserve detected image placement size.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -321,7 +328,7 @@ Represent source pages with Word page breaks.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -337,7 +344,7 @@ Repeat inferred table header rows.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -353,7 +360,7 @@ Use the built-in tables-only import profile.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -369,7 +376,7 @@ Word table style for imported tables.
 
 ```yaml
 Type: WordTableStyle
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: TableNormal, TableGrid, PlainTable1, PlainTable2, PlainTable3, PlainTable4, PlainTable5, GridTable1Light, GridTable1LightAccent1, GridTable1LightAccent2, GridTable1LightAccent3, GridTable1LightAccent4, GridTable1LightAccent5, GridTable1LightAccent6, GridTable2, GridTable2Accent1, GridTable2Accent2, GridTable2Accent3, GridTable2Accent4, GridTable2Accent5, GridTable2Accent6, GridTable3, GridTable3Accent1, GridTable3Accent2, GridTable3Accent3, GridTable3Accent4, GridTable3Accent5, GridTable3Accent6, GridTable4, GridTable4Accent1, GridTable4Accent2, GridTable4Accent3, GridTable4Accent4, GridTable4Accent5, GridTable4Accent6, GridTable5Dark, GridTable5DarkAccent1, GridTable5DarkAccent2, GridTable5DarkAccent3, GridTable5DarkAccent4, GridTable5DarkAccent5, GridTable5DarkAccent6, GridTable6Colorful, GridTable6ColorfulAccent1, GridTable6ColorfulAccent2, GridTable6ColorfulAccent3, GridTable6ColorfulAccent4, GridTable6ColorfulAccent5, GridTable6ColorfulAccent6, GridTable7Colorful, GridTable7ColorfulAccent1, GridTable7ColorfulAccent2, GridTable7ColorfulAccent3, GridTable7ColorfulAccent4, GridTable7ColorfulAccent5, GridTable7ColorfulAccent6, ListTable1Light, ListTable1LightAccent1, ListTable1LightAccent2, ListTable1LightAccent3, ListTable1LightAccent4, ListTable1LightAccent5, ListTable1LightAccent6, ListTable2, ListTable2Accent1, ListTable2Accent2, ListTable2Accent3, ListTable2Accent4, ListTable2Accent5, ListTable2Accent6, ListTable3, ListTable3Accent1, ListTable3Accent2, ListTable3Accent3, ListTable3Accent4, ListTable3Accent5, ListTable3Accent6, ListTable4, ListTable4Accent1, ListTable4Accent2, ListTable4Accent3, ListTable4Accent4, ListTable4Accent5, ListTable4Accent6, ListTable5Dark, ListTable5DarkAccent1, ListTable5DarkAccent2, ListTable5DarkAccent3, ListTable5DarkAccent4, ListTable5DarkAccent5, ListTable5DarkAccent6, ListTable6Colorful, ListTable6ColorfulAccent1, ListTable6ColorfulAccent2, ListTable6ColorfulAccent3, ListTable6ColorfulAccent4, ListTable6ColorfulAccent5, ListTable6ColorfulAccent6, ListTable7Colorful, ListTable7ColorfulAccent1, ListTable7ColorfulAccent2, ListTable7ColorfulAccent3, ListTable7ColorfulAccent4, ListTable7ColorfulAccent5, ListTable7ColorfulAccent6, OfficeIMOModern
 
@@ -385,7 +392,7 @@ Use the crop-, rotation-, and column-aware reading order.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

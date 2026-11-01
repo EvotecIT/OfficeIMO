@@ -4,14 +4,14 @@ Module Name: PSWriteOffice
 online version: https://github.com/EvotecIT/OfficeIMO
 schema: 2.0.0
 ---
-# New-OfficePdfToPowerPointOptions
+# New-OfficePdfPowerPointOptions
 ## SYNOPSIS
 Creates discoverable PDF-to-PowerPoint reconstruction settings.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
-New-OfficePdfToPowerPointOptions [-Mode <PowerPointPdfImportMode>] [-PageRange <string>] [-Dpi <Double>] [-MaxPages <Int32>] [-MaxPixelsPerPage <Int64>] [-MaxOutputBytesPerPage <Int64>] [-MaxTotalOutputBytes <Int64>] [-MaxEditableObjectsPerPage <Int32>] [-MaxRows <Int32>] [-MergePageContinuations] [-SuppressRepeatedBodyHeaderRows] [-MaxRowsPerSlide <Int32>] [-MaxColumnsPerSlide <Int32>] [-TableStyle <PowerPointTableStylePreset>] [-IncludeSourceTitles] [-IncludeColumnHeaderRows] [-BandedRows] [-AlignNumericColumns] [-EmptyPresentationTitle <string>] [-EmptyPresentationMessage <string>] [<CommonParameters>]
+New-OfficePdfPowerPointOptions [-Mode <PowerPointPdfImportMode>] [-Page <OfficePageRange>] [-Dpi <Double>] [-MaxPages <Int32>] [-MaximumPixelCountPerPage <Int64>] [-MaxOutputBytesPerPage <Int64>] [-MaxTotalOutputBytes <Int64>] [-MaxEditableObjectsPerPage <Int32>] [-MaxRows <Int32>] [-MergePageContinuations] [-SuppressRepeatedBodyHeaderRows] [-MaxRowsPerSlide <Int32>] [-MaxColumnsPerSlide <Int32>] [-TableStyle <PowerPointTableStylePreset>] [-IncludeSourceTitles] [-IncludeColumnHeaderRows] [-BandedRows] [-AlignNumericColumns] [-EmptyPresentationTitle <string>] [-EmptyPresentationMessage <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,8 +21,15 @@ Creates discoverable PDF-to-PowerPoint reconstruction settings.
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficePdfToPowerPointOptions -PageRange '1-5' -MaxPages 5 -IncludeSourceTitles
-ConvertTo-OfficePdfPowerPoint -Path .\Source.pdf -OutputPath .\Slides.pptx -Options $options
+$options = New-OfficePdfPowerPointOptions -Page '1-5' -MaxPages 5
+Convert-OfficeDocument -Path ./Source.pdf -To PowerPoint -OutputPath ./Slides.pptx -Options $options
+```
+
+
+### EXAMPLE 2
+```powershell
+$options = New-OfficePdfPowerPointOptions -Mode VisualPages -Dpi 96 -MaximumPixelCountPerPage 2000000
+Convert-OfficeDocument -Path ./Review.pdf -To PowerPoint -OutputPath ./Review.pptx -Options $options
 ```
 
 
@@ -33,7 +40,7 @@ Right-align inferred numeric columns.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +56,7 @@ Enable banded-row styling.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +72,7 @@ Raster resolution used by visual import.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +88,7 @@ Message used when no supported content is detected.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -97,7 +104,7 @@ Title used when no supported content is detected.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -113,7 +120,7 @@ Add inferred column headers.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -129,7 +136,7 @@ Add source-page titles.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -145,7 +152,7 @@ Maximum columns written to one slide; zero means unlimited.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -161,7 +168,23 @@ Maximum editable objects reconstructed per page.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaximumPixelCountPerPage
+Maximum pixels per rendered page.
+
+```yaml
+Type: Int64
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -177,7 +200,7 @@ Maximum encoded bytes per rendered page.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -193,23 +216,7 @@ Maximum pages imported.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -MaxPixelsPerPage
-Maximum pixels per rendered page.
-
-```yaml
-Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -225,7 +232,7 @@ Maximum body rows imported per table; zero means unlimited.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -241,7 +248,7 @@ Maximum rows written to one slide; zero means unlimited.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -257,7 +264,7 @@ Maximum aggregate encoded output bytes.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -273,7 +280,7 @@ Merge compatible table segments across pages.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -289,7 +296,7 @@ Visual, editable-table, hybrid, editable-content, or automatic import mode.
 
 ```yaml
 Type: PowerPointPdfImportMode
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: VisualPages, EditableTables, HybridVisualAndEditableTables, EditableContent, Auto
 
@@ -300,12 +307,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PageRange
+### -Page
 Optional one-based page ranges such as 1-3,5.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
+Type: OfficePageRange
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -321,7 +328,7 @@ Suppress repeated body header rows.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -337,7 +344,7 @@ PowerPoint table style.
 
 ```yaml
 Type: PowerPointTableStylePreset
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

@@ -3639,12 +3639,12 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfCommand.cs#L24"
     },
     {
-      "name": "New-OfficePdfExcelImportOptions",
+      "name": "New-OfficePdfExcelOptions",
       "kind": "Cmdlet",
       "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/NewOfficePdfExcelImportOptionsCommand.cs",
-      "sourceLine": 18,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/NewOfficePdfExcelImportOptionsCommand.cs#L18"
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfExcelOptionsCommand.cs",
+      "sourceLine": 19,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfExcelOptionsCommand.cs#L19"
     },
     {
       "name": "New-OfficePdfFormFillOptions",
@@ -3653,6 +3653,14 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfFormFillOptionsCommand.cs",
       "sourceLine": 13,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfFormFillOptionsCommand.cs#L13"
+    },
+    {
+      "name": "New-OfficePdfHtmlOptions",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfHtmlOptionsCommand.cs",
+      "sourceLine": 16,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfHtmlOptionsCommand.cs#L16"
     },
     {
       "name": "New-OfficePdfImageOptions",
@@ -3677,6 +3685,22 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfLayoutOverlayOptionsCommand.cs",
       "sourceLine": 14,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfLayoutOverlayOptionsCommand.cs#L14"
+    },
+    {
+      "name": "New-OfficePdfPowerPointOptions",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfPowerPointOptionsCommand.cs",
+      "sourceLine": 18,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfPowerPointOptionsCommand.cs#L18"
+    },
+    {
+      "name": "New-OfficePdfReadOptions",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfReadOptionsCommand.cs",
+      "sourceLine": 22,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfReadOptionsCommand.cs#L22"
     },
     {
       "name": "New-OfficePdfRewriteOptions",
@@ -3735,32 +3759,20 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfTableCellImageCommand.cs#L18"
     },
     {
-      "name": "New-OfficePdfToPowerPointOptions",
-      "kind": "Cmdlet",
-      "aliases": [
-        "New-OfficePdfPowerPointImportOptions"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePdfPowerPointImportOptionsCommand.cs",
-      "sourceLine": 19,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePdfPowerPointImportOptionsCommand.cs#L19"
-    },
-    {
-      "name": "New-OfficePdfToWordOptions",
-      "kind": "Cmdlet",
-      "aliases": [
-        "New-OfficePdfWordImportOptions"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/NewOfficePdfWordImportOptionsCommand.cs",
-      "sourceLine": 19,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/NewOfficePdfWordImportOptionsCommand.cs#L19"
-    },
-    {
       "name": "New-OfficePdfVisualComparisonOptions",
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfVisualComparisonOptionsCommand.cs",
       "sourceLine": 16,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfVisualComparisonOptionsCommand.cs#L16"
+    },
+    {
+      "name": "New-OfficePdfWordOptions",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfWordOptionsCommand.cs",
+      "sourceLine": 17,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfWordOptionsCommand.cs#L17"
     },
     {
       "name": "New-OfficePowerPoint",
