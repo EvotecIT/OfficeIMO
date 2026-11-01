@@ -4,14 +4,14 @@ Module Name: PSWriteOffice
 online version: https://github.com/EvotecIT/OfficeIMO
 schema: 2.0.0
 ---
-# Update-OfficeWordFields
+# Update-OfficeWordField
 ## SYNOPSIS
 Updates fields in a Word document.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
-Update-OfficeWordFields [-Document <WordDocument>] [-PassThru] [<CommonParameters>]
+Update-OfficeWordField [-Document <WordDocument>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -24,7 +24,7 @@ Refreshes page number fields and queues table-of-contents updates.
 PS> New-OfficeWord -Path .\Report.docx {
     Add-OfficeWordParagraph -Text 'Release report'
     Add-OfficeWordTableOfContents
-    Update-OfficeWordFields
+    Update-OfficeWordField
 }
 ```
 
@@ -37,7 +37,7 @@ Document to update when provided explicitly.
 
 ```yaml
 Type: WordDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -53,7 +53,7 @@ Emit the updated document.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -73,7 +73,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `None`
+- `OfficeIMO.Word.WordDocument`
 
 ## RELATED LINKS
 

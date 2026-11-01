@@ -1186,6 +1186,9 @@ Creates typed HTML rendering options for Export-OfficeDocumentPdf.
 ### [New-OfficeHtmlRenderOptions](New-OfficeHtmlRenderOptions.md)
 Creates discoverable layout, resource-limit, and rendering settings for HTML image export.
 
+### [New-OfficeHtmlWordOptions](New-OfficeHtmlWordOptions.md)
+Creates native HTML-to-Word options for Convert-OfficeDocument.
+
 ### [New-OfficeMarkdown](New-OfficeMarkdown.md)
 Creates a live Markdown document, or atomically publishes a completed content block.
 
@@ -1282,8 +1285,17 @@ Creates a themed Word document, returning a live document or saving a completed 
 ### [New-OfficeWordComparisonOptions](New-OfficeWordComparisonOptions.md)
 Creates discoverable structural comparison settings for Compare-OfficeWordDocument.
 
+### [New-OfficeWordGoogleDocsOptions](New-OfficeWordGoogleDocsOptions.md)
+Creates native Word-to-Google-Docs planning and export settings without contacting Google.
+
+### [New-OfficeWordHtmlOptions](New-OfficeWordHtmlOptions.md)
+Creates native Word-to-HTML options for Convert-OfficeDocument.
+
 ### [New-OfficeWordImageOptions](New-OfficeWordImageOptions.md)
 Creates discoverable page and rendering settings for Export-OfficeWordImage.
+
+### [New-OfficeWordMarkdownOptions](New-OfficeWordMarkdownOptions.md)
+Creates native Word-to-Markdown options for Convert-OfficeDocument.
 
 ### [New-OfficeWordOpenDocumentOptions](New-OfficeWordOpenDocumentOptions.md)
 Creates Word/OpenDocument conversion settings.
@@ -1648,8 +1660,8 @@ Sets properties on a table of contents in a Word document.
 ### [Set-OfficeWordTextStyle](Set-OfficeWordTextStyle.md)
 Updates styling on Word text.
 
-### [Split-OfficePdf](Split-OfficePdf.md)
-Splits a PDF into page, range, count, or bookmark files.
+### [Split-OfficeDocument](Split-OfficeDocument.md)
+Splits PDF files into consecutive groups, selected ranges or top-level bookmarked chapters.
 
 ### [Test-OfficeExcelAccessibility](Test-OfficeExcelAccessibility.md)
 Checks workbook accessibility and compliance signals.
@@ -1684,7 +1696,7 @@ Replaces text in the selected slide or document, including tables by default.
 ### [Update-OfficeRtfText](Update-OfficeRtfText.md)
 Applies lossless text and metadata edits to an RTF document.
 
-### [Update-OfficeWordFields](Update-OfficeWordFields.md)
+### [Update-OfficeWordField](Update-OfficeWordField.md)
 Updates fields in a Word document.
 
 ### [Update-OfficeWordTableOfContents](Update-OfficeWordTableOfContents.md)
