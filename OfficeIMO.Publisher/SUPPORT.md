@@ -310,6 +310,8 @@ growth while preserving existing resource entries. Fifty-two selected-page and
 states. These fitting controls do not qualify broader producer/style profiles,
 general table reflow, explicit nonempty-CR styling or repair-free opening.
 
+### Empty-paragraph refill with retained formatting
+
 The `sourceEditing.nonuniformEmptyRefill` record qualifies filling a single
 empty source run while deleting, reordering or duplicating nonuniform paragraphs.
 The empty paragraph's complete native CR definition supplies the new body typing
@@ -326,6 +328,41 @@ control records Publisher's Greek language auto-assignment around Omega and does
 not qualify mixed-script retained-language mapping. Refilling multiple source
 runs or changing the filled run's formatting, general reflow, broader producers
 and repair-free opening remain outside this refill profile.
+
+### Formatted empty-paragraph refill
+
+The `sourceEditing.formattedEmptyRefill` record extends native empty refill during
+paragraph-count changes to new character formatting and one or more body runs.
+The existing snapshot, text and formatting correspondences keep priority;
+ambiguous stronger matches still refuse saving. The fallback uses only genuine
+single-empty-run paragraphs in the edited story or cell. It prefers matching
+paragraph formatting when available, otherwise applies the qualified paragraph
+codec. All eligible templates must produce identical complete character ranges,
+CR typing and paragraph definitions after rewriting.
+
+The source has no separate body definition: its native CR supplies each requested
+run through the full visible-character codec, and the last requested run also
+supplies the new CR typing. Nullable language and kerning preserve their source
+fields when unspecified. Background, paragraph-indent overrides and links must
+match the source; labels and unsupported native carriers refuse output. Opaque
+differences remain barriers even when public visible styles match.
+
+Ten native outputs cover interior and final placement, duplicate fills,
+equivalent empty templates and a paragraph-alignment change in ordinary stories
+and first table cells. The alignment cases first remove the original final empty
+paragraph through the established save route, leaving one empty template among
+nonuniform nonempty paragraphs. All 110 initial/resaved native page pairs match
+at 144 dpi, and 100 untouched neighboring pages match the independent source
+PDFs. Twenty-four complete body/CR definition checks include the input and native
+resave. Ten source-built PSWriteOffice conversions preserve the requested text,
+formatting, language, kerning and paragraph alignment through the shared workflow.
+
+This qualifies the bounded native source-editing profile. General reflow,
+mixed-script and broader producer/style profiles, native/managed pixel and
+decoration parity, repair-free opening and native template-free product creation
+remain separate work.
+
+### Retained-text run segmentation
 
 The `sourceEditing.retainedTextRunSegmentation` record qualifies run splitting
 and merging with complete paragraph text and preserved fields retained at each

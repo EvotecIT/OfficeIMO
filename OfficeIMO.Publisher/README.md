@@ -88,9 +88,14 @@ text replacement. A retained-text match can split or merge runs through the
 original native character ranges. Ambiguous text refuses output even when another
 source paragraph matches the requested style. All matching templates must agree
 on complete native definitions; changed-text replacement additionally needs one
-uniform nonempty definition per corresponding ordered run. A single empty source run can instead supply its complete
-native CR typing for a nonempty replacement with unchanged formatting.
-Visible-run formatting leaves destination CR typing intact. Native reload can
+uniform nonempty definition per corresponding ordered run. A single empty source
+run can instead supply its native CR definition for one or more nonempty styled
+runs during paragraph-count changes. Existing text/format correspondence retains
+priority; otherwise empty-source matching prefers retained paragraph formatting.
+Every eligible source must produce identical rewritten body, CR and paragraph
+definitions. The last requested run supplies the refilled CR typing. Unspecified
+language and kerning retain their source fields; opaque conflicts refuse saving.
+Native reload can
 expose separate runs with identical visible formatting when native source
 boundaries or opaque metadata remain distinct.
 With the paragraph count unchanged, an existing nonempty multi-run paragraph can
@@ -579,7 +584,11 @@ all contributing native body definitions agree after supported formatting is
 rewritten. Unspecified language and kerning preserve their source fields; opaque
 and unsupported preserved fields must agree. The paragraph and CR keep their
 existing ownership. A single empty source run can supply its complete CR
-typing for a nonempty replacement with unchanged formatting. Matching stays
+definition for a styled refill with one or more runs during paragraph-count
+changes. Existing correspondence takes priority; empty-source matching prefers
+retained paragraph formatting, and all eligible sources must agree after body,
+CR and paragraph rewriting. The last requested run supplies the new CR typing.
+Matching stays
 within the edited cell. Unknown
 native partition records, arbitrary count-changing rewrites of nonuniform cell
 definitions and unsupported typing encodings refuse output. Publisher can expand rows when text
