@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading;
 using OfficeIMO.Markdown;
 using OfficeIMO.Word.Markdown;
 using Xunit;
@@ -30,6 +31,19 @@ public sealed class MarkdownAllSeverityBatch12SecurityTests {
             StringComparison.Ordinal);
         Assert.Single(MarkdownDocument.Parse(
             BuildNestedDetails(2), options).Blocks);
+    }
+
+    [Fact]
+    public void MarkdownReader_DeeplyBracketedLinkKeepsOnlyTheInnermostLink() {
+        const int depth = 5_000;
+        string markdown = new string('[', depth) + "a" + string.Concat(Enumerable.Repeat("](u)", depth));
+
+        ParagraphBlock paragraph = RunOnSmallStack(
+            () => Assert.IsType<ParagraphBlock>(Assert.Single(MarkdownDocument.Parse(markdown).Blocks)));
+
+        LinkInline link = Assert.IsType<LinkInline>(Assert.Single(paragraph.Inlines.Nodes, node => node is LinkInline));
+        Assert.Equal("a", link.Text);
+        Assert.Equal("u", link.Url);
     }
 
     [Fact]
@@ -81,6 +95,23 @@ public sealed class MarkdownAllSeverityBatch12SecurityTests {
             StringComparison.Ordinal);
         Assert.Equal(2, CountOccurrences(shell,
             "omdSpreadsheetSafeCell(omdCellText(c))"));
+    }
+
+    // A stack overflow ends the process, so parsing runs at a typical worker stack size.
+    private static T RunOnSmallStack<T>(Func<T> action) {
+        T? result = default;
+        System.Runtime.ExceptionServices.ExceptionDispatchInfo? failure = null;
+        var thread = new Thread(() => {
+            try {
+                result = action();
+            } catch (Exception exception) {
+                failure = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(exception);
+            }
+        }, 1024 * 1024);
+        thread.Start();
+        thread.Join();
+        failure?.Throw();
+        return result!;
     }
 
     private static string BuildNestedDetails(int depth) {
