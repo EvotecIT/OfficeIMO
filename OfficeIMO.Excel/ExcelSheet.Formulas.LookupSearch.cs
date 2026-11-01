@@ -17,6 +17,7 @@ namespace OfficeIMO.Excel {
                 return TryFindBinaryLookupPosition(lookupValue, values, matchMode, searchMode, out position, out failure);
             }
             Regex? wildcard = matchMode == 2 && !lookupValue.Number.HasValue && lookupValue.Text != null
+                && (lookupValue.Text.IndexOf('*') >= 0 || lookupValue.Text.IndexOf('?') >= 0 || lookupValue.Text.IndexOf('~') >= 0)
                 ? new Regex("\\A" + CreateFormulaWildcardPattern(lookupValue.Text) + "\\z",
                     RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline, FormulaRegexTimeout)
                 : null;

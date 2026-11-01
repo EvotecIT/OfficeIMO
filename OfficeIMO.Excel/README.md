@@ -1400,7 +1400,11 @@ formulas can use that result. `IFNA` catches only `#N/A`; `IFERROR` catches any
 evaluated error and preserves the fallback's number, text or Boolean type.
 Out-of-range positive lookup positions return `#REF!`; negative `INDEX`
 positions and nonpositive `VLOOKUP`/`HLOOKUP` positions return `#VALUE!`.
-A selected blank cell returns zero. Row, column and area positions accept
+A selected blank cell caches zero when used as a formula cell's result. Nested
+`INDEX` and `OFFSET` references retain their blank type for `ISBLANK`, empty-text
+comparisons, concatenation and range aggregates. Scalar numeric arguments and
+criteria coerce the reference to zero; fixed and dynamic array output cells also
+cache numeric zero. Row, column and area positions accept
 numeric text and Boolean values and truncate positive fractions. Invalid text
 positions return `#VALUE!`; discrete match/search modes retain their own
 supported values. Lookup keys preserve the distinction between numbers,
@@ -1433,6 +1437,10 @@ Error-valued conditions and selectors also propagate through `IF`, `IFS`,
 `SWITCH` and `CHOOSE`. Text helpers preserve operand errors instead of treating
 their codes as text, and `SUMPRODUCT` preserves errors in its supported numeric
 vectors. `TEXTBEFORE`/`TEXTAFTER` evaluate an explicit fallback only when needed.
+`IF` permits an omitted false branch, which returns Boolean `FALSE`; explicitly
+empty selected `IF` or `CHOOSE` arguments return numeric zero. Selected blank
+references in `IF`, `IFS`, `SWITCH`, `IFERROR` and `IFNA` produce value zero,
+while `CHOOSE` retains the selected reference for its consumer.
 
 `XLOOKUP` retains empty optional argument positions: an empty fallback uses
 `#N/A`, an empty match mode uses exact matching, and an empty search mode scans
