@@ -450,6 +450,7 @@ namespace OfficeIMO.Excel {
             if (lookupValue.IsError) { result = lookupValue; return true; }
             if (matchError.IsError) { result = matchError; return true; }
             if (modeError.IsError) { result = modeError; return true; }
+            if (lookupValues.Error.IsError) { result = lookupValues.Error; return true; }
             if (!TryFindLookupPosition(lookupValue, lookupValues, lookupMode, searchMode, out int position,
                 out FormulaArgumentValue searchFailure, sortedApproximate: function == "MATCH" && matchMode != 0)) {
                 if (searchFailure.IsUnresolvedFormula) return false;

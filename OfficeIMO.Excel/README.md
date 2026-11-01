@@ -1456,7 +1456,7 @@ as zero. A blank reference selected by `INDEX`, `OFFSET` or `XLOOKUP` is
 skipped by `COUNT`. Both forms cache numeric zero as a cell result.
 
 The [native Excel lookup corpus](../OfficeIMO.TestAssets/Documents/ExcelFormulaCorpus/lookup-conformance.provenance.json)
-qualifies 171 formulas, 193 typed result cells and 10 spill ranges after
+qualifies 182 formulas, 204 typed result cells and 10 spill ranges after
 save/reopen. Normal regression tests calculate fresh uncached inputs and compare
 them with the independent Excel results. Regenerate the reference with
 `pwsh -STA -File Build/Verification/New-ExcelFormulaConformanceOracle.ps1 -LookupExpansion`

@@ -682,5 +682,49 @@
   {
     "Row": 1701,
     "Formula": "XLOOKUP(50,Data!A1:A6,Data!F1:G6)"
+  },
+  {
+    "Row": 1711,
+    "Formula": "MATCH(1,1/0,0)"
+  },
+  {
+    "Row": 1721,
+    "Formula": "XMATCH(1,1/0)"
+  },
+  {
+    "Row": 1731,
+    "Formula": "VLOOKUP(1,1/0,1,FALSE)"
+  },
+  {
+    "Row": 1741,
+    "Formula": "HLOOKUP(1,1/0,1,FALSE)"
+  },
+  {
+    "Row": 1751,
+    "Formula": "XLOOKUP(1,1/0,{10})"
+  },
+  {
+    "Row": 1761,
+    "Formula": "IFNA(MATCH(1,1/0,0),99)"
+  },
+  {
+    "Row": 1771,
+    "Formula": "MATCH(1,{#DIV/0!},0)"
+  },
+  {
+    "Row": 1781,
+    "Formula": "XMATCH(1,{#DIV/0!})"
+  },
+  {
+    "Row": 1791,
+    "Formula": "VLOOKUP(1,{#DIV/0!},1,FALSE)"
+  },
+  {
+    "Row": 1801,
+    "Formula": "HLOOKUP(1,{#DIV/0!},1,FALSE)"
+  },
+  {
+    "Row": 1811,
+    "Formula": "XLOOKUP(1,{#DIV/0!},{10})"
   }
 ]

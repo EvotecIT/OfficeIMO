@@ -141,7 +141,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryResolveFormulaArguments(string args, out List<FormulaArgumentValue> values,
-            bool skipBlankScalarReferences = false) {
+            bool skipBlankScalarReferences = false, bool coerceScalarValues = true) {
             values = new List<FormulaArgumentValue>();
             int remainingCellBudget = MaxResolvedFormulaRangeCells;
             foreach (string trimmed in SplitFormulaArguments(args)) {
@@ -166,7 +166,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (TryResolveFormulaArgument(trimmed, out var argumentValue)) {
-                    if (argumentValue.SourceCellKind == null) {
+                    if (coerceScalarValues && argumentValue.SourceCellKind == null) {
                         argumentValue = NormalizeLookupResult(argumentValue);
                         if (!argumentValue.Number.HasValue && !argumentValue.IsError
                             && TryParseValueFunctionNumber(argumentValue.Text ?? string.Empty, out double scalarNumber)) {

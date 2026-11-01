@@ -39,6 +39,7 @@ namespace OfficeIMO.Excel {
             if (lookupValue.IsError) { result = lookupValue; return true; }
             if (indexError.IsError) { result = indexError; return true; }
             if (modeValue.IsError) { result = modeValue; return true; }
+            if (source.Error.IsError) { result = source.Error; return true; }
             lookupValue = NormalizeLookupResult(lookupValue);
             bool vertical = function == "VLOOKUP", approximate = modeValue.Number != 0d;
             if (resultIndex < 1 || resultIndex > (vertical ? source.Columns : source.Rows)) {

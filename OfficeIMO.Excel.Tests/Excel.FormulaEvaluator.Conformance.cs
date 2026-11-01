@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
                     if (spills.ContainsKey(reference)) report.SetDynamicArrayFormula(reference, formula);
                     else report.CellFormula(row, 1, formula);
                 }
-                Assert.Equal(171, references.Count);
+                Assert.Equal(182, references.Count);
                 // Includes the independently authored NA() source cell, with no imported native caches.
                 Assert.Equal(references.Count + 1, document.Calculate());
                 Assert.All(document.InspectFormulas().Formulas, formula => Assert.True(formula.IsSupportedByOfficeIMO,
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
                     for (int column = c1; column <= c2; column++) references.Add(A1.CellReference(row, column));
                 }
             }
-            Assert.Equal(193, references.Count);
+            Assert.Equal(204, references.Count);
             var failures = new List<string>();
             foreach (string reference in references) {
                 Assert.True(nativeCells.TryGetValue(reference, out Cell? expected), $"Missing native cell {reference}.");
