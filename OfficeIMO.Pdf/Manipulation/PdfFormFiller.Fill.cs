@@ -123,6 +123,10 @@ internal static partial class PdfFormFiller {
             return;
         }
 
+        if (inheritedMaxLength is int maximumLength && PdfUnicodeScalarAnalysis.CountScalars(firstValue) > maximumLength) {
+            throw new ArgumentException("PDF text field value exceeds the field's maximum length of " + maximumLength + ": " + fieldName, nameof(value));
+        }
+
         field.Items["V"] = new PdfStringObj(firstValue, useTextStringEncoding: true);
         SetTextWidgetAppearances(objects, field, firstValue, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, false, options, new HashSet<int>(), ref nextObjectNumber, maximumVisibleTextCharacters, cancellationToken: cancellationToken);
     }
