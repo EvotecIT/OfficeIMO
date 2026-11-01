@@ -27,6 +27,15 @@ The [qualification record](../Build/Publisher/WriterProbe/qualification.json)
 separates this result from repair-free acceptance, which still lacks a repair-positive
 control and complete recovery-path coverage.
 
+A later object-loading observation adds five sites to that trace. On both an
+independent native Text control and the exact generated specimen, every captured
+object parser and loader result succeeds across all three opens. No selected
+error-suppression or later retry branch is entered. Paired uninstrumented runs
+retain identical complete inventories and four 144 dpi PDF page comparisons.
+The `observations.laterLoadRecovery` record identifies the sites, results and
+coverage limits. This narrows the unobserved recovery paths; it does not supply
+a successfully repaired control or close native creation acceptance.
+
 Malformed native character controls further bound that observation: Publisher
 opens and saves a zero font size with no selected diagnostic, while its PDF body
 paint is absent. An invalid primary font index also survives native save and

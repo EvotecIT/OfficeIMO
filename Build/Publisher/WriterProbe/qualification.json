@@ -182,6 +182,323 @@
         "The exact candidate remains internal; PUB00 repair-free opening and the generic public native writer remain unqualified."
       ],
       "canClosePUB00": false
+    },
+    "laterLoadRecovery": {
+      "scope": "Capture-only observation of the object parser return, object loader return and three selected suppression/retry boundaries, in addition to the six existing diagnostic sites. Not universal repair-free acceptance.",
+      "runnerSourceCommit": "ede5b705768f8a7b3a491d44fb116076d5e3440a",
+      "nativeExecutableSha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed",
+      "observationRuntime": {
+        "python": "3.13.15",
+        "frida": "17.19.0",
+        "macroSecurity": 3,
+        "syntheticCalls": 3,
+        "syntheticChildClosed": true
+      },
+      "method": {
+        "hooks": 11,
+        "eventCap": 4096,
+        "originalArgumentResultOrNativeDataWrites": false,
+        "additionalComCalls": false,
+        "uiInteraction": false,
+        "completePhasesRequire": [
+          "hook ready before release",
+          "same-thread paired load interval",
+          "severity reset",
+          "paired function entries and returns",
+          "contiguous sequence without callback error or overflow",
+          "explicit drain and post-gate closure",
+          "source integrity and owned process closure"
+        ]
+      },
+      "additionalSites": [
+        {
+          "name": "object-read",
+          "rva": "0xc8f08",
+          "expectedHex": "48895c24085556574154415541564157"
+        },
+        {
+          "name": "object-parse-return",
+          "rva": "0xc945f",
+          "expectedHex": "8bd83d430004800f8474a20700837c24"
+        },
+        {
+          "name": "parse-recovery-check",
+          "rva": "0x1436e0",
+          "expectedHex": "f6456810b8000000000f44c38bd8e979"
+        },
+        {
+          "name": "utility-decode-status",
+          "rva": "0x143701",
+          "expectedHex": "8d8bbefffb7f33c083f9010f46d8e963"
+        },
+        {
+          "name": "later-retry-check",
+          "rva": "0x14f6b4",
+          "expectedHex": "443964245c0f842663f4ffb9c2660000"
+        }
+      ],
+      "nativeTextControl": {
+        "inputSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+        "phases": [
+          {
+            "phase": "OpenCandidateReadOnly",
+            "events": 112,
+            "statuses": {
+              "object-read": {
+                "0x0": 35
+              }
+            },
+            "objectParseKinds": {
+              "0x44": 1,
+              "0x72": 1,
+              "0x73": 1,
+              "0x46": 1,
+              "0x54": 1,
+              "0x43": 6,
+              "0x60": 6,
+              "0x77": 6,
+              "0x7f": 1,
+              "0x5b": 1,
+              "0x61": 1,
+              "0x65": 1,
+              "0x5c": 1,
+              "0x4b": 1,
+              "0x4f": 1,
+              "0x4c": 1,
+              "0x4a": 1,
+              "0x8a": 1,
+              "0x1": 1,
+              "0x6c": 1
+            },
+            "parserResults": {
+              "0x0": 35
+            },
+            "specialPoints": [],
+            "GKdiagnostics": 0,
+            "messages": 0
+          },
+          {
+            "phase": "OpenSnapshotWritable",
+            "events": 112,
+            "statuses": {
+              "object-read": {
+                "0x0": 35
+              }
+            },
+            "objectParseKinds": {
+              "0x44": 1,
+              "0x72": 1,
+              "0x73": 1,
+              "0x46": 1,
+              "0x54": 1,
+              "0x43": 6,
+              "0x60": 6,
+              "0x77": 6,
+              "0x7f": 1,
+              "0x5b": 1,
+              "0x61": 1,
+              "0x65": 1,
+              "0x5c": 1,
+              "0x4b": 1,
+              "0x4f": 1,
+              "0x4c": 1,
+              "0x4a": 1,
+              "0x8a": 1,
+              "0x1": 1,
+              "0x6c": 1
+            },
+            "parserResults": {
+              "0x0": 35
+            },
+            "specialPoints": [],
+            "GKdiagnostics": 0,
+            "messages": 0
+          },
+          {
+            "phase": "ReopenNativeResave",
+            "events": 112,
+            "statuses": {
+              "object-read": {
+                "0x0": 35
+              }
+            },
+            "objectParseKinds": {
+              "0x44": 1,
+              "0x72": 1,
+              "0x73": 1,
+              "0x46": 1,
+              "0x54": 1,
+              "0x43": 6,
+              "0x60": 6,
+              "0x77": 6,
+              "0x7f": 1,
+              "0x5b": 1,
+              "0x61": 1,
+              "0x65": 1,
+              "0x5c": 1,
+              "0x4b": 1,
+              "0x4f": 1,
+              "0x4c": 1,
+              "0x4a": 1,
+              "0x8a": 1,
+              "0x1": 1,
+              "0x6c": 1
+            },
+            "parserResults": {
+              "0x0": 35
+            },
+            "specialPoints": [],
+            "GKdiagnostics": 0,
+            "messages": 0
+          }
+        ],
+        "plainAndTraceOperations": 14,
+        "completeInventoriesEqual": true,
+        "pixelPairs144Dpi": 2,
+        "proofSha256": "e71756b506492a540e5d09f9c9d6ad290f667f72dcc3af0288959df6d920894c"
+      },
+      "exactCombinedCandidate": {
+        "inputSha256": "37e0e91a36c900f2b1a7c73fe3cb606b477464787e60a70375d8985ebd520bcf",
+        "phases": [
+          {
+            "phase": "OpenCandidateReadOnly",
+            "events": 55,
+            "statuses": {
+              "object-read": {
+                "0x0": 16
+              }
+            },
+            "objectParseKinds": {
+              "0x44": 1,
+              "0x43": 6,
+              "0x1": 2,
+              "0x20": 1,
+              "0x5b": 1,
+              "0x61": 1,
+              "0x65": 1,
+              "0x4b": 1,
+              "0x4c": 1,
+              "0x5c": 1
+            },
+            "parserResults": {
+              "0x0": 16
+            },
+            "specialPoints": [],
+            "GKdiagnostics": 0,
+            "messages": 0
+          },
+          {
+            "phase": "OpenSnapshotWritable",
+            "events": 55,
+            "statuses": {
+              "object-read": {
+                "0x0": 16
+              }
+            },
+            "objectParseKinds": {
+              "0x44": 1,
+              "0x43": 6,
+              "0x1": 2,
+              "0x20": 1,
+              "0x5b": 1,
+              "0x61": 1,
+              "0x65": 1,
+              "0x4b": 1,
+              "0x4c": 1,
+              "0x5c": 1
+            },
+            "parserResults": {
+              "0x0": 16
+            },
+            "specialPoints": [],
+            "GKdiagnostics": 0,
+            "messages": 0
+          },
+          {
+            "phase": "ReopenNativeResave",
+            "events": 70,
+            "statuses": {
+              "object-read": {
+                "0x0": 21
+              }
+            },
+            "objectParseKinds": {
+              "0x44": 1,
+              "0x43": 6,
+              "0x1": 2,
+              "0x20": 1,
+              "0x5b": 1,
+              "0x61": 1,
+              "0x65": 1,
+              "0x4b": 1,
+              "0x4c": 1,
+              "0x5c": 1,
+              "0x54": 1,
+              "0x46": 1,
+              "0x4a": 1,
+              "0x8a": 1,
+              "0x6c": 1
+            },
+            "parserResults": {
+              "0x0": 21
+            },
+            "specialPoints": [],
+            "GKdiagnostics": 0,
+            "messages": 0
+          }
+        ],
+        "plainAndTraceOperations": 14,
+        "completeInventoriesEqual": true,
+        "pixelPairs144Dpi": 2,
+        "proofSha256": "c0244c911102711cb9e62fd38de50ed4853fed0e3bbede9c98b3e352155a95b9"
+      },
+      "staticCoverage": {
+        "targetSha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed",
+        "retainedReaEvidence": "ev_11f18f7856b3981e54e9645aca0a5e7a01965be1380940f92cfa8fd9eb9a57e9",
+        "retainedReaOperation": "procedure_pseudo_code",
+        "sourceAuthority": "shipped-artifact",
+        "additionalInstructions": "Immutable PE .pdata ranges and GNU objdump instructions; unwind fragments are not whole logical functions.",
+        "establishedBranches": [
+          "At RVA0x1436E0, object parser status0x80040043 can become zero when bit0x10 of the captured document flags is set.",
+          "At RVA0x143701, record kind0x6A can suppress statuses0x80040042/0x80040043.",
+          "At RVA0x14F6B4, the storage loader checks its continuation local before requesting message0x66C2 and setting the document bit on accepted return."
+        ],
+        "fixtureScan": {
+          "files": 138,
+          "parsed": 136,
+          "unparsed": 2,
+          "kind0x6AMatches": 0,
+          "scope": "Existing repository fixtures only; absent matches do not qualify the special path."
+        },
+        "windowsReaLimits": [
+          "x64 raw fragments are unsupported by the installed Windows Ghidra provider; no retry or new full import.",
+          "The authenticated historical evidence bundle imports successfully; analysis views do not support its legacy procedure_pseudo_code records."
+        ]
+      },
+      "observerFingerprints": {
+        "hooks.js": "998eec147ee836981cd9f4b1cc7cfd6897bc9ca55d14ad599319172b9cfdaae2",
+        "observe.py": "5049a372f447cbef80c8c403b7e1d9ae0311264c196ac2c4e474a52e193eae36",
+        "hook-proposal.json": "937909ef8db1f82e235926a60972b5503a31e3d51100657029de532ecb9e5d95",
+        "replay-identity-v3.json": "897eb0669a7ce5dac43175830ea9866c01cb53e37a8657aab1f80003636fff72",
+        "assess.py": "ccde282dc9085a61b43dd5ee3b6c4c04f7d7d9e69c5f23c33519cd7c95fca226"
+      },
+      "failedCompatibilityControl": {
+        "coverage": "incomplete",
+        "genericParserEvents": 4090,
+        "eventCap": 4096,
+        "reason": "Generic recursive parser hook overflowed; post-gate drain failed. No native compatibility or recovery conclusion.",
+        "remediation": "Replaced the generic parser hook with its exact object-loader return site; removed a redundant nearby hook, retaining the event cap and completeness guards.",
+        "ownedProcessesClosed": true,
+        "inputUnchanged": true
+      },
+      "limits": [
+        "The native Text and exact combined specimen complete all three opens without the selected decoder errors, suppression branches, retry check, GK diagnostic or message request. This is bounded negative evidence.",
+        "No successful repair-positive control or accepted recovery-consent path is established.",
+        "No existing parsed fixture exercises the kind0x6A suppression; two fixtures are outside this scan parser.",
+        "Companion-module, other loader, silent normalization and earlier-generation recovery remain unqualified.",
+        "The failed high-volume run is retained as incomplete evidence, separate from the decisive narrowed runs."
+      ],
+      "canClosePUB00": false
     }
   },
   "nativeArtifacts": [

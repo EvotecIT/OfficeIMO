@@ -611,6 +611,22 @@ OfficeIMO read/render success establishes only the managed result. Evidence for
 these bounded cases does not qualify arbitrary Publisher features or a public
 creation/save contract.
 
+`observations.laterLoadRecovery` extends the capture to the object parser return,
+object loader return and three decoded suppression/retry boundaries. The native
+Text control records 35 successful parser and loader results on each open. The
+exact generated specimen records 16 on each original open and 21 after native
+resave. Neither enters the selected suppression or retry paths. Current-schema
+plain/captured inventories agree, as do four 144 dpi page pairs. The generic
+recursive parser hook exceeded the 4,096-event cap in an earlier compatibility
+attempt; that incomplete run is excluded. The decisive capture uses the exact
+object-parser return site with the same cap and completeness guards.
+
+Static instructions identify a document-bit suppression of `0x80040043`, a
+kind-`0x6A` suppression of two decode errors and a later `0x66C2` consent/retry.
+None of the 136 parsed repository fixtures contains kind `0x6A`; two additional
+fixtures are outside that scan's parser. These branches remain without a positive
+recovery control. Public native creation remains gated by PUB00.
+
 The `sourceEditing.imageReplacement` record covers public native saves for
 existing PNG/JPEG picture placements, including shared assets, master pictures,
 cropping, repeated replacement, combined frame changes and re-editing a native
