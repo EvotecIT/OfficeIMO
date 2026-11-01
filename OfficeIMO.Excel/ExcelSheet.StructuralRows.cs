@@ -924,10 +924,17 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
+                bool changed = false;
                 foreach (CellFormula formula in ExcelWorksheetScan.CellFormulas(worksheet)) {
                     if (formula.CalculateCell?.Value != true) {
                         formula.CalculateCell = true;
+                        changed = true;
                     }
+                }
+
+                // Only the edited sheet is prepared at save; the others must carry this themselves.
+                if (changed && !ReferenceEquals(worksheetPart, _worksheetPart)) {
+                    worksheet.Save();
                 }
             }
 

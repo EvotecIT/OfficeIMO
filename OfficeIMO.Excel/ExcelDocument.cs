@@ -388,6 +388,7 @@ namespace OfficeIMO.Excel {
         private int _materializedDirectDataSetFastSaveModelPreservationDepth;
         private byte[]? _unchangedPackageBytesValue;
         private byte[]? _propertiesOnlySourceBytes;
+        private byte[]? _packageBaselineBytes;
 
         /// <summary>The package as last loaded or saved, while nothing has changed since.</summary>
         private byte[]? _unchangedPackageBytes {
@@ -395,6 +396,7 @@ namespace OfficeIMO.Excel {
             set {
                 _unchangedPackageBytesValue = value;
                 _propertiesOnlySourceBytes = null;
+                if (value != null) _packageBaselineBytes = value;
             }
         }
         private bool _simplePackageContentKnown;

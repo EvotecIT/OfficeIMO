@@ -447,6 +447,11 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            if (TryWriteSplicedPackage(destination, options)) {
+                LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(extendedPackageSkipReason ?? fastPackageSkipReason);
+                return;
+            }
+
             var payload = PreparePackageForSave(options, closeDocument: false);
             try {
                 var finalizedBytes = FinalizePackageBytes(payload, options);
