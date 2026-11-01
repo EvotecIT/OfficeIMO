@@ -76,7 +76,7 @@ namespace OfficeIMO.Excel {
             int firstAffectedRow,
             int rowDelta,
             int? lastDeletedRow) {
-            foreach (X14.DataValidations validations in WorksheetRoot.Descendants<X14.DataValidations>().ToList()) {
+            foreach (X14.DataValidations validations in WorksheetRoot.MetadataDescendants<X14.DataValidations>().ToList()) {
                 uint count = 0;
                 bool removedAny = false;
                 foreach (X14.DataValidation validation in validations.Elements<X14.DataValidation>().ToList()) {

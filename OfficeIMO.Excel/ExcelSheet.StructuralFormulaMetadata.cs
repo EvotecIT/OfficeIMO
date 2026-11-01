@@ -27,12 +27,7 @@ namespace OfficeIMO.Excel {
                 bool isMutatedSheet = ReferenceEquals(worksheetPart, _worksheetPart)
                     || string.Equals(sheetElement.Name?.Value, Name, StringComparison.OrdinalIgnoreCase);
                 bool changed = false;
-                foreach (Cell cell in worksheetPart.Worksheet.Descendants<Cell>()) {
-                    CellFormula? formula = cell.CellFormula;
-                    if (formula == null) {
-                        continue;
-                    }
-
+                foreach (CellFormula formula in ExcelWorksheetScan.CellFormulas(worksheetPart.Worksheet)) {
                     if (formula.Text is string formulaText && formulaText.Length > 0) {
                         string rewritten = lastDeletedRow.HasValue
                             ? RewriteDeletedFormulaReferences(
@@ -87,7 +82,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                foreach (DataValidation validation in worksheetPart.Worksheet.Descendants<DataValidation>()) {
+                foreach (DataValidation validation in worksheetPart.Worksheet.MetadataDescendants<DataValidation>()) {
                     if (!isMutatedSheet) {
                         changed |= RewriteStructuralFormulaText(
                             validation.Formula1,
@@ -105,7 +100,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (!isMutatedSheet) {
-                    foreach (X14.DataValidation validation in worksheetPart.Worksheet.Descendants<X14.DataValidation>()) {
+                    foreach (X14.DataValidation validation in worksheetPart.Worksheet.MetadataDescendants<X14.DataValidation>()) {
                         changed |= RewriteStructuralFormulaText(
                             validation.DataValidationForumla1?.Formula,
                             firstAffectedRow,
@@ -122,7 +117,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (!isMutatedSheet) {
-                    foreach (ConditionalFormattingRule rule in worksheetPart.Worksheet.Descendants<ConditionalFormattingRule>()) {
+                    foreach (ConditionalFormattingRule rule in worksheetPart.Worksheet.MetadataDescendants<ConditionalFormattingRule>()) {
                         foreach (Formula formula in rule.Elements<Formula>()) {
                             changed |= RewriteStructuralFormulaText(
                                 formula,
@@ -171,7 +166,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                foreach (Hyperlink hyperlink in worksheetPart.Worksheet.Descendants<Hyperlink>()) {
+                foreach (Hyperlink hyperlink in worksheetPart.Worksheet.MetadataDescendants<Hyperlink>()) {
                     if (!string.IsNullOrWhiteSpace(hyperlink.Id?.Value)
                         || string.IsNullOrWhiteSpace(hyperlink.Location?.Value)) {
                         continue;
@@ -200,7 +195,7 @@ namespace OfficeIMO.Excel {
 
                 if (!isMutatedSheet) {
                     foreach (DocumentFormat.OpenXml.Office2010.Excel.Sparkline sparkline
-                        in worksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Office2010.Excel.Sparkline>()) {
+                        in worksheetPart.Worksheet.MetadataDescendants<DocumentFormat.OpenXml.Office2010.Excel.Sparkline>()) {
                         changed |= RewriteStructuralFormulaText(
                             sparkline.Formula,
                             firstAffectedRow,
@@ -210,7 +205,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
                 foreach (X14.SparklineGroup group
-                    in worksheetPart.Worksheet.Descendants<X14.SparklineGroup>()) {
+                    in worksheetPart.Worksheet.MetadataDescendants<X14.SparklineGroup>()) {
                     changed |= RewriteStructuralFormulaText(
                         group.Formula,
                         firstAffectedRow,
@@ -219,7 +214,8 @@ namespace OfficeIMO.Excel {
                         rewriteUnqualifiedReferences: isMutatedSheet);
                 }
 
-                if (changed) {
+                // The edited sheet is saved with the workbook; repeating that per edit serializes the whole grid.
+                if (changed && !isMutatedSheet) {
                     worksheetPart.Worksheet.Save();
                 }
 

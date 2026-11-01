@@ -39,7 +39,6 @@ namespace OfficeIMO.Excel {
                 try {
                     int affectedCells = operation(cancellationToken);
                     cancellationToken.ThrowIfCancellationRequested();
-                    WorksheetRoot.Save();
                     MarkRequiresSavePreparation();
                     IReadOnlyList<ExcelMutationDiagnostic> diagnostics =
                         _excelDocument.GetMutationDiagnostics(options.MaximumDiagnostics, cancellationToken);

@@ -308,7 +308,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void RemapShiftedWorksheetRangeMetadata(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
-            foreach (AutoFilter autoFilter in WorksheetRoot.Descendants<AutoFilter>().ToList()) {
+            foreach (AutoFilter autoFilter in WorksheetRoot.MetadataDescendants<AutoFilter>().ToList()) {
                 if (autoFilter.Reference?.Value is string filterReference
                     && TryRemapShiftedReferenceListRows(
                         filterReference,
@@ -349,7 +349,7 @@ namespace OfficeIMO.Excel {
             RemapShiftedSelections(firstAffectedRow, rowDelta, lastDeletedRow);
             RemapShiftedNamedSheetViewFilters(firstAffectedRow, rowDelta, lastDeletedRow);
 
-            foreach (RowBreaks rowBreaks in WorksheetRoot.Descendants<RowBreaks>().ToList()) {
+            foreach (RowBreaks rowBreaks in WorksheetRoot.MetadataDescendants<RowBreaks>().ToList()) {
                 bool changed = false;
                 foreach (Break pageBreak in rowBreaks.Elements<Break>().ToList()) {
                     if (pageBreak.Id?.Value is not uint rowId || rowId == 0U) {
@@ -647,7 +647,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void RemapShiftedSparklines(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
-            foreach (X14.Sparkline sparkline in WorksheetRoot.Descendants<X14.Sparkline>().ToList()) {
+            foreach (X14.Sparkline sparkline in WorksheetRoot.MetadataDescendants<X14.Sparkline>().ToList()) {
                 if (sparkline.ReferenceSequence?.Text is string location
                     && TryRemapShiftedReferenceListRows(location, firstAffectedRow, rowDelta, lastDeletedRow, out var remappedLocations)) {
                     if (remappedLocations.Count == 0) {
@@ -681,18 +681,18 @@ namespace OfficeIMO.Excel {
         }
 
         internal static void CleanupEmptySparklineStructures(Worksheet worksheet) {
-            foreach (X14.SparklineGroup group in worksheet.Descendants<X14.SparklineGroup>().ToList()) {
+            foreach (X14.SparklineGroup group in worksheet.MetadataDescendants<X14.SparklineGroup>().ToList()) {
                 X14.Sparklines? sparklines = group.GetFirstChild<X14.Sparklines>();
                 if (sparklines == null || !sparklines.Elements<X14.Sparkline>().Any()) {
                     group.Remove();
                 }
             }
-            foreach (X14.SparklineGroups groups in worksheet.Descendants<X14.SparklineGroups>().ToList()) {
+            foreach (X14.SparklineGroups groups in worksheet.MetadataDescendants<X14.SparklineGroups>().ToList()) {
                 if (!groups.Elements<X14.SparklineGroup>().Any()) {
                     groups.Remove();
                 }
             }
-            foreach (Extension extension in worksheet.Descendants<Extension>().ToList()) {
+            foreach (Extension extension in worksheet.MetadataDescendants<Extension>().ToList()) {
                 if (!extension.ChildElements.Any()) {
                     extension.Remove();
                 }
@@ -979,7 +979,7 @@ namespace OfficeIMO.Excel {
             if (!SparklinesOverlap(bounds)) return false;
 
             bool changed = false;
-            foreach (var sparkline in WorksheetRoot.Descendants<DocumentFormat.OpenXml.Office2010.Excel.Sparkline>().ToList()) {
+            foreach (var sparkline in WorksheetRoot.MetadataDescendants<DocumentFormat.OpenXml.Office2010.Excel.Sparkline>().ToList()) {
                 var reference = sparkline.ReferenceSequence?.Text;
                 if (!string.IsNullOrWhiteSpace(reference) && TryParseReference(reference!, out var sparklineBounds)) {
                     if (RangesOverlapInclusive(bounds, sparklineBounds)) {
@@ -993,7 +993,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool SparklinesOverlap((int r1, int c1, int r2, int c2) bounds) {
-            foreach (var sparkline in WorksheetRoot.Descendants<DocumentFormat.OpenXml.Office2010.Excel.Sparkline>()) {
+            foreach (var sparkline in WorksheetRoot.MetadataDescendants<DocumentFormat.OpenXml.Office2010.Excel.Sparkline>()) {
                 var reference = sparkline.ReferenceSequence?.Text;
                 if (!string.IsNullOrWhiteSpace(reference)
                     && TryParseReference(reference!, out var sparklineBounds)

@@ -42,7 +42,7 @@ namespace OfficeIMO.Excel {
 
         private void RemapColumnPageBreaks(int firstColumn, int count, bool deleting) {
             int lastDeletedColumn = firstColumn + count - 1;
-            foreach (ColumnBreaks columnBreaks in WorksheetRoot.Descendants<ColumnBreaks>().ToList()) {
+            foreach (ColumnBreaks columnBreaks in WorksheetRoot.MetadataDescendants<ColumnBreaks>().ToList()) {
                 bool changed = false;
                 foreach (Break pageBreak in columnBreaks.Elements<Break>().ToList()) {
                     if (pageBreak.Id?.Value is not uint columnId || columnId == 0U) continue;

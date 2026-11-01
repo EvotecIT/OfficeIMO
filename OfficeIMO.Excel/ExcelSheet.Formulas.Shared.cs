@@ -122,10 +122,7 @@ namespace OfficeIMO.Excel {
         }
 
         private IReadOnlyList<string> ResolveSharedFormulaTextsForStructuralValidation() {
-            List<Cell> sharedCells = WorksheetRoot.Descendants<Cell>()
-                .Where(candidate => candidate.CellFormula?.FormulaType?.Value == CellFormulaValues.Shared
-                    && candidate.CellFormula.SharedIndex?.Value != null)
-                .ToList();
+            List<Cell> sharedCells = FindSharedFormulaCells();
             if (sharedCells.Count == 0) {
                 return Array.Empty<string>();
             }
@@ -144,6 +141,17 @@ namespace OfficeIMO.Excel {
                 resolved.Add(text);
             }
             return resolved;
+        }
+
+        private List<Cell> FindSharedFormulaCells() {
+            var cells = new List<Cell>();
+            foreach (Cell cell in ExcelWorksheetScan.Cells(WorksheetRoot)) {
+                CellFormula? formula = ExcelWorksheetScan.FindFormula(cell);
+                if (formula?.FormulaType?.Value == CellFormulaValues.Shared && formula.SharedIndex?.Value != null) {
+                    cells.Add(cell);
+                }
+            }
+            return cells;
         }
 
         private void MaterializeWorkbookSharedFormulasForStructuralEdit() {
@@ -183,10 +191,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void MaterializeSharedFormulasForStructuralEdit() {
-            List<Cell> sharedCells = WorksheetRoot.Descendants<Cell>()
-                .Where(cell => cell.CellFormula?.FormulaType?.Value == CellFormulaValues.Shared
-                    && cell.CellFormula.SharedIndex?.Value != null)
-                .ToList();
+            List<Cell> sharedCells = FindSharedFormulaCells();
             if (sharedCells.Count == 0) {
                 return;
             }
