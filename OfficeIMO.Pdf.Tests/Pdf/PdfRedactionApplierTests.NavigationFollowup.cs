@@ -35,7 +35,7 @@ public partial class PdfRedactionApplierTests {
         }
         var result = source.Redactions.ApplyWithEvidence(plan, new PdfRedactionApplyOptions { CleanupScope = PdfRedactionCleanupScope.None });
         Assert.True(result.Evidence.IsVerified);
-        Assert.DoesNotContain("secret", Encoding.Latin1.GetString(result.Pdf), StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("secret", Encoding.GetEncoding(28591).GetString(result.Pdf), StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("secret", DecodeSavedResidueBytes(result.Pdf), StringComparison.OrdinalIgnoreCase);
         using var independent = UglyToad.PdfPig.PdfDocument.Open(result.Pdf);
         Assert.DoesNotContain("secret", string.Join("\n", independent.GetPages().Select(static page => page.Text)), StringComparison.OrdinalIgnoreCase);
@@ -88,32 +88,36 @@ public partial class PdfRedactionApplierTests {
         return BuildNavigationRedactionFixture(variant is "MetadataOnly" or "StringCommand" or "SyntaxCommand" ? "NoMatch" : "BodyTitle", hybrid, objects => {
             // Keep the fixture independent of a document generator, using the existing classic/Word layout writers.
             string Stream(string dictionary, string data) => "<< " + dictionary + " /Length " + Encoding.ASCII.GetByteCount(data) + " >>\nstream\n" + data + "\nendstream";
+            string WithoutDictionaryEnd(string dictionary) {
+                string trimmed = dictionary.TrimEnd();
+                return trimmed.Substring(0, trimmed.Length - 2);
+            }
             if (variant.StartsWith("Metadata", StringComparison.Ordinal)) {
-                objects[1] = objects[1].TrimEnd()[..^2] + " /PrivateData [30 0 R 31 0 R] /StructTreeRoot 33 0 R /Kept << /Metadata 39 0 R >> >>";
+                objects[1] = WithoutDictionaryEnd(objects[1]) + " /PrivateData [30 0 R 31 0 R] /StructTreeRoot 33 0 R /Kept << /Metadata 39 0 R >> >>";
                 objects[30] = "<< /Metadata 38 0 R /Nested << /Metadata 38 0 R >> >>";
                 objects[31] = Stream("/Metadata 38 0 R", "public stream");
                 objects[33] = "<< /Type /StructTreeRoot /K [34 0 R] >>";
                 objects[34] = "<< /Type /StructElem /S /Document /P 33 0 R /Metadata 38 0 R /K [] >>";
-                objects[38] = Stream("/Type /Metadata /Subtype /XML /Filter /ASCIIHexDecode", Convert.ToHexString(Encoding.ASCII.GetBytes("<value>secret</value>")) + ">");
+                objects[38] = Stream("/Type /Metadata /Subtype /XML /Filter /ASCIIHexDecode", BitConverter.ToString(Encoding.ASCII.GetBytes("<value>secret</value>")).Replace("-", string.Empty) + ">");
                 objects[39] = Stream("/Type /Metadata /Subtype /XML", "<value>keep metadata</value>");
                 if (variant == "MetadataImage") {
-                    objects[6] = objects[6].Replace("/Resources <<", "/Resources << /XObject << /Im0 40 0 R >>", StringComparison.Ordinal);
+                    objects[6] = objects[6].Replace("/Resources <<", "/Resources << /XObject << /Im0 40 0 R >>");
                     objects[7] = Stream("", "BT /F1 12 Tf 72 700 Td (Public second) Tj ET q 50 0 0 50 200 400 cm /Im0 Do Q");
                     objects[40] = Stream("/Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /ASCIIHexDecode /Metadata 38 0 R", "FF0000>");
                 }
                 if (variant == "MetadataPattern") {
-                    objects[6] = objects[6].Replace("/Resources <<", "/Resources << /Pattern << /P1 41 0 R >>", StringComparison.Ordinal);
+                    objects[6] = objects[6].Replace("/Resources <<", "/Resources << /Pattern << /P1 41 0 R >>");
                     objects[7] = Stream("", "BT /F1 12 Tf 72 700 Td (Public second) Tj ET /Pattern cs /P1 scn 200 400 50 50 re f");
                     objects[41] = Stream("/Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << >> /Metadata 38 0 R", "1 0 0 rg 0 0 10 10 re f");
                 }
                 if (variant == "MetadataAppearance") {
-                    objects[6] = objects[6].TrimEnd()[..^2] + " /Annots [40 0 R] >>";
+                    objects[6] = WithoutDictionaryEnd(objects[6]) + " /Annots [40 0 R] >>";
                     objects[40] = "<< /Type /Annot /Subtype /Stamp /Rect [200 400 250 450] /Contents (keep appearance) /AP << /N 41 0 R >> >>";
                     objects[41] = Stream("/Type /XObject /Subtype /Form /BBox [0 0 50 50] /Resources << >> /Metadata 38 0 R", "1 0 0 rg 0 0 50 50 re f");
                 }
             } else if (variant is "TaggedLink" or "TaggedReply" or "TaggedReplyChain" or "UnknownReference" or "UnknownSubtypeReference") {
-                objects[1] = objects[1].TrimEnd()[..^2] + " /MarkInfo << /Marked true >> /StructTreeRoot 33 0 R >>";
-                objects[3] = objects[3].TrimEnd()[..^2] + " /Annots [30 0 R 31 0 R 32 0 R] /StructParents 0 >>";
+                objects[1] = WithoutDictionaryEnd(objects[1]) + " /MarkInfo << /Marked true >> /StructTreeRoot 33 0 R >>";
+                objects[3] = WithoutDictionaryEnd(objects[3]) + " /Annots [30 0 R 31 0 R 32 0 R] /StructParents 0 >>";
                 objects[30] = "<< /Type /Annot /Subtype /Link /Rect [72 600 140 615] /StructParent 1 /Contents (secret) /A << /S /URI /URI (https://example.invalid/secret) >> /Popup 31 0 R >>";
                 objects[31] = "<< /Type /Annot /Subtype /Popup /Rect [100 600 140 615] /Parent 30 0 R >>";
                 objects[32] = "<< /Type /Annot /Subtype /Text /Rect [72 500 140 515] /Contents (kept reply) " + (variant is "TaggedReply" or "TaggedReplyChain" ? "/IRT 30 0 R /RT /R" : "") + " >>";
@@ -124,21 +128,21 @@ public partial class PdfRedactionApplierTests {
                 objects[37] = "<< /Type /OBJR /Pg 3 0 R /Obj 30 0 R >>";
                 objects[38] = "<< /Nums [0 [36 0 R] 1 35 0 R] /Limits [0 1] >>";
                 if (variant == "TaggedReplyChain") {
-                    objects[3] = objects[3].Replace("32 0 R]", "32 0 R 39 0 R]", StringComparison.Ordinal);
-                    objects[32] = objects[32].Replace("/RT /R", "/RT /R /State (Accepted) /StateModel (Review)", StringComparison.Ordinal);
+                    objects[3] = objects[3].Replace("32 0 R]", "32 0 R 39 0 R]");
+                    objects[32] = objects[32].Replace("/RT /R", "/RT /R /State (Accepted) /StateModel (Review)");
                     objects[39] = "<< /Type /Annot /Subtype /Text /Rect [72 400 140 415] /Contents (kept child) /IRT 32 0 R /RT /R >>";
                 }
                 if (variant == "UnknownSubtypeReference") {
-                    objects[1] = objects[1].TrimEnd()[..^2] + " /PrivateData 40 0 R >>";
+                    objects[1] = WithoutDictionaryEnd(objects[1]) + " /PrivateData 40 0 R >>";
                     objects[40] = "<< /Subtype /Private /IRT 30 0 R /RT /R /Popup 31 0 R >>";
                 }
             } else {
                 string action = "<< /S /Named /N " + (variant == "StringCommand" ? "(secret)" : "/" + (variant == "SyntaxCommand" ? "NextPage" : variant)) + " >>";
-                objects[1] = objects[1].Replace("/OpenAction", "/KeptOpening", StringComparison.Ordinal).TrimEnd()[..^2] + " /OpenAction " + action + " >>";
-                objects[22] = objects[22].Replace(" /Dest [6 0 R /Fit]", "", StringComparison.Ordinal).TrimEnd()[..^2] + " /A " + action + " >>";
-                objects[3] = objects[3].TrimEnd()[..^2] + " /Annots [30 0 R] >>";
+                objects[1] = WithoutDictionaryEnd(objects[1].Replace("/OpenAction", "/KeptOpening")) + " /OpenAction " + action + " >>";
+                objects[22] = WithoutDictionaryEnd(objects[22].Replace(" /Dest [6 0 R /Fit]", "")) + " /A " + action + " >>";
+                objects[3] = WithoutDictionaryEnd(objects[3]) + " /Annots [30 0 R] >>";
                 objects[30] = "<< /Type /Annot /Subtype /Link /Rect [72 600 140 615] /A " + action + " >>";
-                objects[23] = objects[23].Replace(" /Dest [6 0 R /XYZ null 700 1]", "", StringComparison.Ordinal).TrimEnd()[..^2] + " /A << /S /GoTo /D [6 0 R /Fit] /Next [" + action + "] >> >>";
+                objects[23] = WithoutDictionaryEnd(objects[23].Replace(" /Dest [6 0 R /XYZ null 700 1]", "")) + " /A << /S /GoTo /D [6 0 R /Fit] /Next [" + action + "] >> >>";
             }
         });
     }
