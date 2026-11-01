@@ -12,11 +12,11 @@ namespace OfficeIMO.Excel {
         private long _formulaAuthoredMutationVersion;
         private readonly ConcurrentDictionary<Uri, long> _formulaRecalculationVersions = new();
         private readonly ConcurrentDictionary<Uri, long> _formulaAuthoredRecalculationVersions = new();
-        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaAuthoredVersions = new();
-        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaCellRecalculationVersions = new();
-        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaDependencyBaselines = new();
-        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaCellDependencyRecalculationVersions = new();
-        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaDependencyMutationVersions = new();
+        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaAuthoredVersions = new(FormulaCellKeyComparer.Instance);
+        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaCellRecalculationVersions = new(FormulaCellKeyComparer.Instance);
+        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaDependencyBaselines = new(FormulaCellKeyComparer.Instance);
+        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaCellDependencyRecalculationVersions = new(FormulaCellKeyComparer.Instance);
+        private readonly ConcurrentDictionary<(Uri WorksheetUri, string CellReference), long> _formulaDependencyMutationVersions = new(FormulaCellKeyComparer.Instance);
 
         /// <summary>
         /// Formula calculation and cached-result policy used during save.
@@ -101,6 +101,17 @@ namespace OfficeIMO.Excel {
             return mutationVersion > 0
                 && (!_formulaRecalculationVersions.TryGetValue(worksheetPart.Uri, out long recalculationVersion)
                     || recalculationVersion < mutationVersion);
+        }
+
+        /// <summary>Hashes the cell text only, because hashing a part URI per formula dominated authoring.</summary>
+        private sealed class FormulaCellKeyComparer : IEqualityComparer<(Uri WorksheetUri, string CellReference)> {
+            internal static readonly FormulaCellKeyComparer Instance = new();
+
+            public bool Equals((Uri WorksheetUri, string CellReference) left, (Uri WorksheetUri, string CellReference) right) =>
+                string.Equals(left.CellReference, right.CellReference, StringComparison.Ordinal)
+                && (ReferenceEquals(left.WorksheetUri, right.WorksheetUri) || left.WorksheetUri == right.WorksheetUri);
+
+            public int GetHashCode((Uri WorksheetUri, string CellReference) key) => StringComparer.Ordinal.GetHashCode(key.CellReference);
         }
 
         internal void MarkFormulaAuthored(

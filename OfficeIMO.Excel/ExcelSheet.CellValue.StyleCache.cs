@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
@@ -8,6 +9,8 @@ namespace OfficeIMO.Excel {
         private static readonly ConditionalWeakTable<CellFormats, CellFormatCacheRevision> CellFormatCacheRevisions = new();
         private CellFormatCacheRevision? _cellValueStyleRevision;
         private long _cellValueStyleRevisionNumber;
+        private WorkbookPart? _knownStylesOwner;
+        private WorkbookStylesPart? _knownStylesPart;
 
         private sealed class CellFormatCacheRevision {
             internal long Number;
@@ -54,8 +57,18 @@ namespace OfficeIMO.Excel {
             _cellValueDefaultDurationStyleIndex = null;
         }
 
+        /// <summary>Finding a part walks the relationships of the workbook, which is too slow to repeat per cell.</summary>
+        private WorkbookStylesPart? GetKnownStylesPart() {
+            WorkbookPart workbookPart = _excelDocument.WorkbookPartRoot;
+            if (_knownStylesPart == null || !ReferenceEquals(_knownStylesOwner, workbookPart)) {
+                _knownStylesOwner = workbookPart;
+                _knownStylesPart = workbookPart.WorkbookStylesPart;
+            }
+            return _knownStylesPart;
+        }
+
         private CellFormatCacheRevision? GetCurrentCellFormatCacheRevision() {
-            CellFormats? formats = _excelDocument.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet?.CellFormats;
+            CellFormats? formats = GetKnownStylesPart()?.Stylesheet?.CellFormats;
             return formats == null ? null
                 : CellFormatCacheRevisions.GetValue(formats, static _ => new CellFormatCacheRevision());
         }

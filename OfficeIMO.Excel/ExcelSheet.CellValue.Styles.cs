@@ -928,10 +928,7 @@ namespace OfficeIMO.Excel {
             Cell cell = GetCell(row, column);
 
             var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
-            WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
-            if (stylesPart == null) {
-                stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
-            }
+            WorkbookStylesPart stylesPart = GetKnownStylesPart() ?? workbookPart.AddNewPart<WorkbookStylesPart>();
 
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
