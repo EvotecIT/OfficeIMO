@@ -26,7 +26,15 @@ namespace OfficeIMO.Excel {
             }
         }
         private UInt32Value _id;
-        private WorksheetPart _worksheetPart;
+        private WorksheetPart _worksheetPart {
+            get {
+                _excelDocument.FlushPendingRowDeletesIfAny();
+                return _worksheetPartValue;
+            }
+            set => _worksheetPartValue = value;
+        }
+
+        private WorksheetPart _worksheetPartValue = null!;
         internal WorksheetPart WorksheetPart {
             get {
                 CaptureOriginalDynamicSpillFingerprintIfSafe();
@@ -37,7 +45,15 @@ namespace OfficeIMO.Excel {
             }
         }
         internal WorksheetPart DeferredMetadataWorksheetPart => _worksheetPart;
-        private SpreadsheetDocument _spreadSheetDocument;
+        private SpreadsheetDocument _spreadSheetDocument {
+            get {
+                _excelDocument.FlushPendingRowDeletesIfAny();
+                return _spreadSheetDocumentValue;
+            }
+            set => _spreadSheetDocumentValue = value;
+        }
+
+        private SpreadsheetDocument _spreadSheetDocumentValue = null!;
         private readonly ExcelDocument _excelDocument;
         private bool _hasWorksheetMutations;
         private Row? _lastAccessedRow;

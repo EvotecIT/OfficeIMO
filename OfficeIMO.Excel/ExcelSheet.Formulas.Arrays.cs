@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
 
         private bool TryGetCalculatedArray(Cell cell, out FormulaArrayValue array) {
             array = null!;
-            return cell.CellFormula?.FormulaType?.Value == CellFormulaValues.Array && _formulaEvaluationCache != null
+            return ExcelWorksheetScan.FindFormula(cell)?.FormulaType?.Value == CellFormulaValues.Array && _formulaEvaluationCache != null
                 && ArrayCalculationContexts.GetOrCreateValue(_formulaEvaluationCache).Results.TryGetValue(
                     GetFormulaEvaluationCacheKey(cell.CellReference!.Value!), out array!);
         }
@@ -60,11 +60,11 @@ namespace OfficeIMO.Excel {
         private FixedArraySheetIndex BuildFixedArraySheetIndex() {
             var index = new FixedArraySheetIndex();
             Metadata? metadata = null;
-            foreach (Cell candidate in WorksheetRoot.Descendants<Cell>()) {
-                if (candidate.CellFormula != null) index.FormulaCells.Add(candidate);
-                if (candidate.CellFormula?.FormulaType?.Value == CellFormulaValues.Array
-                    && IsSupportedArrayCall(candidate.CellFormula.Text)
-                    && TryFixedArrayBounds(candidate.CellFormula.Reference?.Value ?? "",
+            foreach (Cell candidate in ExcelWorksheetScan.Cells(WorksheetRoot)) {
+                if (ExcelWorksheetScan.FindFormula(candidate) != null) index.FormulaCells.Add(candidate);
+                if (ExcelWorksheetScan.FindFormula(candidate)?.FormulaType?.Value == CellFormulaValues.Array
+                    && IsSupportedArrayCall(ExcelWorksheetScan.FindFormula(candidate)!.Text)
+                    && TryFixedArrayBounds(ExcelWorksheetScan.FindFormula(candidate)!.Reference?.Value ?? "",
                         out int top, out int left, out int bottom, out int right)) {
                     bool dynamic = false;
                     if (candidate.CellMetaIndex != null) {
@@ -81,7 +81,7 @@ namespace OfficeIMO.Excel {
                 }
             }
             if (index.DynamicOwners.Count > 0)
-                foreach (Cell candidate in WorksheetRoot.Descendants<Cell>())
+                foreach (Cell candidate in ExcelWorksheetScan.Cells(WorksheetRoot))
                     if (TryParseCellReference(candidate.CellReference?.Value ?? "", out int row, out int column))
                         index.Cells[DynamicCellKey(row, column)] = candidate;
             return index;
@@ -109,7 +109,7 @@ namespace OfficeIMO.Excel {
 
         private bool TryEvaluateAuthoredFormulaCell(Cell cell, string formula, out FormulaArgumentValue result) {
             result = default;
-            if (cell.CellFormula?.FormulaType?.Value != CellFormulaValues.Array)
+            if (ExcelWorksheetScan.FindFormula(cell)?.FormulaType?.Value != CellFormulaValues.Array)
                 return TryEvaluateFormulaValue(formula, out result);
             if (!IsSupportedArrayCall(formula)) return TryEvaluateFormulaValue(formula, out result);
             FormulaArgumentValue previousError = _formulaReferenceError;
@@ -123,7 +123,7 @@ namespace OfficeIMO.Excel {
 
         private bool TryEvaluateAuthoredArrayFormulaCell(Cell cell, string formula, out FormulaArgumentValue result) {
             result = default;
-            string? reference = cell.CellFormula?.Reference?.Value;
+            string? reference = ExcelWorksheetScan.FindFormula(cell)?.Reference?.Value;
             if (reference == null || !TryFixedArrayBounds(reference,
                 out int r1, out int c1, out int r2, out int c2)
                 || !TryParseCellReference(cell.CellReference?.Value ?? "", out int row, out int column)
@@ -141,10 +141,10 @@ namespace OfficeIMO.Excel {
             // Imported or subsequently edited ranges can contain another formula.
             // Never replace that formula with an array cache.
             IEnumerable<Cell> formulaCells = _formulaEvaluationCache == null
-                ? WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null)
+                ? ExcelWorksheetScan.Cells(WorksheetRoot).Where(c => ExcelWorksheetScan.FindFormula(c) != null)
                 : GetFixedArraySheetIndex().FormulaCells;
             foreach (Cell occupied in formulaCells) {
-                if (occupied == cell || occupied.CellFormula == null) continue;
+                if (occupied == cell || ExcelWorksheetScan.FindFormula(occupied) == null) continue;
                 if (TryParseCellReference(occupied.CellReference?.Value ?? "", out int rr, out int cc)
                     && rr >= r1 && rr <= r2 && cc >= c1 && cc <= c2) return false;
             }

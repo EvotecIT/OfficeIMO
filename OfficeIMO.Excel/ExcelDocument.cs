@@ -359,7 +359,15 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Underlying Open XML spreadsheet document instance.
         /// </summary>
-        internal SpreadsheetDocument _spreadSheetDocument = null!;
+        internal SpreadsheetDocument _spreadSheetDocument {
+            get {
+                if (_pendingRowDeletes != null) FlushPendingRowDeletes();
+                return _spreadSheetDocumentValue;
+            }
+            set => _spreadSheetDocumentValue = value;
+        }
+
+        private SpreadsheetDocument _spreadSheetDocumentValue = null!;
 
         /// <summary>Gets the underlying Open XML package for advanced integration scenarios.</summary>
         public SpreadsheetDocument OpenXmlDocument {
@@ -370,7 +378,15 @@ namespace OfficeIMO.Excel {
         }
         private bool _openXmlDocumentExposed;
         internal bool IsOpenXmlDocumentExposed => _openXmlDocumentExposed;
-        private WorkbookPart _workBookPart = null!;
+        private WorkbookPart _workBookPart {
+            get {
+                if (_pendingRowDeletes != null) FlushPendingRowDeletes();
+                return _workBookPartValue;
+            }
+            set => _workBookPartValue = value;
+        }
+
+        private WorkbookPart _workBookPartValue = null!;
         private SharedStringTablePart? _sharedStringTablePart;
         private bool _sharedStringTableDirty;
         private Stream? _packageStream;
@@ -388,6 +404,7 @@ namespace OfficeIMO.Excel {
         private int _materializedDirectDataSetFastSaveModelPreservationDepth;
         private byte[]? _unchangedPackageBytesValue;
         private byte[]? _propertiesOnlySourceBytes;
+        private byte[]? _packageBaselineBytes;
 
         /// <summary>The package as last loaded or saved, while nothing has changed since.</summary>
         private byte[]? _unchangedPackageBytes {
@@ -395,6 +412,7 @@ namespace OfficeIMO.Excel {
             set {
                 _unchangedPackageBytesValue = value;
                 _propertiesOnlySourceBytes = null;
+                if (value != null) _packageBaselineBytes = value;
             }
         }
         private bool _simplePackageContentKnown;

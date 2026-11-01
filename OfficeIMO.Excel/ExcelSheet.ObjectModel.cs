@@ -44,9 +44,9 @@ namespace OfficeIMO.Excel {
                 return new ExcelCellData(ExcelCellDataKind.Blank, null);
             }
 
-            string? cached = ResolveRichValueError(cell, cell.CellValue?.Text);
+            string? cached = ResolveRichValueError(cell, ExcelWorksheetScan.FindValue(cell)?.Text);
             var type = cell.DataType?.Value;
-            if (cell.CellFormula != null) {
+            if (ExcelWorksheetScan.FindFormula(cell) != null) {
                 object? formulaValue = cached;
                 if (cached != null) {
                     if (type == DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean) {
@@ -60,10 +60,10 @@ namespace OfficeIMO.Excel {
                         formulaValue = cachedNumber;
                     }
                 }
-                return new ExcelCellData(ExcelCellDataKind.Formula, formulaValue, cell.CellFormula.Text, cached);
+                return new ExcelCellData(ExcelCellDataKind.Formula, formulaValue, ExcelWorksheetScan.FindFormula(cell)!.Text, cached);
             }
 
-            if (cell.CellValue == null && cell.InlineString == null) {
+            if (ExcelWorksheetScan.FindValue(cell) == null && cell.InlineString == null) {
                 return new ExcelCellData(ExcelCellDataKind.Blank, null);
             }
 
@@ -208,7 +208,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (clearValues && (cell.CellValue != null
+                if (clearValues && (ExcelWorksheetScan.FindValue(cell) != null
                     || cell.DataType != null
                     || cell.InlineString != null
                     || HasCellValueMetadata(cell))) {
@@ -219,7 +219,7 @@ namespace OfficeIMO.Excel {
                     changed = true;
                 }
 
-                if (clearFormulas && cell.CellFormula != null) {
+                if (clearFormulas && ExcelWorksheetScan.FindFormula(cell) != null) {
                     cell.CellFormula = null;
                     changed = true;
                 }

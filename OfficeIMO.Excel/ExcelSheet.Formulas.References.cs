@@ -709,8 +709,8 @@ namespace OfficeIMO.Excel {
         private FormulaArgumentValue ResolveCellArgument(int row, int column) {
             var cell = TryGetExistingCell(row, column);
             bool unresolvedFormula = false;
-            if (cell?.CellFormula != null && _formulaEvaluationCache != null) {
-                if (TryEvaluateFormulaCellValue(cell, out FormulaArgumentValue formulaResult)) {
+            if ((cell == null ? null : ExcelWorksheetScan.FindFormula(cell)) != null && _formulaEvaluationCache != null) {
+                if (TryEvaluateFormulaCellValue(cell!, out FormulaArgumentValue formulaResult)) {
                     return formulaResult.AsReferencedValue();
                 }
 
@@ -724,9 +724,9 @@ namespace OfficeIMO.Excel {
             }
 
             bool unevaluatedFormulaCache = unresolvedFormula
-                || (cell?.CellFormula != null && _formulaEvaluationCache == null);
+                || ((cell == null ? null : ExcelWorksheetScan.FindFormula(cell)) != null && _formulaEvaluationCache == null);
             return ResolveFormulaArgumentSnapshot(row, column, unresolvedFormula,
-                cell?.CellFormula == null, unevaluatedFormulaCache);
+                (cell == null ? null : ExcelWorksheetScan.FindFormula(cell)) == null, unevaluatedFormulaCache);
         }
 
         // Keep snapshot decoding and array-child lookup out of the recursive

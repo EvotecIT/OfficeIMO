@@ -19,13 +19,19 @@ namespace OfficeIMO.Excel {
         private readonly int _first;
         private readonly int _lastDeleted;
         private readonly int _delta;
+        private readonly int[]? _deletedRows;
 
-        private ExcelFormulaAxisShift(bool columns, int first, int lastDeleted, int delta) {
+        private ExcelFormulaAxisShift(bool columns, int first, int lastDeleted, int delta, int[]? deletedRows = null) {
             _columns = columns;
             _first = first;
             _lastDeleted = lastDeleted;
             _delta = delta;
+            _deletedRows = deletedRows;
         }
+
+        /// <summary>Applies a set of deleted rows at once; a reference ending on one of them is left to the grammar.</summary>
+        internal static ExcelFormulaAxisShift DeletedRows(int[] sortedRows) =>
+            new ExcelFormulaAxisShift(columns: false, sortedRows[0], 0, 0, sortedRows);
 
         internal static ExcelFormulaAxisShift Rows(int first, int? lastDeleted, int delta) =>
             new ExcelFormulaAxisShift(columns: false, first, lastDeleted ?? 0, delta);
@@ -79,7 +85,14 @@ namespace OfficeIMO.Excel {
 
                 int targetLow = low;
                 int targetHigh = high + _delta;
-                if (Deleting) {
+                if (_deletedRows != null) {
+                    int lowBelow = Array.BinarySearch(_deletedRows, low);
+                    int highBelow = Array.BinarySearch(_deletedRows, high);
+                    if (lowBelow >= 0 || highBelow >= 0) return false;
+                    targetLow = low - ~lowBelow;
+                    targetHigh = high - ~highBelow;
+                    if (targetHigh == high && targetLow == low) continue;
+                } else if (Deleting) {
                     if (low <= _lastDeleted) return false;
                     targetLow = low + _delta;
                 } else if (low >= _first) {

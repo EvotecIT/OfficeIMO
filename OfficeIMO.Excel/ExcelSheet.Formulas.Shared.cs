@@ -22,10 +22,10 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<Cell, (int Row, int Column)>? effectiveCoordinates = null,
             IEnumerable<Cell>? cells = null) {
             effectiveCoordinates ??= BuildEffectiveCellCoordinates();
-            cells ??= WorksheetRoot.Descendants<Cell>();
+            cells ??= ExcelWorksheetScan.Cells(WorksheetRoot);
             var definitions = new Dictionary<uint, SharedFormulaDefinition>();
             foreach (Cell cell in cells) {
-                CellFormula? cellFormula = cell.CellFormula;
+                CellFormula? cellFormula = ExcelWorksheetScan.FindFormula(cell);
                 if (cellFormula?.FormulaType?.Value != CellFormulaValues.Shared
                     || cellFormula.SharedIndex?.Value is not uint sharedIndex
                     || string.IsNullOrWhiteSpace(cellFormula.Text)
@@ -52,7 +52,7 @@ namespace OfficeIMO.Excel {
             Cell cell,
             IReadOnlyDictionary<uint, SharedFormulaDefinition>? sharedFormulaDefinitions = null,
             IReadOnlyDictionary<Cell, (int Row, int Column)>? effectiveCoordinates = null) {
-            CellFormula? cellFormula = cell.CellFormula;
+            CellFormula? cellFormula = ExcelWorksheetScan.FindFormula(cell);
             if (cellFormula == null) {
                 return string.Empty;
             }
@@ -111,7 +111,7 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions =
                 BuildSharedFormulaDefinitions(effectiveCoordinates);
             var formulas = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (Cell cell in WorksheetRoot.Descendants<Cell>().Where(candidate => candidate.CellFormula != null)) {
+            foreach (Cell cell in ExcelWorksheetScan.Cells(WorksheetRoot).Where(candidate => ExcelWorksheetScan.FindFormula(candidate) != null)) {
                 if (effectiveCoordinates.TryGetValue(cell, out var coordinate)) {
                     formulas[BuildCellReference(coordinate.Row, coordinate.Column)] =
                         ResolveCellFormulaText(cell, sharedFormulaDefinitions, effectiveCoordinates);
@@ -136,7 +136,7 @@ namespace OfficeIMO.Excel {
                 string text = ResolveCellFormulaText(cell, definitions, effectiveCoordinates);
                 if (string.IsNullOrWhiteSpace(text)) {
                     throw new InvalidOperationException(
-                        $"Cannot edit rows because shared formula group {cell.CellFormula!.SharedIndex!.Value} cannot be validated safely.");
+                        $"Cannot edit rows because shared formula group {ExcelWorksheetScan.FindFormula(cell)!.SharedIndex!.Value} cannot be validated safely.");
                 }
                 resolved.Add(text);
             }
@@ -202,7 +202,7 @@ namespace OfficeIMO.Excel {
                 BuildSharedFormulaDefinitions(effectiveCoordinates);
             var resolved = new List<(CellFormula Formula, string Text)>();
             foreach (Cell cell in sharedCells) {
-                CellFormula formula = cell.CellFormula!;
+                CellFormula formula = ExcelWorksheetScan.FindFormula(cell)!;
                 if (formula.SharedIndex?.Value is not uint sharedIndex) {
                     continue;
                 }

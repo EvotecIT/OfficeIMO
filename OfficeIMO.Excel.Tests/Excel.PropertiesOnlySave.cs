@@ -74,6 +74,44 @@ namespace OfficeIMO.Tests {
             Assert.Equal("After", text);
         }
 
+        [Fact]
+        public void Saving_a_loaded_workbook_twice_keeps_cell_edits_and_added_sheets() {
+            using var source = new MemoryStream();
+            using (var document = ExcelDocument.Create(source)) {
+                document.AddSheet("Edited").CellValue(1, 1, "Before");
+                document.AddSheet("Untouched").CellValue(1, 1, "Same");
+                document.Save(source);
+            }
+            byte[] original = source.ToArray();
+
+            using var cellEdit = new MemoryStream();
+            using (var document = ExcelDocument.Load(new MemoryStream(original))) {
+                document.Sheets[0].CellValue(1, 1, "After");
+                document.Save(cellEdit);
+            }
+
+            using var added = new MemoryStream();
+            using (var document = ExcelDocument.Load(new MemoryStream(cellEdit.ToArray()))) {
+                document.AddSheet("Added").CellValue(1, 1, "New");
+                document.Sheets[1].CellValue(2, 1, "Also");
+                document.Save(added);
+            }
+
+            added.Position = 0;
+            using (var package = SpreadsheetDocument.Open(added, isEditable: false)) {
+                Assert.Empty(new OpenXmlValidator().Validate(package));
+            }
+            added.Position = 0;
+            using var reopened = ExcelDocument.Load(added);
+            Assert.Equal(new[] { "Edited", "Untouched", "Added" }, reopened.Sheets.Select(sheet => sheet.Name));
+            Assert.True(reopened.Sheets[0].TryGetCellText(1, 1, out string edited));
+            Assert.Equal("After", edited);
+            Assert.True(reopened.Sheets[1].TryGetCellText(2, 1, out string also));
+            Assert.Equal("Also", also);
+            Assert.True(reopened.Sheets[2].TryGetCellText(1, 1, out string created));
+            Assert.Equal("New", created);
+        }
+
         private static bool IsCoreProperties(ZipArchiveEntry entry) =>
             entry.FullName.EndsWith("core.xml", StringComparison.Ordinal) || entry.FullName.EndsWith(".psmdcp", StringComparison.Ordinal);
 
