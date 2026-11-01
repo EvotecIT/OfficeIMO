@@ -231,6 +231,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CellValueBuffer_LargeSheetKeepsAFormatOnItsLastCells() {
+            const int rows = 15000;
+            using MemoryStream output = SaveWorkbook(document => {
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.CellValue(1, 1, "Header");
+                sheet.CellBold(1, 1);
+                WriteBufferedRows(sheet, firstRow: 2, rows);
+                sheet.FormatCell(rows + 1, 2, "0.000");
+            }, options: null);
+
+            using ExcelDocument reopened = ExcelDocument.Load(output);
+            Assert.Equal((uint)reopened.Sheets[0].EnumerateCells().Count(), (uint)(rows * 3 + 1));
+            Assert.Equal("0.000", reopened.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.NumberingFormats!
+                .Elements<NumberingFormat>().Single(format => format.NumberFormatId!.Value == FormatOf(reopened, "B" + (rows + 1)).NumberFormatId!.Value).FormatCode!.Value);
+        }
+
+        [Fact]
         public void CellValueBuffer_HoldsMoreFormatsThanTwelveBitsCanIndex() {
             const int formats = 4200;
             using MemoryStream output = SaveWorkbook(document => {

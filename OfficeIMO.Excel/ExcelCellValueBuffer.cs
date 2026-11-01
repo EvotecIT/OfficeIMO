@@ -243,7 +243,8 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Gets the workbook cell format of a cell; zero leaves it to its value.</summary>
         internal uint GetStyle(int cellIndex) {
-            uint[]? chunk = HasCellStyles ? _styleChunks[cellIndex >> StyleChunkBits] : null;
+            int chunkIndex = cellIndex >> StyleChunkBits;
+            uint[]? chunk = chunkIndex < _styleChunks.Length ? _styleChunks[chunkIndex] : null;
             return chunk == null ? 0U : chunk[cellIndex & StyleChunkMask];
         }
 
