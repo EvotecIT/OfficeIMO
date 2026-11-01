@@ -833,7 +833,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         whiteSpace == "pre" || whiteSpace == "nowrap";
 
     private void ApplyDefaultMargins(string tag, double fontSize, HtmlRenderBoxStyle style) {
-        if (tag == "body" && _options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser) {
+        if (tag == "body" && (_options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser || _options.UsesBrowserBodyMargin)) {
             style.MarginTop = 8D;
             style.MarginRight = 8D;
             style.MarginBottom = 8D;

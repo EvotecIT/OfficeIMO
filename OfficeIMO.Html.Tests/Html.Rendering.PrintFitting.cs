@@ -105,6 +105,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPdf_PrintLayoutWidthFitsWideRowsOnPhysicalA4() {
         const string html = """
+            <style>body{margin:0}</style>
             <div style="width:66.666%">
               <div style="display:flex;flex-wrap:wrap">
                 <div style="flex:none;width:310px;height:30px;background:#ff0000">FirstCard</div>

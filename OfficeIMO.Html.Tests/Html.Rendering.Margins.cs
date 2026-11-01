@@ -118,8 +118,21 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlMargins_PdfKeepsBrowserBodyInsetUnlessAuthorResetsIt() {
+        static double FirstWordX(string html) {
+            var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D), HonorCssPageRules = false };
+            PdfCore.PdfLogicalTextBlock block = PdfCore.PdfDocumentReadResult.Load(
+                HtmlConversionDocument.Parse(html).ToPdf(options).ToBytes()).Pages[0].TextBlocks[0];
+            return block.XStart;
+        }
+
+        Assert.Equal(6D, FirstWordX("<div>Inset</div>"), 1);
+        Assert.Equal(0D, FirstWordX("<style>body{margin:0}</style><div>Inset</div>"), 1);
+    }
+
+    [Fact]
     public void HtmlMargins_AdjacentBlockMarginsCollapseWithNegativeValuesAcrossBackends() {
-        const string html = "<div id='container' style='width:50px;margin:0'>"
+        const string html = "<style>body{margin:0}</style><div id='container' style='width:50px;margin:0'>"
             + "<div id='first' style='width:20px;height:10px;margin:0 0 20px;background:#ff0000'></div>"
             + "<div id='second' style='width:20px;height:10px;margin:-5px 0 8px;background:#0000ff'></div>"
             + "<div id='third' style='width:40px;height:10px;margin:12px 0 0;background:#00ff00;font-size:6px;line-height:8px'>GapPdf</div>"

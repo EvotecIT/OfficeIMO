@@ -3569,6 +3569,10 @@ The HTML engine gives `p` elements browser-default margins of `1em` above and
 below, with adjacent margin collapse. Explicit CSS overrides these defaults.
 Use `p { margin-top: 0 }` to keep the previous top spacing.
 
+## HTML-to-PDF body margin
+
+`new HtmlToPdfOptions()`, and the conversions that start from it, keep the browser's eight CSS-pixel `body` margin, so pages wrap as they do in a browser. Add `body{margin:0}` to keep the previous edge-to-edge layout. Image export, the render scene and editable projections still use an uninset body in `Document` user-agent mode.
+
 ## Word new-document defaults
 
 New documents take their heading styles from the default `OfficeTheme`: Heading 1
