@@ -149,7 +149,7 @@ internal static partial class PdfWriter {
 
             OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.CreateWithMetrics(text, width, height, textMetrics);
             double clipX = contentX, clipWidth = width;
-            if (!text.WrapText && text.Paragraphs.Count > 0) {
+            if ((!text.WrapText || text.NativePublisherFrame) && text.Paragraphs.Count > 0) {
                 var paint = OfficeDrawingTextLayout.HorizontalPaintEnvelope(layout, textMetrics.MeasureSegmentHorizontalPaintBounds);
                 double left = Math.Min(0D, paint.Left), right = Math.Max(width, paint.Right);
                 clipX += left;

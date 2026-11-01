@@ -308,7 +308,8 @@ public static partial class OfficeTextLayoutEngine {
         bool inputTruncated,
         CancellationToken cancellationToken,
         bool hardBreakStartsParagraph = true, OfficeTextTabStops? tabStops = null,
-        OfficeTextTabLeaderLayout.Budget? leaderBudget = null) {
+        OfficeTextTabLeaderLayout.Budget? leaderBudget = null, IReadOnlyList<int>? nativeFlowLineEnds = null,
+        IReadOnlyList<OfficeTextTabPlacement>? nativeFlowTabs = null, double nativeFlowScale = 1D) {
         cancellationToken.ThrowIfCancellationRequested();
         double width = NormalizeNonNegative(maxWidth);
         double height = NormalizeNonNegative(maxHeight);
@@ -326,10 +327,13 @@ public static partial class OfficeTextLayoutEngine {
         bool processingStopped = false;
 
         IEnumerable<RichTextToken> sourceTokens = CreateRichTextTokens(runs, cancellationToken, preserveTabs: tabStops != null);
+        if (nativeFlowLineEnds != null) sourceTokens = ApplyNativeFlowLineEnds(sourceTokens, nativeFlowLineEnds, cancellationToken);
         if (measure.UsesPublisherContext) sourceTokens = CombineContextWords(sourceTokens, cancellationToken);
         IReadOnlyList<RichTextToken>? tabTokens = tabStops == null ? null : new List<RichTextToken>(sourceTokens);
         int tokenIndex = 0;
         leaderBudget ??= new OfficeTextTabLeaderLayout.Budget();
+        int sourceLength = 0;
+        if (nativeFlowLineEnds != null) foreach (var run in runs) sourceLength += run.Text.Length;
         foreach (RichTextToken token in (IEnumerable<RichTextToken>?)tabTokens ?? sourceTokens) {
             int currentToken = tokenIndex++;
             cancellationToken.ThrowIfCancellationRequested();
@@ -357,9 +361,15 @@ public static partial class OfficeTextLayoutEngine {
             }
 
             if (token.IsTab && tabStops != null) {
-                double advance = ResolveTabAdvance(tabStops, builder.OffsetX + builder.Width, tabTokens!, currentToken, measure, cancellationToken, out OfficeTextTabStop? selectedStop);
+                OfficeTextTabPlacement? retainedTab = FindNativeTab(nativeFlowTabs, token.SourceEnd);
+                double advance;
+                OfficeTextTabStop? selectedStop;
+                if (retainedTab is { } retained) {
+                    advance = retained.Advance * nativeFlowScale;
+                    selectedStop = retained.StopIndex >= 0 && retained.StopIndex < tabStops.Stops.Count ? tabStops.Stops[retained.StopIndex] : null;
+                } else advance = ResolveTabAdvance(tabStops, builder.OffsetX + builder.Width, tabTokens!, currentToken, measure, cancellationToken, out selectedStop);
                 double room = Math.Max(0, width - builder.OffsetX - builder.Width);
-                if (double.IsInfinity(advance) || advance > room) {
+                if (!retainedTab.HasValue && (double.IsInfinity(advance) || advance > room)) {
                     clipped = true;
                     if (wrap && !builder.IsEmpty) {
                         if (!AddRichTextLine(lines, builder)) { processingStopped = true; break; }
@@ -370,6 +380,10 @@ public static partial class OfficeTextLayoutEngine {
                     if (double.IsInfinity(advance) || advance > room) advance = 0;
                 }
                 bool leaderLimited = builder.AddTabAdvance(token.Run, advance, selectedStop, leaderBudget, cancellationToken);
+                int stopIndex = -1;
+                for (int i = 0; selectedStop != null && i < tabStops.Stops.Count; i++)
+                    if (ReferenceEquals(selectedStop, tabStops.Stops[i])) { stopIndex = i; break; }
+                builder.RetainNativeTab(token.SourceEnd, advance, stopIndex);
                 builder.SourceTextEnd = token.SourceEnd;
                 clipped |= leaderLimited && leaderBudget.ReportClipping;
                 atParagraphStart = false;
@@ -385,6 +399,14 @@ public static partial class OfficeTextLayoutEngine {
 
             double tokenWidth = MeasureRichToken(token, measure);
             double availableWidth = Math.Max(0D, width - builder.OffsetX);
+            // A wrapped region can consume a space without painting it. Keep
+            // that source endpoint when replaying its selected final line.
+            if (nativeFlowLineEnds != null && token.IsWhitespace && !builder.IsEmpty
+                && builder.MeasureWidthAfter(token) > availableWidth
+                && (token.SourceEnd == sourceLength || ContainsSourceEnd(nativeFlowLineEnds, token.SourceEnd))) {
+                builder.SourceTextEnd = token.SourceEnd;
+                continue;
+            }
             if (wrap && builder.MeasureWidthAfter(token) > availableWidth && !builder.IsEmpty) {
                 if (!AddRichTextLine(lines, builder)) {
                     clipped = true;
@@ -471,27 +493,38 @@ public static partial class OfficeTextLayoutEngine {
         OfficeTextParagraphIndent paragraphIndent,
         CancellationToken cancellationToken) {
         int sourceEnd = token.SourceStart;
-        foreach (RichTextToken part in token.Parts ?? new[] { token })
-        foreach (string textElement in OfficeTextElements.Enumerate(part.Text)) {
+        using var elements = BrokenTokenElements(token).GetEnumerator();
+        bool hasCurrent = elements.MoveNext();
+        while (hasCurrent) {
+            var current = elements.Current;
+            hasCurrent = elements.MoveNext();
+            var following = hasCurrent ? elements.Current : default;
             cancellationToken.ThrowIfCancellationRequested();
             if (lines.Count >= MaximumLayoutLines) {
                 builder.Clear();
                 return false;
             }
             double availableWidth = Math.Max(0D, maxWidth - builder.OffsetX);
-            if (builder.MeasureWidthAfter(part.Run, textElement) > availableWidth && !builder.IsEmpty) {
+            double fittingWidth = builder.MeasureFittingWidthAfter(current.Run, current.Text, following.Run, following.Text);
+            if (fittingWidth > availableWidth && !builder.IsEmpty) {
                 if (!AddRichTextLine(lines, builder)) {
                     return false;
                 }
                 builder.SetOffset(ResolveLineOffset(paragraphIndent, firstVisualLine: false));
+                fittingWidth = builder.MeasureFittingWidthAfter(current.Run, current.Text, following.Run, following.Text);
             }
 
-            builder.Add(part.Run, textElement);
-            sourceEnd += textElement.Length;
+            builder.AddFitted(current.Run, current.Text, fittingWidth);
+            sourceEnd += current.Text.Length;
             builder.SourceTextEnd = sourceEnd;
         }
 
         return true;
+    }
+
+    private static IEnumerable<(OfficeRichTextRun Run, string Text)> BrokenTokenElements(RichTextToken token) {
+        foreach (RichTextToken part in token.Parts ?? new[] { token })
+            foreach (string text in OfficeTextElements.Enumerate(part.Text)) yield return (part.Run, text);
     }
 
     private static bool AddRichTextLine(List<OfficeRichTextLine> lines, RichTextLineBuilder builder) {

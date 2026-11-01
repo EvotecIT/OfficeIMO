@@ -98,6 +98,97 @@
         "V"
       ],
       "sourceSha256": "17c77178e186baa67c2766648b8fa3d9a33b921044b4188444324e47ddf5b03c"
+    },
+    {
+      "name": "native-avav-center-14-5.pub",
+      "sha256": "fe8eedbe6f7221985834192e269d893709009202861e521250b33573eb41a056",
+      "sourceFixture": "../Text/native-text.pub",
+      "frameWidthPoints": 14.5,
+      "role": "Native fitting and paragraph alignment",
+      "sourceFixtureSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+      "controlledInputSha256": "5f908bc0b3da8fbf862b8d7f0ca5047f0f0245626badf57bad102dde1f3c836d"
+    },
+    {
+      "name": "native-avav-center-14-5.pdf",
+      "sha256": "1a29f8008e947047317b4a499549e690de234dc52485e8f668fb5cbd4d724b64",
+      "sourceFixture": "../Text/native-text.pub",
+      "frameWidthPoints": 14.5,
+      "role": "Native fitting and paragraph alignment",
+      "sourceFixtureSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+      "controlledInputSha256": "5f908bc0b3da8fbf862b8d7f0ca5047f0f0245626badf57bad102dde1f3c836d"
+    },
+    {
+      "name": "native-avav-right-14-5.pub",
+      "sha256": "0013dead052c448a4d78d524972163a205b14187a567da1db9aba7234ce1cb4c",
+      "sourceFixture": "../Text/native-text.pub",
+      "frameWidthPoints": 14.5,
+      "role": "Native fitting and paragraph alignment",
+      "sourceFixtureSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+      "controlledInputSha256": "a4dcb7e9239f85acc75aaa45e142ea70e3b8c0dbcc35841aecb22a995cab8a2e"
+    },
+    {
+      "name": "native-avav-right-14-5.pdf",
+      "sha256": "e723c7d9141feb8d9164dc95a15d5f890962ae7425bc3c5e9f22766d53fc0e31",
+      "sourceFixture": "../Text/native-text.pub",
+      "frameWidthPoints": 14.5,
+      "role": "Native fitting and paragraph alignment",
+      "sourceFixtureSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+      "controlledInputSha256": "a4dcb7e9239f85acc75aaa45e142ea70e3b8c0dbcc35841aecb22a995cab8a2e"
+    },
+    {
+      "name": "native-linked-avav-14-5.pub",
+      "sha256": "62d2dad6051d912c7fbfca2ade067be291488eee349a2992ea6eaa094afbbf7a",
+      "sourceFixture": "../Newsletter/native-newsletter.pub",
+      "frameWidthPoints": 14.5,
+      "role": "Linked continuation across two pages",
+      "sourceFixtureSha256": "def04c4f03de132d9b0f652e3acf63ce7340e3057e2e70738ae255a89e6a2c83",
+      "controlledInputSha256": "fcadd18999b22f170265951006a7359c46feb6272a388113661b350d635fe561"
+    },
+    {
+      "name": "native-linked-avav-14-5.pdf",
+      "sha256": "4b3b4de8758209c4fb04782bb390b4bee3a8f3fecbe1525b9242396cc64a63d6",
+      "sourceFixture": "../Newsletter/native-newsletter.pub",
+      "frameWidthPoints": 14.5,
+      "role": "Linked continuation across two pages",
+      "sourceFixtureSha256": "def04c4f03de132d9b0f652e3acf63ce7340e3057e2e70738ae255a89e6a2c83",
+      "controlledInputSha256": "fcadd18999b22f170265951006a7359c46feb6272a388113661b350d635fe561"
+    },
+    {
+      "name": "native-av-center-14-5.pub",
+      "sha256": "0690907e249d0b41dbe317fc0b14f2ac7c559f655df6af41004b6ff2b36ee0bf",
+      "sourceFixture": "../Text/native-text.pub",
+      "frameWidthPoints": 14.5,
+      "role": "Native fitting and paragraph alignment",
+      "sourceFixtureSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+      "controlledInputSha256": "f0b8c3b8b515335a447d2df3969878d60861d4e50a3f9c11738a689b7518a9aa"
+    },
+    {
+      "name": "native-av-center-14-5.pdf",
+      "sha256": "c1e7bd3d4f5814103bf83063e7160379376c8eb66def9e72857cccb4e4eb6edd",
+      "sourceFixture": "../Text/native-text.pub",
+      "frameWidthPoints": 14.5,
+      "role": "Native fitting and paragraph alignment",
+      "sourceFixtureSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+      "controlledInputSha256": "f0b8c3b8b515335a447d2df3969878d60861d4e50a3f9c11738a689b7518a9aa"
+    },
+    {
+      "name": "native-av-right-14-5.pub",
+      "sha256": "faa9f00491c3c8736b8e5976c08574a1ada67126a2e38e8d6ef975eafba27a74",
+      "sourceFixture": "../Text/native-text.pub",
+      "frameWidthPoints": 14.5,
+      "role": "Native fitting and paragraph alignment",
+      "sourceFixtureSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+      "controlledInputSha256": "486efcb114580656bdb6a22435f9e8e2907a0432dd2dfe6953787355e18f1615"
+    },
+    {
+      "name": "native-av-right-14-5.pdf",
+      "sha256": "51ee4c072309be25d4c0b3dab076dd71223abf51400c17b34c1bbe9a594e5704",
+      "sourceFixture": "../Text/native-text.pub",
+      "frameWidthPoints": 14.5,
+      "role": "Native fitting and paragraph alignment",
+      "sourceFixtureSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+      "controlledInputSha256": "486efcb114580656bdb6a22435f9e8e2907a0432dd2dfe6953787355e18f1615"
     }
-  ]
+  ],
+  "alignmentAndContinuation": "Five additional controls cover AVAV center/right, AV center/right, and AVAV continuation through two native frames on separate pages. A and V retain first-line admission alignment while visible-line shaping removes the pair against the following line. Linked first frame(54,54,14.5,14) consumes AV; second frame(54,114,14.5,40) consumes A/V and the terminal paragraph marker. Source story has five UTF-16 characters including the terminal newline."
 }

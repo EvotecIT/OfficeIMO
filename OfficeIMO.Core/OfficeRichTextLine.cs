@@ -15,11 +15,17 @@ public sealed class OfficeRichTextLine {
     // Content extent controls fitting/alignment; LineHeight remains the advance.
     internal double? ContentHeight { get; set; }
     internal double? BaselineOffset { get; set; }
+    // Native broken-word admission can retain a lookahead pair that is absent
+    // from the final painted line. Bounds precede paragraph alignment.
+    internal (double Left, double Right)? FittingBounds { get; set; }
+    internal IReadOnlyList<OfficeTextTabPlacement> NativeTabs { get; set; } = Array.Empty<OfficeTextTabPlacement>();
 
     internal OfficeRichTextLine WithPlacement(IReadOnlyList<OfficeRichTextSegment> segments, double advance, double offset) =>
         new OfficeRichTextLine(segments, advance, offset) {
             SourceTextEnd = SourceTextEnd, CompletesSource = CompletesSource,
             ContentHeight = ContentHeight, BaselineOffset = BaselineOffset,
+            FittingBounds = FittingBounds,
+            NativeTabs = NativeTabs,
             RenderTokens = ReferenceEquals(segments, Segments) ? RenderTokens : null
         };
     // Native layout snapshots retain exact word/space advances for every output backend.

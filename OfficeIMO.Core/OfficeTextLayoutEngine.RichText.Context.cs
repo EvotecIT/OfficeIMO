@@ -60,6 +60,24 @@ public static partial class OfficeTextLayoutEngine {
             return width;
         }
 
+        internal double MeasureFittingWidthAfter(OfficeRichTextRun run, string text,
+            OfficeRichTextRun? followingRun, string? followingText) {
+            if (!_measure.UsesPublisherContext || followingRun == null || followingText == null)
+                return MeasureWidthAfter(run, text);
+            var candidate = new RichTextLineBuilder(_measure) { Width = Width };
+            candidate._segments.AddRange(_segments);
+            candidate.Add(run, text);
+            int length = 0;
+            foreach (var segment in candidate._segments) length += segment.Text.Length;
+            candidate.Add(followingRun, followingText);
+            return candidate.MeasurePrefix(length);
+        }
+
+        internal void AddFitted(OfficeRichTextRun run, string text, double fittingWidth) {
+            Add(run, text);
+            if (_measure.UsesPublisherContext) _fittingWidth = fittingWidth;
+        }
+
         private ContextPlan ContextCandidate(OfficeRichTextRun run, string text) {
             if (_pendingContext is { } pending && ReferenceEquals(pending.Run, run) && pending.Text == text) return pending;
             int start = _segments.Count;

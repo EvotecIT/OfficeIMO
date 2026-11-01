@@ -107,4 +107,29 @@ public sealed class PdfDrawingRichKerningTests {
         Assert.Equal(letters[0].FontName, letters[1].FontName);
     }
 
+    [Fact]
+    public void Native_fitted_line_keeps_searchable_glyph_ink_beyond_its_admission_width() {
+        var fonts = new OfficeFontFaceCollection().Add(Family,
+            ManagedTextShapingTestAssets.CreateFontWithKerning('A', 'V', -200, reciprocal: true));
+        var metrics = new OfficeRasterCanvas(new OfficeRasterImage(1, 1), fonts: fonts).CreateDrawingTextMetrics();
+        var paragraph = new OfficeRichTextParagraph(new[] {
+            new OfficeRichTextRun("A", 20, OfficeColor.Red, fontFamily: Family).WithAutomaticPairKerningThreshold(8),
+            new OfficeRichTextRun("VAV", 20, OfficeColor.Blue, fontFamily: Family).WithAutomaticPairKerningThreshold(0)
+        }) { UsesPublisherKerningContext = true };
+        var selected = new OfficeRichTextFlow(new[] { paragraph }, _ => { }).Take(12.5, 24, metrics, default);
+        var drawing = new OfficeDrawing(100, 80).AddRichTextParagraphs(selected, 10, 10, 12.5, 24);
+        ((OfficeDrawingRichText)drawing.Elements[0]).NativePublisherFrame = true;
+        drawing.Fonts.AddRange(fonts);
+        byte[] bytes = Write(drawing);
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        var letters = pdf.GetPage(1).Letters;
+        Assert.Equal("AV", string.Concat(letters.Select(letter => letter.Value)));
+        Assert.Equal(16, letters[1].StartBaseLine.X, 3);
+        Assert.Equal(letters[0].StartBaseLine.Y, letters[1].StartBaseLine.Y, 3);
+        var read = PdfReadDocument.Open(bytes);
+        var raster = OfficeDrawingRasterRenderer.Render(read.Pages[0].ToDrawing(), background: OfficeColor.White);
+        // The frame ends at22.5; V's visible rectangle reaches24.
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(23, 20));
+    }
+
 }

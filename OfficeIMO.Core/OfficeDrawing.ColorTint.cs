@@ -48,6 +48,7 @@ public sealed partial class OfficeDrawing {
                     tinted.ContinuesInNextRegion = paragraph.ContinuesInNextRegion;
                     tinted.UsesPublisherFontMetrics = paragraph.UsesPublisherFontMetrics;
                     tinted.UsesPublisherKerningContext = paragraph.UsesPublisherKerningContext;
+                    tinted.NativeFlowPlan = paragraph.NativeFlowPlan;
                     paragraphs.Add(tinted);
                 }
                 replacement = new OfficeDrawingRichText(

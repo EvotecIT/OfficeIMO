@@ -196,15 +196,22 @@ internal static partial class OfficeDrawingTextLayout {
                 run.Underline, run.FontFamily, run.Strikethrough, run.BackgroundColor, run.UnderlineStyle,
                 run.StrikethroughStyle, run.Baseline, run.ParagraphIndent?.Scale(scale)) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold * scale, LanguageId = run.LanguageId, LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName });
         }
-        OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlockWithMetrics(runs,
+        OfficeRichTextMeasurement paragraphMeasure = paragraph.UsesPublisherKerningContext ? measure.ForPublisherContext() : measure;
+        OfficeTextTabStops? scaledTabs = paragraph.TabStops?.Scale(scale, originalLeft - margin.Left, fontScale);
+        bool replayFlow = wrap && paragraph.NativeFlowPlan != null && fontScale == 1D
+            && Math.Abs(availableWidth - paragraph.NativeFlowPlan.AvailableWidth * scale) <= .000001D;
+        OfficeRichTextBlockLayout layout = replayFlow
+            ? OfficeTextLayoutEngine.LayoutNativeFlowLines(runs, availableWidth, paragraph.LineHeightFactor ?? 1.2D,
+                paragraphMeasure, indent, scaledTabs, leaderBudget, paragraph.NativeFlowPlan!, scale, cancellationToken)
+            : OfficeTextLayoutEngine.LayoutRichTextBlockWithMetrics(runs,
             availableWidth, double.MaxValue, paragraph.LineHeightFactor ?? 1.2D,
-            paragraph.UsesPublisherKerningContext ? measure.ForPublisherContext() : measure, wrap,
+            paragraphMeasure, wrap,
             overflowBehavior: OfficeTextOverflowBehavior.Clip, paragraphIndent: indent, measurePaint: measurePaint,
-            hardBreakStartsParagraph: false, tabStops: paragraph.TabStops?.Scale(scale, originalLeft - margin.Left, fontScale),
+            hardBreakStartsParagraph: false, tabStops: scaledTabs,
             cancellationToken: cancellationToken, leaderBudget: leaderBudget);
         if (paragraph.UsesPublisherFontMetrics && measurePublisherFont != null)
             layout = ApplyPublisherLineGeometry(layout, runs, paragraph, measurePublisherFont, scale, label);
-        clipped |= layout.Clipped && (reportUnwrappedWidthOverflow || !layout.OnlyUnwrappedWidthOverflow);
+        clipped |= layout.Clipped && (reportUnwrappedWidthOverflow && !replayFlow || !layout.OnlyUnwrappedWidthOverflow);
         return new MeasuredParagraph(layout, margin, indent, label);
     }
 
@@ -217,12 +224,16 @@ internal static partial class OfficeDrawingTextLayout {
         if (!tabbedLine && OfficeTextBlockRenderer.ShouldJustifyRichTextLine(line, index,
             measured.Layout.Lines.Count + (paragraph.ContinuesInNextRegion ? 1 : 0), lineWidth, alignment))
             segments = JustifiedSegments(line, lineWidth, measure);
-        double alignmentOffset = wrap ? OfficeTextPlacement.ResolveLineLeft(0, lineWidth, line.Width, alignment) :
+        double alignmentWidth = line.FittingBounds.HasValue ? line.FittingBounds.Value.Right - line.FittingBounds.Value.Left : line.Width;
+        double alignmentOffset = wrap ? OfficeTextPlacement.ResolveLineLeft(0, lineWidth, alignmentWidth, alignment) :
             OfficeTextPlacement.ResolveLeftFromAnchor(OfficeTextPlacement.ResolveAnchorX(0, lineWidth, alignment), line.Width, alignment);
         double offset = measured.Margins.Left + line.OffsetX + (tabbedLine && !paragraph.TabStops!.AlignWithParagraph ? 0 : alignmentOffset);
         if (alignment == OfficeTextAlignment.Justify) offset = measured.Margins.Left + line.OffsetX;
         var placed = line.WithPlacement(segments, lineHeight, offset);
         OfficeRichTextLine result = index == 0 && measured.Label != null ? AddParagraphLabel(placed, measured.Label, lineHeight) : placed;
+        result.FittingBounds = paragraph.Label == null && line.FittingBounds.HasValue
+            ? (measured.Margins.Left + alignmentOffset + line.FittingBounds.Value.Left,
+                measured.Margins.Left + alignmentOffset + line.FittingBounds.Value.Right) : null;
         if (line.RenderTokens != null && result.RenderTokens == null)
             result.RenderTokens = OfficeTextBlockRenderer.CreateRichTextRenderTokens(result, measure);
         result.SourceTextEnd = line.SourceTextEnd;

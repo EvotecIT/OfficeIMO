@@ -12,6 +12,9 @@ public sealed class OfficeRichTextParagraph {
     internal bool UsesPublisherFontMetrics { get; set; }
     // Native source layout uses the first setting in each qualified font/line context.
     internal bool UsesPublisherKerningContext { get; set; }
+    // A native region has already selected these exclusive source endpoints.
+    // Reflowing its shortened last word could change that selection.
+    internal OfficeRichTextFlowPlan? NativeFlowPlan { get; set; }
     /// <summary>Creates a paragraph with independent alignment, line spacing, margins and indentation.</summary>
     /// <param name="runs">Styled inline content. The collection and runs are copied.</param>
     /// <param name="alignment">Horizontal alignment within the paragraph's margins.</param>
@@ -84,6 +87,7 @@ public sealed class OfficeRichTextParagraph {
         copy.ContinuesInNextRegion = ContinuesInNextRegion;
         copy.UsesPublisherFontMetrics = UsesPublisherFontMetrics;
         copy.UsesPublisherKerningContext = UsesPublisherKerningContext;
+        copy.NativeFlowPlan = ReferenceEquals(tabStops, TabStops) ? NativeFlowPlan : null;
         return copy;
     }
 

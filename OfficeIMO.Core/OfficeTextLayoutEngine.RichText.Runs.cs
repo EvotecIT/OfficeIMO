@@ -262,6 +262,8 @@ public static partial class OfficeTextLayoutEngine {
         internal bool IsEmpty => _segments.Count == 0;
 
         internal double Width { get; private set; }
+        private double? _fittingWidth;
+        private List<OfficeTextTabPlacement>? _nativeTabs;
 
         internal double OffsetX { get; private set; }
         internal int SourceTextEnd { get; set; }
@@ -285,6 +287,7 @@ public static partial class OfficeTextLayoutEngine {
             if (string.IsNullOrEmpty(text)) {
                 return;
             }
+            _fittingWidth = null;
 
             if (_measure.UsesPublisherContext) {
                 var candidate = ContextCandidate(run, text);
@@ -308,6 +311,7 @@ public static partial class OfficeTextLayoutEngine {
         }
 
         internal void AddAdvance(OfficeRichTextRun run, double width) {
+            _fittingWidth = null;
             _pendingContext = null;
             // A separate empty segment advances every renderer without painting a tab glyph,
             // and prevents kerning or run merging across the tab boundary.
@@ -333,13 +337,22 @@ public static partial class OfficeTextLayoutEngine {
             return paint.Limited || lineLimited;
         }
 
+        internal void RetainNativeTab(int sourceEnd, double advance, int stopIndex) {
+            if (_measure.UsesPublisherContext) (_nativeTabs ??= new List<OfficeTextTabPlacement>())
+                .Add(new OfficeTextTabPlacement(sourceEnd, advance, stopIndex));
+        }
+
         internal OfficeRichTextLine ToLine() {
             var line = new OfficeRichTextLine(new List<OfficeRichTextSegment>(_segments), offsetX: OffsetX) { SourceTextEnd = SourceTextEnd };
+            if (_fittingWidth.HasValue) line.FittingBounds = (OffsetX, OffsetX + _fittingWidth.Value);
+            if (_nativeTabs != null) line.NativeTabs = new List<OfficeTextTabPlacement>(_nativeTabs).AsReadOnly();
             if (_measure.UsesPublisherContext) line.RenderTokens = OfficeTextBlockRenderer.CreateRichTextRenderTokens(line, _measure);
             return line;
         }
 
         internal void Clear() {
+            _fittingWidth = null;
+            _nativeTabs?.Clear();
             _pendingContext = null;
             _segments.Clear();
             Width = 0D;

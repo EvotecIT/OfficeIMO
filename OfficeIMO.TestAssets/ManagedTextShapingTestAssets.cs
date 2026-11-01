@@ -58,12 +58,12 @@ internal static partial class ManagedTextShapingTestAssets {
     internal static byte[] CreateFontWithInkedNotdef() =>
         CreateFontFromCmap(CreateFormat12Cmap(new[] { (int)'A' }), inkedNotdef: true);
 
-    internal static byte[] CreateFontWithKerning(int leftScalar, int rightScalar, short adjustment, bool includeSpace = false) {
+    internal static byte[] CreateFontWithKerning(int leftScalar, int rightScalar, short adjustment, bool includeSpace = false, bool reciprocal = false) {
         if (leftScalar == rightScalar) throw new ArgumentException("Kerning test scalars must be distinct.", nameof(rightScalar));
         return CreateFontFromCmap(
             CreateFormat12Cmap(leftScalar, 1, rightScalar, 2, includeSpace ? 32 : null, 3),
             glyphCount: includeSpace ? 4 : 3,
-            kern: CreateKernTable(1, 2, adjustment));
+            kern: CreateKernTable(1, 2, adjustment, reciprocal));
     }
 
     internal static byte[] CreateFontWithLigature(int firstScalar, int secondScalar, string featureTag = "liga", string? scriptTag = null, ushort lookupFlags = 0, bool blankSpace = false) {
@@ -787,16 +787,22 @@ internal static partial class ManagedTextShapingTestAssets {
         return data;
     }
 
-    private static byte[] CreateKernTable(ushort leftGlyph, ushort rightGlyph, short adjustment) {
-        var data = new byte[24];
+    private static byte[] CreateKernTable(ushort leftGlyph, ushort rightGlyph, short adjustment, bool reciprocal = false) {
+        var data = new byte[reciprocal ? 30 : 24];
         WriteUInt16(data, 2, 1);
-        WriteUInt16(data, 6, 20);
+        WriteUInt16(data, 6, (ushort)(data.Length - 4));
         WriteUInt16(data, 8, 1);
-        WriteUInt16(data, 10, 1);
-        WriteUInt16(data, 12, 6);
+        WriteUInt16(data, 10, reciprocal ? (ushort)2 : (ushort)1);
+        WriteUInt16(data, 12, reciprocal ? (ushort)12 : (ushort)6);
+        WriteUInt16(data, 14, reciprocal ? (ushort)1 : (ushort)0);
         WriteUInt16(data, 18, leftGlyph);
         WriteUInt16(data, 20, rightGlyph);
         WriteUInt16(data, 22, unchecked((ushort)adjustment));
+        if (reciprocal) {
+            WriteUInt16(data, 24, rightGlyph);
+            WriteUInt16(data, 26, leftGlyph);
+            WriteUInt16(data, 28, unchecked((ushort)adjustment));
+        }
         return data;
     }
 

@@ -59,12 +59,18 @@ internal sealed class OfficeRichTextFlow {
             int consumed = 0;
             bool sourceEndVisible = false;
             double measuredHeight = 0D, completedHeight = 0D;
+            var selectedLines = source.UsesPublisherKerningContext ? new List<(int SourceEnd, double? FittingWidth)>() : null;
+            var selectedTabs = source.UsesPublisherKerningContext ? new List<OfficeTextTabPlacement>() : null;
             foreach (OfficeRichTextLine line in layout.Lines) {
                 // Ordinary drawing wrapping may force an indivisible glyph onto
                 // a narrow line. Flow must retain it for a region that can hold it.
-                if (line.OffsetX < -.000001D || line.OffsetX + line.Width > width - tail.Margins.Right + .000001D) break;
+                var fitting = line.FittingBounds ?? (line.OffsetX, line.OffsetX + line.Width);
+                if (fitting.Item1 < -.000001D || fitting.Item2 > width - tail.Margins.Right + .000001D) break;
                 measuredHeight += OfficeTextBlockRenderer.ResolveRichTextRenderLineHeight(line, layout.LineHeight);
                 consumed = Math.Max(consumed, line.SourceTextEnd);
+                if (line.SourceTextEnd > 0 || line.CompletesSource) selectedLines?.Add((line.SourceTextEnd,
+                    line.FittingBounds.HasValue ? line.FittingBounds.Value.Right - line.FittingBounds.Value.Left : null));
+                selectedTabs?.AddRange(line.NativeTabs);
                 sourceEndVisible |= line.CompletesSource;
                 if (line.CompletesSource) completedHeight = measuredHeight + tail.Margins.Bottom;
             }
@@ -73,7 +79,10 @@ internal sealed class OfficeRichTextFlow {
             // An empty paragraph still consumes a printable line; outer margin
             // gaps alone do not establish that the empty line fitted.
             if (consumed == 0 && !complete) break;
-            visible.Add(Slice(source, _offset, consumed, complete));
+            var selected = Slice(source, _offset, consumed, complete);
+            if (selectedLines != null) selected.NativeFlowPlan = new OfficeRichTextFlowPlan(width - source.Margins.Horizontal,
+                selectedLines.AsReadOnly(), selectedTabs!.AsReadOnly());
+            visible.Add(selected);
             CharacterPosition = checked(CharacterPosition + consumed);
             _offset += consumed;
             // Layout omits an after-gap that does not fit. Still account for
@@ -94,7 +103,9 @@ internal sealed class OfficeRichTextFlow {
             trimmed.ContinuesInNextRegion = last.ContinuesInNextRegion;
             trimmed.UsesPublisherFontMetrics = last.UsesPublisherFontMetrics;
             trimmed.UsesPublisherKerningContext = last.UsesPublisherKerningContext;
-            visible[visible.Count - 1] = trimmed.WithTabStops(last.TabStops);
+            trimmed = trimmed.WithTabStops(last.TabStops);
+            trimmed.NativeFlowPlan = last.NativeFlowPlan;
+            visible[visible.Count - 1] = trimmed;
         }
         return visible;
     }
