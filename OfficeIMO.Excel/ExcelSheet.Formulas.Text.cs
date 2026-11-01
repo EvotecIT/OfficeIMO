@@ -482,6 +482,7 @@ namespace OfficeIMO.Excel {
             if (c1 != c2 && r1 != r2) return false;
 
             int lookupMode = function == "MATCH" ? -matchMode : matchMode;
+            if (function == "MATCH" && matchMode == 0 && !IsSupportedExactLookupValue(lookupValue)) return false;
             if (!TryResolveFormulaRange(tokens[1], out var lookupValues) || lookupValue.IsUnresolvedFormula) return false;
             if (lookupValue.IsError) { result = lookupValue; return true; }
             if (matchError.IsError) { result = matchError; return true; }

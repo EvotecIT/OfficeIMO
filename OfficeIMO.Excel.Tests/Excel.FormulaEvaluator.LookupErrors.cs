@@ -139,6 +139,9 @@ namespace OfficeIMO.Tests {
         [InlineData("VLOOKUP(1,A1:B2,2,0.00000001)")]
         [InlineData("VLOOKUP(1,A1:B2,UNKNOWN(),FALSE)")]
         [InlineData("MATCH(1,A1:A100001,NA())")]
+        [InlineData("MATCH(\"H*\",A1:A2,0)")]
+        [InlineData("VLOOKUP(\"H*\",A1:B2,2,FALSE)")]
+        [InlineData("HLOOKUP(\"H?\",A1:B2,2,FALSE)")]
         [InlineData("XMATCH(1,A1:A2,NA(),2)")]
         [InlineData("XLOOKUP(1,A1:A2,B1:B2,,NA(),2)")]
         public void Test_FormulaEvaluator_UnsupportedLookupDoesNotActivateFallback(string formula) {

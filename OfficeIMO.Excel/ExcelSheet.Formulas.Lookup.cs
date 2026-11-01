@@ -35,6 +35,7 @@ namespace OfficeIMO.Excel {
             if (!TryResolveFormulaRangeReference(tokens[1], out ExcelSheet rangeSheet, out int r1, out int c1, out int r2, out int c2))
                 return _formulaReferenceError.IsError;
             if (!TryGetFormulaRangeCellCount(r1, c1, r2, c2, out _)) return false;
+            if (!IsSupportedExactLookupValue(lookupValue)) return false;
 
             if (lookupValue.IsUnresolvedFormula) return false;
             if (lookupValue.IsError) { result = lookupValue; return true; }
@@ -153,6 +154,12 @@ namespace OfficeIMO.Excel {
         // must keep its state so an error handler cannot invent a fallback.
         private static FormulaArgumentValue NormalizeLookupResult(FormulaArgumentValue value) =>
             !value.HasValue && !value.IsUnresolvedFormula ? new FormulaArgumentValue(0d, "0") : value;
+
+        // Legacy exact lookups interpret these characters as wildcard syntax.
+        // Until that mode is qualified, never cache a literal-string search result.
+        private static bool IsSupportedExactLookupValue(FormulaArgumentValue value) =>
+            value.IsError || value.Number.HasValue || value.Text == null
+                || (value.Text.IndexOf('*') < 0 && value.Text.IndexOf('?') < 0 && value.Text.IndexOf('~') < 0);
 
         private bool TryEvaluateSumProduct(string args, out double result) {
             result = 0;
