@@ -12209,6 +12209,19 @@
       ],
       "category": "authoring",
       "kind": "method"
+    },
+    {
+      "phase": "M5",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "kind": "method",
+      "category": "lifecycle",
+      "old": "PowerPointDocument.ToBytes(options) rejects a read-only PPTX/PPTM source.",
+      "new": "PowerPointDocument.ToBytes(options) captures read-only Open XML presentations through an isolated native copy.",
+      "reason": "Live conversion can export a read-only presentation without saving or closing it. Native signature and password policy are retained; Save, SaveCopy and stream saves still reject read-only documents. Legacy binary carrier snapshot restrictions are unchanged.",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointDocument.UnifiedLifecycle.cs"
+      ]
     }
   ],
   "packageMoves": [

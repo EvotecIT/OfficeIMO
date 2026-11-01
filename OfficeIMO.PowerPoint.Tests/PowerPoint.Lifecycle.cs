@@ -66,11 +66,14 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Load_ReadOnlyRejectsSaveOnDispose() {
+        public async Task ReadOnlySnapshotsDoNotEnableSavingToFilesOrStreams() {
+            const string password = "synthetic-readonly-snapshot-password";
             using var stream = new MemoryStream();
+            byte[] encrypted;
             using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
                 presentation.AddSlide();
                 presentation.Save();
+                encrypted = presentation.ToBytes(new PowerPointSaveOptions { Password = password });
             }
 
             Assert.Throws<ArgumentException>(() => PowerPointDocument.Load(stream,
@@ -78,6 +81,24 @@ namespace OfficeIMO.Tests {
                     AccessMode = DocumentAccessMode.ReadOnly,
                     PersistenceMode = DocumentPersistenceMode.SaveOnDispose
                 }));
+
+            using var encryptedSource = new MemoryStream(encrypted);
+            byte[] original = encryptedSource.ToArray();
+            using var readOnly = PowerPointDocument.Load(encryptedSource, new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly, Password = password });
+            using var captured = new MemoryStream(readOnly.ToBytes());
+            using var reopened = PowerPointDocument.Load(captured, new PowerPointLoadOptions { Password = password });
+            Assert.Single(reopened.Slides);
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".ppt");
+            try {
+                Assert.Throws<InvalidOperationException>(() => readOnly.Save(path));
+                Assert.Throws<InvalidOperationException>(() => readOnly.SaveCopy(path));
+                Assert.False(File.Exists(path));
+                using var destination = new MemoryStream(new byte[] { 1, 2, 3 });
+                Assert.Throws<InvalidOperationException>(() => readOnly.Save(destination));
+                await Assert.ThrowsAsync<InvalidOperationException>(() => readOnly.SaveAsync(destination));
+                Assert.Equal(new byte[] { 1, 2, 3 }, destination.ToArray());
+                Assert.Equal(original, encryptedSource.ToArray());
+            } finally { if (File.Exists(path)) File.Delete(path); }
         }
 
         [Fact]

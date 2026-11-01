@@ -9,7 +9,7 @@ using PSWriteOffice.Cmdlets.Conversion;
 namespace PSWriteOffice.Tests;
 
 [Collection(PowerShellRunspaceCollection.Name)]
-public sealed class ConversionCmdletWorkflowTests {
+public sealed partial class ConversionCmdletWorkflowTests {
     [Fact]
     public void NoClobberReportsASkippedFileWithoutReplacingItsExistingDestination() {
         string root = Directory.CreateTempSubdirectory("officeimo-conversion-no-clobber-").FullName;

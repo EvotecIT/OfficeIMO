@@ -2380,7 +2380,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.PowerPoint
 
 <details>
-<summary>572 changes</summary>
+<summary>573 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -2414,6 +2414,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Lifecycle | `OfficeIMO.PowerPoint.PowerPointPresentation.ToEncryptedBytes(string password, PowerPointFileFormat format = Pptx, PowerPointSaveOptions options = null)` | Merged | `OfficeIMO.PowerPoint.PowerPointDocument.ToBytes(PowerPointSaveOptions { Password = ... })` | One way to do each thing. |
 | Lifecycle | `OfficeIMO.PowerPoint.PowerPointPresentation.ToStream()` | Removed | &mdash; | Use Save(Stream) or ToBytes(). |
 | Lifecycle | `OfficeIMO.PowerPoint.PowerPointPresentation.ToStream(PowerPointFileFormat format, PowerPointSaveOptions options = null)` | Removed | &mdash; | Use Save(Stream) or ToBytes(). |
+| Lifecycle | `PowerPointDocument.ToBytes(options) rejects a read-only PPTX/PPTM source.` | Changed | `PowerPointDocument.ToBytes(options) captures read-only Open XML presentations through an isolated native copy.` | Live conversion can export a read-only presentation without saving or closing it. Native signature and password policy are retained; Save, SaveCopy and stream saves still reject read-only documents. Legacy binary carrier snapshot restrictions are unchanged. |
 | Conversion | `OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport` | Merged | `OfficeIMO.OfficeConversionReport` | OfficeConversionReport with OfficeDiagnostic is the single conversion report type. |
 | Conversion | `OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult` | Merged | `OfficeIMO.OfficeConversionReport` | OfficeConversionReport with OfficeDiagnostic is the single conversion report type. |
 | Conversion | `OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdf(PowerPointPresentation presentation, Stream stream, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null)` | Changed | `PowerPointDocument.SaveAsPdf(Stream stream, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |

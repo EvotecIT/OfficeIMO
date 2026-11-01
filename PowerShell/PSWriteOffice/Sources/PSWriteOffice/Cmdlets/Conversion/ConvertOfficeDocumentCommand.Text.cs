@@ -26,6 +26,7 @@ public sealed partial class ConvertOfficeDocumentCommand {
     [Parameter(ParameterSetName = "LiteralPath")]
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
+    [Parameter(ParameterSetName = "Document")]
     [ArgumentCompleter(typeof(OfficeFormatCompleter))]
     public string? From { get; set; }
 
@@ -33,6 +34,7 @@ public sealed partial class ConvertOfficeDocumentCommand {
     [Parameter(ParameterSetName = "Path")]
     [Parameter(ParameterSetName = "LiteralPath")]
     [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Document")]
     public SwitchParameter AsString { get; set; }
 
     private async Task ConvertTextAsync() {
