@@ -26037,5 +26037,64 @@
       "Imposed table-label origins, exact glyph/pixel parity, broader fonts/scripts/baselines/decorations/provider clusters remain unqualified.",
       "Automatic hyphenation, repair-free opening, template-free native creation and the full PUB00-PUB06 lifecycle remain open."
     ]
+  },
+  "nativeDefaultTabInterval": {
+    "schema": "officeimo.publisher.native-default-tab-interval.v1",
+    "sourceCommit": "35bd073a3a9287d96d18a5bb198b290c41bedb9d",
+    "nativeProducer": {
+      "name": "Microsoft Publisher",
+      "version": "16.0",
+      "executableVersion": "16.0.20527.20088",
+      "automationSecurity": 3
+    },
+    "contract": "Quill SGP field0/type0x22 overrides Contents document kind0x44 field0x15/type0x20; empty SGP inherits document. Positive signed values use12700units/point. Paragraph codec preserves imported default; interval editing is not supported.",
+    "corpus": [
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextDefaultTabs/provenance.json",
+        "sha256": "851147dfc08de8bf8fc081241a11bfa7325f0209a953aabd90c139247aa4a6d7"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFitting/provenance.json",
+        "sha256": "e27b42acd30a4764c19f23de0bc7c1758ff8a66376be0028f4ead2a1038f7f8f"
+      }
+    ],
+    "comparison": {
+      "controls": 4,
+      "maxGlyphOriginDifferenceX": 0.152008056640625,
+      "maxGlyphOriginDifferenceY": 0.0250244140625,
+      "priorOriginalTabDifferenceX": 7.655975341796875,
+      "managedEditedReload144DpiPairsEqual": 4,
+      "nativeEditedIntervals": [
+        72,
+        36,
+        72
+      ]
+    },
+    "nativeValidation": {
+      "successfulFullRuns": 17,
+      "qualifiedOperations": 119,
+      "native144DpiPairsEqual": 17,
+      "allInputsUnchanged": true
+    },
+    "validation": {
+      "newFocused": "PublisherDefaultTabTests:4fail/1pass before;4fail/1pass reader-only;5pass final",
+      "related": "PublisherDefaultTabTests/PublisherParagraphFormatWritingTests/PublisherParagraphAttributeTests:33pass",
+      "publisher": "996passed each net10.0/net8.0/net472",
+      "reader": "93Publisher cases net10.0; netstandard2.0 adapter build0warnings/0errors",
+      "powerShell": "Source-built PSWriteOffice net8.0 build0warnings/0errors;PS7.6.9:3 tab read/exact-noop/paragraph-edit/save/reload/PDF workflows pass",
+      "probe": "combined candidate SHA256 remains37e0e91a36c900f2b1a7c73fe3cb606b477464787e60a70375d8985ebd520bcf"
+    },
+    "fittingObservation": "At14.5pt native AVAV/AVAA admit AV while AV/AVV split afterA. Consistent with lookahead admission followed by final-line paint reshaping. Core fitting, continuation and clipping unchanged and still open.",
+    "rea": {
+      "binarySha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed",
+      "knownSchema": "Frozen native Doc schema names Contents0x15 DxlDefaultTab.",
+      "newImport": "Timed out at300s; closed; no returned static proof and no unchanged retry."
+    },
+    "limits": [
+      "Derived source edits are not independent native creation or repair-free opening.",
+      "Unknown/ambiguous/missing carrier profiles stay diagnosed and unqualified.",
+      "Generic Core36pt default unchanged; no new public API or dependency.",
+      "Exact device glyph placement, native fitting/continuation/clipping, automatic hyphenation and full PUB00-PUB06 lifecycle remain open."
+    ]
   }
 }

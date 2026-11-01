@@ -71,7 +71,7 @@ still consume the image-processing byte budget.
 | Master pages | Recovered definitions applied to referring pages | Missing references report omission; nested master inheritance is unassessed |
 | Text | UTF-16 stories, styled paragraphs, referenced native style values, explicit reciprocal links or complete native story/frame catalog bindings, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; source style pairs and use ranges are retained internally, while names, builtin selectors and auxiliary inheritance metadata remain unassessed |
 | Character formatting | Native font names, size, referenced color, bold/italic, strikethrough, superscript/subscript, pair-kerning threshold metadata and none, single, words-only, double, dotted, dashed and wavy underlines | Explicit thresholds and qualified source-bound effective defaults control measurement and glyph output. Plain printable-ASCII native contexts span color, threshold and space boundaries, retaining glyph slices for raster/SVG/PDF; broader scripts, decorations and producer profiles remain unqualified. Native underline weight, long-dash, compound and unknown patterns use the closest shared pattern with `PUB_TEXT_UNDERLINE_APPROXIMATED`. Font availability, exact metrics and decoration geometry remain separate rendering limits |
-| Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs; complete tabbed lines follow recovered center/right paragraph alignment | Numbering sequences, additional per-stop alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval. Native font metrics and exact tabbed-line positions remain separate rendering limits |
+| Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs; complete tabbed lines follow recovered center/right paragraph alignment; undeclared stops use the qualified text-engine default or publication fallback | Numbering sequences, additional per-stop alignments/leaders and drop caps are unassessed. With no usable default-tab carrier, layout reports `PUB_DEFAULT_TAB_UNASSESSED` and uses the generic 36-point grid. Native device advances and broader tabbed-line placement remain separate rendering limits |
 | Tables | `PublisherPage.Tables` exposes current tracks, spans, styled paragraphs, text and placement; qualified anchor-cell text edits preserve complete story partitions, and qualified bounds edits scale tracks proportionally; master tables remain on their master | Separate `CanEditCellText`/`CanEditBounds` and limitation properties identify supported operations. Unavailable frame geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`; individual cell borders, fills and padding are unassessed |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
 | Custom paths | Literal eight-byte signed and compact unsigned vertices in declared geometry space; bounded SG guide formulas and backward references; implicit open/closed line or cubic paths, explicit move/line/cubic/close/end commands, subpaths and no-fill/no-line controls | Device-pixel guide operands, limousine scaling, advanced commands and separate paint groups retain an explicit fallback; guide rounding, shared nonzero winding and native appearance remain unqualified |
@@ -195,8 +195,10 @@ single spacing; clearing both line-height settings does not establish a native
 default. Simultaneous nonzero first-line and continuation offsets are outside
 the canonical native indent profile.
 
-Ordinary explicit left tabs can be added, replaced or cleared. The default
-interval is 36 points and the origin is `-paragraph.Margins.Left`. Native center
+Ordinary explicit left tabs can be added, replaced or cleared. Preserve the
+imported `TabStops.DefaultInterval` when constructing replacement tab settings;
+the paragraph codec does not change the publication's default interval. The
+origin is `-paragraph.Margins.Left`. Native center
 and right paragraphs require `TabStops.AlignWithParagraph` to be true, using
 `WithParagraphAlignment()`; this includes paragraphs that currently contain no
 tabs so later text insertion retains the same behavior. Left and justified
@@ -710,17 +712,47 @@ remain outside this comparison.
 Color, space, paragraph, soft-line, size and face controls establish the context
 boundaries in both setting directions. Their current horizontal differences
 reach 0.320 pt and baseline differences reach 0.103 pt. Tab controls retain the
-expected activation reset, but their absolute field origins still differ by
-7.656 pt. Two additional 15.5-point frames split a colored `A` / `VAV` word as
+expected activation reset. The default-tab carrier qualification below resolves
+the previously observed 7.656-point origin difference. Two additional 15.5-point
+frames split a colored `A` / `VAV` word as
 `AV` / `A` / `V` and `A` / `VA` / `V`, matching the native line assignments within
 0.111 pt horizontally and 0.103 pt vertically. All four new native tight-frame
 initial/resaved page pairs agree at 144 dpi. The [native font-context corpus](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFontContext/provenance.json)
 retains the tight-frame publications, their native PDF references and the merged
-8/18 control. At 15 points, native device fitting
-admits a pair that the managed design advance places just outside the frame;
-line assignments still differ. Exact device advances, absolute tab placement,
+8/18 control. Tight-frame native fitting
+admits a pair that the managed final-line advance places just outside the frame;
+line assignments still differ. Exact device advances, broader tab placement,
 automatic hyphenation and repair-free opening remain unqualified. These finite
 controls do not establish universal native glyph or pixel parity.
+
+### Native default-tab interval
+
+For the qualified modern profile, field `0` of Quill `SGP ` supplies the
+effective default-tab interval. An empty section inherits document field `0x15`
+from the Contents document descriptor. Both store points in units of 1/12700.
+The ordinary native control declares 28.3 points; this is a stored value rather
+than a universal locale or metric default. Unknown, ambiguous or unavailable
+carriers remain unassessed. The generic drawing default stays 36 points.
+
+The [default-tab corpus](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextDefaultTabs/provenance.json)
+distinguishes a 72-point text-engine override above a 28.3-point document value,
+matching 36-point carriers, and a 72-point document fallback with empty `SGP `.
+Native cold-open and saved/reopened getters agree at 72, 36 and 72 points.
+Four managed controls, including the original 28.3-point source, differ from
+native glyph origins by at most 0.153 pt horizontally and 0.026 pt vertically.
+Every managed paragraph-edit/save/reload preview pair agrees at 144 dpi. All
+three edited carrier controls also pass native open, export, save and reopen;
+their native initial/resaved previews agree at 144 dpi. Paragraph edits retain
+the imported interval; changing it through paragraph formatting refuses output.
+These source-derived controls do not establish independent native creation or
+repair-free opening.
+
+Separate [14.5-point word controls](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFitting/provenance.json)
+discriminate native fitting: `AVAV` and
+`AVAA` place `AV` on the first line, while standalone `AV` and `AVV` split after
+`A`. This is consistent with a lookahead pair affecting admission before the
+visible line is reshaped for painting. Fitting, continuation and clipping still
+need a coordinated implementation; no fixed width allowance is qualified.
 
 The `nativeLanguageFeasibility` record isolates the language-dependent native
 layout gap. Scratch variants adding character property `0x12` with language ID
