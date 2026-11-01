@@ -189,7 +189,7 @@ Accept wildcard characters: False
 ```
 
 ### -LineSpacing
-Line spacing; a bare number means points.
+Physical line height; bare numbers mean points. Null clears the direct line-spacing override.
 
 ```yaml
 Type: OfficeLength

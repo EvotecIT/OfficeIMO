@@ -213217,7 +213217,7 @@ cell inside a deck that already exists.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>LineSpacing</maml:name>
           <maml:description>
-            <maml:para>Line spacing; a bare number means points.</maml:para>
+            <maml:para>Physical line height; bare numbers mean points. Null clears the direct line-spacing override.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
@@ -213510,7 +213510,7 @@ cell inside a deck that already exists.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>LineSpacing</maml:name>
         <maml:description>
-          <maml:para>Line spacing; a bare number means points.</maml:para>
+          <maml:para>Physical line height; bare numbers mean points. Null clears the direct line-spacing override.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
@@ -215067,7 +215067,7 @@ cell inside a deck that already exists.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Color</maml:name>
           <maml:description>
-            <maml:para>Text color. Named colors and hexadecimal values are accepted.</maml:para>
+            <maml:para>Text color. Named colors and hexadecimal values are accepted; null clears the direct override.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficeColor</command:parameterValue>
           <dev:type>
@@ -215206,7 +215206,7 @@ cell inside a deck that already exists.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Size</maml:name>
           <maml:description>
-            <maml:para>Font size in points.</maml:para>
+            <maml:para>Font size; bare numbers mean points. Null clears the direct size override.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
@@ -215354,7 +215354,7 @@ cell inside a deck that already exists.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Color</maml:name>
         <maml:description>
-          <maml:para>Text color. Named colors and hexadecimal values are accepted.</maml:para>
+          <maml:para>Text color. Named colors and hexadecimal values are accepted; null clears the direct override.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">OfficeColor</command:parameterValue>
         <dev:type>
@@ -215493,7 +215493,7 @@ cell inside a deck that already exists.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Size</maml:name>
         <maml:description>
-          <maml:para>Font size in points.</maml:para>
+          <maml:para>Font size; bare numbers mean points. Null clears the direct size override.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>

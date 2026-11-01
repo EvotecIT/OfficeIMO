@@ -2,16 +2,16 @@
   "schemaVersion": 1,
   "moduleName": "PSWriteOffice",
   "moduleVersion": "3.5.3",
-  "sourceCommit": "640a25d8fa79b69a90ed309104f7134cc190cef9",
-  "packageSourceCommit": "640a25d8fa79b69a90ed309104f7134cc190cef9",
+  "sourceCommit": "894f02ac68ee967efc3105c566a1d67ba0dbe288",
+  "packageSourceCommit": "894f02ac68ee967efc3105c566a1d67ba0dbe288",
   "components": {
     "manifest": {
       "bytes": 23910,
       "sha256": "9b77e87e53479629df7203abd3b750738ad9cfbda7fc564ed9570ae9719cc0f2"
     },
     "help": {
-      "bytes": 11887692,
-      "sha256": "03f4373ef5ce774213af6d7837c979931c6e299ec9f099e74012268a161f1962"
+      "bytes": 11887970,
+      "sha256": "54a35561b7f14d75b63eb1a4172cc4ad29727001d194660a53222c298fa27588"
     },
     "metadata": {
       "bytes": 230583,

@@ -61,7 +61,7 @@ Accept wildcard characters: False
 ```
 
 ### -Color
-Text color. Named colors and hexadecimal values are accepted.
+Text color. Named colors and hexadecimal values are accepted; null clears the direct override.
 
 ```yaml
 Type: OfficeColor
@@ -221,7 +221,7 @@ Accept wildcard characters: False
 ```
 
 ### -Size
-Font size in points.
+Font size; bare numbers mean points. Null clears the direct size override.
 
 ```yaml
 Type: OfficeLength

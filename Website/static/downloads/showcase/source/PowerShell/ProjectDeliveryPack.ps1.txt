@@ -103,18 +103,18 @@ $reviewRows = $rows | Select-Object Milestone,Owner,
 New-OfficeWord -Path $docx {
     WordHeader { WordParagraph -Text "DELIVERY | $reviewContext | $($snapshotDate.ToString('yyyy-MM-dd'))" }
     WordFooter { WordPageNumber -IncludeTotal }
-    WordParagraph { WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true; WordText 'Project delivery review' -Bold -Size 25 -Color '17365D' }
+    WordParagraph { Set-OfficeWordParagraph -SpacingAfter 12 -KeepWithNext:$true; WordText 'Project delivery review' -Bold -Size 25 -Color '17365D' }
     WordParagraph -Text "$($done.Count) of $($rows.Count) milestones are complete; $($overdue.Count) overdue milestone(s) need an owner decision at $($snapshotDate.ToString('yyyy-MM-dd'))."
-    WordParagraph -Text 'Decisions and recovery actions' -Style Heading1 { WordParagraphStyle -KeepWithNext $true -SpacingBeforePoints 12 -SpacingAfterPoints 6 }
+    WordParagraph -Text 'Decisions and recovery actions' -Style Heading1 { Set-OfficeWordParagraph -KeepWithNext:$true -SpacingBefore 12 -SpacingAfter 6 }
     WordList -Style Bulleted {
         foreach ($item in $overdue) {
             $decision = WordListItem -Text "$($item.Owner) | $($item.Milestone): $($item.NextAction)." -PassThru
-            WordParagraphStyle -Paragraph $decision -KeepLinesTogether $true
+            Set-OfficeWordParagraph -Paragraph $decision -KeepLinesTogether:$true
         }
         if (-not $overdue.Count) { WordListItem -Text 'No overdue milestones. Confirm the next due dates and acceptance evidence with their owners.' }
     }
-    WordParagraph -Text 'Review owner: __________________  Decision: __________________' { WordParagraphStyle -SpacingBeforePoints 12 }
-    WordParagraph -Text 'Milestone position' -Style Heading1 { WordParagraphStyle -KeepWithNext $true -SpacingBeforePoints 12 -SpacingAfterPoints 6 }
+    WordParagraph -Text 'Review owner: __________________  Decision: __________________' { Set-OfficeWordParagraph -SpacingBefore 12 }
+    WordParagraph -Text 'Milestone position' -Style Heading1 { Set-OfficeWordParagraph -KeepWithNext:$true -SpacingBefore 12 -SpacingAfter 6 }
     $table = WordTable -InputObject $reviewRows -Style GridTable4Accent1 -Layout AutoFitToWindow -PassThru {
         WordTableCondition -FilterScript { $_.Status -eq 'Overdue' } -BackgroundColor '#FFF4D6'
     }
