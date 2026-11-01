@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 ///   <summary>Explicitly calculates a schedule and optionally applies its dates.</summary>
 ///   <code>$project | Invoke-OfficeProjectSchedule -CalculateAssignments -Apply</code>
 /// </example>
-[Cmdlet(VerbsLifecycle.Invoke, "OfficeProjectSchedule", SupportsShouldProcess = true)]
+[Cmdlet(VerbsLifecycle.Invoke, "OfficeProjectSchedule", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
 [OutputType(typeof(ProjectScheduleResult))]
 public sealed class InvokeOfficeProjectScheduleCommand : PSCmdlet {
     /// <summary>Project to inspect or change.</summary>

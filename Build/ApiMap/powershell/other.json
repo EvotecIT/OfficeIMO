@@ -155,7 +155,8 @@
               "type": "switch",
               "mandatory": false
             }
-          ]
+          ],
+          "default": false
         }
       ],
       "notes": "Lifecycle rule: with a content block the diagram is saved and closed when the block ends (FileInfo with -PassThru); a throwing block saves nothing and removes the partial file. Without a block (Live set) -Path is optional and the live VisioDocument is returned unsaved; Save-OfficeVisio -Path writes it. With a block (Content set) -Path is required. Refuses an existing file unless -Force. No -Theme: Visio has no theme support today (see open questions). No alias: the command opens a block rather than running inside one.",

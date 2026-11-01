@@ -29,7 +29,9 @@ namespace OfficeIMO.PowerPoint {
             var shape = (Shape)Box.Element.CloneNode(true);
             shape.TextBody!.RemoveAllChildren<A.Paragraph>();
             foreach (var paragraph in Paragraphs) shape.TextBody.Append(paragraph.Paragraph.CloneNode(true));
-            var box = new PowerPointTextBox(shape, Box.SlidePart);
+            var box = Box.RelationshipOwnerPart != null
+                ? new PowerPointTextBox(shape, Box.RelationshipOwnerPart)
+                : new PowerPointTextBox(shape, Box.SlidePart);
             if (Box.OwnerSlide != null) box.AttachTo(Box.OwnerSlide, Box.RelationshipOwnerPart);
             var copy = new PowerPointLayoutNativeText(box);
             copy.Freeze();
@@ -142,7 +144,9 @@ namespace OfficeIMO.PowerPoint {
                         var part = source.Parts.FirstOrDefault(p => p.RelationshipId == id).OpenXmlPart;
                         var external = source.ExternalRelationships.FirstOrDefault(r => r.Id == id);
                         if (audio != null) replacement = target.AddAudioReferenceRelationship(audio).Id;
-                        else if (hyperlink != null) replacement = target.AddHyperlinkRelationship(hyperlink.Uri, hyperlink.IsExternal).Id;
+                        else if (hyperlink != null) replacement = target.HyperlinkRelationships
+                            .FirstOrDefault(candidate => candidate.Uri == hyperlink.Uri && candidate.IsExternal == hyperlink.IsExternal)?.Id
+                            ?? target.AddHyperlinkRelationship(hyperlink.Uri, hyperlink.IsExternal).Id;
                         else if (part != null) {
                             target.AddPart(part);
                             replacement = target.GetIdOfPart(part);

@@ -16,8 +16,7 @@ The package has **zero external dependencies** and targets .NET Standard 2.0, .N
 
 | Class | Description |
 |-------|-------------|
-| `MarkdownDocument` | Root document class and fluent API entry point. |
-| `MarkdownReader` | Static parser that converts Markdown text into a `MarkdownDocument` AST. |
+| `MarkdownDocument` | Builds, parses, loads and saves the typed Markdown document model. |
 | `HeadingBlock` | AST node representing a heading (H1--H6). |
 | `ParagraphBlock` | AST node for a paragraph with inline formatting. |
 | `CodeBlock` | Fenced or indented code block with language annotation. |
@@ -53,7 +52,7 @@ Console.WriteLine(markdown);
 
 ```csharp
 string source = File.ReadAllText("README.md");
-MarkdownDocument doc = MarkdownReader.Parse(source);
+MarkdownDocument doc = MarkdownDocument.Parse(source);
 
 // Enumerate headings
 foreach (var heading in doc.DescendantHeadings()) {

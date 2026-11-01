@@ -9,9 +9,14 @@ schema: 2.0.0
 Creates a live PDF document or atomically saves a completed composition block.
 
 ## SYNTAX
-### __AllParameterSets
+### Live (Default)
 ```powershell
-New-OfficePdf [[-Path] <string>] [[-Content] <scriptblock>] [-Force] [-Theme <OfficeThemeInput>] [-Font <string>] [-Size <OfficeLength>] [-FontPath <string>] [-BoldFontPath <string>] [-ItalicFontPath <string>] [-BoldItalicFontPath <string>] [-FileVersion <PdfFileVersion>] [-CreateOutlineFromHeadings] [-OutlineExpansionLevel <Int32>] [-PageMode <PdfCatalogPageMode>] [-PageLayout <PdfCatalogPageLayout>] [-IncludePageLabels] [-PageLabelPrefix <string>] [-OpenActionPage <Int32>] [-OpenActionMode <PdfOpenActionDestinationMode>] [-OpenActionTop <Double>] [-DisplayDocTitle] [-FitWindow] [-CenterWindow] [-HideToolbar] [-HideMenubar] [-HideWindowUI] [-FlattenVisualAnnotations] [-Password <securestring>] [-OwnerPassword <securestring>] [-Permission <PdfStandardPermissions>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
+New-OfficePdf [[-Path] <string>] [-Force] [-Theme <OfficeThemeInput>] [-Font <string>] [-Size <OfficeLength>] [-FontPath <string>] [-BoldFontPath <string>] [-ItalicFontPath <string>] [-BoldItalicFontPath <string>] [-FileVersion <PdfFileVersion>] [-CreateOutlineFromHeadings] [-OutlineExpansionLevel <Int32>] [-PageMode <PdfCatalogPageMode>] [-PageLayout <PdfCatalogPageLayout>] [-IncludePageLabels] [-PageLabelPrefix <string>] [-OpenActionPage <Int32>] [-OpenActionMode <PdfOpenActionDestinationMode>] [-OpenActionTop <Double>] [-DisplayDocTitle] [-FitWindow] [-CenterWindow] [-HideToolbar] [-HideMenubar] [-HideWindowUI] [-FlattenVisualAnnotations] [-Password <securestring>] [-OwnerPassword <securestring>] [-Permission <PdfStandardPermissions>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Content
+```powershell
+New-OfficePdf [-Path] <string> [-Content] <scriptblock> [-Force] [-Theme <OfficeThemeInput>] [-Font <string>] [-Size <OfficeLength>] [-FontPath <string>] [-BoldFontPath <string>] [-ItalicFontPath <string>] [-BoldItalicFontPath <string>] [-FileVersion <PdfFileVersion>] [-CreateOutlineFromHeadings] [-OutlineExpansionLevel <Int32>] [-PageMode <PdfCatalogPageMode>] [-PageLayout <PdfCatalogPageLayout>] [-IncludePageLabels] [-PageLabelPrefix <string>] [-OpenActionPage <Int32>] [-OpenActionMode <PdfOpenActionDestinationMode>] [-OpenActionTop <Double>] [-DisplayDocTitle] [-FitWindow] [-CenterWindow] [-HideToolbar] [-HideMenubar] [-HideWindowUI] [-FlattenVisualAnnotations] [-Password <securestring>] [-OwnerPassword <securestring>] [-Permission <PdfStandardPermissions>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -39,11 +44,11 @@ Save-OfficePdf -Document $pdf -Path ./Review.pdf
 ## PARAMETERS
 
 ### -AllowLoss
-Gets or sets whether native-save loss is explicitly accepted.
+Explicitly accept reductions reported by the content block's native save.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -59,7 +64,7 @@ Optional bold face used with FontPath.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -75,7 +80,7 @@ Optional bold italic face used with FontPath.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -91,7 +96,7 @@ Request PDF viewers to center the document window on screen.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -103,15 +108,15 @@ Accept wildcard characters: False
 ```
 
 ### -Content
-Gets or sets a content block; omission returns the live document.
+Authoring block to complete before the document is atomically saved and closed.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: 1
 Default value: None
 Accept pipeline input: False
@@ -123,7 +128,7 @@ Create PDF outline/bookmark entries from heading elements.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -139,7 +144,7 @@ Request PDF viewers to display the document title instead of the file name.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -155,7 +160,7 @@ PDF file header version emitted by OfficeIMO.Pdf.
 
 ```yaml
 Type: PdfFileVersion
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values: Pdf14, Pdf15, Pdf16, Pdf17, Pdf20
 
@@ -171,7 +176,7 @@ Request PDF viewers to fit the document window to the first displayed page.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -187,7 +192,7 @@ Flatten generated FreeText and Highlight annotations into static page content.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -203,7 +208,7 @@ Body font family; inherited heading defaults follow the document font.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -219,7 +224,7 @@ Regular embedded font file; requires the Font family name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -235,7 +240,7 @@ Allow a completed content block to replace an existing destination.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -251,7 +256,7 @@ Request PDF viewers to hide the menu bar.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -267,7 +272,7 @@ Request PDF viewers to hide the toolbar.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -283,7 +288,7 @@ Request PDF viewers to hide user-interface elements.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -299,7 +304,7 @@ Emit generated catalog page labels.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -315,7 +320,7 @@ Optional italic face used with FontPath.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -331,7 +336,7 @@ Open-action destination mode.
 
 ```yaml
 Type: PdfOpenActionDestinationMode
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values: Xyz, Fit, FitHorizontal, FitVertical, FitRectangle, FitBoundingBox, FitBoundingBoxHorizontal, FitBoundingBoxVertical
 
@@ -347,7 +352,7 @@ Initial one-based page shown by PDF viewers that honor open actions.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -363,7 +368,7 @@ Optional open-action top coordinate in the page's native UserUnit space.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -379,7 +384,7 @@ Initial outline expansion level when heading outlines are created.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -395,7 +400,7 @@ Optional owner password for the generated encrypted PDF.
 
 ```yaml
 Type: SecureString
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -411,7 +416,7 @@ Optional generated page-label prefix.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -427,7 +432,7 @@ Catalog page layout hint emitted for generated PDFs.
 
 ```yaml
 Type: PdfCatalogPageLayout
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values: SinglePage, OneColumn, TwoColumnLeft, TwoColumnRight, TwoPageLeft, TwoPageRight
 
@@ -443,7 +448,7 @@ Catalog page mode hint emitted for generated PDFs.
 
 ```yaml
 Type: PdfCatalogPageMode
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values: UseNone, UseOutlines, UseThumbs, FullScreen, UseOC, UseAttachments
 
@@ -455,11 +460,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Gets or sets whether a completed content block returns the saved FileInfo.
+Return the saved FileInfo after a completed content block.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -475,7 +480,7 @@ Password required to open the generated PDF.
 
 ```yaml
 Type: SecureString
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -487,11 +492,11 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Optional associated destination; required with a content block.
+Optional associated destination for a live document; required when a content block saves a file.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -507,7 +512,7 @@ Operations allowed to readers; defaults to all Standard security permissions.
 
 ```yaml
 Type: PdfStandardPermissions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values: None, Print, ModifyContents, CopyContents, ModifyAnnotations, FillForms, Accessibility, AssembleDocument, HighQualityPrint, All
 
@@ -519,11 +524,11 @@ Accept wildcard characters: False
 ```
 
 ### -Show
-Gets or sets whether the saved file opens in the system default application.
+Open the saved result in its registered application after the content block succeeds.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -539,7 +544,7 @@ Default body font size. A bare number means points.
 
 ```yaml
 Type: OfficeLength
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -555,7 +560,7 @@ Built-in theme, theme object or document/template whose visual theme is read.
 
 ```yaml
 Type: OfficeThemeInput
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 

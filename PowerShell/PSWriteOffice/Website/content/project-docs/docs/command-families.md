@@ -10,17 +10,17 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 
 | Family | Exported commands | Guide |
 | --- | ---: | --- |
-| Excel | 159 | [Excel automation](/docs/pswriteoffice/excel/) |
-| Word | 98 | [Word automation](/docs/pswriteoffice/word/) |
-| PDF | 96 | [PDF automation](/docs/pswriteoffice/pdf/) |
+| Excel | 155 | [Excel automation](/docs/pswriteoffice/excel/) |
+| Word | 99 | [Word automation](/docs/pswriteoffice/word/) |
+| PDF | 94 | [PDF automation](/docs/pswriteoffice/pdf/) |
 | Conversion and capabilities | 7 | [Conversion and capabilities](/docs/pswriteoffice/automation-patterns/) |
 | Project | 19 | [Native document workflows](/docs/pswriteoffice/automation-patterns/) |
 | Access | 9 | [Native document workflows](/docs/pswriteoffice/automation-patterns/) |
 | EPUB | 8 | [Native document workflows](/docs/pswriteoffice/automation-patterns/) |
-| PowerPoint | 67 | [PowerPoint automation](/docs/pswriteoffice/powerpoint/) |
+| PowerPoint | 53 | [PowerPoint automation](/docs/pswriteoffice/powerpoint/) |
 | Markdown | 27 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
-| Visio | 24 | [Visio diagrams](/docs/pswriteoffice/visio/) |
-| Reader, extraction, and OCR | 15 | [Reader, extraction, and OCR](/docs/pswriteoffice/reader/) |
+| Visio | 21 | [Visio diagrams](/docs/pswriteoffice/visio/) |
+| Reader, extraction, and OCR | 18 | [Reader, extraction, and OCR](/docs/pswriteoffice/reader/) |
 | Archive migration and evidence | 5 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
 | Confluence Cloud | 7 | [Confluence Cloud publishing](/docs/pswriteoffice/confluence/) |
 | RTF | 6 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |

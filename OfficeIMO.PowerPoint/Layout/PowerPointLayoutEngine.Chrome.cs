@@ -257,6 +257,16 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Footer text and slide number in native footer placeholders.</summary>
         private static void RenderFooter(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointLayoutSlide slide) {
+            writer.Slide.NativeFooterColor = slide.Layout switch {
+                PowerPointLayout.ImageFull => "FFFFFF",
+                PowerPointLayout.Title or PowerPointLayout.Closing => context.Theme.OnAccent,
+                PowerPointLayout.Section => context.Theme.OnInk,
+                _ => null
+            };
+            writer.Slide.SuppressFooterText = slide.NoFooter || context.Deck.NoFooter;
+            writer.Slide.SuppressFooterNumber = slide.NoSlideNumber || !context.Deck.ShowSlideNumber;
+            if (RenderNativeFooters(context, writer, slide.FooterTemplates, writer.Slide.SuppressFooterText, writer.Slide.SuppressFooterNumber,
+                    writer.Slide.NativeFooterColor)) return;
             bool text, number;
             string color = context.Theme.TextMuted;
             double alpha = 1D;
@@ -279,7 +289,7 @@ namespace OfficeIMO.PowerPoint {
                     break;
             }
 
-            if (slide.NoFooter) text = false;
+            if (slide.NoFooter || context.Deck.NoFooter) text = false;
             if (slide.NoSlideNumber || !context.Deck.ShowSlideNumber) number = false;
             PowerPointLayoutGrid grid = context.Grid;
             PowerPointTextStyleSpec footer = context.Style(PowerPointTextRole.Footer);
@@ -304,14 +314,19 @@ namespace OfficeIMO.PowerPoint {
                     PowerPointLayoutGrid.FooterHeight), p, anchor: "b");
             }
 
-            if (number) {
-                int index = writer.Slide.OwnerDocument?.Slides.Count ?? 1;
-                var run = new PowerPointLayoutRun(index.ToString(CultureInfo.InvariantCulture), footer, color: color) { Field = true, Alpha = alpha };
-                var p = new PowerPointLayoutParagraph(run) { Align = "r", LineHeight = footer.LineHeight };
-                PowerPointTextBox numberShape = writer.Text("Slide Number", new PowerPointLayoutRect(grid.X(rightText ? 12 : 9), grid.FooterY, grid.W(rightText ? 1 : 4), PowerPointLayoutGrid.FooterHeight), p,
-                    anchor: "b", placeholder: "<p:ph type=\"sldNum\" sz=\"quarter\" idx=\"" + PowerPointLayoutMasterWriter.SlideNumberIndex + "\"/>");
-                InheritTemplatePlaceholder(context, writer, numberShape, PowerPointPlaceholderType.SlideNumber);
-            }
+            if (number) RenderFooterNumber(context, writer, rightText, color, alpha);
+        }
+
+        private static void RenderFooterNumber(PowerPointLayoutContext context, PowerPointLayoutWriter writer,
+            bool rightText, string color, double alpha) {
+            var grid = context.Grid;
+            var footer = context.Style(PowerPointTextRole.Footer);
+            int index = writer.Slide.OwnerDocument?.Slides.Count ?? 1;
+            var run = new PowerPointLayoutRun(index.ToString(CultureInfo.InvariantCulture), footer, color: color) { Field = true, Alpha = alpha };
+            var p = new PowerPointLayoutParagraph(run) { Align = "r", LineHeight = footer.LineHeight };
+            PowerPointTextBox numberShape = writer.Text("Slide Number", new PowerPointLayoutRect(grid.X(rightText ? 12 : 9), grid.FooterY, grid.W(rightText ? 1 : 4), PowerPointLayoutGrid.FooterHeight), p,
+                anchor: "b", placeholder: "<p:ph type=\"sldNum\" sz=\"quarter\" idx=\"" + PowerPointLayoutMasterWriter.SlideNumberIndex + "\"/>");
+            InheritTemplatePlaceholder(context, writer, numberShape, PowerPointPlaceholderType.SlideNumber);
         }
 
         /// <summary>On a template's layout, a footer placeholder keeps the template's own position.</summary>

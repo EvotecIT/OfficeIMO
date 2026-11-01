@@ -37,9 +37,9 @@
   },
   {
     "route": "docx-jpeg",
-    "cmdlet": "Export-OfficeWordImage",
-    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Jpeg -AllPages",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs: AllPages selects SaveAsImages; OutputPath is a folder with one image per page."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.docx -OutputDirectory ./Images -Format Jpeg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "docx-markdown",
@@ -61,9 +61,9 @@
   },
   {
     "route": "docx-png",
-    "cmdlet": "Export-OfficeWordImage",
-    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Png -AllPages",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs: AllPages selects SaveAsImages; OutputPath is a folder with one image per page."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.docx -OutputDirectory ./Images -Format Png",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "docx-rtf",
@@ -73,21 +73,21 @@
   },
   {
     "route": "docx-svg",
-    "cmdlet": "Export-OfficeWordImage",
-    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Svg -AllPages",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs: AllPages selects SaveAsImages; OutputPath is a folder with one image per page."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.docx -OutputDirectory ./Images -Format Svg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "docx-tiff",
-    "cmdlet": "Export-OfficeWordImage",
-    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Tiff -AllPages",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs: AllPages selects SaveAsImages; OutputPath is a folder with one image per page."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.docx -OutputDirectory ./Images -Format Tiff",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "docx-webp",
-    "cmdlet": "Export-OfficeWordImage",
-    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Webp -AllPages",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs: AllPages selects SaveAsImages; OutputPath is a folder with one image per page."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.docx -OutputDirectory ./Images -Format Webp",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "email-eml-msg",
@@ -307,15 +307,15 @@
   },
   {
     "route": "pdf-jpeg",
-    "cmdlet": "Export-OfficePdfImage",
-    "example": "Export-OfficePdfImage -Path ./in.pdf -OutputPath ./Pages -Format Jpeg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficePdfImageCommand.cs L35 (-Format); L71 (document.Render.ExportImages(Format, options, selection)). OutputPath is a folder; files are named page-NNNN with the format extension."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.pdf -OutputDirectory ./Pages -Format Jpeg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "pdf-png",
-    "cmdlet": "Export-OfficePdfImage",
-    "example": "Export-OfficePdfImage -Path ./in.pdf -OutputPath ./Pages -Format Png",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficePdfImageCommand.cs L35 (-Format); L71 (document.Render.ExportImages(Format, options, selection)). OutputPath is a folder; files are named page-NNNN with the format extension."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.pdf -OutputDirectory ./Pages -Format Png",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "pdf-pptx",
@@ -331,21 +331,21 @@
   },
   {
     "route": "pdf-svg",
-    "cmdlet": "Export-OfficePdfImage",
-    "example": "Export-OfficePdfImage -Path ./in.pdf -OutputPath ./Pages -Format Svg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficePdfImageCommand.cs L35 (-Format); L71 (document.Render.ExportImages(Format, options, selection)). OutputPath is a folder; files are named page-NNNN with the format extension."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.pdf -OutputDirectory ./Pages -Format Svg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "pdf-tiff",
-    "cmdlet": "Export-OfficePdfImage",
-    "example": "Export-OfficePdfImage -Path ./in.pdf -OutputPath ./Pages -Format Tiff",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficePdfImageCommand.cs L35 (-Format); L71 (document.Render.ExportImages(Format, options, selection)). OutputPath is a folder; files are named page-NNNN with the format extension."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.pdf -OutputDirectory ./Pages -Format Tiff",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "pdf-webp",
-    "cmdlet": "Export-OfficePdfImage",
-    "example": "Export-OfficePdfImage -Path ./in.pdf -OutputPath ./Pages -Format Webp",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficePdfImageCommand.cs L35 (-Format); L71 (document.Render.ExportImages(Format, options, selection)). OutputPath is a folder; files are named page-NNNN with the format extension."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.pdf -OutputDirectory ./Pages -Format Webp",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "pdf-xlsx",
@@ -355,15 +355,15 @@
   },
   {
     "route": "pptx-html",
-    "cmdlet": "ConvertTo-OfficePowerPointHtml",
-    "example": "ConvertTo-OfficePowerPointHtml -Path ./in.pptx -OutputPath ./out.html",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/PowerPoint/ConvertToOfficePowerPointHtmlCommand.cs L51 (-OutputPath); L101 (presentation.ToHtml(CreateOptions()))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.pptx -To Html -OutputPath ./out.html",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs dispatches admitted files through OfficeConverter; OfficeIMO/OfficeConverter.PowerPointHtml.cs owns the PowerPoint-to-HTML conversion."
   },
   {
     "route": "pptx-jpeg",
-    "cmdlet": "Export-OfficePowerPointImage",
-    "example": "Export-OfficePowerPointImage -Path ./in.pptx -OutputPath ./Slides -Format Jpeg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/PowerPoint/ExportOfficePowerPointImageCommand.cs L35 (-Format); L61 (presentation.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per slide. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.pptx -OutputDirectory ./Slides -Format Jpeg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "pptx-odp",
@@ -379,27 +379,27 @@
   },
   {
     "route": "pptx-png",
-    "cmdlet": "Export-OfficePowerPointImage",
-    "example": "Export-OfficePowerPointImage -Path ./in.pptx -OutputPath ./Slides -Format Png",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/PowerPoint/ExportOfficePowerPointImageCommand.cs L35 (-Format); L61 (presentation.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per slide. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.pptx -OutputDirectory ./Slides -Format Png",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "pptx-svg",
-    "cmdlet": "Export-OfficePowerPointImage",
-    "example": "Export-OfficePowerPointImage -Path ./in.pptx -OutputPath ./Slides -Format Svg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/PowerPoint/ExportOfficePowerPointImageCommand.cs L35 (-Format); L61 (presentation.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per slide. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.pptx -OutputDirectory ./Slides -Format Svg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "pptx-tiff",
-    "cmdlet": "Export-OfficePowerPointImage",
-    "example": "Export-OfficePowerPointImage -Path ./in.pptx -OutputPath ./Slides -Format Tiff",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/PowerPoint/ExportOfficePowerPointImageCommand.cs L35 (-Format); L61 (presentation.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per slide. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.pptx -OutputDirectory ./Slides -Format Tiff",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "pptx-webp",
-    "cmdlet": "Export-OfficePowerPointImage",
-    "example": "Export-OfficePowerPointImage -Path ./in.pptx -OutputPath ./Slides -Format Webp",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/PowerPoint/ExportOfficePowerPointImageCommand.cs L35 (-Format); L61 (presentation.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per slide. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.pptx -OutputDirectory ./Slides -Format Webp",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "rtf-docx",
@@ -427,33 +427,33 @@
   },
   {
     "route": "visio-jpeg",
-    "cmdlet": "Export-OfficeVisioImage",
-    "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Jpeg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Visio/ExportOfficeVisioImageCommand.cs L36 (-Format); L57 (document.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per page."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.vsdx -OutputDirectory ./Images -Format Jpeg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "visio-png",
-    "cmdlet": "Export-OfficeVisioImage",
-    "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Png",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Visio/ExportOfficeVisioImageCommand.cs: document.SaveAsImages(output, Format, Options) exports every page to the destination folder."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.vsdx -OutputDirectory ./Images -Format Png",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "visio-svg",
-    "cmdlet": "Export-OfficeVisioImage",
-    "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Svg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Visio/ExportOfficeVisioImageCommand.cs: document.SaveAsImages(output, Format, Options) exports every page to the destination folder."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.vsdx -OutputDirectory ./Images -Format Svg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "visio-tiff",
-    "cmdlet": "Export-OfficeVisioImage",
-    "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Tiff",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Visio/ExportOfficeVisioImageCommand.cs L36 (-Format); L57 (document.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per page."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.vsdx -OutputDirectory ./Images -Format Tiff",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "visio-webp",
-    "cmdlet": "Export-OfficeVisioImage",
-    "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Webp",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Visio/ExportOfficeVisioImageCommand.cs L36 (-Format); L57 (document.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per page."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.vsdx -OutputDirectory ./Images -Format Webp",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "xlsx-google-sheets",
@@ -469,9 +469,9 @@
   },
   {
     "route": "xlsx-jpeg",
-    "cmdlet": "Export-OfficeExcelImage",
-    "example": "Export-OfficeExcelImage -Path ./in.xlsx -OutputPath ./Images -Format Jpeg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelImageCommand.cs L35 (-Format); L61 (document.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per sheet. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.xlsx -OutputDirectory ./Images -Format Jpeg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "xlsx-ods",
@@ -487,26 +487,26 @@
   },
   {
     "route": "xlsx-png",
-    "cmdlet": "Export-OfficeExcelImage",
-    "example": "Export-OfficeExcelImage -Path ./in.xlsx -OutputPath ./Images -Format Png",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelImageCommand.cs L35 (-Format); L61 (document.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per sheet. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.xlsx -OutputDirectory ./Images -Format Png",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "xlsx-svg",
-    "cmdlet": "Export-OfficeExcelImage",
-    "example": "Export-OfficeExcelImage -Path ./in.xlsx -OutputPath ./Images -Format Svg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelImageCommand.cs L35 (-Format); L61 (document.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per sheet. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.xlsx -OutputDirectory ./Images -Format Svg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "xlsx-tiff",
-    "cmdlet": "Export-OfficeExcelImage",
-    "example": "Export-OfficeExcelImage -Path ./in.xlsx -OutputPath ./Images -Format Tiff",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelImageCommand.cs L35 (-Format); L61 (document.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per sheet. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.xlsx -OutputDirectory ./Images -Format Tiff",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
     "route": "xlsx-webp",
-    "cmdlet": "Export-OfficeExcelImage",
-    "example": "Export-OfficeExcelImage -Path ./in.xlsx -OutputPath ./Images -Format Webp",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelImageCommand.cs L35 (-Format); L61 (document.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per sheet. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+    "cmdlet": "Export-OfficeDocumentImage",
+    "example": "Export-OfficeDocumentImage -Path ./in.xlsx -OutputDirectory ./Images -Format Webp",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   }
 ]

@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates an OfficeIMO-authored Visio-native container around existing shapes.
 
 ## SYNTAX
-### __AllParameterSets
+### Page (Default)
 ```powershell
 Add-OfficeVisioContainer [[-InputObject] <Object>] -Id <string> [-Page <VisioPage>] [-ShapeId <string[]>] [-Text <string>] [-Margin <Double>] [-HeadingHeight <Double>] [-FillColor <string>] [-LineColor <string>] [-LineWeight <Double>] [-ContainerStyle <Int32>] [-HeadingStyle <Int32>] [-Locked] [-NoAutoResize] [-NoHighlight] [-NoRibbon] [-PassThru] [<CommonParameters>]
 ```
@@ -37,7 +37,7 @@ Native Visio container gallery identifier. Zero selects the default/no explicit 
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -53,7 +53,7 @@ Container fill color.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -69,7 +69,7 @@ Additional heading height in page units.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -85,7 +85,7 @@ Native Visio heading gallery identifier. Zero disables the heading style.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -101,7 +101,7 @@ Container shape identifier.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -117,7 +117,7 @@ Shapes, shape selections, or shape keys/ids to include in the container.
 
 ```yaml
 Type: Object
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -133,7 +133,7 @@ Container line color.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -149,7 +149,7 @@ Container line weight in inches.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -165,7 +165,7 @@ Lock the generated container.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -181,7 +181,7 @@ Outer margin around member shapes in page units.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -197,7 +197,7 @@ Disable Visio container auto resize metadata.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -213,7 +213,7 @@ Suppress Visio selection highlighting metadata.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -229,7 +229,7 @@ Suppress Visio container ribbon metadata.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -245,7 +245,7 @@ Page that owns the member shapes. Optional inside OfficeVisio/VisioPage DSL scop
 
 ```yaml
 Type: VisioPage
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -261,7 +261,7 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -277,7 +277,7 @@ Shape keys or ids to include in the container.
 
 ```yaml
 Type: String[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -293,7 +293,7 @@ Container heading text.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 

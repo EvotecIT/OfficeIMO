@@ -13,7 +13,8 @@ namespace OfficeIMO.PowerPoint {
         private readonly SlidePart? _initialSlidePart;
         private SlidePart? _slidePart => Element.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
         private readonly OpenXmlPartContainer? _initialOwnerPart;
-        private OpenXmlPartContainer? _ownerPart => _initialOwnerPart is SlidePart ? _slidePart : _initialOwnerPart;
+        private OpenXmlPartContainer? _ownerPart => Shape.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>()
+            .FirstOrDefault()?.SlidePart ?? _initialOwnerPart ?? _initialSlidePart;
 
         internal PowerPointTextBox(Shape shape, SlidePart? slidePart = null) : this(shape, slidePart, slidePart) {
         }
@@ -21,7 +22,7 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointTextBox(Shape shape, OpenXmlPartContainer ownerPart) : this(shape, ownerPart as SlidePart, ownerPart) {
         }
 
-        private PowerPointTextBox(Shape shape, SlidePart? slidePart, OpenXmlPartContainer? ownerPart) : base(shape) {
+        private PowerPointTextBox(Shape shape, SlidePart? slidePart, OpenXmlPartContainer? ownerPart) : base(shape, ownerPart ?? slidePart) {
             _initialSlidePart = slidePart;
             _initialOwnerPart = ownerPart ?? slidePart;
         }

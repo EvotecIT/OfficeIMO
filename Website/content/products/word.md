@@ -60,7 +60,7 @@ using var document = WordDocument.Create("Report.docx");
 
 // Add a styled heading
 var paragraph = document.AddParagraph("Quarterly Report");
-paragraph.Style = WordParagraphStyle.Heading1;
+paragraph.Style = WordParagraphStyles.Heading1;
 paragraph.Color = OfficeIMO.OfficeColor.DarkBlue;
 
 // Add body text

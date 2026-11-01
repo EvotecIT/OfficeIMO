@@ -24,7 +24,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// }</code>
 ///   <para>Positions a shape with explicit offsets when the OfficeIMO anchored-shape API is desired.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordShape")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordShape", DefaultParameterSetName = "Default")]
 [Alias("WordShape")]
 [OutputType(typeof(WordShape))]
 public sealed class AddOfficeWordShapeCommand : PSCmdlet

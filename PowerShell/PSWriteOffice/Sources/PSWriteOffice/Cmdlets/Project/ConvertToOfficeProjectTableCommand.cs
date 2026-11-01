@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 ///   <summary>Maps PowerShell rows to a bounded project entity table.</summary>
 ///   <code>Import-Csv ./tasks.csv | ConvertTo-OfficeProjectTable -Kind Tasks -ColumnMap @{ Uid = 'ID'; Name = 'Task' }</code>
 /// </example>
-[Cmdlet(VerbsData.ConvertTo, "OfficeProjectTable")]
+[Cmdlet(VerbsData.ConvertTo, "OfficeProjectTable", DefaultParameterSetName = "InputObject")]
 [OutputType(typeof(ProjectMappedTable))]
 public sealed class ConvertToOfficeProjectTableCommand : PSCmdlet {
     /// <summary>Rows from Import-Csv, dictionaries or PowerShell objects.</summary>

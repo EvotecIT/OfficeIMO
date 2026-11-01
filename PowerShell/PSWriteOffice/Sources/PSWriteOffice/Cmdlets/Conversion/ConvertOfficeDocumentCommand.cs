@@ -49,6 +49,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(Mandatory = true, Position = 1, ParameterSetName = "PathFile")]
     [Parameter(Mandatory = true, Position = 1, ParameterSetName = "LiteralPathFile")]
     [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Document")]
     public string? OutputPath { get; set; }
 
     /// <summary>Destination folder for a batch.</summary>
@@ -62,6 +63,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
     [Parameter(Mandatory = true, ParameterSetName = "Text")]
+    [Parameter(Mandatory = true, ParameterSetName = "Document")]
     [ArgumentCompleter(typeof(OfficeFormatCompleter))]
     public string? To { get; set; }
 
@@ -71,6 +73,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
     [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Document")]
     public object[]? Options { get; set; }
 
     /// <summary>Runtime source password; saved definitions contain references rather than password values.</summary>
@@ -79,6 +82,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
     [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Document")]
     [OfficePasswordTransformation]
     public SecureString? Password { get; set; }
 
@@ -88,6 +92,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
     [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Document")]
     public string? Route { get; set; }
 
     /// <summary>Output intent, subject to the selected route's supported profiles.</summary>
@@ -96,6 +101,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
     [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Document")]
     public OfficeConversionProfile OutputProfile { get; set; } = OfficeConversionProfile.Faithful;
 
     /// <summary>Reject a conversion that reports fidelity loss before publishing its output.</summary>
@@ -104,6 +110,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
     [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Document")]
     public SwitchParameter FailOnLoss { get; set; }
 
     /// <summary>Explicitly accept the native legacy Word importer's reported reductions.</summary>
@@ -112,6 +119,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
     [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Document")]
     public SwitchParameter AllowLegacyImportLoss { get; set; }
 
     /// <summary>Apply verified lossless compression to PDF output.</summary>
@@ -120,6 +128,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
     [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Document")]
     public SwitchParameter CompressPdf { get; set; }
 
     /// <summary>Leave an existing destination unchanged and report its input as skipped.</summary>
@@ -128,6 +137,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
     [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Document")]
     public SwitchParameter NoClobber { get; set; }
 
     /// <summary>Skip a file whose existing output has a strictly newer UTC modification time.</summary>
@@ -143,6 +153,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
     [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Document")]
     public SwitchParameter AutoRename { get; set; }
 
     /// <summary>Maximum source bytes per file.</summary>
@@ -151,6 +162,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
     [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Document")]
     [ValidateRange(1L, long.MaxValue)]
     public long MaximumInputBytes { get; set; } = 64L * 1024 * 1024;
 
@@ -160,6 +172,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
     [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Document")]
     [ValidateRange(1L, long.MaxValue)]
     public long MaximumOutputBytes { get; set; } = 256L * 1024 * 1024;
 
@@ -169,6 +182,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
     [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Document")]
     [ValidateRange(1L, long.MaxValue)]
     public long MaximumXmlCharactersInPart { get; set; } = 10L * 1024 * 1024;
 
@@ -186,21 +200,30 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     protected override async Task ProcessRecordAsync() {
         if (ParameterSetName == "Job") return;
         if (ParameterSetName == "Text") { await ConvertTextAsync(); return; }
+        if (ParameterSetName == "Document") {
+            if (OfficePath.GetPipelineLiteralPaths(Document) is { } paths)
+                foreach (string path in paths) AddInput(path, literal: true);
+            else await ConvertLiveDocumentAsync();
+            return;
+        }
         bool literal = ParameterSetName.StartsWith("LiteralPath", StringComparison.Ordinal);
-        foreach (string path in literal ? LiteralPath : Path) {
-            foreach (string input in OfficePath.ResolveInput(SessionState, path, literal, allowDirectory: !IsSingleFile)) {
-                int limit = IsSingleFile ? 1 : MaximumFiles == 0 ? int.MaxValue : MaximumFiles;
-                if (_inputs.Count >= limit) throw new PSArgumentException("The input selection exceeds MaximumFiles or the single-file destination limit.");
-                _inputs.Add(input);
-            }
+        foreach (string path in literal ? LiteralPath : Path) AddInput(path, literal);
+    }
+
+    private void AddInput(string path, bool literal) {
+        foreach (string input in OfficePath.ResolveInput(SessionState, path, literal, allowDirectory: !IsSingleFile)) {
+            int limit = IsSingleFile ? 1 : MaximumFiles == 0 ? int.MaxValue : MaximumFiles;
+            if (_inputs.Count >= limit) throw new PSArgumentException("The input selection exceeds MaximumFiles or the single-file destination limit.");
+            _inputs.Add(input);
         }
     }
 
-    private bool IsSingleFile => ParameterSetName.EndsWith("File", StringComparison.Ordinal);
+    private bool IsSingleFile => ParameterSetName.EndsWith("File", StringComparison.Ordinal) ||
+        ParameterSetName == "Document" && OutputPath != null;
 
     /// <inheritdoc />
     protected override async Task EndProcessingAsync() {
-        if (ParameterSetName == "Text") return;
+        if (ParameterSetName == "Text" || ParameterSetName == "Document" && _inputs.Count == 0) return;
         if (NoClobber && AutoRename) throw new PSArgumentException("NoClobber and AutoRename cannot be combined.");
         if (IsSingleFile) await ConvertFileAsync();
         else if (AsString) await ConvertFilesToTextAsync();

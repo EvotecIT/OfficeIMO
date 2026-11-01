@@ -1,11 +1,18 @@
 using System;
 using System.Management.Automation;
+using OfficeIMO;
 using OfficeIMO.OpenDocument;
 
 namespace PSWriteOffice.Cmdlets.OpenDocument;
 
 internal static class OpenDocumentCommandUtilities
 {
+    internal static OdfConversionLossPolicy ResolveLossPolicy(OfficeConversionLossPolicy policy) => policy switch {
+        OfficeConversionLossPolicy.Allow => OdfConversionLossPolicy.ReportOnly,
+        OfficeConversionLossPolicy.Block => OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported,
+        _ => throw new ArgumentOutOfRangeException(nameof(policy), "Choose Block or Allow.")
+    };
+
     internal static void ValidateOpenDocumentExtension(string path, OdfDocumentKind kind, string parameterName)
     {
         var expected = kind switch

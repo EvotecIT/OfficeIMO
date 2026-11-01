@@ -14,7 +14,8 @@ namespace OfficeIMO.PowerPoint {
         private readonly SlidePart? _initialSlidePart;
         private SlidePart? _slidePart => (_field as DocumentFormat.OpenXml.OpenXmlElement ?? Run).Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
         private readonly OpenXmlPartContainer? _initialOwnerPart;
-        private OpenXmlPartContainer? _ownerPart => _initialOwnerPart is SlidePart ? _slidePart : _initialOwnerPart;
+        private OpenXmlPartContainer? _ownerPart => (_field as DocumentFormat.OpenXml.OpenXmlElement ?? Run).Ancestors<DocumentFormat.OpenXml.Presentation.Slide>()
+            .FirstOrDefault()?.SlidePart ?? _initialOwnerPart ?? _initialSlidePart;
         private readonly A.Field? _field;
 
         internal PowerPointTextRun(A.Run run, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {

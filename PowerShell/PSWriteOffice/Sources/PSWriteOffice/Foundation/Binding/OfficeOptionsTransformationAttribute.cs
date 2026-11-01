@@ -41,6 +41,7 @@ public sealed class OfficeOptionsTransformationAttribute : ArgumentTransformatio
                 object? converted = input;
                 // Preserve native null/reset semantics; PowerShell converts null strings to empty strings.
                 if (input == null && (!property.PropertyType.IsValueType || Nullable.GetUnderlyingType(property.PropertyType) != null)) converted = null;
+                else if (property.PropertyType == typeof(OfficeIMO.Pdf.PdfPageSelection)) converted = OfficePageRange.From(input!).Selection;
                 else if (property.PropertyType == typeof(OfficeIMO.OfficeLength)) converted = new OfficeLengthTransformationAttribute().Transform(engineIntrinsics, input!);
                 else if (property.PropertyType == typeof(OfficeIMO.OfficeColor)) converted = new OfficeColorTransformationAttribute().Transform(engineIntrinsics, input!);
                 else if ((Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType) is var geometry &&
@@ -50,9 +51,10 @@ public sealed class OfficeOptionsTransformationAttribute : ArgumentTransformatio
                     (property.PropertyType.GetGenericTypeDefinition() == typeof(IReadOnlyList<>) ||
                      property.PropertyType.GetGenericTypeDefinition() == typeof(IReadOnlyCollection<>)))
                     converted = LanguagePrimitives.ConvertTo(input, property.PropertyType.GetGenericArguments()[0].MakeArrayType(), CultureInfo.InvariantCulture);
-                else if (input is IDictionary && property.PropertyType.IsClass && property.PropertyType != typeof(string) &&
+                else if (input is IDictionary nested && property.PropertyType.IsClass && property.PropertyType != typeof(string) &&
                     property.PropertyType.GetConstructor(Type.EmptyTypes) != null && !typeof(IDictionary).IsAssignableFrom(property.PropertyType))
-                    converted = new OfficeOptionsTransformationAttribute(property.PropertyType).Transform(engineIntrinsics, input);
+                    converted = new OfficeOptionsTransformationAttribute(property.PropertyType).ApplyTo(engineIntrinsics,
+                        property.GetValue(result) ?? Activator.CreateInstance(property.PropertyType)!, nested);
                 else converted = LanguagePrimitives.ConvertTo(input, property.PropertyType, CultureInfo.InvariantCulture);
                 property.SetValue(result, converted);
             } catch (Exception error) when (error is PSInvalidCastException or ArgumentException or TargetInvocationException) {

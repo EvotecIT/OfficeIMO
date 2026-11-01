@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a date picker content control to the current paragraph.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeWordDatePicker [-Date <DateTime>] [-Alias <string>] [-Tag <string>] [-Paragraph <WordParagraph>] [-PassThru] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Optional alias for the control.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Optional initial date.
 
 ```yaml
 Type: DateTime
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Explicit paragraph to receive the control.
 
 ```yaml
 Type: WordParagraph
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Emit the created control.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Optional tag for the control.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

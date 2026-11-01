@@ -48,4 +48,4 @@ Close-OfficePowerPoint -Presentation $presentation -Save
 
 Inspect imported theme and layout behavior when the source and target use different design systems. Reopen the saved deck and review slide summaries, placeholders, and notes.
 
-The [reuse-slides recipe](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-ReuseSlides.ps1) imports one slide, copies another, creates a section, and saves the combined deck.
+The [reuse-slides recipe](https://github.com/EvotecIT/OfficeIMO/blob/feb7ac6e9feacdca9ab9f3d382d0854db1d2c472/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-ReuseSlides.ps1) imports one slide, copies another, creates a section, and saves the combined deck.

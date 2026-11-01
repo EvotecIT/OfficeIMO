@@ -1,40 +1,28 @@
+param(
+    [string] $OutputDirectory = (Join-Path $PWD 'PowerPoint-SectionsAndImport')
+)
+
 Import-Module PSWriteOffice -ErrorAction Stop
-$documents = Join-Path $PSScriptRoot '..\Documents'
-$null = New-Item -Path $documents -ItemType Directory -Force
-$sourcePath = Join-Path $documents 'PowerPoint-Source.pptx'
-$targetPath = Join-Path $documents 'PowerPoint-SectionsAndImport.pptx'
+$null = New-Item -Path $OutputDirectory -ItemType Directory -Force
+$sourcePath = Join-Path $OutputDirectory 'PowerPoint-Source.pptx'
+$targetPath = Join-Path $OutputDirectory 'PowerPoint-SectionsAndImport.pptx'
 
-$source = New-OfficePowerPoint -Path $sourcePath -NoSave
-$sourceSlide = Add-OfficePowerPointSlide -Presentation $source -Layout 1 -PassThru
-Set-OfficePowerPointSlideTitle -Slide $sourceSlide -Title 'FY24 Imported'
-Add-OfficePowerPointTextBox -Slide $sourceSlide -Text 'FY24 details from source deck' -X 80 -Y 150 -Width 320 -Height 60
-Set-OfficePowerPointNotes -Slide $sourceSlide -Text 'FY24 source notes'
-Save-OfficePowerPoint -Presentation $source
+New-OfficePowerPoint -Path $sourcePath -Force {
+    PowerPointSlide -Title 'FY24 Imported' {
+        PowerPointParagraph 'FY24 details from source deck'
+        PowerPointNotes 'FY24 source notes'
+    }
+}
 
-$target = New-OfficePowerPoint -Path $targetPath -NoSave
-$slide1 = Add-OfficePowerPointSlide -Presentation $target -Layout 1 -PassThru
-Set-OfficePowerPointSlideTitle -Slide $slide1 -Title 'FY24 Overview'
-Add-OfficePowerPointTextBox -Slide $slide1 -Text 'FY24 summary for leadership' -X 80 -Y 150 -Width 320 -Height 60
-
-$slide2 = Add-OfficePowerPointSlide -Presentation $target -Layout 1 -PassThru
-Set-OfficePowerPointSlideTitle -Slide $slide2 -Title 'FY24 Results'
-
-Add-OfficePowerPointSection -Document $target -Name 'Intro' -Slide 1
-Add-OfficePowerPointSection -Document $target -Name 'Results' -Slide 2
-Rename-OfficePowerPointSection -Presentation $target -Name 'Results' -NewName 'Deep Dive'
-
-Update-OfficePowerPointText -Presentation $target -OldValue 'FY24' -NewValue 'FY25'
-Copy-OfficePowerPointSlide -Presentation $target -Index 0 -InsertAt 1
-Import-OfficePowerPointSlide -Presentation $target -SourcePath $sourcePath -SourceIndex 0 -InsertAt 1
-
-Save-OfficePowerPoint -Presentation $target
-
-Write-Host "Target deck saved to $targetPath"
-Write-Host ''
-Write-Host 'Sections:'
-$reloaded = Get-OfficePowerPoint -Path $targetPath
-try {
-    Get-OfficePowerPointSection -Presentation $reloaded | Format-Table
-} finally {
-    $reloaded | Close-OfficePowerPoint
+New-OfficePowerPoint -Path $targetPath -Force -PassThru {
+    PowerPointSlide -Title 'FY24 Overview' {
+        PowerPointParagraph 'FY24 summary for leadership'
+    }
+    PowerPointSlide -Title 'FY24 Results'
+    Add-OfficePowerPointSection -Name 'Intro' -Slide 1
+    Add-OfficePowerPointSection -Name 'Results' -Slide 2
+    Rename-OfficePowerPointSection -Name 'Results' -NewName 'Deep Dive'
+    Update-OfficePowerPointText -OldValue 'FY24' -NewValue 'FY25'
+    Copy-OfficePowerPointSlide -Slide 1 -Position 2
+    Import-OfficePowerPointSlide -LiteralPath $sourcePath -SourceSlide 1 -Position 2
 }

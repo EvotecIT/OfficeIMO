@@ -46,14 +46,6 @@ Describe 'PSWriteOffice public API consistency' {
             @{ Command = 'ConvertTo-OfficeOpenDocument'; Parameter = 'WordOptions'; Builder = 'New-OfficeWordOpenDocumentOptions' }
             @{ Command = 'ConvertTo-OfficeOpenDocument'; Parameter = 'ExcelOptions'; Builder = 'New-OfficeExcelOpenDocumentOptions' }
             @{ Command = 'ConvertTo-OfficeOpenDocument'; Parameter = 'PowerPointOptions'; Builder = 'New-OfficePowerPointOpenDocumentOptions' }
-            @{ Command = 'Export-OfficeWordImage'; Parameter = 'Options'; Builder = 'New-OfficeWordImageOptions' }
-            @{ Command = 'Export-OfficeExcelImage'; Parameter = 'Options'; Builder = 'New-OfficeExcelWorkbookImageOptions' }
-            @{ Command = 'Export-OfficeExcelChartImage'; Parameter = 'Options'; Builder = 'New-OfficeExcelImageOptions' }
-            @{ Command = 'Export-OfficePowerPointImage'; Parameter = 'Options'; Builder = 'New-OfficePowerPointImageOptions' }
-            @{ Command = 'Export-OfficePdfImage'; Parameter = 'Options'; Builder = 'New-OfficePdfImageOptions' }
-            @{ Command = 'Export-OfficeVisioImage'; Parameter = 'Options'; Builder = 'New-OfficeVisioImageOptions' }
-            @{ Command = 'Export-OfficeHtmlImage'; Parameter = 'DocumentOptions'; Builder = 'New-OfficeHtmlConversionOptions' }
-            @{ Command = 'Export-OfficeHtmlImage'; Parameter = 'RenderOptions'; Builder = 'New-OfficeHtmlRenderOptions' }
             @{ Command = 'Get-OfficeEmail'; Parameter = 'Options'; Builder = 'New-OfficeEmailReaderOptions' }
             @{ Command = 'Get-OfficeEmail'; Parameter = 'StoreOptions'; Builder = 'New-OfficeEmailStoreReaderOptions' }
             @{ Command = 'Save-OfficeEmail'; Parameter = 'Options'; Builder = 'New-OfficeEmailWriterOptions' }
@@ -85,9 +77,11 @@ Describe 'PSWriteOffice public API consistency' {
             # These semantic blocks form a larger composition and have no single native object output.
             'Add-OfficePowerPointCard'
             'Add-OfficePowerPointColumn'
+            'Add-OfficePowerPointFooter'
             'Add-OfficePowerPointKpi'
             'Add-OfficePowerPointLocation'
             'Add-OfficePowerPointQuote'
+            'Add-OfficePowerPointSlideNumber'
             'Add-OfficePowerPointStep'
         )
         $missing = @(
@@ -271,10 +265,10 @@ Describe 'PSWriteOffice public API consistency' {
             @{ Command = 'Add-OfficeExcelPivotTable'; Parameter = 'Layout'; Type = 'ExcelPivotLayout' }
             @{ Command = 'Import-OfficeExcel'; Parameter = 'FormulaMode'; Type = 'OfficeExcelFormulaMode' }
             @{ Command = 'Add-OfficeWordTable'; Parameter = 'Layout'; Type = 'OfficeWordTableLayout' }
-            @{ Command = 'Set-OfficeWordParagraphStyle'; Parameter = 'Alignment'; Type = 'WordParagraphAlignment' }
-            @{ Command = 'Set-OfficeWordTextStyle'; Parameter = 'Underline'; Type = 'WordUnderlineStyle' }
-            @{ Command = 'Add-OfficePowerPointShape'; Parameter = 'ShapeType'; Type = 'OfficePresetShapeType' }
-            @{ Command = 'Find-OfficePowerPointShape'; Parameter = 'Kind'; Type = 'OfficePowerPointShapeKind[]' }
+            @{ Command = 'Set-OfficeWordParagraph'; Parameter = 'Alignment'; Type = 'OfficeAlignment' }
+            @{ Command = 'Set-OfficeWordText'; Parameter = 'Underline'; Type = 'WordUnderlineStyle' }
+            @{ Command = 'Add-OfficePowerPointShape'; Parameter = 'Type'; Type = 'OfficePresetShapeType' }
+            @{ Command = 'Get-OfficePowerPointShape'; Parameter = 'Kind'; Type = 'OfficePowerPointShapeKind[]' }
             @{ Command = 'Set-OfficePdfPage'; Parameter = 'BoxName'; Type = 'PdfPageBoundaryBox' }
             @{ Command = 'Save-OfficeAsciiDoc'; Parameter = 'LineEnding'; Type = 'OfficeLineEnding' }
         )
@@ -301,7 +295,6 @@ Describe 'PSWriteOffice public API consistency' {
                     @{ Command = 'Add-OfficePdfTable'; Parameter = 'RowStripeFill' }
                     @{ Command = 'Set-OfficeExcelCell'; Parameter = 'GradientFrom' }
                     @{ Command = 'Set-OfficeExcelCell'; Parameter = 'GradientTo' }
-                    @{ Command = 'Set-OfficePowerPointThemeColor'; Parameter = 'Value' }
                 )) {
                 [pscustomobject]@{
                     Command = $contract.Command

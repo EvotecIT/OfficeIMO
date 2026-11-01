@@ -9,7 +9,7 @@ schema: 2.0.0
 Updates selected task fields without implicitly recalculating its schedule.
 
 ## SYNTAX
-### __AllParameterSets
+### Task (Default)
 ```powershell
 Set-OfficeProjectTask -Task <ProjectTask> [-Name <string>] [-DurationDays <Decimal>] [-Start <DateTime>] [-Finish <DateTime>] [-PercentComplete <Int32>] [-Manual <Boolean>] [-PassThru] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Working duration in days.
 
 ```yaml
 Type: Decimal
-Parameter Sets: __AllParameterSets
+Parameter Sets: Task
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Stored local finish date.
 
 ```yaml
 Type: DateTime
-Parameter Sets: __AllParameterSets
+Parameter Sets: Task
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Explicit manual scheduling choice.
 
 ```yaml
 Type: Boolean
-Parameter Sets: __AllParameterSets
+Parameter Sets: Task
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ New task name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Task
 Aliases: None
 Possible values:
 
@@ -96,7 +96,7 @@ Return the changed task.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Task
 Aliases: None
 Possible values:
 
@@ -112,7 +112,7 @@ Duration completion from zero to one hundred.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Task
 Aliases: None
 Possible values:
 
@@ -128,7 +128,7 @@ Stored local start date.
 
 ```yaml
 Type: DateTime
-Parameter Sets: __AllParameterSets
+Parameter Sets: Task
 Aliases: None
 Possible values:
 
@@ -144,7 +144,7 @@ Editable task returned by Get-OfficeProjectTask.
 
 ```yaml
 Type: ProjectTask
-Parameter Sets: __AllParameterSets
+Parameter Sets: Task
 Aliases: None
 Possible values:
 

@@ -9,6 +9,13 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Zero-based page used by single-image conversion and saving operations.</summary>
     public int PageIndex { get; set; }
 
+    /// <summary>
+    /// Caller-ordered one-based selection within the retained surfaces for batch image export.
+    /// Null exports all retained surfaces. Single-image operations use their selected page instead.
+    /// This does not change HTML layout, PDF output, or the request's page set.
+    /// </summary>
+    public global::OfficeIMO.Pdf.PdfPageSelection? PageSelection { get; set; }
+
     private readonly List<string> _additionalStylesheets = new List<string>();
 
     /// <summary>CSS reference pixel density used for physical page conversion.</summary>
@@ -309,6 +316,7 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxSurfaceHeight = MaxSurfaceHeight;
         target.MaxPageCount = MaxPageCount;
         target.PageIndex = PageIndex;
+        target.PageSelection = PageSelection;
         target.MaxProjectedVisuals = MaxProjectedVisuals;
         target.MaxLayoutDepth = MaxLayoutDepth;
         target.MaxInputCharacters = MaxInputCharacters;

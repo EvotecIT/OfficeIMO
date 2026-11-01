@@ -10,7 +10,7 @@ namespace PSWriteOffice.Cmdlets.Epub;
 /// <para>Save replaces its destination after validation. PassThru returns the native write report.</para>
 /// <example><summary>Save a live publication to its associated path and inspect the report.</summary>
 /// <code>$report = $book | Save-OfficeEpub -PassThru</code></example>
-[Cmdlet(VerbsData.Save, "OfficeEpub", SupportsShouldProcess = true)]
+[Cmdlet(VerbsData.Save, "OfficeEpub", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
 [OutputType(typeof(EpubWriteReport))]
 public sealed class SaveOfficeEpubCommand : PSCmdlet {
     /// <summary>Live editable publication.</summary>

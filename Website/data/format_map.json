@@ -946,8 +946,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficeWordImage",
-      "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Jpeg -AllPages"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.docx -OutputDirectory ./Images -Format Jpeg"
     },
     {
       "id": "docx-markdown",
@@ -1009,8 +1009,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficeWordImage",
-      "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Png -AllPages"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.docx -OutputDirectory ./Images -Format Png"
     },
     {
       "id": "docx-rtf",
@@ -1039,8 +1039,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficeWordImage",
-      "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Svg -AllPages"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.docx -OutputDirectory ./Images -Format Svg"
     },
     {
       "id": "docx-tiff",
@@ -1054,8 +1054,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficeWordImage",
-      "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Tiff -AllPages"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.docx -OutputDirectory ./Images -Format Tiff"
     },
     {
       "id": "docx-webp",
@@ -1069,8 +1069,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficeWordImage",
-      "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Webp -AllPages"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.docx -OutputDirectory ./Images -Format Webp"
     },
     {
       "id": "email-eml-msg",
@@ -2624,8 +2624,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficePdfImage",
-      "example": "Export-OfficePdfImage -Path ./in.pdf -OutputPath ./Pages -Format Jpeg"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.pdf -OutputDirectory ./Pages -Format Jpeg"
     },
     {
       "id": "pdf-odp",
@@ -2676,8 +2676,8 @@
         "browser",
         "powershell"
       ],
-      "cmdlet": "Export-OfficePdfImage",
-      "example": "Export-OfficePdfImage -Path ./in.pdf -OutputPath ./Pages -Format Png"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.pdf -OutputDirectory ./Pages -Format Png"
     },
     {
       "id": "pdf-pptx",
@@ -2724,8 +2724,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficePdfImage",
-      "example": "Export-OfficePdfImage -Path ./in.pdf -OutputPath ./Pages -Format Svg"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.pdf -OutputDirectory ./Pages -Format Svg"
     },
     {
       "id": "pdf-tiff",
@@ -2739,8 +2739,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficePdfImage",
-      "example": "Export-OfficePdfImage -Path ./in.pdf -OutputPath ./Pages -Format Tiff"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.pdf -OutputDirectory ./Pages -Format Tiff"
     },
     {
       "id": "pdf-webp",
@@ -2754,8 +2754,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficePdfImage",
-      "example": "Export-OfficePdfImage -Path ./in.pdf -OutputPath ./Pages -Format Webp"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.pdf -OutputDirectory ./Pages -Format Webp"
     },
     {
       "id": "pdf-xlsx",
@@ -2811,8 +2811,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficePowerPointHtml",
-      "example": "ConvertTo-OfficePowerPointHtml -Path ./in.pptx -OutputPath ./out.html"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.pptx -To Html -OutputPath ./out.html"
     },
     {
       "id": "pptx-jpeg",
@@ -2826,8 +2826,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficePowerPointImage",
-      "example": "Export-OfficePowerPointImage -Path ./in.pptx -OutputPath ./Slides -Format Jpeg"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.pptx -OutputDirectory ./Slides -Format Jpeg"
     },
     {
       "id": "pptx-odp",
@@ -2874,8 +2874,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficePowerPointImage",
-      "example": "Export-OfficePowerPointImage -Path ./in.pptx -OutputPath ./Slides -Format Png"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.pptx -OutputDirectory ./Slides -Format Png"
     },
     {
       "id": "pptx-svg",
@@ -2889,8 +2889,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficePowerPointImage",
-      "example": "Export-OfficePowerPointImage -Path ./in.pptx -OutputPath ./Slides -Format Svg"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.pptx -OutputDirectory ./Slides -Format Svg"
     },
     {
       "id": "pptx-tiff",
@@ -2904,8 +2904,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficePowerPointImage",
-      "example": "Export-OfficePowerPointImage -Path ./in.pptx -OutputPath ./Slides -Format Tiff"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.pptx -OutputDirectory ./Slides -Format Tiff"
     },
     {
       "id": "pptx-webp",
@@ -2919,8 +2919,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficePowerPointImage",
-      "example": "Export-OfficePowerPointImage -Path ./in.pptx -OutputPath ./Slides -Format Webp"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.pptx -OutputDirectory ./Slides -Format Webp"
     },
     {
       "id": "publisher-pdf",
@@ -3096,8 +3096,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficeVisioImage",
-      "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Jpeg"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.vsdx -OutputDirectory ./Images -Format Jpeg"
     },
     {
       "id": "visio-pdf",
@@ -3125,8 +3125,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficeVisioImage",
-      "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Png"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.vsdx -OutputDirectory ./Images -Format Png"
     },
     {
       "id": "visio-svg",
@@ -3140,8 +3140,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficeVisioImage",
-      "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Svg"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.vsdx -OutputDirectory ./Images -Format Svg"
     },
     {
       "id": "visio-tiff",
@@ -3155,8 +3155,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficeVisioImage",
-      "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Tiff"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.vsdx -OutputDirectory ./Images -Format Tiff"
     },
     {
       "id": "visio-webp",
@@ -3170,8 +3170,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficeVisioImage",
-      "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Webp"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.vsdx -OutputDirectory ./Images -Format Webp"
     },
     {
       "id": "xls-pdf",
@@ -3251,8 +3251,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficeExcelImage",
-      "example": "Export-OfficeExcelImage -Path ./in.xlsx -OutputPath ./Images -Format Jpeg"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.xlsx -OutputDirectory ./Images -Format Jpeg"
     },
     {
       "id": "xlsx-ods",
@@ -3299,8 +3299,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficeExcelImage",
-      "example": "Export-OfficeExcelImage -Path ./in.xlsx -OutputPath ./Images -Format Png"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.xlsx -OutputDirectory ./Images -Format Png"
     },
     {
       "id": "xlsx-svg",
@@ -3314,8 +3314,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficeExcelImage",
-      "example": "Export-OfficeExcelImage -Path ./in.xlsx -OutputPath ./Images -Format Svg"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.xlsx -OutputDirectory ./Images -Format Svg"
     },
     {
       "id": "xlsx-tiff",
@@ -3329,8 +3329,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficeExcelImage",
-      "example": "Export-OfficeExcelImage -Path ./in.xlsx -OutputPath ./Images -Format Tiff"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.xlsx -OutputDirectory ./Images -Format Tiff"
     },
     {
       "id": "xlsx-webp",
@@ -3344,8 +3344,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Export-OfficeExcelImage",
-      "example": "Export-OfficeExcelImage -Path ./in.xlsx -OutputPath ./Images -Format Webp"
+      "cmdlet": "Export-OfficeDocumentImage",
+      "example": "Export-OfficeDocumentImage -Path ./in.xlsx -OutputDirectory ./Images -Format Webp"
     },
     {
       "id": "xps-pdf",

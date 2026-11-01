@@ -449,7 +449,7 @@ Describe 'Excel DSL surface' {
         $summary.Schema.HasTimelines | Should -BeTrue
     }
 
-    It 'joins selected worksheets from another workbook with a stable prefix' {
+    It 'copies selected worksheets from another workbook with a stable prefix' {
         $source = Join-Path $TestDrive 'WorkbookJoinSource.xlsx'
         $target = Join-Path $TestDrive 'WorkbookJoinTarget.xlsx'
 
@@ -468,10 +468,12 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $join = Join-OfficeExcelWorkbook -Path $target -SourcePath $source -SourceSheet South -SheetNamePrefix 'Imported '
-        $join.SheetCount | Should -Be 1
-        $join.SourceSheets | Should -Contain 'South'
-        $join.TargetSheets | Should -Contain 'Imported South'
+        $copy = Copy-OfficeExcelSheet -Path $target -Source $source -Sheet South -NamePrefix 'Imported ' -PassThru
+        try {
+            $copy.Name | Should -Be 'Imported South'
+        } finally {
+            $copy.Document | Close-OfficeExcel
+        }
 
         $summary = Get-OfficeExcelSummary -Path $target -IncludeSheets
         $summary.Sheets.Name | Should -Contain 'Imported South'
@@ -851,12 +853,6 @@ Describe 'Excel DSL surface' {
         }
 
         Test-Path $path | Should -BeTrue
-    }
-
-    It 'exports workbook merge aliases from the manifest' {
-        (Get-Alias -Name Merge-OfficeExcelWorkbook -ErrorAction Stop).ResolvedCommandName | Should -Be 'Join-OfficeExcelWorkbook'
-        (Get-Alias -Name ExcelWorkbookJoin -ErrorAction Stop).ResolvedCommandName | Should -Be 'Join-OfficeExcelWorkbook'
-        (Get-Alias -Name ExcelWorkbookMerge -ErrorAction Stop).ResolvedCommandName | Should -Be 'Join-OfficeExcelWorkbook'
     }
 
     It 'preserves legacy Excel table data parameter aliases' {
@@ -2643,11 +2639,17 @@ Describe 'Excel DSL surface' {
                 Set-OfficeExcelCell -Address 'B1' -Value 20
                 Set-OfficeExcelFormula -Address 'C1' -Formula 'SUM(A1:B1)'
                 Set-OfficeExcelNamedRange -Name 'Totals' -Range 'A1:C1'
-                Set-OfficeExcelHeaderFooter -HeaderCenter 'Demo' -FooterRight 'Page &P of &N'
+                ExcelHeader -Center 'Demo'
+                ExcelFooter -Right 'Page &P of &N'
             }
         }
 
-        Test-Path $path | Should -BeTrue
+        $worksheet = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/worksheets/sheet1.xml'
+        $worksheet.SelectSingleNode("//*[local-name()='oddHeader']").InnerText | Should -Be '&CDemo'
+        $worksheet.SelectSingleNode("//*[local-name()='oddFooter']").InnerText | Should -Be '&RPage &P of &N'
+        $worksheet.SelectSingleNode("//*[local-name()='c'][@r='C1']/*[local-name()='f']").InnerText | Should -Be 'SUM(A1:B1)'
+        $workbook = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/workbook.xml'
+        $workbook.SelectSingleNode("//*[local-name()='definedName'][@name='Totals']").InnerText | Should -Be "'Data'!`$A`$1:`$C`$1"
     }
 
     It 'applies friendly AutoFilter conditions by header' {
@@ -2726,7 +2728,7 @@ Describe 'Excel DSL surface' {
                 Add-OfficeExcelConditionalColorScale -Range 'C2:C4' -StartColor '#FE9' -EndColor '#6A84'
                 Add-OfficeExcelConditionalIconSet -Range 'C2:C4'
                 Add-OfficeExcelChart -Table 'Sales' -Address A6 -Type ColumnClustered -Title 'Sales'
-                Add-OfficeExcelImage -Address 'I1' -Path $imagePath -WidthPixels 64 -HeightPixels 64
+                Add-OfficeExcelImage -Address 'I1' -Path $imagePath -Width 64px -Height 64px
                 Set-OfficeExcelHyperlink -Address 'A2' -Url 'https://example.org' -Display 'Example'
                 Add-OfficeExcelComment -Address 'B2' -Text 'Check sales' -Author Alice -Initials AA
                 $script:contextComments = @(Get-OfficeExcelComment -TextContains sales)
@@ -2895,16 +2897,16 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $conditionalRules = @(Get-OfficeExcelConditionalFormatting -Path $path -Sheet Data)
+        $conditionalRules = @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data)
         $conditionalRules.Count | Should -Be 2
         ($conditionalRules | Where-Object Range -EQ 'B2:B4').Operator | Should -Be 'GreaterThan'
         ($conditionalRules | Where-Object Range -EQ 'B2:B4').Formulas | Should -Contain '150'
 
-        $rangeFilteredRules = @(Get-OfficeExcelConditionalFormatting -Path $path -Sheet Data -Range 'B3')
+        $rangeFilteredRules = @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data -Range 'B3')
         $rangeFilteredRules.Count | Should -Be 1
         $rangeFilteredRules[0].Range | Should -Be 'B2:B4'
 
-        $validations = @(Get-OfficeExcelDataValidation -Path $path -Sheet Data)
+        $validations = @(Get-OfficeExcelValidation -Path $path -Sheet Data)
         $validations.Count | Should -Be 2
         ($validations | Where-Object Range -EQ 'B2:B4').Formula1 | Should -Be '1'
         ($validations | Where-Object Range -EQ 'B2:B4').Formula2 | Should -Be '1000'
@@ -2912,8 +2914,8 @@ Describe 'Excel DSL surface' {
         Clear-OfficeExcelConditionalFormatting -Path $path -Sheet Data -Range 'B3' -Confirm:$false
         Clear-OfficeExcelDataValidation -Path $path -Sheet Data -Range 'C3' -Confirm:$false
 
-        @(Get-OfficeExcelConditionalFormatting -Path $path -Sheet Data -Range 'B3').Count | Should -Be 0
-        @(Get-OfficeExcelDataValidation -Path $path -Sheet Data -Range 'C3').Count | Should -Be 0
+        @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data -Range 'B3').Count | Should -Be 0
+        @(Get-OfficeExcelValidation -Path $path -Sheet Data -Range 'C3').Count | Should -Be 0
 
         $worksheetXml = Read-XlsxEntryText -Path $path -Entry 'xl/worksheets/sheet1.xml'
         $worksheetXml | Should -Match 'sqref="B2 B4"'
@@ -2922,8 +2924,8 @@ Describe 'Excel DSL surface' {
         Clear-OfficeExcelConditionalFormatting -Path $path -Sheet Data -Confirm:$false
         Clear-OfficeExcelDataValidation -Path $path -Sheet Data -Confirm:$false
 
-        @(Get-OfficeExcelConditionalFormatting -Path $path -Sheet Data).Count | Should -Be 0
-        @(Get-OfficeExcelDataValidation -Path $path -Sheet Data).Count | Should -Be 0
+        @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data).Count | Should -Be 0
+        @(Get-OfficeExcelValidation -Path $path -Sheet Data).Count | Should -Be 0
     }
 
     It 'reads conditional formatting rules from the current DSL sheet by default' {
@@ -2935,7 +2937,7 @@ Describe 'Excel DSL surface' {
                 Set-OfficeExcelCell -Address 'A2' -Value 2
                 Add-OfficeExcelConditionalRule -Range 'A1:A2' -Operator GreaterThan -Formula1 '1'
 
-                $rules = @(Get-OfficeExcelConditionalFormatting -Range 'A2')
+                $rules = @(Get-OfficeExcelConditionalFormat -Range 'A2')
                 $rules.Count | Should -Be 1
                 $rules[0].SheetName | Should -Be 'Data'
                 $rules[0].Range | Should -Be 'A1:A2'
@@ -2954,7 +2956,7 @@ Describe 'Excel DSL surface' {
                 Set-OfficeExcelCell -Address 'B3' -Value 20
                 Add-OfficeExcelValidationWholeNumber -Range 'B2:B4' -Operator Between -Formula1 1 -Formula2 100
 
-                $validations = @(Get-OfficeExcelDataValidation -Range 'B3')
+                $validations = @(Get-OfficeExcelValidation -Range 'B3')
                 $validations.Count | Should -Be 1
                 $validations[0].SheetName | Should -Be 'Data'
                 $validations[0].Range | Should -Be 'B2:B4'
@@ -2991,7 +2993,7 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $rules = @(Get-OfficeExcelConditionalFormatting -Path $path -Sheet Data)
+        $rules = @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data)
         $rules.Count | Should -Be 10
         $rules.Type | Should -Contain 'DuplicateValues'
         $rules.Type | Should -Contain 'UniqueValues'
@@ -3044,10 +3046,10 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $conditionalRules = @(Get-OfficeExcelConditionalFormatting -Path $path -Sheet Data -HeaderName Sales -TableName Sales)
+        $conditionalRules = @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data -Header Sales -Table Sales)
         ($conditionalRules | Where-Object Range -EQ 'B2:B4').Count | Should -Be 2
 
-        $validations = @(Get-OfficeExcelDataValidation -Path $path -Sheet Data -ColumnName Status -TableName Sales)
+        $validations = @(Get-OfficeExcelValidation -Path $path -Sheet Data -Header Status -Table Sales)
         @($validations | Where-Object Range -EQ 'C2:C4').Count | Should -Be 1
 
         $updated = @(Set-OfficeExcelDataValidationMessage -Path $path -Sheet Data -HeaderName Status -TableName Sales -PromptTitle Status -Prompt 'Pick a listed status' -ErrorTitle Invalid -ErrorMessage 'Use the list' -PassThru)
@@ -3063,8 +3065,8 @@ Describe 'Excel DSL surface' {
         Clear-OfficeExcelConditionalFormatting -Path $path -Sheet Data -HeaderName Sales -TableName Sales -Confirm:$false
         Clear-OfficeExcelDataValidation -Path $path -Sheet Data -ColumnName Status -TableName Sales -Confirm:$false
 
-        @(Get-OfficeExcelConditionalFormatting -Path $path -Sheet Data -HeaderName Sales -TableName Sales).Count | Should -Be 0
-        @(Get-OfficeExcelDataValidation -Path $path -Sheet Data -HeaderName Status -TableName Sales).Count | Should -Be 0
+        @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data -Header Sales -Table Sales).Count | Should -Be 0
+        @(Get-OfficeExcelValidation -Path $path -Sheet Data -Header Status -Table Sales).Count | Should -Be 0
     }
 
     It 'sets prompt and error messages on existing data validation rules' {
@@ -3089,7 +3091,7 @@ Describe 'Excel DSL surface' {
         $updated[0].ErrorTitle | Should -Be 'Invalid sales'
         $updated[0].Error | Should -Be 'Use 1-1000'
 
-        $validation = Get-OfficeExcelDataValidation -Path $path -Sheet Data -Range 'B3'
+        $validation = Get-OfficeExcelValidation -Path $path -Sheet Data -Range 'B3'
         $validation.PromptTitle | Should -Be 'Sales input'
         $validation.Prompt | Should -Be 'Use 1-1000'
         $validation.ErrorTitle | Should -Be 'Invalid sales'
@@ -3159,8 +3161,8 @@ Describe 'Excel DSL surface' {
         $updated = @(Set-OfficeExcelDataValidationMessage -Path $path -Sheet Data -Range 'B2:B4' -Prompt 'Shared prompt' -PassThru)
         $updated.Count | Should -Be 2
 
-        $firstRule = @(Get-OfficeExcelDataValidation -Path $path -Sheet Data -Range 'B2' | Where-Object Range -EQ 'B2:B3')[0]
-        $secondRule = @(Get-OfficeExcelDataValidation -Path $path -Sheet Data -Range 'B4' | Where-Object Range -EQ 'B4:B4')[0]
+        $firstRule = @(Get-OfficeExcelValidation -Path $path -Sheet Data -Range 'B2' | Where-Object Range -EQ 'B2:B3')[0]
+        $secondRule = @(Get-OfficeExcelValidation -Path $path -Sheet Data -Range 'B4' | Where-Object Range -EQ 'B4:B4')[0]
 
         $firstRule.PromptTitle | Should -Be 'North sales'
         $firstRule.Prompt | Should -Be 'Shared prompt'
@@ -3268,8 +3270,8 @@ Describe 'Excel DSL surface' {
             $row.Rate | Should -Not -BeNullOrEmpty
         }
 
-        @(Get-OfficeExcelConditionalFormatting -Path $path -Sheet Data -Range 'B3').Count | Should -Be 0
-        @(Get-OfficeExcelDataValidation -Path $path -Sheet Data -Range 'B3').Count | Should -Be 0
+        @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data -Range 'B3').Count | Should -Be 0
+        @(Get-OfficeExcelValidation -Path $path -Sheet Data -Range 'B3').Count | Should -Be 0
     }
 
     It 'sets and reads mixed rich text runs in Excel cells' {
@@ -3414,7 +3416,7 @@ Describe 'Excel DSL surface' {
         @(Get-OfficeExcelNamedRange -Path $path -Sheet 'Data' | Where-Object Name -eq 'GrandTotal').Count | Should -Be 0
     }
 
-    It 'adds, lists, and clears manual worksheet page breaks' {
+    It 'adds, lists, and removes selected manual worksheet page breaks' {
         $path = Join-Path $TestDrive 'DslExcelPageBreaks.xlsx'
         $rows = 1..12 | ForEach-Object {
             [PSCustomObject]@{
@@ -3429,10 +3431,13 @@ Describe 'Excel DSL surface' {
                 Add-OfficeExcelPageBreak -Row 5 -Column 1
                 $script:contextPageBreaks = @(Get-OfficeExcelPageBreak)
             }
+            ExcelSheet 'Summary' { ExcelPageBreak -Row 8 }
         }
 
         $breaks = @(Get-OfficeExcelPageBreak -Path $path -Sheet Data)
         $breaks.Count | Should -Be 2
+        $breaks[0] | Should -BeOfType ([PSWriteOffice.Models.Excel.ExcelPageBreakInfo])
+        $breaks[0].Path | Should -Be $path
         ($breaks | Where-Object Type -EQ 'Row').Index | Should -Be 5
         ($breaks | Where-Object Type -EQ 'Row').Position | Should -Be 5
         ($breaks | Where-Object Type -EQ 'Column').Index | Should -Be 1
@@ -3448,11 +3453,11 @@ Describe 'Excel DSL surface' {
         $worksheetXml | Should -Match 'id="1"'
 
         $beforeWhatIf = [System.IO.File]::ReadAllBytes($path)
-        Clear-OfficeExcelPageBreak -Path $path -Sheet Data -Row 5 -WhatIf
+        Open-OfficeExcel -LiteralPath $path -WhatIf { Remove-OfficeExcelPageBreak -Sheet Data -Row 5 }
         $afterWhatIf = [System.IO.File]::ReadAllBytes($path)
         [Convert]::ToBase64String($afterWhatIf) | Should -Be ([Convert]::ToBase64String($beforeWhatIf))
 
-        Clear-OfficeExcelPageBreak -Path $path -Sheet Data -Row 5 -Confirm:$false
+        Open-OfficeExcel -LiteralPath $path { Remove-OfficeExcelPageBreak -Sheet Data -Row 5 }
 
         $rowBreaks = @(Get-OfficeExcelPageBreak -Path $path -Sheet Data -Row)
         $rowBreaks.Count | Should -Be 0
@@ -3463,7 +3468,14 @@ Describe 'Excel DSL surface' {
         $script:contextPageBreaks.Count | Should -Be 2
         $script:contextPageBreaks[0].SheetName | Should -Be 'Data'
 
-        Clear-OfficeExcelPageBreak -Path $path -Sheet Data -All -Confirm:$false
+        Open-OfficeExcel -LiteralPath $path {
+            $script:removedBreaks = @(Remove-OfficeExcelPageBreak -Sheet Data -All -PassThru)
+        }
+        $script:removedBreaks.Count | Should -Be 1
+        $script:removedBreaks[0] | Should -BeOfType ([PSWriteOffice.Models.Excel.ExcelPageBreakInfo])
+        $script:removedBreaks[0].Type | Should -Be 'Column'
+        $script:removedBreaks[0].Position | Should -Be 1
+        @(Get-OfficeExcelPageBreak -LiteralPath $path -Sheet Summary).Position | Should -Be 8
 
         @(Get-OfficeExcelPageBreak -Path $path -Sheet Data).Count | Should -Be 0
     }
@@ -3549,7 +3561,7 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $conditionalRules = @(Get-OfficeExcelConditionalFormatting -Path $path -Sheet Data -Range 'F2')
+        $conditionalRules = @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data -Range 'F2')
         $conditionalRules.Count | Should -Be 4
 
         $worksheetXml = Read-XlsxEntryText -Path $path -Entry 'xl/worksheets/sheet1.xml'
@@ -3672,10 +3684,16 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        Copy-OfficeExcelSheet -Path $path -SourceSheet 'Data' -NewName 'DataCopy' -PassThru | Should -Not -BeNullOrEmpty
-        Move-OfficeExcelSheet -Path $path -Sheet 'DataCopy' -Index 0
-        Copy-OfficeExcelSheet -Path $path -SourcePath $sourcePath -SourceSheet 'External' -NewName 'ExternalCopy' -CopyMode Package -PassThru | Should -Not -BeNullOrEmpty
-        $join = Join-OfficeExcelSheet -Path $path -TargetSheet 'Data' -SourceSheet 'More' -MatchColumnsByHeader
+        $copy = Copy-OfficeExcelSheet -Path $path -Sheet Data -Name DataCopy -PassThru
+        try {
+            $copy.Name | Should -Be 'DataCopy'
+            Move-OfficeExcelSheet -Document $copy.Document -Sheet $copy -Position 1
+            $copy.Document | Save-OfficeExcel
+        } finally {
+            $copy.Document | Close-OfficeExcel
+        }
+        Copy-OfficeExcelSheet -Path $path -Source $sourcePath -Sheet External -Name ExternalCopy -CopyMode Package
+        $join = Merge-OfficeExcelSheet -Path $path -Sheet 'Data' -SourceSheet 'More' -MatchColumnsByHeader
         Set-OfficeExcelPrintArea -Path $path -Sheet 'Data' -Range 'A1:B4'
         Set-OfficeExcelPrintTitles -Path $path -Sheet 'Data' -FirstRow 1 -LastRow 1
 
@@ -3720,12 +3738,12 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $results = @(Join-OfficeExcelWorkbook -Path $targetPath -SourcePath @($sourceAPath, $sourceBPath) -CopyMode Package -SheetNamePrefix 'Merged')
-        $results.Count | Should -Be 2
-        $results[0].SheetCount | Should -Be 1
-        $results[1].SheetCount | Should -Be 1
-        $results[0].TargetSheets | Should -Contain 'MergedFirst'
-        $results[1].TargetSheets | Should -Contain 'MergedSecond'
+        New-OfficeExcel -Path $targetPath {
+            Add-OfficeExcelSheet -Name Summary
+        }
+        foreach ($sourcePath in $sourceAPath, $sourceBPath) {
+            Copy-OfficeExcelSheet -Path $targetPath -Source $sourcePath -CopyMode Package -NamePrefix Merged
+        }
 
         $summary = Get-OfficeExcelSummary -Path $targetPath -IncludeSheets
         $summary.Sheets.Name | Should -Contain 'MergedFirst'
@@ -4301,8 +4319,8 @@ namespace PSWriteOffice.Tests {
                 Set-OfficeExcelCell -Address 'B1' -Value 'Host'
                 Set-OfficeExcelSmartHyperlink -Address 'A2' -Url 'https://datatracker.ietf.org/doc/html/rfc7208'
                 Set-OfficeExcelHostHyperlink -Address 'B2' -Url 'https://learn.microsoft.com/office/open-xml/'
-                Add-OfficeExcelImage -Address 'D2' -Path $imagePath -WidthPixels 32 -HeightPixels 32
-                Add-OfficeExcelImage -Address 'E2' -Path $imagePath -WidthPixels 24 -HeightPixels 24
+                Add-OfficeExcelImage -Address 'D2' -Path $imagePath -Width 32px -Height 32px
+                Add-OfficeExcelImage -Address 'E2' -Path $imagePath -Width 24px -Height 24px
             }
         } | Out-Null
 
@@ -4326,7 +4344,7 @@ namespace PSWriteOffice.Tests {
         $hyperlinks.Count | Should -Be 2
     }
 
-    It 'rejects local file URLs in both Excel image URL commands' {
+    It 'rejects local file URLs before inserting a worksheet image' {
         $path = Join-Path $TestDrive 'DslExcelFileUrlRejected.xlsx'
         $imagePath = New-TestOfficeImageFile -Directory $TestDrive
         $imageUrl = [System.Uri]::new($imagePath).AbsoluteUri
@@ -4334,8 +4352,7 @@ namespace PSWriteOffice.Tests {
 
         $document = Open-OfficeExcel -Path $path
         try {
-            { Add-OfficeExcelImageFromUrl -Document $document -Sheet 'Data' -Address 'A1' -Url $imageUrl } | Should -Throw '*HTTP or HTTPS*'
-            { Add-OfficeExcelImage -Document $document -Sheet 'Data' -Address 'B1' -Url $imageUrl } | Should -Throw '*HTTP or HTTPS*'
+            { Add-OfficeExcelImage -Document $document -Sheet 'Data' -Address 'A1' -Url $imageUrl } | Should -Throw '*HTTP or HTTPS*'
             $document['Data'].Images.Count | Should -Be 0
         } finally {
             $document | Close-OfficeExcel
@@ -4348,8 +4365,8 @@ namespace PSWriteOffice.Tests {
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Images' -Content {
-                Add-OfficeExcelImage -Range 'A1:C3' -Path $imagePath -Name 'RangeLogo' -AltText 'Logo pinned to report header' -Title 'Pinned logo' -Placement MoveAndSize
-                Add-OfficeExcelImage -Address 'E2' -Path $imagePath -ScalePercent 100 -Name 'ScaledLogo' -AltText 'Scaled logo' -RotationDegrees 12
+                Add-OfficeExcelImage -Address 'A1:C3' -Path $imagePath -Name 'RangeLogo' -AltText 'Logo pinned to report header' -Title 'Pinned logo' -Placement MoveAndSize
+                Add-OfficeExcelImage -Address 'E2' -Path $imagePath -Scale 100 -Name 'ScaledLogo' -AltText 'Scaled logo' -Rotation 12
             }
         } | Out-Null
 
@@ -4374,14 +4391,14 @@ namespace PSWriteOffice.Tests {
         $oneCellAnchor.SelectSingleNode(".//*[local-name()='xfrm']").GetAttribute('rot') | Should -Be '720000'
     }
 
-    It 'keeps a single-cell image Range as a two-cell anchor' {
+    It 'keeps an explicit same-cell range as a two-cell image anchor' {
         $path = Join-Path $TestDrive 'DslExcelSingleCellRangeImages.xlsx'
         $imagePath = New-TestOfficeImageFile -Directory $TestDrive
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Images' -Content {
-                Add-OfficeExcelImage -Range B2 -Path $imagePath -Name 'LocalRange' -Placement MoveOnly -EndOffsetXPixels 3 -EndOffsetYPixels 5
-                Add-OfficeExcelImage -Range D4 -Path $imagePath -Name 'FloatingRange' -Placement FreeFloating -EndOffsetXPixels 3 -EndOffsetYPixels 5
+                Add-OfficeExcelImage -Address B2:B2 -Path $imagePath -Name 'LocalRange' -Placement MoveOnly -EndOffsetX 3px -EndOffsetY 5px
+                Add-OfficeExcelImage -Address D4:D4 -Path $imagePath -Name 'FloatingRange' -Placement FreeFloating -EndOffsetX 3px -EndOffsetY 5px
             }
         } | Out-Null
 
@@ -4699,10 +4716,10 @@ namespace PSWriteOffice.Tests {
         $doctor = Test-OfficeExcelWorkbook -Path $left -SkipOpenXmlValidation
         $doctor.Passed | Should -BeTrue
 
-        $formulas = Get-OfficeExcelFormulaAnalysis -Path $left -IncludeFormulas
-        $formulas.FormulaCount | Should -Be 1
-        $formulas.VolatileFormulaCount | Should -Be 1
-        $formulas.Formulas[0].Functions | Should -Contain 'SUM'
+        $formulas = @(Get-OfficeExcelFormula -Path $left)
+        $formulas.Count | Should -Be 1
+        $formulas[0].IsVolatile | Should -BeTrue
+        $formulas[0].Functions | Should -Contain 'SUM'
 
         $streaming = Get-OfficeExcelStreamingContract -Path $left
         $streaming.WorksheetCount | Should -Be 1

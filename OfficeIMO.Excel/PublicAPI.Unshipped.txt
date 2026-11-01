@@ -1,5 +1,8 @@
 #nullable enable
 OfficeIMO.Excel.ExcelChart.ApplyDashboardPreset(OfficeIMO.Excel.ExcelDashboardChartPreset preset = OfficeIMO.Excel.ExcelDashboardChartPreset.Comparison, int? styleId = null, int? colorStyleId = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.Document.get -> OfficeIMO.Excel.ExcelDocument!
+OfficeIMO.Excel.ExcelSheet.SetFooter(string? left = null, string? center = null, string? right = null, bool? differentFirstPage = null, bool? differentOddEven = null, bool? alignWithMargins = null, bool? scaleWithDocument = null) -> void
+OfficeIMO.Excel.ExcelSheet.SetHeader(string? left = null, string? center = null, string? right = null, bool? differentFirstPage = null, bool? differentOddEven = null, bool? alignWithMargins = null, bool? scaleWithDocument = null) -> void
 OfficeIMO.Excel.ExcelSheet.SetTabColor(OfficeIMO.OfficeColor color) -> void
 OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.MaxNames.get -> int
 OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.MaxNames.set -> void

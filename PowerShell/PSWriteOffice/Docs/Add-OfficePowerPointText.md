@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a live styled run to the enclosing paragraph or list item, or starts a slide paragraph.
 
 ## SYNTAX
-### __AllParameterSets
+### Text (Default)
 ```powershell
 Add-OfficePowerPointText [-Text] <string> [-Bold] [-Italic] [-Strikethrough] [-Underline <PowerPointUnderlineStyle>] [-Color <OfficeColor>] [-Highlight <OfficeColor>] [-Font <string>] [-Size <OfficeLength>] [-Link <string>] [-Alignment <OfficeAlignment>] [-PassThru] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Gets or sets alignment when starting a paragraph directly in the slide or column
 
 ```yaml
 Type: OfficeAlignment
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values: Left, Center, Right, Justify, Start, End
 
@@ -48,7 +48,7 @@ Gets or sets bold formatting.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Gets or sets text color or a theme role.
 
 ```yaml
 Type: OfficeColor
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ Gets or sets the font family.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -96,7 +96,7 @@ Gets or sets the highlight color.
 
 ```yaml
 Type: OfficeColor
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -112,7 +112,7 @@ Gets or sets italic formatting.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -128,7 +128,7 @@ Gets or sets the hyperlink target.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -144,7 +144,7 @@ Gets or sets whether to emit the native run.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -160,7 +160,7 @@ Gets or sets the font size; numbers mean points.
 
 ```yaml
 Type: OfficeLength
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -176,7 +176,7 @@ Gets or sets strike-through formatting.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -192,7 +192,7 @@ Gets or sets the text to append.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -208,7 +208,7 @@ Gets or sets the native underline style.
 
 ```yaml
 Type: PowerPointUnderlineStyle
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values: None, Words, Single, Double, Heavy, Dotted, HeavyDotted, Dash, DashHeavy, DashLong, DashLongHeavy, DotDash, DotDashHeavy, DotDotDash, DotDotDashHeavy, Wavy, WavyHeavy, WavyDouble
 

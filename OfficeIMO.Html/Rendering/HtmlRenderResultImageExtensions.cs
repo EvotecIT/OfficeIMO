@@ -28,7 +28,13 @@ public static class HtmlRenderResultImageExtensions {
         if (result.Document.Pages.Count != 1) {
             throw new InvalidOperationException("Single-image export requires a selected, viewport, continuous, or stitched one-surface request.");
         }
-        return result.ExportImages(cancellationToken)[0];
+        HtmlRenderOptions options = result.ResolvedOptions.Clone();
+        options.PageSelection = null;
+        return HtmlRenderEngine.ExecuteWithDeadline(options, cancellationToken, token => {
+            OfficeImageExportResult? image = null;
+            ExportImagesCore(result, ResolveFormat(result.Request.Encoder), options, value => image = value, token);
+            return image ?? throw new InvalidOperationException("The selected render surface did not produce an image.");
+        });
     }
 
     internal static void ExportImagesCore(
@@ -40,9 +46,10 @@ public static class HtmlRenderResultImageExtensions {
         var conversion = CreatePdf(result, cancellationToken);
         var pages = global::OfficeIMO.Pdf.PdfReadDocument.Open(conversion.ToBytes(cancellationToken),
             options: null, cancellationToken: cancellationToken);
+        IReadOnlyList<int> selection = ResolveSelection(result, options);
         int index = 0;
         global::OfficeIMO.Pdf.PdfImageExportEngine.ExportEach(pages, format, options.ToPdfImageOptions(),
-            selection: null, image => consumer(WithHtmlSource(image, result.Document.Pages[index++].PageNumber)),
+            selection: options.PageSelection, image => consumer(WithHtmlSource(image, result.Document.Pages[selection[index++] - 1].PageNumber)),
             global::OfficeIMO.Pdf.PdfImageExportEngine.MapConversionDiagnostics(conversion), cancellationToken);
     }
 
@@ -51,11 +58,16 @@ public static class HtmlRenderResultImageExtensions {
         var conversion = CreatePdf(result, cancellationToken);
         var pages = global::OfficeIMO.Pdf.PdfReadDocument.Open(conversion.ToBytes(cancellationToken),
             options: null, cancellationToken: cancellationToken);
+        IReadOnlyList<int> selection = ResolveSelection(result, options);
         int index = 0;
         await global::OfficeIMO.Pdf.PdfImageExportEngine.ExportEachAsync(pages, format, options.ToPdfImageOptions(),
-            selection: null, (image, token) => consumer(WithHtmlSource(image, result.Document.Pages[index++].PageNumber), token),
+            selection: options.PageSelection, (image, token) => consumer(WithHtmlSource(image, result.Document.Pages[selection[index++] - 1].PageNumber), token),
             global::OfficeIMO.Pdf.PdfImageExportEngine.MapConversionDiagnostics(conversion), cancellationToken).ConfigureAwait(false);
     }
+
+    internal static IReadOnlyList<int> ResolveSelection(HtmlRenderResult result, HtmlRenderOptions options) =>
+        options.PageSelection?.Resolve(result.Document.Pages.Count)
+        ?? Enumerable.Range(1, result.Document.Pages.Count).ToArray();
 
     private static global::OfficeIMO.Pdf.PdfDocumentConversionResult CreatePdf(HtmlRenderResult result,
         CancellationToken cancellationToken) => Pdf.HtmlPdfConverterExtensions.CreateResult(

@@ -9,7 +9,7 @@ schema: 2.0.0
 Reads sections from a live presentation, optionally matching a PowerShell wildcard pattern.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Get-OfficePowerPointSection [[-Document] <PowerPointDocument>] [-Name <string>] [-CaseSensitive] [<CommonParameters>]
 ```
@@ -40,7 +40,7 @@ Gets or sets whether name matching is case-sensitive.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -56,7 +56,7 @@ Gets or sets the live document; omission uses its enclosing content block.
 
 ```yaml
 Type: PowerPointDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -72,7 +72,7 @@ Gets or sets a section name or PowerShell wildcard pattern.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

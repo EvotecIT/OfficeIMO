@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a rectangle shape to the current Visio page.
 
 ## SYNTAX
-### __AllParameterSets
+### Page (Default)
 ```powershell
 Add-OfficeVisioRectangle [[-Text] <string>] [-Page <VisioPage>] [-Key <string>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Name <string>] [-NameU <string>] [-FillColor <OfficeColor>] [-LineColor <OfficeColor>] [-LineWeight <OfficeLength>] [-LinePattern <Int32>] [-FillPattern <Int32>] [-Angle <Double>] [-PassThru] [<CommonParameters>]
 ```
@@ -35,7 +35,7 @@ Rotation in degrees.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -51,7 +51,7 @@ Fill color or semantic role resolved through the default Office theme.
 
 ```yaml
 Type: OfficeColor
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -67,7 +67,7 @@ Native fill pattern: 0 has no fill, 1 is solid, and 2 through 40 select built-in
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -83,7 +83,7 @@ Physical shape height.
 
 ```yaml
 Type: OfficeLength
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -99,7 +99,7 @@ Key used by connector and layout commands within the block.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -115,7 +115,7 @@ Line color or semantic role resolved through the default Office theme.
 
 ```yaml
 Type: OfficeColor
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -131,7 +131,7 @@ Native line pattern: 0 hides the line, 1 is solid, and 2 through 23 select built
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -147,7 +147,7 @@ Physical outline weight.
 
 ```yaml
 Type: OfficeLength
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -163,7 +163,7 @@ Optional shape name; otherwise Key is used.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -179,7 +179,7 @@ Optional universal shape name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -195,7 +195,7 @@ Target page; the current page is used inside a Visio content block.
 
 ```yaml
 Type: VisioPage
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -211,7 +211,7 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -227,7 +227,7 @@ Text placed inside the shape.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -243,7 +243,7 @@ Physical shape width.
 
 ```yaml
 Type: OfficeLength
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -259,7 +259,7 @@ Shape pin's X coordinate. A number means points.
 
 ```yaml
 Type: OfficeLength
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -275,7 +275,7 @@ Shape pin's Y coordinate. A number means points.
 
 ```yaml
 Type: OfficeLength
-Parameter Sets: __AllParameterSets
+Parameter Sets: Page
 Aliases: None
 Possible values:
 

@@ -934,7 +934,7 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Markdown",
       "injectCriticalCss": true,
-      "quickStartTypes": "MarkdownDoc,MarkdownNativeDocument",
+      "quickStartTypes": "MarkdownDocument,MarkdownNativeDocument",
       "packageId": "OfficeIMO.Markdown",
       "relatedContentManifests": [
         "./data/apidocs/markdown-guides.json",

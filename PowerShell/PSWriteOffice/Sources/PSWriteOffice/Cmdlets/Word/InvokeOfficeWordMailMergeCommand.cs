@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>Invoke-OfficeWordMailMerge -InputObject @{ FirstName = 'John'; OrderId = 12345 }</code>
 ///   <para>Updates MERGEFIELD values in the active Word document.</para>
 /// </example>
-[Cmdlet(VerbsLifecycle.Invoke, "OfficeWordMailMerge")]
+[Cmdlet(VerbsLifecycle.Invoke, "OfficeWordMailMerge", DefaultParameterSetName = "Default")]
 [OutputType(typeof(WordDocument))]
 public sealed class InvokeOfficeWordMailMergeCommand : PSCmdlet
 {

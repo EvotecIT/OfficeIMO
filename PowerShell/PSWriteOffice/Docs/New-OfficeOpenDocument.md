@@ -9,9 +9,14 @@ schema: 2.0.0
 Creates an ODT, ODS, ODP or ODG model, returning it live or saving a completed content block.
 
 ## SYNTAX
-### __AllParameterSets
+### Live (Default)
 ```powershell
-New-OfficeOpenDocument [[-Path] <string>] [[-Content] <scriptblock>] [-Kind <OdfDocumentKind>] [-Force] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
+New-OfficeOpenDocument [[-Path] <string>] [-Kind <OdfDocumentKind>] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Content
+```powershell
+New-OfficeOpenDocument [-Path] <string> [-Content] <scriptblock> [-Kind <OdfDocumentKind>] [-Force] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -39,11 +44,11 @@ Save-OfficeOpenDocument -Document $drawing
 ## PARAMETERS
 
 ### -AllowLoss
-Gets or sets whether native-save loss is explicitly accepted.
+Explicitly accept reductions reported by the content block's native save.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -55,15 +60,15 @@ Accept wildcard characters: False
 ```
 
 ### -Content
-Gets or sets a content block; omission returns the live document.
+Authoring block to complete before the document is atomically saved and closed.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: 1
 Default value: None
 Accept pipeline input: False
@@ -75,7 +80,7 @@ Allow a completed content block to replace an existing destination.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -91,7 +96,7 @@ Document kind; required when no destination extension is supplied.
 
 ```yaml
 Type: OdfDocumentKind
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values: Text, Spreadsheet, Presentation, Graphics
 
@@ -103,11 +108,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Gets or sets whether a completed content block returns the saved FileInfo.
+Return the saved FileInfo after a completed content block.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -119,11 +124,11 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Optional associated destination; required with a content block.
+Optional associated destination for a live document; required when a content block saves a file.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -135,11 +140,11 @@ Accept wildcard characters: False
 ```
 
 ### -Show
-Gets or sets whether the saved file opens in the system default application.
+Open the saved result in its registered application after the content block succeeds.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 

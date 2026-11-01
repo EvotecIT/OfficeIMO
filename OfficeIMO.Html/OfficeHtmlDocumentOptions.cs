@@ -16,6 +16,9 @@ public sealed class OfficeHtmlDocumentOptions {
     /// <summary>Theme applied when default shell styles are included.</summary>
     public OfficeVisualThemeKind Theme { get; set; } = OfficeVisualThemeKind.WordLike;
 
+    /// <summary>Optional shared document theme. Its palette and typography take precedence over <see cref="Theme"/>.</summary>
+    public OfficeTheme? DocumentTheme { get; set; }
+
     /// <summary>When true, emits the shared OfficeIMO CSS shell.</summary>
     public bool IncludeDefaultStyles { get; set; } = true;
 
@@ -31,6 +34,7 @@ public sealed class OfficeHtmlDocumentOptions {
         Title = Title,
         Language = Language,
         Theme = Theme,
+        DocumentTheme = DocumentTheme,
         IncludeDefaultStyles = IncludeDefaultStyles,
         BodyClass = BodyClass,
         NewLine = NewLine
@@ -38,7 +42,7 @@ public sealed class OfficeHtmlDocumentOptions {
 
     /// <summary>Validates the bounded document-output contract.</summary>
     public void Validate() {
-        if (IncludeDefaultStyles && !Enum.IsDefined(typeof(OfficeVisualThemeKind), Theme)) {
+        if (IncludeDefaultStyles && DocumentTheme == null && !Enum.IsDefined(typeof(OfficeVisualThemeKind), Theme)) {
             throw new ArgumentOutOfRangeException(nameof(Theme), Theme, "Office HTML theme is not supported.");
         }
         if (Language != null && string.IsNullOrWhiteSpace(Language)) {

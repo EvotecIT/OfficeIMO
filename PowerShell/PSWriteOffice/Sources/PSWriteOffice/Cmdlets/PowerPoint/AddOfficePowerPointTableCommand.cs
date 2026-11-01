@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Management.Automation;
+using OfficeIMO;
 using OfficeIMO.PowerPoint;
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
@@ -23,17 +24,18 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointTable", DefaultParameterSetName = ParameterSetInputObject)]
 [Alias("PowerPointTable")]
+[OutputType(typeof(PowerPointTable))]
 public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     private const string ParameterSetInputObject = "InputObject";
     private const string ParameterSetSize = "Size";
 
     /// <summary>Target slide that will receive the table (optional inside DSL).</summary>
-    [Parameter]
-    public PowerPointSlide? Slide { get; set; }
+    [Parameter, PowerPointSlideTransformation]
+    public PowerPointSlideSelector? Slide { get; set; }
 
     /// <summary>Source objects to convert into table rows.</summary>
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = ParameterSetInputObject)]
-    public object? InputObject { get; set; }
+    public object?[]? InputObject { get; set; }
 
     /// <summary>Optional header order to apply to the table.</summary>
     [Parameter(ParameterSetName = ParameterSetInputObject)]
@@ -88,27 +90,41 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetSize)]
     public int Columns { get; set; }
 
-    /// <summary>Left offset (in points) from the slide origin.</summary>
-    [Parameter]
-    public double X { get; set; } = 0;
+    /// <summary>Left offset from the slide origin; numbers mean points.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength X { get; set; }
 
-    /// <summary>Top offset (in points) from the slide origin.</summary>
-    [Parameter]
-    public double Y { get; set; } = 0;
+    /// <summary>Top offset from the slide origin; numbers mean points.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength Y { get; set; }
 
-    /// <summary>Table width in points.</summary>
-    [Parameter]
-    public double Width { get; set; } = 400;
+    /// <summary>Table width; numbers mean points.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength Width { get; set; } = OfficeLength.Points(400);
 
-    /// <summary>Table height in points.</summary>
-    [Parameter]
-    public double Height { get; set; } = 240;
+    /// <summary>Table height; numbers mean points.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength Height { get; set; } = OfficeLength.Points(240);
 
-    /// <summary>Optional table style ID (GUID string).</summary>
+    /// <summary>Native table style name or GUID; omission retains the native theme style.</summary>
     [Parameter]
-    public string? StyleId { get; set; }
+    public string? Style { get; set; }
+
+    /// <summary>Culture for formatting data; lengths always parse invariantly.</summary>
+    [Parameter(ParameterSetName = ParameterSetInputObject), ValidateNotNull]
+    public CultureInfo Culture { get; set; } = CultureInfo.CurrentCulture;
+
+    /// <summary>One-based start column in the native twelve-column grid; explicit X overrides it.</summary>
+    [Parameter, ValidateRange(1, 12)]
+    public int? Column { get; set; }
+
+    /// <summary>Number of grid columns; defaults to twelve, and explicit Width overrides it.</summary>
+    [Parameter, ValidateRange(1, 12)]
+    public int? Span { get; set; }
 
     private readonly List<object?> _input = new();
+    private OfficeLength _left;
+    private OfficeLength _width;
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
@@ -119,26 +135,34 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
     protected override void EndProcessing() {
         if (ParameterSetName == ParameterSetInputObject) InputObject = _input.ToArray();
         PowerPointSlide? slide = null;
+        PowerPointTable? table = null;
         try {
-            if (Slide == null && PowerPointContentScope.Current != null && ParameterSetName == ParameterSetInputObject) {
+            ValidateDimensions();
+            slide = PowerPointManualPlacement.Resolve(Slide).Slide;
+            var horizontal = PowerPointManualPlacement.Horizontal(slide,
+                MyInvocation.BoundParameters.ContainsKey(nameof(X)) ? X : null,
+                MyInvocation.BoundParameters.ContainsKey(nameof(Width)) ? Width : null, Column, Span);
+            _left = horizontal.X ?? X;
+            _width = horizontal.Width ?? Width;
+            bool explicitBounds = PowerPointManualPlacement.HasExplicitBounds(MyInvocation.BoundParameters.Keys) || Column.HasValue || Span.HasValue;
+            if (Slide == null && !explicitBounds && PowerPointContentScope.Current != null && ParameterSetName == ParameterSetInputObject) {
                 AddLayoutTable();
                 return;
             }
-            ValidateDimensions();
-            slide = Slide ?? PowerPointDslContext.Require(this).RequireSlide();
-
-            PowerPointTable table = ParameterSetName == ParameterSetSize
+            table = ParameterSetName == ParameterSetSize
                 ? CreateSizedTable(slide)
                 : CreateDataTable(slide);
 
-            if (!string.IsNullOrWhiteSpace(StyleId)) {
-                table.StyleId = StyleId;
-            }
+            ApplyStyle(table);
 
+            var scope = PowerPointContentScope.Current;
+            if (scope != null && ReferenceEquals(scope.NativeSlide, slide)) scope.TrackFixedFigure(table);
             WritePassThru(table);
         } catch (Exception ex) {
+            table?.Remove();
+            if (ex is PipelineStoppedException or ActionPreferenceStopException) throw;
             if (PowerPointContentScope.Current != null) ThrowTerminatingError(OfficeError.Create(ex, "invalid-argument", InputObject, ErrorCategory.InvalidArgument));
-            WriteError(new ErrorRecord(ex, "PowerPointAddTableFailed", ErrorCategory.InvalidOperation, slide ?? Slide));
+            WriteError(new ErrorRecord(ex, "PowerPointAddTableFailed", ErrorCategory.InvalidOperation, slide ?? (object?)Slide));
         }
     }
 
@@ -147,7 +171,7 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
         var scope = PowerPointContentScope.Current!;
         PowerPointTable table = CreateDataTable(scope.NativeSlide);
         try {
-            if (!string.IsNullOrWhiteSpace(StyleId)) table.StyleId = StyleId;
+            ApplyStyle(table);
             var native = new PowerPointLayoutNativeTable(table, !NoHeader);
             scope.AddTable(new PowerPointLayoutTable(native.Headers, native.Rows) {
                 IncludeHeaders = !NoHeader, MaximumRows = MaxRows, NoSplit = NoSplit, NativeBody = native
@@ -159,6 +183,12 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
         WritePassThru(table);
     }
 
+    private void ApplyStyle(PowerPointTable table) {
+        if (string.IsNullOrWhiteSpace(Style)) return;
+        if (Guid.TryParse(Style, out Guid id)) table.StyleId = id.ToString("B").ToUpperInvariant();
+        else table.ApplyStyleByName(Style!, ignoreCase: true);
+    }
+
     private PowerPointTable CreateSizedTable(PowerPointSlide slide) {
         if (Rows <= 0) {
             throw new ArgumentOutOfRangeException(nameof(Rows), "Rows must be greater than 0.");
@@ -168,7 +198,7 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
             throw new ArgumentOutOfRangeException(nameof(Columns), "Columns must be greater than 0.");
         }
 
-        return slide.AddTable(Rows,Columns,global::OfficeIMO.OfficeLength.Points(X),global::OfficeIMO.OfficeLength.Points(Y),global::OfficeIMO.OfficeLength.Points(Width),global::OfficeIMO.OfficeLength.Points(Height));
+        return slide.AddTable(Rows, Columns, _left, Y, _width, Height);
     }
 
     private PowerPointTable CreateDataTable(PowerPointSlide slide) {
@@ -182,6 +212,8 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
             DictionaryKeyValueSeparator,
             MaxCollectionItems,
             MaxNestingDepth);
+        normalizerOptions.Culture = Culture;
+        normalizerOptions.FormatScalarValuesAsText = true;
         var explicitHeaders = ResolveExplicitHeaders();
         if (OfficeTableSpecParser.TryCreate(
                 projectedRows,
@@ -206,7 +238,7 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
                 row => row.TryGetValue(header, out var value) ? value : null))
             .ToList();
 
-        return slide.AddTable(rows,columns,includeHeaders: !NoHeader.IsPresent,global::OfficeIMO.OfficeLength.Points(X),global::OfficeIMO.OfficeLength.Points(Y),global::OfficeIMO.OfficeLength.Points(Width),global::OfficeIMO.OfficeLength.Points(Height));
+        return slide.AddTable(rows, columns, includeHeaders: !NoHeader.IsPresent, _left, Y, _width, Height);
     }
 
     private PowerPointTable CreateStructuredTable(PowerPointSlide slide, OfficeTableSpec spec) {
@@ -214,7 +246,7 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
             PowerPointTableCellSpecService.Validate(placement.Cell);
         }
 
-        var table = slide.AddTable(spec.RowCount,spec.ColumnCount,global::OfficeIMO.OfficeLength.Points(X),global::OfficeIMO.OfficeLength.Points(Y),global::OfficeIMO.OfficeLength.Points(Width),global::OfficeIMO.OfficeLength.Points(Height));
+        var table = slide.AddTable(spec.RowCount, spec.ColumnCount, _left, Y, _width, Height);
         foreach (var placement in spec.Placements) {
             var cell = table.GetCell(placement.RowIndex, placement.ColumnIndex);
             PowerPointTableCellSpecService.Apply(cell, placement.Cell);
@@ -227,11 +259,11 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
     }
 
     private void ValidateDimensions() {
-        if (Width <= 0) {
+        if (Width <= OfficeLength.Zero) {
             throw new ArgumentOutOfRangeException(nameof(Width), "Width must be greater than 0.");
         }
 
-        if (Height <= 0) {
+        if (Height <= OfficeLength.Zero) {
             throw new ArgumentOutOfRangeException(nameof(Height), "Height must be greater than 0.");
         }
     }

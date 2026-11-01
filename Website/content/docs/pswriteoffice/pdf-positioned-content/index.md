@@ -29,6 +29,6 @@ Add-OfficePdfCanvas -Path '.\Report.pdf' -OutputPath '.\Positioned.pdf' -Content
 
 The active page supplies the default text box, from `X/Y` to the remaining page edges. Add `-Width` and `-Height` only when the text must stay inside an exact rectangle. No native canvas object or typed .NET array is needed.
 
-The [positioned-canvas recipe](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-PositionedCanvas.ps1) adds rich text at two fixed positions on every page of a two-page document.
+The [positioned-canvas recipe](https://github.com/EvotecIT/OfficeIMO/blob/feb7ac6e9feacdca9ab9f3d382d0854db1d2c472/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-PositionedCanvas.ps1) adds rich text at two fixed positions on every page of a two-page document.
 
 This coordinate system differs from lower-level PDF editing and redaction APIs that expose native bottom-left PDF coordinates. Follow the coordinate contract documented by the command being used rather than mixing values between surfaces.

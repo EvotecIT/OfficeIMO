@@ -17,11 +17,11 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 ///     $theme = Get-OfficePowerPointTheme
 ///     PowerPointSlide -Title 'Service review'
 /// }</code></example>
-[Cmdlet(VerbsCommon.Get, "OfficePowerPointTheme")]
+[Cmdlet(VerbsCommon.Get, "OfficePowerPointTheme", DefaultParameterSetName = "Document")]
 [OutputType(typeof(PowerPointThemeInfo))]
 public sealed class GetOfficePowerPointThemeCommand : OfficeCmdlet {
     /// <summary>Gets or sets the live document; omission uses its enclosing content block.</summary>
-    [Parameter(Position = 0, ValueFromPipeline = true)]
+    [Parameter(Position = 0, ValueFromPipeline = true, ParameterSetName = "Document")]
     public PowerPointDocument? Document { get; set; }
     /// <summary>Gets or sets a one-based master position; defaults to the first.</summary>
     [Parameter, ValidateRange(1, int.MaxValue)]

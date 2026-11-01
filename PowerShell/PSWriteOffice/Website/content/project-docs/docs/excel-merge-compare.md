@@ -4,15 +4,17 @@ description: "Consolidate selected worksheets and produce explicit workbook or r
 layout: docs
 ---
 
-Workbook consolidation and workbook comparison solve different problems. Joining copies selected sheets into a target workbook. Comparing reports how two workbooks differ without combining them.
+Copy selected sheets into an existing target workbook, then compare the result with a baseline.
 
 ## Consolidate selected sheets
 
+Start with an existing target workbook, or create one with `New-OfficeExcel`.
+
 ```powershell
-Join-OfficeExcelWorkbook -Path '.\Consolidated.xlsx' `
-    -SourcePath '.\Regions.xlsx' `
-    -SourceSheet North,South `
-    -SheetNamePrefix 'Region '
+Copy-OfficeExcelSheet -Path '.\Consolidated.xlsx' `
+    -Source '.\Regions.xlsx' `
+    -Sheet North,South `
+    -NamePrefix 'Region '
 ```
 
 Use a stable prefix when sources can contain the same sheet names. Copy mode and name-validation options let the operation match the preservation and naming policy.

@@ -133,13 +133,13 @@ namespace OfficeIMO.OpenXml.Internal {
                     fallbackSeriesColor ?? (!newSeries && !series.Color.HasValue &&
                         seriesElement.GetFirstChild<C.ChartShapeProperties>()?.GetFirstChild<A.Outline>()?
                             .GetFirstChild<A.NoFill>() != null
-                        ? ReadDirectSeriesColor(seriesElement) : null));
+                        ? ReadDirectSeriesColor(seriesElement) : null), theme);
                 if (fallbackSeriesColor.HasValue || series.Color.HasValue)
                     SetAutomaticSeriesColor(seriesElement, fallbackSeriesColor.HasValue);
                 ApplySharedSeriesMarker(seriesElement, series, kind, fallbackSeriesColor, theme,
                     preservePresentation: !newSeries && !series.HasExplicitMarkerVisibility);
-                ApplySharedPointColors(seriesElement, series);
-                OfficeOpenXmlChartPointStyles.ApplySeries(seriesElement, series);
+                ApplySharedPointColors(seriesElement, series, theme);
+                OfficeOpenXmlChartPointStyles.ApplySeries(seriesElement, series, theme);
                 if (series.SeriesStyle?.FillColor.HasValue == true || series.SeriesStyle?.OutlineColor.HasValue == true)
                     SetAutomaticSeriesColor(seriesElement, false);
                 OfficeOpenXmlChartExplosions.ApplySeries(seriesElement, series);

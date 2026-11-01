@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a process step to the current designed slide.
 
 ## SYNTAX
-### __AllParameterSets
+### Step (Default)
 ```powershell
 Add-OfficePowerPointStep [-Title] <string> [[-Text] <string>] [-Number <string>] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Gets or sets the number.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Step
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Gets or sets the text.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Step
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Gets or sets the title.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Step
 Aliases: None
 Possible values:
 

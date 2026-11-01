@@ -1,21 +1,20 @@
 {
   "sourceRepository": "EvotecIT/OfficeIMO",
   "modules": {
-    "PSWriteOffice": "3.5.2",
+    "PSWriteOffice": "3.5.3",
     "PSParseHTML": "3.0.3",
-    "Mailozaurr": "3.0.2",
-    "PSEventViewer": "4.0.1"
+    "Mailozaurr": "3.0.2"
   },
   "inputs": "Illustrative supplier table embedded in the article; synthetic events in Build/ReportExamples/EventSnapshot.json; reserved example.invalid mail recipients.",
-  "generation": "Run the fenced PowerShell blocks in each article in order, excluding installation and SMTP delivery. For the retained event sample, substitute EventSnapshot.json for the live query and its collection timestamp. PDF previews: pdftocairo -png -singlefile -scale-to 1400. Workbook previews: Export-OfficeExcelRangeImage, Offers A1:D8 and Events A1:G8.",
+  "generation": "Run the fenced PowerShell blocks in each article in order, excluding installation and SMTP delivery. For the retained event sample, substitute EventSnapshot.json for the live query and its collection timestamp. PDF previews: pdftocairo -png -singlefile -scale-to 1400. Workbook previews: Export-OfficeDocumentImage with -Sheet Offers -Range A1:D8 or -Sheet Events -Range A1:G8.",
   "articleSources": [
     {
       "path": "content/docs/integrations/supplier-review/index.md",
-      "codeSha256": "a946d3d773b1346c427c073ab20d5f5d5c14d7a81377f4edd4235607d948a038"
+      "codeSha256": "2fbb74ddb9ab34347de5bb76bb0a617703de7835596ed4574ddc4eb3504ed8dc"
     },
     {
       "path": "content/docs/integrations/event-brief/index.md",
-      "codeSha256": "f57c77d7cb96a7bbafb3cc37b10b40fc3d8e1e2d6a97f015df838b7794058d1a"
+      "codeSha256": "5c37f2e66128cf97ad5ffaea202a826dee6400ac87a75d2f33809f22cd276509"
     },
     {
       "path": "content/docs/integrations/report-email/index.md",
@@ -31,8 +30,8 @@
   "artifacts": [
     {
       "path": "/downloads/integrations/events/EventIncidentBrief.docx",
-      "bytes": 21229,
-      "sha256": "517ffafc9f85078a64acf518a4a1028e987d2bb53e6e7d18e3da2b6a249ebf36"
+      "bytes": 21225,
+      "sha256": "c083447196ee2c086718cc545c6c6e4dc0da49ba92e425fb5b2ae4dd14ebe254"
     },
     {
       "path": "/downloads/integrations/events/EventIncidentBrief.pdf",
@@ -41,8 +40,8 @@
     },
     {
       "path": "/downloads/integrations/events/EventRegister.xlsx",
-      "bytes": 7860,
-      "sha256": "fece18ba1b346155adfdb5338da890b443914a1af1227eb4597de8dfbec6e79b"
+      "bytes": 7859,
+      "sha256": "f2202e744637bb719f5021e90b9242cb1329d0ad152dad58a2330db5c7204d92"
     },
     {
       "path": "/downloads/integrations/events/preview.png",
@@ -57,7 +56,7 @@
     {
       "path": "/downloads/integrations/mail/ReportReview.eml",
       "bytes": 39886,
-      "sha256": "404a1aad99c3f4d8b9ba7a4e91325669ea447275ba985613b9aa05e3bfec2ac2"
+      "sha256": "3509a379d7c69575e6d42139ad5271c0643685435e26a64a105163e506c0b1ec"
     },
     {
       "path": "/downloads/integrations/supplier/preview.png",
@@ -66,13 +65,13 @@
     },
     {
       "path": "/downloads/integrations/supplier/SupplierOffers.xlsx",
-      "bytes": 7308,
-      "sha256": "a2521f20c67d10d5cb5b4f4578ec1113df0511eb16871e34f9122e83412c2c55"
+      "bytes": 7307,
+      "sha256": "db0b22ec5757b7adcba01800df27d1a6afffbd39711754c042af0271e4a8b6f8"
     },
     {
       "path": "/downloads/integrations/supplier/SupplierReview.docx",
       "bytes": 21142,
-      "sha256": "dce3b5888aeeaba1098157abe06c737f2ded68ae7da2dae602747505f652b412"
+      "sha256": "3b6dfe56b4a4debae5c5ed821597b939e55894c35aa5ea1023e5188f09fc30e5"
     },
     {
       "path": "/downloads/integrations/supplier/SupplierReview.pdf",
@@ -84,5 +83,6 @@
       "bytes": 21574,
       "sha256": "371cfdbab5ad7860e29154720af2e496dea15d118fa7ae80a0709b218e4dd417"
     }
-  ]
+  ],
+  "sourceRevision": "894f02ac68ee967efc3105c566a1d67ba0dbe288"
 }

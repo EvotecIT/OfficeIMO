@@ -9,7 +9,7 @@ schema: 2.0.0
 Saves a live Excel workbook without closing it.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Save-OfficeExcel [-Document] <ExcelDocument> [-Path <string>] [-Password <securestring>] [-SaveOptions <ExcelSaveOptions>] [-AllowLoss] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Explicitly accept reported native-save reductions; overrides SaveOptions when su
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Live workbook to save.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Return the saved FileInfo.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Override the output password; omission retains loaded encryption.
 
 ```yaml
 Type: SecureString
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Optional new destination; omission uses the associated path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Native save settings, or a hashtable using the save-option factory's names.
 
 ```yaml
 Type: ExcelSaveOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -129,7 +129,7 @@ Open the saved file in its registered default application.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

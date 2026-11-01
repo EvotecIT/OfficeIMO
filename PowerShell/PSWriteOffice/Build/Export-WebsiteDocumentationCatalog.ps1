@@ -95,7 +95,7 @@ $familyDefinitions = @(
     [ordered]@{
         id = 'visio'; title = 'Visio'; description = 'Create, inspect, arrange, and export VSDX diagrams with built-in and imported stencils.'
         docs = 'visio'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Visio'
-        samples = @('New-OfficeVisio', 'Add-OfficeVisioStencilShape', 'Get-OfficeVisioInfo', 'ConvertTo-OfficeVisioSvg')
+        samples = @('New-OfficeVisio', 'Add-OfficeVisioStencilShape', 'Get-OfficeVisioInfo', 'Export-OfficeDocumentImage')
         match = { param($name) $name -match 'OfficeVisio' }
     }
     [ordered]@{
@@ -143,7 +143,7 @@ $familyDefinitions = @(
     [ordered]@{
         id = 'html'; title = 'HTML assets'; description = 'Export images and review surfaces used by document-to-HTML workflows.'
         docs = 'open-text-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples'
-        samples = @('Export-OfficeHtmlImage')
+        samples = @('New-OfficeHtmlRenderOptions', 'Export-OfficeDocumentImage')
         match = { param($name) $name -match 'OfficeHtml' }
     }
     [ordered]@{

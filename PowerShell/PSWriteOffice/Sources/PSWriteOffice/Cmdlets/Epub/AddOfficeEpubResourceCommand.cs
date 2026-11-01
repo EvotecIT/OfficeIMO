@@ -14,7 +14,7 @@ namespace PSWriteOffice.Cmdlets.Epub;
 ///   <summary>Adds an image, font, stylesheet or media payload without executing it.</summary>
 ///   <code>$book | Add-OfficeEpubResource -Path ./cover.png -Id cover -MediaType image/png</code>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeEpubResource")]
+[Cmdlet(VerbsCommon.Add, "OfficeEpubResource", DefaultParameterSetName = "Default")]
 [Alias("EpubResource")]
 [OutputType(typeof(EpubManifestItem))]
 public sealed class AddOfficeEpubResourceCommand : OfficeDocumentCmdlet<EpubPublication> {

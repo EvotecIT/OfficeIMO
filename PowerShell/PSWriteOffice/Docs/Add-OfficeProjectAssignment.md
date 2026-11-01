@@ -9,7 +9,7 @@ schema: 2.0.0
 Assigns a project resource to a task by stable UID.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Add-OfficeProjectAssignment -Document <ProjectDocument> -TaskUid <int> -ResourceUid <int> [-UnitsPercent <decimal>] [-PassThru] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Project to inspect or change.
 
 ```yaml
 Type: ProjectDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Return the created or changed object.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Stable resource UID.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ Stable task UID.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -96,7 +96,7 @@ Assignment units as a percentage.
 
 ```yaml
 Type: Decimal
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

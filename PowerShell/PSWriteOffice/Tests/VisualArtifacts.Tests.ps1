@@ -320,16 +320,16 @@ Describe 'ChartForgeX visual artifacts' {
         $powerPointPath = Join-Path $TestDrive 'visual.pptx'
 
         New-OfficeWord -Path $wordPath {
-            WordSection { WordParagraph { $visual | Add-OfficeWordVisual | Out-Null } }
+            WordSection { WordParagraph { $visual | Add-OfficeWordImage | Out-Null } }
         } | Out-Null
         New-OfficeExcel -Path $excelPath {
             Add-OfficeExcelSheet -Name Dashboard -Content {
-                $visual | Add-OfficeExcelVisual -Address B2 | Out-Null
+                $visual | Add-OfficeExcelImage -Address B2 | Out-Null
             }
         } | Out-Null
         New-OfficePowerPoint -Path $powerPointPath {
             $slide = PowerPointSlide -PassThru
-            $visual | Add-OfficePowerPointVisual -Slide $slide -X 36 -Y 54 | Out-Null
+            $visual | Add-OfficePowerPointImage -Slide $slide -X 36 -Y 54 | Out-Null
         } | Out-Null
         Test-Path $wordPath | Should -BeTrue
         Test-Path $excelPath | Should -BeTrue
@@ -357,15 +357,5 @@ Describe 'ChartForgeX visual artifacts' {
         Test-Path $documentPath | Should -BeTrue
     }
 
-    It 'rejects conversion overrides when a prepared visual is reused' {
-        $visual = $SvgPath | ConvertTo-OfficeVisual -Width 300
-        $wordPath = Join-Path $TestDrive 'override.docx'
-        $document = New-OfficeWord -Path $wordPath
-        try {
-            $paragraph = $document.AddParagraph()
-            { $visual | Add-OfficeWordVisual -Paragraph $paragraph -Width 240 -ErrorAction Stop } | Should -Throw '*cannot be used with an existing*'
-        } finally {
-            Close-OfficeWord -Document $document -ErrorAction SilentlyContinue
-        }
-    }
+
 }

@@ -9,7 +9,7 @@ schema: 2.0.0
 Exports a captured Project report through the shared PDF, HTML, Word, Excel or PowerPoint adapters.
 
 ## SYNTAX
-### __AllParameterSets
+### View (Default)
 ```powershell
 Export-OfficeProjectReport [-Path] <string> -View <ProjectView> [-Force] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -34,7 +34,7 @@ Replace an existing destination.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: View
 Aliases: None
 Possible values:
 
@@ -50,7 +50,7 @@ Return the saved report file.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: View
 Aliases: None
 Possible values:
 
@@ -66,7 +66,7 @@ PDF, HTML, DOCX, XLSX or PPTX destination filename.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: View
 Aliases: None
 Possible values:
 
@@ -82,7 +82,7 @@ Captured report from Get-OfficeProjectView.
 
 ```yaml
 Type: ProjectView
-Parameter Sets: __AllParameterSets
+Parameter Sets: View
 Aliases: None
 Possible values:
 

@@ -261,6 +261,8 @@ enum DocumentActions {
 
     /// Opens a PDF with the engine; a protected one is reported by name rather than asked for.
     private static func open(_ url: URL, named name: String) async throws -> EngineDocument {
+        // An action can be the first thing the app does, before any document window has started the engine.
+        try await EngineRuntime.ready()
         do {
             return try await EngineDocument.open(url)
         } catch let error as EngineError where error.status == .passwordRequired || error.status == .invalidPassword {

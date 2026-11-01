@@ -11,9 +11,8 @@ internal sealed partial class BrowserPdfToolService {
     private static PdfToolExecution Inspect(PdfToolRequest request) {
         SelectedDocument file = request.Files[0];
         PdfLoadOptions inspectionOptions = BrowserPdfPolicy.CreateReadOptions();
-        PdfDocumentPreflight preflight = OfficeDocument.Inspect(new MemoryStream(file.Bytes), "source.pdf",
-            new OfficeInspectOptions { IncludeContent = false, PdfPreflight = inspectionOptions,
-                MaximumInputBytes = inspectionOptions.Limits.MaxInputBytes }).PdfPreflight!;
+        // Keep PDF-only inspection on its owner so browser trimming can remove unrelated document readers.
+        PdfDocumentPreflight preflight = PdfDocument.Preflight(file.Bytes, inspectionOptions);
         var details = new Dictionary<string, string>(StringComparer.Ordinal) {
             ["canRead"] = preflight.CanRead.ToString(),
             ["canRewrite"] = preflight.CanRewrite.ToString(),

@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// }</code></example>
 /// <example><summary>Start an appendix at an existing slide.</summary>
 /// <code>Add-OfficePowerPointSection -Document $deck -Name Appendix -Slide 9</code></example>
-[Cmdlet(VerbsCommon.Add, "OfficePowerPointSection")]
+[Cmdlet(VerbsCommon.Add, "OfficePowerPointSection", DefaultParameterSetName = "Name")]
 [Alias("PowerPointSection")]
 [OutputType(typeof(PowerPointSectionInfo))]
 public sealed class AddOfficePowerPointSectionCommand : OfficeCmdlet {

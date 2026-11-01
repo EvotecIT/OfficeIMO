@@ -6,79 +6,55 @@ schema: 2.0.0
 ---
 # Add-OfficeExcelImage
 ## SYNOPSIS
-Adds an image anchored to a worksheet cell or range.
+Embeds a file, HTTP image or reusable visual at a worksheet cell or range.
 
 ## SYNTAX
-### ContextPath (Default)
+### Path (Default)
 ```powershell
-Add-OfficeExcelImage [-Path] <string> [-Row <Int32>] [-Column <Int32>] [-Address <string>] [-Range <string>] [-WidthPixels <int>] [-HeightPixels <int>] [-ScalePercent <Double>] [-OffsetXPixels <int>] [-OffsetYPixels <int>] [-EndOffsetXPixels <int>] [-EndOffsetYPixels <int>] [-Name <string>] [-AltText <string>] [-Title <string>] [-Decorative] [-NoLockAspectRatio] [-LockAspectRatio] [-Placement <ExcelImagePlacement>] [-RotationDegrees <double>] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelImage [-Path] <string> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Address <string>] [-Scale <Double>] [-OffsetX <OfficeLength>] [-OffsetY <OfficeLength>] [-EndOffsetX <OfficeLength>] [-EndOffsetY <OfficeLength>] [-Name <string>] [-AltText <string>] [-Decorative] [-NoLockAspectRatio] [-Placement <ExcelImagePlacement>] [-Rotation <double>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Title <string>] [<CommonParameters>]
 ```
 
-### DocumentPath
+### Url
 ```powershell
-Add-OfficeExcelImage [-Path] <string> -Document <ExcelDocument> [-Sheet <string>] [-SheetIndex <Int32>] [-Row <Int32>] [-Column <Int32>] [-Address <string>] [-Range <string>] [-WidthPixels <int>] [-HeightPixels <int>] [-ScalePercent <Double>] [-OffsetXPixels <int>] [-OffsetYPixels <int>] [-EndOffsetXPixels <int>] [-EndOffsetYPixels <int>] [-Name <string>] [-AltText <string>] [-Title <string>] [-Decorative] [-NoLockAspectRatio] [-LockAspectRatio] [-Placement <ExcelImagePlacement>] [-RotationDegrees <double>] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelImage -Url <uri> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Address <string>] [-Scale <Double>] [-OffsetX <OfficeLength>] [-OffsetY <OfficeLength>] [-EndOffsetX <OfficeLength>] [-EndOffsetY <OfficeLength>] [-Name <string>] [-AltText <string>] [-Decorative] [-NoLockAspectRatio] [-Placement <ExcelImagePlacement>] [-Rotation <double>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Title <string>] [<CommonParameters>]
 ```
 
-### DocumentUrl
+### Visual
 ```powershell
-Add-OfficeExcelImage [-Url] <string> -Document <ExcelDocument> [-Sheet <string>] [-SheetIndex <Int32>] [-Row <Int32>] [-Column <Int32>] [-Address <string>] [-Range <string>] [-WidthPixels <int>] [-HeightPixels <int>] [-ScalePercent <Double>] [-OffsetXPixels <int>] [-OffsetYPixels <int>] [-EndOffsetXPixels <int>] [-EndOffsetYPixels <int>] [-Name <string>] [-AltText <string>] [-Title <string>] [-Decorative] [-NoLockAspectRatio] [-LockAspectRatio] [-Placement <ExcelImagePlacement>] [-RotationDegrees <double>] [-PassThru] [<CommonParameters>]
-```
-
-### ContextUrl
-```powershell
-Add-OfficeExcelImage [-Url] <string> [-Row <Int32>] [-Column <Int32>] [-Address <string>] [-Range <string>] [-WidthPixels <int>] [-HeightPixels <int>] [-ScalePercent <Double>] [-OffsetXPixels <int>] [-OffsetYPixels <int>] [-EndOffsetXPixels <int>] [-EndOffsetYPixels <int>] [-Name <string>] [-AltText <string>] [-Title <string>] [-Decorative] [-NoLockAspectRatio] [-LockAspectRatio] [-Placement <ExcelImagePlacement>] [-RotationDegrees <double>] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelImage -InputObject <Object> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Address <string>] [-Scale <Double>] [-OffsetX <OfficeLength>] [-OffsetY <OfficeLength>] [-EndOffsetX <OfficeLength>] [-EndOffsetY <OfficeLength>] [-Name <string>] [-AltText <string>] [-Decorative] [-NoLockAspectRatio] [-Placement <ExcelImagePlacement>] [-Rotation <double>] [-PassThru] [-SvgPolicy <OfficeVisualSvgPolicy>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-PointsPerPixel <double>] [-MaximumSvgElements <Int32>] [-MaximumSvgViewportDimension <Double>] [-MaximumSvgViewportPixelCount <Int64>] [-Id <string>] [-Title <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Adds an image anchored to a worksheet cell or range.
+A cell uses a one-cell anchor; a range uses a two-cell anchor. Numbers mean points and unit suffixes are accepted. With no dimensions or Scale, file images retain their detected size. Range anchors determine their own size. URL downloads use the native network policy and cancellation token.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> ExcelSheet 'Data' { Add-OfficeExcelImage -Address 'B2' -Path .\logo.png -ScalePercent 20 -Name Logo -AltText 'Company logo' }
+ExcelSheet 'Cover' { ExcelImage -Path ./logo.png -Address A1 -AltText 'Contoso' }
 ```
 
-Anchors the image to cell B2 and sizes it to 20 percent of the original image dimensions.
 
 ### EXAMPLE 2
 ```powershell
-PS> ExcelSheet 'Data' { Add-OfficeExcelImage -Range 'A1:C15' -Path .\logo.png -Name HeaderLogo -Placement MoveAndSize }
+$visual | ExcelImage -Document $book -Sheet Summary -Address B2:G12 -Name Health
 ```
 
-Uses Excel's two-cell anchor so the picture moves and resizes with the cells in A1:C15.
 
 ### EXAMPLE 3
 ```powershell
-PS> ExcelSheet 'Data' { Add-OfficeExcelImage -Row 1 -Column 1 -Url 'https://example.org/logo.png' -WidthPixels 96 -HeightPixels 32 -RotationDegrees 12 }
+ExcelImage -Url https://status.example.com/badge.png -Address H1 -Width 4cm
 ```
 
-Downloads, sizes, rotates, and anchors the image to cell ExcelA1.
 
 ## PARAMETERS
 
 ### -Address
-A1-style cell address (e.g., A1, C5).
+A1 cell or range; defaults to A1. Use B2:B2 for a two-cell anchor over one cell.
 
 ```yaml
 Type: String
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
-Aliases: Cell
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -AltText
-Optional alternative text description for accessibility.
-
-```yaml
-Type: String
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
+Parameter Sets: Path, Url, Visual
 Aliases: None
 Possible values:
 
@@ -89,12 +65,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Column
-1-based column index.
+### -AltText
+Accessible image description; omitted visual descriptions are retained.
 
 ```yaml
-Type: Int32
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
+Type: String
+Parameter Sets: Path, Url, Visual
 Aliases: None
 Possible values:
 
@@ -106,11 +82,11 @@ Accept wildcard characters: False
 ```
 
 ### -Decorative
-Marks the image as decorative by clearing alternative text metadata.
+Clear accessible title and description and mark the image decorative.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
+Parameter Sets: Path, Url, Visual
 Aliases: None
 Possible values:
 
@@ -122,11 +98,91 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Workbook to operate on outside the DSL context.
+Workbook to modify outside the Excel DSL.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: DocumentPath, DocumentUrl
+Parameter Sets: Path, Url, Visual
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -EndOffsetX
+Horizontal end-marker offset for a range anchor; numbers mean points.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Path, Url, Visual
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -EndOffsetY
+Vertical end-marker offset for a range anchor; numbers mean points.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Path, Url, Visual
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Height
+Optional output height; numbers mean points and unit suffixes are accepted.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Path, Url, Visual
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Id
+Optional stable identifier for an SVG file input.
+
+```yaml
+Type: String
+Parameter Sets: Visual
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -InputObject
+ChartForgeX artifact, OfficeVisualSource, prepared visual or SVG path.
+
+```yaml
+Type: Object
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -137,12 +193,12 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -EndOffsetXPixels
-Horizontal offset in pixels for the range end marker when using Range.
+### -MaximumSvgElements
+Optional OfficeIMO SVG import element limit.
 
 ```yaml
 Type: Int32
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -153,12 +209,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -EndOffsetYPixels
-Vertical offset in pixels for the range end marker when using Range.
+### -MaximumSvgViewportDimension
+Optional maximum SVG viewport width or height. Increase the safe default only for trusted input.
 
 ```yaml
-Type: Int32
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
+Type: Double
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -169,28 +225,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -HeightPixels
-Image height in pixels.
+### -MaximumSvgViewportPixelCount
+Optional maximum SVG viewport area in pixels. Increase the safe default only for trusted input.
 
 ```yaml
-Type: Int32
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
-Aliases: Height
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -LockAspectRatio
-Lock the image aspect ratio in Excel. This is the default unless NoLockAspectRatio is used.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
+Type: Int64
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -202,11 +242,11 @@ Accept wildcard characters: False
 ```
 
 ### -Name
-Optional drawing name used by Excel's selection pane.
+Drawing name in Excel's selection pane.
 
 ```yaml
 Type: String
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
+Parameter Sets: Path, Url, Visual
 Aliases: None
 Possible values:
 
@@ -218,11 +258,11 @@ Accept wildcard characters: False
 ```
 
 ### -NoLockAspectRatio
-Do not lock the image aspect ratio in Excel.
+Allow interactive aspect-ratio changes in Excel; the default locks the ratio.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
+Parameter Sets: Path, Url, Visual
 Aliases: None
 Possible values:
 
@@ -233,12 +273,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -OffsetXPixels
-Horizontal offset in pixels from the cell origin.
+### -OffsetX
+Horizontal start-marker offset; numbers mean points.
 
 ```yaml
-Type: Int32
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
+Type: OfficeLength
+Parameter Sets: Path, Url, Visual
 Aliases: None
 Possible values:
 
@@ -249,12 +289,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -OffsetYPixels
-Vertical offset in pixels from the cell origin.
+### -OffsetY
+Vertical start-marker offset; numbers mean points.
 
 ```yaml
-Type: Int32
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
+Type: OfficeLength
+Parameter Sets: Path, Url, Visual
 Aliases: None
 Possible values:
 
@@ -266,11 +306,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the worksheet after inserting the image.
+Return the native editable ExcelImage.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
+Parameter Sets: Path, Url, Visual
 Aliases: None
 Possible values:
 
@@ -282,11 +322,11 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Image file path.
+Literal local image path.
 
 ```yaml
 Type: String
-Parameter Sets: ContextPath, DocumentPath
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -298,11 +338,11 @@ Accept wildcard characters: False
 ```
 
 ### -Placement
-How a range-anchored image behaves when cells move or resize.
+Movement and resizing behavior of a two-cell anchor.
 
 ```yaml
 Type: ExcelImagePlacement
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
+Parameter Sets: Path, Url, Visual
 Aliases: None
 Possible values: MoveAndSize, MoveOnly, FreeFloating
 
@@ -313,28 +353,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Range
-A1-style range (for example, A1:C15) for a two-cell anchor that can move and resize with cells.
-
-```yaml
-Type: String
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -RotationDegrees
-Clockwise image rotation in degrees.
+### -PointsPerPixel
+Conversion factor from ChartForgeX pixels to Office points.
 
 ```yaml
 Type: Double
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -345,28 +369,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Row
-1-based row index.
-
-```yaml
-Type: Int32
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ScalePercent
-Percentage of the original image size. Cannot be combined with WidthPixels or HeightPixels.
+### -Rotation
+Clockwise rotation in degrees.
 
 ```yaml
 Type: Double
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
+Parameter Sets: Path, Url, Visual
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Scale
+Positive percentage of the source size; exclusive with dimensions and range anchors.
+
+```yaml
+Type: Double
+Parameter Sets: Path, Url, Visual
 Aliases: None
 Possible values:
 
@@ -378,11 +402,11 @@ Accept wildcard characters: False
 ```
 
 ### -Sheet
-Worksheet name when using Document.
+Sheet name, one-based position or native worksheet belonging to Document.
 
 ```yaml
-Type: String
-Parameter Sets: DocumentPath, DocumentUrl
+Type: OfficeSheetSelector
+Parameter Sets: Path, Url, Visual
 Aliases: None
 Possible values:
 
@@ -393,14 +417,14 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SheetIndex
-Worksheet index (0-based) when using Document.
+### -SvgPolicy
+SVG fidelity policy used by OfficeIMO.ChartForgeX.
 
 ```yaml
-Type: Int32
-Parameter Sets: DocumentPath, DocumentUrl
+Type: OfficeVisualSvgPolicy
+Parameter Sets: Visual
 Aliases: None
-Possible values:
+Possible values: PreserveVector, RasterizeWhenNeeded, RequireVector
 
 Required: False
 Position: named
@@ -410,11 +434,11 @@ Accept wildcard characters: False
 ```
 
 ### -Title
-Optional alternative text title.
+Optional title for an SVG file input.
 
 ```yaml
 Type: String
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
+Parameter Sets: Path, Url, Visual
 Aliases: None
 Possible values:
 
@@ -426,28 +450,28 @@ Accept wildcard characters: False
 ```
 
 ### -Url
-Image URL to download.
+HTTP or HTTPS image URI; local files use Path.
 
 ```yaml
-Type: String
-Parameter Sets: DocumentUrl, ContextUrl
+Type: Uri
+Parameter Sets: Url
 Aliases: None
 Possible values:
 
 Required: True
-Position: 0
+Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -WidthPixels
-Image width in pixels.
+### -Width
+Optional output width; numbers mean points and unit suffixes are accepted.
 
 ```yaml
-Type: Int32
-Parameter Sets: ContextPath, DocumentPath, DocumentUrl, ContextUrl
-Aliases: Width
+Type: OfficeLength
+Parameter Sets: Path, Url, Visual
+Aliases: None
 Possible values:
 
 Required: False
@@ -462,11 +486,12 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
+- `System.Object`
 - `OfficeIMO.Excel.ExcelDocument`
 
 ## OUTPUTS
 
-- `None`
+- `OfficeIMO.Excel.ExcelImage`
 
 ## RELATED LINKS
 

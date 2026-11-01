@@ -47,7 +47,10 @@ namespace OfficeIMO.PowerPoint {
         internal string? Eyebrow { get; set; }
         internal string? MapLabel { get; set; }
         internal PowerPointLayout Layout { get; set; }
+        internal PowerPointDesignIntent? DesignIntent { get; set; }
         internal List<PowerPointLayoutBlock> Blocks { get; } = new();
+        /// <summary>Native figures already occupy this slide; an empty flowing body is not an empty slide.</summary>
+        internal bool HasFixedContent { get; set; }
         internal string? Notes { get; set; }
         internal bool NoFooter { get; set; }
         internal bool NoSlideNumber { get; set; }
@@ -56,6 +59,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Caption or source line under the content (caption style).</summary>
         internal string? SourceNote { get; set; }
+        internal Dictionary<OfficeAlignment, PowerPointLayoutFooter>? FooterTemplates { get; set; }
 
         /// <summary>A specific template layout to use instead of the mapped built-in layout.</summary>
         internal PowerPointTemplateLayoutInfo? TemplateLayout { get; set; }
@@ -93,7 +97,10 @@ namespace OfficeIMO.PowerPoint {
                 Eyebrow = Eyebrow,
                 MapLabel = MapLabel,
                 Layout = Layout,
+                DesignIntent = DesignIntent,
+                HasFixedContent = HasFixedContent,
                 NoFooter = NoFooter,
+                FooterTemplates = FooterTemplates,
                 NoSlideNumber = NoSlideNumber,
                 FooterRightText = FooterRightText,
                 IsFirst = false,

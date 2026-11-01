@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Visio;
 /// }</code>
 ///   <para>Creates a native Visio container around previously keyed shapes.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeVisioContainer")]
+[Cmdlet(VerbsCommon.Add, "OfficeVisioContainer", DefaultParameterSetName = "Page")]
 [Alias("VisioContainer")]
 [OutputType(typeof(VisioShape))]
 public sealed class AddOfficeVisioContainerCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {

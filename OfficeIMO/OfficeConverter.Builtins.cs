@@ -23,7 +23,7 @@ namespace OfficeIMO;
 public static partial class OfficeConverter {
     private static readonly HashSet<string> BuiltinRouteIds = new HashSet<string>(new[] {
         "email-pdf", "epub-pdf", "reader-visio-pdf", "doc-pdf", "docx-pdf", "xls-pdf", "xlsb-pdf", "xlsx-pdf", "ppt-pdf", "pptx-pdf", "markdown-pdf", "html-pdf", "txt-pdf",
-        "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html", "docx-html", "docx-markdown", "html-docx", "html-markdown", "markdown-docx", "markdown-html"
+        "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html", "docx-html", "pptx-html", "docx-markdown", "html-docx", "html-markdown", "markdown-docx", "markdown-html"
     }.Concat(OfficeConversionCapabilityCatalog.All.Where(route => route.Id.StartsWith("native-", StringComparison.Ordinal)).Select(route => route.Id)), StringComparer.OrdinalIgnoreCase);
 
     private static async Task<OfficeConversionReport> ConvertCapturedCoreAsync(Stream input, Stream output,
@@ -86,12 +86,16 @@ public static partial class OfficeConverter {
                 break;
             }
             case "ppt-pdf":
-            case "pptx-pdf": {
+            case "pptx-pdf":
+            case "pptx-html": {
                 using PowerPointDocument document = await PowerPointDocument.LoadAsync(input, PowerPointInputOptions(settings), token).ConfigureAwait(false);
                 sourceReport = document.CreateLoadReport(settings.SourceName!, timer.Elapsed);
                 if (settings.FailOnLoss) sourceReport.ThrowIfLoss();
-                PowerPointPdfExportOptions options = settings.PowerPoint ?? new PowerPointPdfExportOptions().UseProfile(ExportProfile(settings.OutputProfile)); options.FailOnLoss |= settings.FailOnLoss;
-                result = await document.SaveAsPdfAsync(output, options, token).ConfigureAwait(false);
+                if (id == "pptx-html") result = await ConvertPowerPointHtmlAsync(document, output, settings, token).ConfigureAwait(false);
+                else {
+                    PowerPointPdfExportOptions options = settings.PowerPoint ?? new PowerPointPdfExportOptions().UseProfile(ExportProfile(settings.OutputProfile)); options.FailOnLoss |= settings.FailOnLoss;
+                    result = await document.SaveAsPdfAsync(output, options, token).ConfigureAwait(false);
+                }
                 break;
             }
             case "pdf-docx":
@@ -129,7 +133,7 @@ public static partial class OfficeConverter {
                 } else if (id == "markdown-docx") {
                     WordMarkdownImportOptions options = ConfigureMarkdownHtml(settings.MarkdownWord, token); options.FailOnLoss |= settings.FailOnLoss;
                     result = await SaveConvertedAsync(await document.ToWordAsync(options, token).ConfigureAwait(false),
-                        model => model.SaveAsync(output, settings.WordSave, token)).ConfigureAwait(false);
+                        model => model.SaveAsync(output, settings.WordSave, token), options.Template).ConfigureAwait(false);
                 } else {
                     MarkdownHtmlExportOptions options = settings.MarkdownHtml ?? new(); options.FailOnLoss |= settings.FailOnLoss;
                     result = await document.SaveAsHtmlAsync(output, options, token).ConfigureAwait(false);

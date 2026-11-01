@@ -11,7 +11,7 @@
       "parameterSets": [
         {
           "name": "Content",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -97,7 +97,7 @@
         },
         {
           "name": "Live",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Path",
@@ -2322,7 +2322,7 @@
           ]
         }
       ],
-      "notes": "-Source is another workbook as a path or ExcelDocument (replaces -SourcePath/-SourceDocument); without it the copy is within the target. -Sheet selects the source sheets (wildcards copy several, with -NamePrefix), which also covers merging a whole workbook into an open document (Join-OfficeExcelWorkbook -Document). -Path/-LiteralPath name the target workbook, saved in place.",
+      "notes": "-Source is another workbook as a path or ExcelDocument (replaces -SourcePath/-SourceDocument); without it the copy is within the target. -Sheet selects the source sheets (wildcards copy several, with -NamePrefix), which also covers merging a whole workbook into an open document (Join-OfficeExcelWorkbook -Document). -Path/-LiteralPath name the target workbook, saved in place. -PassThru returns live native worksheets; their Document property exposes the owning workbook, which the caller saves and closes explicitly.",
       "examples": [
         {
           "title": "Duplicate a sheet",
@@ -6484,6 +6484,12 @@
               "pipeline": "none"
             },
             {
+              "name": "PointsPerPixel",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "MaximumSvgElements",
               "type": "int",
               "mandatory": false,
@@ -6491,7 +6497,7 @@
             },
             {
               "name": "MaximumSvgViewportDimension",
-              "type": "int",
+              "type": "double",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -6612,7 +6618,7 @@
           ]
         }
       ],
-      "notes": "Absorbs Add-OfficeExcelImageFromUrl (Url set) and Add-OfficeExcelVisual (Visual set: ChartForgeX artifacts, OfficeVisualSource, conversion results, SVG). -Address takes a cell (one-cell anchor) or a range such as A1:C15 (two-cell anchor; replaces -Range and -Row/-Column). Geometry takes lengths; without -Width/-Height/-Scale the image keeps its natural size.",
+      "notes": "Absorbs Add-OfficeExcelImageFromUrl (Url set) and Add-OfficeExcelVisual (Visual set: ChartForgeX artifacts, OfficeVisualSource, conversion results, SVG). -Address takes a cell (one-cell anchor) or a range such as A1:C15 (two-cell anchor; replaces -Range and -Row/-Column). Scale is a positive percentage. Geometry takes lengths; without -Width/-Height/-Scale the image keeps its natural size.",
       "examples": [
         {
           "title": "Add a logo",
@@ -8971,7 +8977,7 @@
       "alias": null,
       "status": "renamed",
       "synopsis": "Gets data validation rules from worksheets.",
-      "outputType": "OfficeIMO.Excel.ExcelDataValidation",
+      "outputType": "OfficeIMO.Excel.ExcelDataValidationInfo",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -9129,7 +9135,7 @@
           ]
         }
       ],
-      "notes": "Renamed from Get-OfficeExcelDataValidation. -Range and -Header are filters; when both are given, -Header wins.",
+      "notes": "Renamed from Get-OfficeExcelDataValidation. -Range and -Header are filters; when both are given, -Header wins. Returns the native read-only snapshot with SheetName, Sheet and source Path metadata; querying does not change the workbook.",
       "examples": [
         {
           "title": "List validation rules",
@@ -10067,7 +10073,7 @@
       "alias": null,
       "status": "renamed",
       "synopsis": "Gets conditional formatting rules from worksheets.",
-      "outputType": "OfficeIMO.Excel.ExcelConditionalFormat",
+      "outputType": "OfficeIMO.Excel.ExcelConditionalFormattingInfo",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -10225,7 +10231,7 @@
           ]
         }
       ],
-      "notes": "Renamed from Get-OfficeExcelConditionalFormatting to match the Add- noun.",
+      "notes": "Renamed from Get-OfficeExcelConditionalFormatting to match the Add- noun. Returns the native editable snapshot with SheetName, Sheet and source Path metadata; the native model retains preserved rule details for lifecycle edits.",
       "examples": [
         {
           "title": "List conditional formats",
@@ -16323,7 +16329,7 @@
         "SheetIndex": "Sheet"
       },
       "hint": "ExcelImage .\\logo.png -Address A1 -Width 3cm",
-      "reason": "Geometry takes lengths without unit suffixes; -Address takes a cell or range anchor; -LockAspectRatio is the default and -NoLockAspectRatio turns it off."
+      "reason": "Geometry takes typed lengths; -Address takes a cell or range anchor; -LockAspectRatio is the default and -NoLockAspectRatio turns it off."
     },
     {
       "old": "Add-OfficeExcelImageFromUrl",

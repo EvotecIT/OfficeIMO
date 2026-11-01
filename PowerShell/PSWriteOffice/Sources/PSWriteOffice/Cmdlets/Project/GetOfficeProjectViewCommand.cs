@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 ///   <summary>Captures a portable report from a current calculated schedule.</summary>
 ///   <code>$view = $project | Get-OfficeProjectView -Schedule $schedule -Kind Gantt</code>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeProjectView")]
+[Cmdlet(VerbsCommon.Get, "OfficeProjectView", DefaultParameterSetName = "Document")]
 [OutputType(typeof(ProjectView))]
 public sealed class GetOfficeProjectViewCommand : PSCmdlet {
     /// <summary>Project document.</summary>

@@ -2,7 +2,7 @@
 Module Name: PSWriteOffice
 Module Guid: d75a279d-30c2-4c2d-ae0d-12f1f3bf4d39
 Download Help Link: https://github.com/EvotecIT/OfficeIMO
-Help Version: 3.5.2
+Help Version: 3.5.3
 Locale: en-US
 ---
 # PSWriteOffice Module
@@ -53,16 +53,13 @@ Adds a dashboard-ready chart using an OfficeIMO chart preset.
 Writes every table in a DataSet to separate Excel worksheets.
 
 ### [Add-OfficeExcelImage](Add-OfficeExcelImage.md)
-Adds an image anchored to a worksheet cell or range.
-
-### [Add-OfficeExcelImageFromUrl](Add-OfficeExcelImageFromUrl.md)
-Adds an image from a URL anchored to a worksheet cell or range.
+Embeds a file, HTTP image or reusable visual at a worksheet cell or range.
 
 ### [Add-OfficeExcelPackageMetadata](Add-OfficeExcelPackageMetadata.md)
 Adds explicit workbook package metadata such as connection or query-table XML.
 
 ### [Add-OfficeExcelPageBreak](Add-OfficeExcelPageBreak.md)
-Adds manual row or column page breaks to an Excel worksheet.
+Adds manual print page breaks to an open worksheet.
 
 ### [Add-OfficeExcelPivotTable](Add-OfficeExcelPivotTable.md)
 Adds a pivot table to a worksheet.
@@ -144,9 +141,6 @@ Adds a time data validation rule to a worksheet range.
 
 ### [Add-OfficeExcelValidationWholeNumber](Add-OfficeExcelValidationWholeNumber.md)
 Adds a whole-number data validation rule to a worksheet range.
-
-### [Add-OfficeExcelVisual](Add-OfficeExcelVisual.md)
-Adds a ChartForgeX artifact, portable SVG, or converted Office visual to an Excel worksheet.
 
 ### [Add-OfficeMarkdownCallout](Add-OfficeMarkdownCallout.md)
 Adds a Markdown callout block.
@@ -268,9 +262,6 @@ Adds a ChartForgeX artifact, portable SVG, or converted Office visual to PDF flo
 ### [Add-OfficePdfWatermark](Add-OfficePdfWatermark.md)
 Adds a generated-document text watermark.
 
-### [Add-OfficePowerPointBullets](Add-OfficePowerPointBullets.md)
-Adds a bulleted list to a PowerPoint slide.
-
 ### [Add-OfficePowerPointCard](Add-OfficePowerPointCard.md)
 Adds a narrative card or logo tile to the current designed slide.
 
@@ -280,11 +271,11 @@ Adds a chart to a PowerPoint slide.
 ### [Add-OfficePowerPointColumn](Add-OfficePowerPointColumn.md)
 Groups typed content into one column of a designed slide.
 
-### [Add-OfficePowerPointDesignerDeck](Add-OfficePowerPointDesignerDeck.md)
-Renders a semantic deck plan through OfficeIMO PowerPoint designer helpers.
+### [Add-OfficePowerPointFooter](Add-OfficePowerPointFooter.md)
+Sets a deck or logical-slide footer slot using text or native inline content.
 
 ### [Add-OfficePowerPointImage](Add-OfficePowerPointImage.md)
-Adds an image to a PowerPoint slide.
+Adds a native picture from a local image, SVG or reusable visual, using the slide layout or explicit lengths.
 
 ### [Add-OfficePowerPointKpi](Add-OfficePowerPointKpi.md)
 Adds a metric to the current designed slide.
@@ -301,27 +292,6 @@ Adds a named location to a coverage slide.
 ### [Add-OfficePowerPointParagraph](Add-OfficePowerPointParagraph.md)
 Adds a plain or rich paragraph backed by native content before layout.
 
-### [Add-OfficePowerPointPlanCapability](Add-OfficePowerPointPlanCapability.md)
-Adds a semantic capability/content slide to a PowerPoint deck plan.
-
-### [Add-OfficePowerPointPlanCardGrid](Add-OfficePowerPointPlanCardGrid.md)
-Adds a semantic card-grid slide to a PowerPoint deck plan.
-
-### [Add-OfficePowerPointPlanCaseStudy](Add-OfficePowerPointPlanCaseStudy.md)
-Adds a semantic case-study slide to a PowerPoint deck plan.
-
-### [Add-OfficePowerPointPlanCoverage](Add-OfficePowerPointPlanCoverage.md)
-Adds a semantic coverage/location slide to a PowerPoint deck plan.
-
-### [Add-OfficePowerPointPlanLogoWall](Add-OfficePowerPointPlanLogoWall.md)
-Adds a semantic logo/proof-wall slide to a PowerPoint deck plan.
-
-### [Add-OfficePowerPointPlanProcess](Add-OfficePowerPointPlanProcess.md)
-Adds a semantic process/timeline slide to a PowerPoint deck plan.
-
-### [Add-OfficePowerPointPlanSection](Add-OfficePowerPointPlanSection.md)
-Adds a semantic section/title slide to a PowerPoint deck plan.
-
 ### [Add-OfficePowerPointQuote](Add-OfficePowerPointQuote.md)
 Adds a quotation and attribution to the current designed slide.
 
@@ -329,10 +299,13 @@ Adds a quotation and attribution to the current designed slide.
 Starts a named section at an existing, current or next appended slide.
 
 ### [Add-OfficePowerPointShape](Add-OfficePowerPointShape.md)
-Adds a basic shape to a slide.
+Adds a native preset shape at physical coordinates or on the theme grid.
 
 ### [Add-OfficePowerPointSlide](Add-OfficePowerPointSlide.md)
 Adds a designed slide, choosing its layout from typed content unless Layout is supplied.
+
+### [Add-OfficePowerPointSlideNumber](Add-OfficePowerPointSlideNumber.md)
+Inserts a native slide-number field into the current footer.
 
 ### [Add-OfficePowerPointStep](Add-OfficePowerPointStep.md)
 Adds a process step to the current designed slide.
@@ -347,10 +320,7 @@ Appends or inserts a row in an existing PowerPoint table.
 Adds a live styled run to the enclosing paragraph or list item, or starts a slide paragraph.
 
 ### [Add-OfficePowerPointTextBox](Add-OfficePowerPointTextBox.md)
-Adds a text box to a slide.
-
-### [Add-OfficePowerPointVisual](Add-OfficePowerPointVisual.md)
-Adds a ChartForgeX artifact, portable SVG, or converted Office visual to a PowerPoint slide.
+Adds a native text box with deliberate placement and plain or rich content.
 
 ### [Add-OfficeProjectAssignment](Add-OfficeProjectAssignment.md)
 Assigns a project resource to a task by stable UID.
@@ -437,7 +407,7 @@ Adds content to a section header.
 Adds a heading using the document's built-in heading, title or subtitle style.
 
 ### [Add-OfficeWordImage](Add-OfficeWordImage.md)
-Inserts an image into the current paragraph.
+Embeds an image file, SVG or reusable visual in a Word paragraph.
 
 ### [Add-OfficeWordList](Add-OfficeWordList.md)
 Starts a list inside the current section or paragraph anchor.
@@ -487,9 +457,6 @@ Adds styled text or a hyperlink to the current or given Word paragraph.
 ### [Add-OfficeWordTextBox](Add-OfficeWordTextBox.md)
 Adds an OfficeIMO Word text box to the current Word DSL location.
 
-### [Add-OfficeWordVisual](Add-OfficeWordVisual.md)
-Adds a ChartForgeX artifact, portable SVG, or converted Office visual to Word.
-
 ### [Add-OfficeWordWatermark](Add-OfficeWordWatermark.md)
 Adds a watermark to the current section or header.
 
@@ -504,9 +471,6 @@ Clears conditional formatting rules from one or more Excel worksheets.
 
 ### [Clear-OfficeExcelDataValidation](Clear-OfficeExcelDataValidation.md)
 Clears data validation rules from one or more Excel worksheets.
-
-### [Clear-OfficeExcelPageBreak](Clear-OfficeExcelPageBreak.md)
-Clears manual row or column page breaks from an Excel worksheet.
 
 ### [Clear-OfficeExcelRange](Clear-OfficeExcelRange.md)
 Clears values, formulas, styles, and range metadata from an Excel worksheet range.
@@ -601,6 +565,9 @@ Converts objects or a CSV document into CSV text.
 ### [ConvertTo-OfficeDocument](ConvertTo-OfficeDocument.md)
 Converts a file or file batch through the canonical OfficeIMO workflow runner.
 
+### [ConvertTo-OfficeDocumentImage](ConvertTo-OfficeDocumentImage.md)
+Renders native pages, slides, sheets, ranges or charts to image results without writing files.
+
 ### [ConvertTo-OfficeExcelHtml](ConvertTo-OfficeExcelHtml.md)
 Converts an Excel workbook to an HTML review document.
 
@@ -655,20 +622,11 @@ Converts reusable Office text run specifications to native PDF text runs.
 ### [ConvertTo-OfficePdfWord](ConvertTo-OfficePdfWord.md)
 Reconstructs editable Word content from a PDF.
 
-### [ConvertTo-OfficePowerPointHtml](ConvertTo-OfficePowerPointHtml.md)
-Converts a PowerPoint deck to an HTML review document.
-
 ### [ConvertTo-OfficeProjectTable](ConvertTo-OfficeProjectTable.md)
 Maps PowerShell rows to a bounded project entity table.
 
 ### [ConvertTo-OfficeRtf](ConvertTo-OfficeRtf.md)
 Converts Word, HTML, PDF, or Markdown input to RTF.
-
-### [ConvertTo-OfficeVisioPng](ConvertTo-OfficeVisioPng.md)
-Exports a Visio document page to native dependency-free PNG.
-
-### [ConvertTo-OfficeVisioSvg](ConvertTo-OfficeVisioSvg.md)
-Exports a Visio document page to dependency-free SVG.
 
 ### [ConvertTo-OfficeVisioVisual](ConvertTo-OfficeVisioVisual.md)
 Converts CFX semantic visual-artifact input into a native editable OfficeIMO.Visio document.
@@ -686,7 +644,7 @@ Converts a Word document to HTML.
 Converts a Word document to Markdown.
 
 ### [Copy-OfficeExcelSheet](Copy-OfficeExcelSheet.md)
-Copies a worksheet within a workbook or from another workbook.
+Copies selected worksheets within a workbook or from another workbook.
 
 ### [Copy-OfficeExcelWorkbook](Copy-OfficeExcelWorkbook.md)
 Copies a workbook package while preserving package parts.
@@ -709,29 +667,17 @@ Exports objects or a CSV document to a CSV file.
 ### [Export-OfficeDocumentAsset](Export-OfficeDocumentAsset.md)
 Writes document media, tables or visuals using the native Reader materializers.
 
+### [Export-OfficeDocumentImage](Export-OfficeDocumentImage.md)
+Renders native pages, slides, sheets, ranges or charts and saves each image atomically.
+
 ### [Export-OfficeDocumentPdf](Export-OfficeDocumentPdf.md)
 Exports Word, Excel, PowerPoint, HTML, Markdown, RTF, and literal text documents to PDF.
 
 ### [Export-OfficeExcel](Export-OfficeExcel.md)
 Exports PowerShell objects to an Excel workbook using an operator-friendly surface.
 
-### [Export-OfficeExcelChartImage](Export-OfficeExcelChartImage.md)
-Exports one named worksheet chart as an image file.
-
 ### [Export-OfficeExcelGoogleSpreadsheet](Export-OfficeExcelGoogleSpreadsheet.md)
 Plans, compiles, or exports an Excel workbook to Google Sheets.
-
-### [Export-OfficeExcelImage](Export-OfficeExcelImage.md)
-Exports workbook sheets as PNG or SVG images with one result per sheet.
-
-### [Export-OfficeExcelRangeImage](Export-OfficeExcelRangeImage.md)
-Exports one worksheet range as an image file.
-
-### [Export-OfficeHtmlImage](Export-OfficeHtmlImage.md)
-Exports an HTML render surface as PNG or SVG with structured diagnostics.
-
-### [Export-OfficePdfImage](Export-OfficePdfImage.md)
-Exports PDF pages through the shared PNG, JPEG, TIFF, SVG, or WebP image contract.
 
 ### [Export-OfficePdfLayoutOverlay](Export-OfficePdfLayoutOverlay.md)
 Exports PDF word, line, region, and reading-order diagnostics as PNG or SVG.
@@ -742,17 +688,11 @@ Exports readable PDF form field values as XFDF.
 ### [Export-OfficePowerPoint](Export-OfficePowerPoint.md)
 Exports objects as a designed presentation with editable tables and optional charts.
 
-### [Export-OfficePowerPointImage](Export-OfficePowerPointImage.md)
-Exports presentation slides as PNG or SVG images with one result per slide.
-
 ### [Export-OfficeProjectReport](Export-OfficeProjectReport.md)
 Exports a captured Project report through the shared PDF, HTML, Word, Excel or PowerPoint adapters.
 
 ### [Export-OfficeProjectTable](Export-OfficeProjectTable.md)
 Returns mapped project tables and explicit projection-loss notices.
-
-### [Export-OfficeVisioImage](Export-OfficeVisioImage.md)
-Exports selected Visio pages through the format-neutral OfficeIMO image pipeline.
 
 ### [Export-OfficeVisioStencilPreviewGallery](Export-OfficeVisioStencilPreviewGallery.md)
 Exports preview artwork from a Visio stencil package into a browsable HTML gallery.
@@ -766,14 +706,8 @@ Exports PowerShell objects to a Word document containing an editable table.
 ### [Export-OfficeWordGoogleDocument](Export-OfficeWordGoogleDocument.md)
 Plans, compiles, or exports a Word document to Google Docs.
 
-### [Export-OfficeWordImage](Export-OfficeWordImage.md)
-Exports one or more Word pages through the format-neutral OfficeIMO image pipeline.
-
 ### [Find-OfficeExcel](Find-OfficeExcel.md)
 Finds text in worksheet values.
-
-### [Find-OfficePowerPointShape](Find-OfficePowerPointShape.md)
-Finds PowerPoint shapes by text, name, kind, or slide.
 
 ### [Find-OfficeVisioStencil](Find-OfficeVisioStencil.md)
 Searches OfficeIMO Visio stencil catalogs.
@@ -832,8 +766,8 @@ Gets legacy worksheet comments (notes) from one or more worksheets.
 ### [Get-OfficeExcelCommentAudit](Get-OfficeExcelCommentAudit.md)
 Audits legacy notes and threaded comments preserved in an Excel workbook.
 
-### [Get-OfficeExcelConditionalFormatting](Get-OfficeExcelConditionalFormatting.md)
-Gets conditional formatting rules from one or more Excel worksheets.
+### [Get-OfficeExcelConditionalFormat](Get-OfficeExcelConditionalFormat.md)
+Gets native conditional formatting snapshots, with worksheet and source-path metadata.
 
 ### [Get-OfficeExcelData](Get-OfficeExcelData.md)
 Reads worksheet data as dictionaries or PSCustomObjects.
@@ -841,14 +775,11 @@ Reads worksheet data as dictionaries or PSCustomObjects.
 ### [Get-OfficeExcelDataModel](Get-OfficeExcelDataModel.md)
 Inspects workbook data model, query, connection, and external-link package parts.
 
-### [Get-OfficeExcelDataValidation](Get-OfficeExcelDataValidation.md)
-Gets data validation rules from one or more Excel worksheets.
-
 ### [Get-OfficeExcelDocumentProperty](Get-OfficeExcelDocumentProperty.md)
 Gets built-in and application document properties from an Excel workbook.
 
-### [Get-OfficeExcelFormulaAnalysis](Get-OfficeExcelFormulaAnalysis.md)
-Gets workbook formula references, functions, volatile formulas, and external links.
+### [Get-OfficeExcelFormula](Get-OfficeExcelFormula.md)
+Lists native formula records, optionally filtered by worksheet, volatile functions or external references.
 
 ### [Get-OfficeExcelNamedRange](Get-OfficeExcelNamedRange.md)
 Gets defined names (named ranges) from an Excel workbook.
@@ -857,7 +788,7 @@ Gets defined names (named ranges) from an Excel workbook.
 Lists OfficeIMO Excel number format presets and their format codes.
 
 ### [Get-OfficeExcelPageBreak](Get-OfficeExcelPageBreak.md)
-Gets manual row and column page breaks from Excel worksheets.
+Lists manual print page breaks without changing a workbook.
 
 ### [Get-OfficeExcelPivotTable](Get-OfficeExcelPivotTable.md)
 Gets pivot tables defined in a workbook.
@@ -894,6 +825,9 @@ Lists Excel template markers such as {{Name}} and optionally shows whether suppl
 
 ### [Get-OfficeExcelUsedRange](Get-OfficeExcelUsedRange.md)
 Reads the used range from an Excel workbook.
+
+### [Get-OfficeExcelValidation](Get-OfficeExcelValidation.md)
+Gets native data validation snapshots, with worksheet and source-path metadata.
 
 ### [Get-OfficeExcelWriteReservation](Get-OfficeExcelWriteReservation.md)
 Gets workbook write-reservation metadata.
@@ -983,22 +917,19 @@ Gets PDF text encoding and advanced-layout diagnostics for generated text before
 Lists template layouts from all masters, or one selected master.
 
 ### [Get-OfficePowerPointLayoutBox](Get-OfficePowerPointLayoutBox.md)
-Computes reusable layout boxes for a presentation.
-
-### [Get-OfficePowerPointLayoutPlaceholder](Get-OfficePowerPointLayoutPlaceholder.md)
-Gets layout placeholder metadata for a slide.
+Computes native content, column or row boxes for manual placement.
 
 ### [Get-OfficePowerPointNotes](Get-OfficePowerPointNotes.md)
 Reads speaker notes without creating empty notes parts.
 
 ### [Get-OfficePowerPointPlaceholder](Get-OfficePowerPointPlaceholder.md)
-Gets placeholder text boxes from a slide.
+Gets native slide placeholders or metadata from the selected slide's template layout.
 
 ### [Get-OfficePowerPointSection](Get-OfficePowerPointSection.md)
 Reads sections from a live presentation, optionally matching a PowerShell wildcard pattern.
 
 ### [Get-OfficePowerPointShape](Get-OfficePowerPointShape.md)
-Reads shape summaries from a slide or presentation.
+Gets editable shape summaries, with optional text, name, kind and position filters.
 
 ### [Get-OfficePowerPointSlide](Get-OfficePowerPointSlide.md)
 Gets editable slides from a live document, or detached slide summaries from files.
@@ -1127,7 +1058,7 @@ Imports normalized CSV/TSV text into an Excel workbook through OfficeIMO.
 Imports bounded DTD-free XFDF through the validated PDF form filler.
 
 ### [Import-OfficePowerPointSlide](Import-OfficePowerPointSlide.md)
-Imports a slide from another PowerPoint presentation.
+Imports selected slides from a file or live document, preserving native relationships.
 
 ### [Import-OfficeProjectTable](Import-OfficeProjectTable.md)
 Imports explicitly mapped tables into a new project without changing existing documents.
@@ -1165,12 +1096,6 @@ Explicitly calculates a schedule and optionally applies its dates.
 ### [Invoke-OfficeWordMailMerge](Invoke-OfficeWordMailMerge.md)
 Executes a simple mail merge against MERGEFIELD values in a Word document.
 
-### [Join-OfficeExcelSheet](Join-OfficeExcelSheet.md)
-Appends or merges rows from one worksheet into another.
-
-### [Join-OfficeExcelWorkbook](Join-OfficeExcelWorkbook.md)
-Merges worksheets from one or more workbooks into a target workbook.
-
 ### [Join-OfficePdf](Join-OfficePdf.md)
 Joins multiple PDF files into a single PDF.
 
@@ -1180,8 +1105,11 @@ Appends one or more Word documents into a base Word document.
 ### [Merge-OfficeDocument](Merge-OfficeDocument.md)
 Combines documents of the same native format in input order.
 
+### [Merge-OfficeExcelSheet](Merge-OfficeExcelSheet.md)
+Appends worksheet rows or merges a source range into a target worksheet.
+
 ### [Move-OfficeExcelSheet](Move-OfficeExcelSheet.md)
-Moves a worksheet to a new workbook position.
+Moves a worksheet to a one-based workbook position.
 
 ### [Move-OfficePdfPage](Move-OfficePdfPage.md)
 Moves selected pages before another page and writes a new PDF.
@@ -1231,6 +1159,9 @@ Creates a themed Excel workbook, returning a live workbook or saving a completed
 ### [New-OfficeExcelDashboard](New-OfficeExcelDashboard.md)
 Builds a worksheet dashboard from tabular data using OfficeIMO dashboard defaults.
 
+### [New-OfficeExcelGoogleSheetsOptions](New-OfficeExcelGoogleSheetsOptions.md)
+Creates native Excel-to-Google-Sheets planning and export settings without contacting Google.
+
 ### [New-OfficeExcelImageOptions](New-OfficeExcelImageOptions.md)
 Creates discoverable rendering settings for Excel range and chart image export.
 
@@ -1254,6 +1185,9 @@ Creates typed HTML rendering options for Export-OfficeDocumentPdf.
 
 ### [New-OfficeHtmlRenderOptions](New-OfficeHtmlRenderOptions.md)
 Creates discoverable layout, resource-limit, and rendering settings for HTML image export.
+
+### [New-OfficeHtmlWordOptions](New-OfficeHtmlWordOptions.md)
+Creates native HTML-to-Word options for Convert-OfficeDocument.
 
 ### [New-OfficeMarkdown](New-OfficeMarkdown.md)
 Creates a live Markdown document, or atomically publishes a completed content block.
@@ -1306,8 +1240,8 @@ Creates discoverable rendering and tolerance settings for Compare-OfficePdfVisua
 ### [New-OfficePowerPoint](New-OfficePowerPoint.md)
 Creates a themed presentation, returning a live document or saving a completed content block.
 
-### [New-OfficePowerPointDeckPlan](New-OfficePowerPointDeckPlan.md)
-Creates a semantic PowerPoint deck plan for designer rendering.
+### [New-OfficePowerPointHtmlOptions](New-OfficePowerPointHtmlOptions.md)
+Creates native PowerPoint-to-HTML settings for Convert-OfficeDocument.
 
 ### [New-OfficePowerPointImageOptions](New-OfficePowerPointImageOptions.md)
 Creates discoverable slide selection and rendering settings for Export-OfficePowerPointImage.
@@ -1351,8 +1285,17 @@ Creates a themed Word document, returning a live document or saving a completed 
 ### [New-OfficeWordComparisonOptions](New-OfficeWordComparisonOptions.md)
 Creates discoverable structural comparison settings for Compare-OfficeWordDocument.
 
+### [New-OfficeWordGoogleDocsOptions](New-OfficeWordGoogleDocsOptions.md)
+Creates native Word-to-Google-Docs planning and export settings without contacting Google.
+
+### [New-OfficeWordHtmlOptions](New-OfficeWordHtmlOptions.md)
+Creates native Word-to-HTML options for Convert-OfficeDocument.
+
 ### [New-OfficeWordImageOptions](New-OfficeWordImageOptions.md)
 Creates discoverable page and rendering settings for Export-OfficeWordImage.
+
+### [New-OfficeWordMarkdownOptions](New-OfficeWordMarkdownOptions.md)
+Creates native Word-to-Markdown options for Convert-OfficeDocument.
 
 ### [New-OfficeWordOpenDocumentOptions](New-OfficeWordOpenDocumentOptions.md)
 Creates Word/OpenDocument conversion settings.
@@ -1413,6 +1356,9 @@ Removes a comment (note) from a worksheet cell.
 
 ### [Remove-OfficeExcelNamedRange](Remove-OfficeExcelNamedRange.md)
 Removes a workbook or sheet-scoped Excel named range.
+
+### [Remove-OfficeExcelPageBreak](Remove-OfficeExcelPageBreak.md)
+Removes manual print page breaks from selected open worksheets.
 
 ### [Remove-OfficePdfAnnotation](Remove-OfficePdfAnnotation.md)
 Removes PDF annotations matching friendly filters.
@@ -1543,11 +1489,14 @@ Sets a built-in or application document property on an Excel workbook.
 ### [Set-OfficeExcelExecutionPolicy](Set-OfficeExcelExecutionPolicy.md)
 Configures OfficeIMO Excel execution and validation behavior for a workbook.
 
+### [Set-OfficeExcelFooter](Set-OfficeExcelFooter.md)
+Updates worksheet footer text, print flags or an image while retaining the header.
+
 ### [Set-OfficeExcelFormula](Set-OfficeExcelFormula.md)
 Sets a formula in a worksheet cell.
 
-### [Set-OfficeExcelHeaderFooter](Set-OfficeExcelHeaderFooter.md)
-Sets worksheet header and footer text and optional images.
+### [Set-OfficeExcelHeader](Set-OfficeExcelHeader.md)
+Updates worksheet header text, print flags or an image while retaining the footer.
 
 ### [Set-OfficeExcelHostHyperlink](Set-OfficeExcelHostHyperlink.md)
 Sets an external hyperlink that displays only the URL host.
@@ -1663,8 +1612,8 @@ Updates a template layout placeholder's geometry, text margins and text style.
 ### [Set-OfficePowerPointNotes](Set-OfficePowerPointNotes.md)
 Sets speaker notes on a native slide or in the current slide content block.
 
-### [Set-OfficePowerPointPlaceholderText](Set-OfficePowerPointPlaceholderText.md)
-Sets text in a slide placeholder.
+### [Set-OfficePowerPointPlaceholder](Set-OfficePowerPointPlaceholder.md)
+Replaces a native slide placeholder with plain text or rich paragraph content.
 
 ### [Set-OfficePowerPointShapeLayout](Set-OfficePowerPointShapeLayout.md)
 Aligns, distributes, or arranges PowerPoint shapes using OfficeIMO layout helpers.
@@ -1681,14 +1630,8 @@ Sets a presentation's slide size using a preset or physical lengths.
 ### [Set-OfficePowerPointTableCell](Set-OfficePowerPointTableCell.md)
 Sets text in an existing PowerPoint table cell.
 
-### [Set-OfficePowerPointThemeColor](Set-OfficePowerPointThemeColor.md)
-Sets one or more PowerPoint theme colors.
-
-### [Set-OfficePowerPointThemeFonts](Set-OfficePowerPointThemeFonts.md)
-Sets PowerPoint theme fonts.
-
-### [Set-OfficePowerPointThemeName](Set-OfficePowerPointThemeName.md)
-Sets the PowerPoint theme name.
+### [Set-OfficePowerPointTheme](Set-OfficePowerPointTheme.md)
+Restyles a deck or changes the selected masters' colors, fonts and theme name.
 
 ### [Set-OfficeProjectTask](Set-OfficeProjectTask.md)
 Updates selected task fields without implicitly recalculating its schedule.
@@ -1708,7 +1651,7 @@ Updates OfficeIMO Word image sizing, wrapping, crop, and metadata.
 ### [Set-OfficeWordPageSetup](Set-OfficeWordPageSetup.md)
 Sets page setup options on Word sections.
 
-### [Set-OfficeWordParagraphStyle](Set-OfficeWordParagraphStyle.md)
+### [Set-OfficeWordParagraph](Set-OfficeWordParagraph.md)
 Updates paragraph style, spacing, indentation, and pagination hints.
 
 ### [Set-OfficeWordShape](Set-OfficeWordShape.md)
@@ -1720,11 +1663,11 @@ Updates OfficeIMO Word table-cell content, layout, and merge settings.
 ### [Set-OfficeWordTableOfContents](Set-OfficeWordTableOfContents.md)
 Sets properties on a table of contents in a Word document.
 
-### [Set-OfficeWordTextStyle](Set-OfficeWordTextStyle.md)
+### [Set-OfficeWordText](Set-OfficeWordText.md)
 Updates styling on Word text.
 
-### [Split-OfficePdf](Split-OfficePdf.md)
-Splits a PDF into page, range, count, or bookmark files.
+### [Split-OfficeDocument](Split-OfficeDocument.md)
+Splits PDF files into consecutive groups, selected ranges or top-level bookmarked chapters.
 
 ### [Test-OfficeExcelAccessibility](Test-OfficeExcelAccessibility.md)
 Checks workbook accessibility and compliance signals.
@@ -1754,12 +1697,12 @@ Updates legacy worksheet comments (notes) that match a filter.
 Replaces text in worksheet values.
 
 ### [Update-OfficePowerPointText](Update-OfficePowerPointText.md)
-Replaces text in a PowerPoint slide or presentation.
+Replaces text in the selected slide or document, including tables by default.
 
 ### [Update-OfficeRtfText](Update-OfficeRtfText.md)
 Applies lossless text and metadata edits to an RTF document.
 
-### [Update-OfficeWordFields](Update-OfficeWordFields.md)
+### [Update-OfficeWordField](Update-OfficeWordField.md)
 Updates fields in a Word document.
 
 ### [Update-OfficeWordTableOfContents](Update-OfficeWordTableOfContents.md)

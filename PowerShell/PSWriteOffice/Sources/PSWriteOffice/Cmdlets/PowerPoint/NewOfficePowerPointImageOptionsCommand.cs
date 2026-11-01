@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 ///   <code>$options = New-OfficePowerPointImageOptions -SlideNumber 1,3 -NoPictures
 /// Export-OfficePowerPointImage -Path .\Deck.pptx -OutputPath .\Slides -Options $options</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficePowerPointImageOptions")]
+[Cmdlet(VerbsCommon.New, "OfficePowerPointImageOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(PowerPointImageExportOptions))]
 public sealed class NewOfficePowerPointImageOptionsCommand : OfficeImageOptionsCommandBase<PowerPointImageExportOptions> {
     /// <summary>One-based slide numbers to export.</summary>

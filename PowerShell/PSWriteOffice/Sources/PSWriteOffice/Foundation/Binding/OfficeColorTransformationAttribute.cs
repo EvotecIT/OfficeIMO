@@ -7,8 +7,14 @@ namespace PSWriteOffice.Foundation;
 /// <summary>Binds Core colors, including CSS names, hex colors and semantic theme roles.</summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public sealed class OfficeColorTransformationAttribute : ArgumentTransformationAttribute {
+    /// <summary>Accepts null when the parameter explicitly supports clearing a color override.</summary>
+    public bool AllowNull { get; set; }
+
     /// <inheritdoc />
-    public override object Transform(EngineIntrinsics engineIntrinsics, object inputData) {
+    public override object Transform(EngineIntrinsics engineIntrinsics, object inputData) =>
+        AllowNull && OfficeArgumentValue.Unwrap(inputData) == null ? null! : Bind(inputData);
+
+    internal static OfficeColor Bind(object? inputData) {
         var value = OfficeArgumentValue.Unwrap(inputData);
         if (value is OfficeColor color) return color;
         if (value is string text) {

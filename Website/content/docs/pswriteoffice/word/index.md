@@ -4,7 +4,7 @@ description: "Create, inspect, update, review, merge, protect, and convert DOCX 
 layout: docs
 ---
 
-The Word family covers complete report creation and targeted updates to existing DOCX files. Its 98 exported commands include sections, paragraphs, text runs, lists, tables, images, charts, fields, links, headers and footers, notes, content controls, review, protection, merging, mail merge, and conversion.
+The Word family covers complete report creation and targeted updates to existing DOCX files. Its 99 exported commands include sections, paragraphs, text runs, lists, tables, images, charts, fields, links, headers and footers, notes, content controls, review, protection, merging, mail merge, and conversion.
 
 ## Build a report
 
@@ -33,16 +33,16 @@ Update commands are intentionally specific: change text, styles, images, shapes,
 
 ## Copy complete DSL recipes
 
-- [Project status report](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-ProjectStatus.ps1): header and footer, executive summary, conditional milestone table, progress chart, check box, and date picker.
-- [Change approval checklist](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-ApprovalChecklist.ps1): table of contents, risk selector, required-evidence table, approval controls, and watermark.
-- [Executive service report](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Showcase/Showcase-Word-ExecutiveReport.ps1): the larger composition example with metadata, rich text, bookmarks, notes, tables, charts, and content controls.
+- [Project status report](https://github.com/EvotecIT/OfficeIMO/blob/feb7ac6e9feacdca9ab9f3d382d0854db1d2c472/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-ProjectStatus.ps1): header and footer, executive summary, conditional milestone table, progress chart, check box, and date picker.
+- [Change approval checklist](https://github.com/EvotecIT/OfficeIMO/blob/feb7ac6e9feacdca9ab9f3d382d0854db1d2c472/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-ApprovalChecklist.ps1): table of contents, risk selector, required-evidence table, approval controls, and watermark.
+- [Executive service report](https://github.com/EvotecIT/OfficeIMO/blob/feb7ac6e9feacdca9ab9f3d382d0854db1d2c472/PowerShell/PSWriteOffice/Examples/Showcase/Showcase-Word-ExecutiveReport.ps1): the larger composition example with metadata, rich text, bookmarks, notes, tables, charts, and content controls.
 
 ## Other Word workflows
 
-- [Object composition](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-ObjectComposition.ps1): hold a live document, add a paragraph and mixed-format runs, add a table, then save once.
-- [HTML to Word](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-HtmlToDocument.ps1): turn an HTML fragment into an editable DOCX file.
-- [Compare documents](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-CompareDocuments.ps1): produce structured evidence about changes between two versions.
-- [Inspect, update, merge, and mail merge](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/README.md#read-modify-combine-and-convert): work with documents supplied by another system.
+- [Object composition](https://github.com/EvotecIT/OfficeIMO/blob/feb7ac6e9feacdca9ab9f3d382d0854db1d2c472/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-ObjectComposition.ps1): hold a live document, add a paragraph and mixed-format runs, add a table, then save once.
+- [HTML to Word](https://github.com/EvotecIT/OfficeIMO/blob/feb7ac6e9feacdca9ab9f3d382d0854db1d2c472/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-HtmlToDocument.ps1): turn an HTML fragment into an editable DOCX file.
+- [Compare documents](https://github.com/EvotecIT/OfficeIMO/blob/feb7ac6e9feacdca9ab9f3d382d0854db1d2c472/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-CompareDocuments.ps1): produce structured evidence about changes between two versions.
+- [Inspect, update, merge, and mail merge](https://github.com/EvotecIT/OfficeIMO/blob/feb7ac6e9feacdca9ab9f3d382d0854db1d2c472/PowerShell/PSWriteOffice/Examples/README.md#read-modify-combine-and-convert): work with documents supplied by another system.
 
 The [DSL cookbook](/docs/pswriteoffice/dsl-cookbook/) explains how the scoped commands fit together and how to reuse the same input objects across formats.
 
@@ -60,4 +60,4 @@ The [DSL cookbook](/docs/pswriteoffice/dsl-cookbook/) explains how the scoped co
 - **Forms:** check boxes, combo boxes, date pickers, drop-down lists, picture controls, repeating sections, and general content controls.
 - **Delivery:** merge documents, protect output, update fields and tables of contents, and convert to HTML or Markdown.
 
-For exact syntax, search the [PowerShell command reference](/api/powershell/) for `OfficeWord`. See the [Word examples](https://github.com/EvotecIT/OfficeIMO/tree/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Word) for complete copyable scripts.
+For exact syntax, search the [PowerShell command reference](/api/powershell/) for `OfficeWord`. See the [Word examples](https://github.com/EvotecIT/OfficeIMO/tree/feb7ac6e9feacdca9ab9f3d382d0854db1d2c472/PowerShell/PSWriteOffice/Examples/Word) for complete copyable scripts.

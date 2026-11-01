@@ -22,13 +22,9 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// Set-OfficeExcelCell -Sheet $sheet -Address A1 -Value 'Region'
 /// Save-OfficeExcel -Document $workbook -Path ./Report.xlsx
 /// Close-OfficeExcel -Document $workbook</code></example>
-[Cmdlet(VerbsCommon.New, "OfficeExcel", SupportsShouldProcess = true)]
+[Cmdlet(VerbsCommon.New, "OfficeExcel", DefaultParameterSetName = "Live", SupportsShouldProcess = true)]
 [OutputType(typeof(ExcelDocument), typeof(FileInfo))]
-public sealed class NewOfficeExcelCommand : OfficeLifecycleCmdlet<ExcelDocument> {
-    /// <summary>Optional associated destination; required with a content block.</summary>
-    [Parameter(Position = 0), ValidateNotNullOrEmpty]
-    public string? Path { get; set; }
-
+public sealed class NewOfficeExcelCommand : OfficeNewLifecycleCmdlet<ExcelDocument> {
     /// <summary>Built-in theme, theme object or a document/template whose visual theme is read.</summary>
     [Parameter, OfficeThemeTransformation]
     public OfficeThemeInput? Theme { get; set; }
@@ -42,11 +38,11 @@ public sealed class NewOfficeExcelCommand : OfficeLifecycleCmdlet<ExcelDocument>
     public SwitchParameter Force { get; set; }
 
     /// <summary>Password for a completed content block's saved file; use Save-OfficeExcel for a live workbook.</summary>
-    [Parameter, OfficePasswordTransformation]
+    [Parameter(ParameterSetName = "Content"), OfficePasswordTransformation]
     public SecureString? Password { get; set; }
 
     /// <summary>Native save options or a hashtable, applied to a completed content block.</summary>
-    [Parameter, OfficeExcelSaveOptionsTransformation, ValidateNotNull]
+    [Parameter(ParameterSetName = "Content"), OfficeExcelSaveOptionsTransformation, ValidateNotNull]
     public ExcelSaveOptions? SaveOptions { get; set; }
 
     /// <summary>Workbook properties such as Title, Author, Subject, Keywords, Company and Manager.</summary>
@@ -63,10 +59,6 @@ public sealed class NewOfficeExcelCommand : OfficeLifecycleCmdlet<ExcelDocument>
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        if (Content == null && (MyInvocation.BoundParameters.ContainsKey(nameof(Password)) || SaveOptions != null)) {
-            InvalidArgument(new PSArgumentException("Password and SaveOptions require a content block. Supply them to Save-OfficeExcel when saving a live workbook."), Path);
-            return;
-        }
         var options = new ExcelCreateOptions {
             PersistenceMode = DocumentPersistenceMode.Explicit,
             Theme = Theme?.Resolve(OfficeTheme.FromDocument),

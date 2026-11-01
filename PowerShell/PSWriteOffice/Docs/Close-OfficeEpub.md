@@ -9,7 +9,7 @@ schema: 2.0.0
 Completes an EPUB publication's lifecycle without saving.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Close-OfficeEpub -Document <EpubPublication> [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Live publication to close without saving.
 
 ```yaml
 Type: EpubPublication
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

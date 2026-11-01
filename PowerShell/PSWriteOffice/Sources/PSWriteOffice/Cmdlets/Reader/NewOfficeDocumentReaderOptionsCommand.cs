@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.Reader;
 /// <code>$options = New-OfficeDocumentReaderOptions -DetectionMode PreferContent -MaximumTraversalEntries 50000
 /// $reader = New-OfficeDocumentReader -Options $options
 /// Read-OfficeDocument ./Reports -Recurse -Reader $reader</code></example>
-[Cmdlet(VerbsCommon.New, "OfficeDocumentReaderOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeDocumentReaderOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(ReaderOptions))]
 public sealed class NewOfficeDocumentReaderOptionsCommand : PSCmdlet {
     /// <summary>Derived representations to retain.</summary>

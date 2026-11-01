@@ -313,6 +313,7 @@
     }
   ],
   "additions": [
+    "ExcelSheet.Document : ExcelDocument — exposes the owning workbook so native worksheets returned by file operations can be saved and disposed explicitly",
     "ExcelSheet.Report(ExcelReportOptions options = null) : ExcelReportBuilder",
     "ExcelSheet.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) : ExcelTable and AddTable(DataTable table, ...) : ExcelTable",
     "ExcelSheet.AddChart<T>(OfficeChartType type, IEnumerable<T> data, Func<T, object> category, params OfficeSeries[] series) : ExcelChart and the nameof() overload",
@@ -11805,6 +11806,14 @@
       "files": [
         "OfficeIMO.Shared.Tests/PublicApiNamingContracts.cs"
       ]
+    },
+    {
+      "phase": "M5",
+      "action": "add",
+      "new": "ExcelSheet.SetHeader(...) / ExcelSheet.SetFooter(...)",
+      "reason": "Edit one odd-page running-text half without replacing the other half, omitted sections, print flags or authored first/even-page variants. Empty text clears a section; null preserves it. An explicit disabled-to-enabled transition initializes missing variant content; disabling its flag retains authored text.",
+      "file": "OfficeIMO.Excel/ExcelSheet.HeaderFooterSections.cs",
+      "applied": "implemented"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

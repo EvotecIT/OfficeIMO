@@ -19,8 +19,9 @@ internal static partial class PdfWriter {
             double offset = align == PdfCellVerticalAlign.Middle ? unused / 2D : align == PdfCellVerticalAlign.Bottom ? unused : 0D;
             double contentTop = top - padTop - offset + geometry.Style.RowBaselineOffset.ToPoints();
             if (slice.StartLine == 0) AddTableCellNamedDestinationName(cell.NamedDestinationName, top);
-            int? structure = RegisterStructureContainer(header ? "TH" : "TD", rowStructure,
-                header ? "Column" : string.Empty, cell.ColumnSpan, 1, logicalOrder: cell.Column);
+            string headerScope = GetTableCellHeaderScope(geometry.Style, slice.Row, cell.Column, header);
+            int? structure = RegisterStructureContainer(headerScope.Length != 0 ? "TH" : "TD", rowStructure,
+                headerScope, cell.ColumnSpan, 1, logicalOrder: cell.Column);
             TableCellContentFrame clip = GetTableCellInkClipFrame(geometry.Style, slice.Row, cell.Column, left, top, width, height);
             BeginRoundedClip(sb, clip.Left, clip.Top - clip.Height, clip.Width, clip.Height, 0D, false, false, false, false);
             PaintFootnoteUnits(prepared.Units, fragment.Start, fragment.Count, ref contentTop, fragment.Height,

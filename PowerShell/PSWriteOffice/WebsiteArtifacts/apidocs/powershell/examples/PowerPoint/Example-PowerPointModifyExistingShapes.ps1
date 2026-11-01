@@ -1,53 +1,39 @@
-Import-Module PSWriteOffice -ErrorAction Stop
-$documents = Join-Path $PSScriptRoot '..\Documents'
-$null = New-Item -Path $documents -ItemType Directory -Force
-$path = Join-Path $documents 'PowerPoint-ModifyExistingShapes.pptx'
+param([string] $OutputDirectory = (Join-Path $PSScriptRoot '../Documents'))
 
+Import-Module PSWriteOffice -ErrorAction Stop
+$null = New-Item -Path $OutputDirectory -ItemType Directory -Force
+$path = Join-Path $OutputDirectory 'PowerPoint-ModifyExistingShapes.pptx'
 $initialRows = @(
-    [PSCustomObject]@{ Metric = 'Risk'; State = 'Open' }
-    [PSCustomObject]@{ Metric = 'Quality'; State = 'Watching' }
+    [pscustomobject]@{ Metric = 'Risk'; State = 'Open' }
+    [pscustomobject]@{ Metric = 'Quality'; State = 'Watching' }
 )
 
-$presentation = New-OfficePowerPoint -Path $path -NoSave
-try {
-    $slide = Add-OfficePowerPointSlide -Presentation $presentation -Layout 1 -PassThru
-    Set-OfficePowerPointSlideTitle -Slide $slide -Title 'Release readiness'
-    Add-OfficePowerPointTextBox -Slide $slide -Text 'Status marker: Draft release' -X 70 -Y 110 -Width 420 -Height 45
-    Add-OfficePowerPointTable -Slide $slide -InputObject $initialRows -X 70 -Y 180 -Width 500 -Height 170
-} finally {
-    Close-OfficePowerPoint -Presentation $presentation -Save
+New-OfficePowerPoint -Path $path {
+    PowerPointSlide -Title 'Release readiness' {
+        PowerPointTextBox 'Status marker: Draft release' -X 70 -Y 110 -Width 420 -Height 45
+        PowerPointTable -InputObject $initialRows -X 70 -Y 180 -Width 500 -Height 170
+    }
 }
 
-# Second pass: find existing shapes, then modify their content directly.
-$deck = Get-OfficePowerPoint -Path $path
-try {
-    Find-OfficePowerPointShape -Presentation $deck -Text 'Status marker' -Kind TextBox |
-        Set-OfficePowerPointShapeText -Text 'Status marker: Ready for launch'
-
-    $readinessTable = Find-OfficePowerPointShape -Presentation $deck -Text 'Risk' -Kind Table | Select-Object -First 1
-
-    $readinessTable |
-        Add-OfficePowerPointTableRow -Values 'Latency', 'Investigating'
-
-    $readinessTable |
-        Add-OfficePowerPointTableRow -Values ([ordered]@{
-            Metric = 'Documentation'
-            State  = 'Ready'
-        })
-
-    $readinessTable |
-        Set-OfficePowerPointTableCell -Row 1 -Column 1 -Text 'Mitigating'
-} finally {
-    Close-OfficePowerPoint -Presentation $deck -Save
+Open-OfficePowerPoint -Path $path {
+    Get-OfficePowerPointShape -Text 'Status marker' -Kind TextBox |
+        Set-OfficePowerPointShapeText -Content {
+            PowerPointText 'Status marker: ' -Bold
+            PowerPointText 'Ready for launch' -Color Success
+        }
+    $table = Get-OfficePowerPointShape -Text 'Risk' -Kind Table | Select-Object -First 1
+    $table | Add-OfficePowerPointTableRow -Value 'Latency', 'Investigating'
+    $table | Set-OfficePowerPointTableCell -Row 2 -Column 2 -Content {
+        PowerPointParagraph {
+            PowerPointText 'Mitigating' -Color Warning -Link 'https://example.org/risk'
+        }
+    }
 }
 
-Write-Host "Updated PowerPoint deck saved to $path"
-Write-Host 'Matching shapes:'
-$reloaded = Get-OfficePowerPoint -Path $path
+$reloaded = Open-OfficePowerPoint -Path $path
 try {
-    Find-OfficePowerPointShape -Presentation $reloaded -Text 'Ready' |
-        Select-Object SlideIndex, ShapeIndex, Kind, Text |
-        Format-Table
+    Get-OfficePowerPointShape -Document $reloaded -Text 'Ready' |
+        Select-Object SlideIndex, ShapeIndex, Kind, Text
 } finally {
-    Close-OfficePowerPoint -Presentation $reloaded
+    Close-OfficePowerPoint -Document $reloaded
 }

@@ -74,19 +74,19 @@ New-OfficeWord -Path $docx {
     WordHeader -Type Default { WordParagraph -Text 'OPERATIONS / EVENT REVIEW' }
     WordFooter -Type Default { WordPageNumber -IncludeTotal }
     WordParagraph {
-        WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true
+        Set-OfficeWordParagraph -SpacingAfter 12 -KeepWithNext:$true
         WordText 'Event incident brief' -Bold -Size 26 -Color '17365D'
     }
     WordParagraph -Text $scope
     WordParagraph {
-        WordParagraphStyle -SpacingBeforePoints 12 -SpacingAfterPoints 10
+        Set-OfficeWordParagraph -SpacingBefore 12 -SpacingAfter 10
         WordText "$($records.Count) retained records" -Bold -Size 18 -Color '9A3412'
     }
     WordParagraph -Text 'Use this snapshot to assign investigation. Event counts alone do not establish a root cause or service impact.'
     WordParagraph -Text "$computerCount named source computers / $logCount named source logs. The register preserves each record's source where supplied."
     if ($providerSummary.Count) {
         WordParagraph {
-            WordParagraphStyle -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
+            Set-OfficeWordParagraph -SpacingBefore 16 -SpacingAfter 8 -KeepWithNext:$true
             WordText 'Most represented providers' -Bold -Size 15 -Color '17365D'
         }
         $table = WordTable -InputObject $providerSummary -Style GridTable4Accent1 -Layout AutoFitToWindow -PassThru
@@ -96,7 +96,7 @@ New-OfficeWord -Path $docx {
         }
     } else { WordParagraph -Text 'No matching events were returned. The workbook records that empty result.' }
     WordParagraph {
-        WordParagraphStyle -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
+        Set-OfficeWordParagraph -SpacingBefore 16 -SpacingAfter 8 -KeepWithNext:$true
         WordText 'Investigation handoff' -Bold -Size 15 -Color '17365D'
     }
     WordList -Style Numbered {
@@ -105,7 +105,7 @@ New-OfficeWord -Path $docx {
         WordListItem -Text 'Assign an owner, record the findings and agree a follow-up time.'
     }
     WordParagraph {
-        WordParagraphStyle -SpacingBeforePoints 12
+        Set-OfficeWordParagraph -SpacingBefore 12
         WordText 'Only the top eight providers appear here. The workbook retains every record in this bounded snapshot. Review event messages before sharing them.' -Size 10 -Color '475569'
     }
 }

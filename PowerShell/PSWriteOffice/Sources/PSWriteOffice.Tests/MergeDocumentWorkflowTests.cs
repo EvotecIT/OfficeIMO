@@ -198,10 +198,15 @@ public sealed class MergeDocumentWorkflowTests {
         string second = files.Pdf("second.pdf", "SECOND");
         string output = files.PathFor("normalized.pdf");
         var sources = files.Snapshot();
-        var options = new PdfMergeOptions { ResizePages = new PdfPageResizeOptions(PdfPageSizes.A4) };
+        var options = new PdfMergeOptions {
+            ResizePages = new PdfPageResizeOptions(PdfPageSizes.A4),
+            Policy = new PdfMergePolicy { Outlines = PdfMergeStructureMode.Combine }
+        };
         using var runspace = OpenRunspace();
         Set(runspace, ("inputs", new[] { first, second }), ("output", output), ("settings", options));
-        Invoke(runspace, "Merge-OfficeDocument -LiteralPath $inputs -OutputPath $output -Options $settings, @{ FlattenVisualAnnotations = $true } -ErrorAction Stop");
+        Invoke(runspace, "Merge-OfficeDocument -LiteralPath $inputs -OutputPath $output -Options $settings, @{ FlattenVisualAnnotations = $true; Policy = @{ Metadata = 'Drop' } } -ErrorAction Stop");
+        Assert.Equal(PdfMergeStructureMode.KeepPrimary, options.Policy.Metadata);
+        Assert.Equal(PdfMergeStructureMode.Combine, options.Policy.Outlines);
         using var saved = PdfDocument.Load(output);
         Assert.Equal(2, saved.Inspect().Pages.Count);
         InOrder(saved.Read().Text, "FIRST", "SECOND");

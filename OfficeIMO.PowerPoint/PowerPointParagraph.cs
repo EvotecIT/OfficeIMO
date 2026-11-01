@@ -14,7 +14,8 @@ namespace OfficeIMO.PowerPoint {
         private readonly SlidePart? _initialSlidePart;
         private SlidePart? _slidePart => Paragraph.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
         private readonly OpenXmlPartContainer? _initialOwnerPart;
-        private OpenXmlPartContainer? _ownerPart => _initialOwnerPart is SlidePart ? _slidePart : _initialOwnerPart;
+        private OpenXmlPartContainer? _ownerPart => Paragraph.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>()
+            .FirstOrDefault()?.SlidePart ?? _initialOwnerPart ?? _initialSlidePart;
 
         internal PowerPointParagraph(A.Paragraph paragraph, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
             Paragraph = paragraph;

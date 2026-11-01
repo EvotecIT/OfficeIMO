@@ -14,7 +14,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>WordFooter { Add-OfficeWordPageNumber -IncludeTotal }</code>
 ///   <para>Outputs “Page # of #” in the footer.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordPageNumber")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordPageNumber", DefaultParameterSetName = "Default")]
 [Alias("WordPageNumber")]
 public sealed class AddOfficeWordPageNumberCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>Include “of N” when true.</summary>

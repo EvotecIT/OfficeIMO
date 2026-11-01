@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// Export-OfficeWordImage -Path .\Report.docx -OutputPath .\Pages -Options $options</code>
 ///   <para>Supplying <c>PageCount</c> selects batch export, so <c>OutputPath</c> is a folder. Use <c>-AllPages</c> on the export command for the complete document.</para>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeWordImageOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeWordImageOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(WordImageExportOptions))]
 public sealed class NewOfficeWordImageOptionsCommand : OfficeImageOptionsCommandBase<WordImageExportOptions> {
     /// <summary>Zero-based first page index.</summary>

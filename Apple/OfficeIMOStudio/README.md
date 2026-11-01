@@ -27,7 +27,7 @@ The `Shared` folder is synchronized with both targets, so new files need no proj
 | `Shared/Document` | `StudioDocument`, the system document over a private working copy that the engine edits, and `DocumentSession`, a window's state: the open engine document, facts, task, page, zoom, selection and undo registration. |
 | `Shared/Canvas` | The page view: the page layout in PDF points, the tile renderer, and its hosts in `UIScrollView` and `NSScrollView`. |
 | `Shared/Views` | The document window, toolbar, page list, Pages task and inspector. |
-| `Shared/Conversion` | Converting Word, Excel, PowerPoint and other documents to PDF with the engine, from the launch screen, the File menu and Shortcuts. |
+| `Shared/Conversion` | Converting Word, Excel, PowerPoint and other documents to PDF with the engine, from the launch screen, the File menu and Shortcuts. On the Mac, opened Word, Excel, PowerPoint and RTF files convert the same way. |
 | `Shared/Forms` | Filling form fields in the Read task: the engine's fields per page, the text, check box, radio and choice editors over the page in UIKit and AppKit, and each value as one undoable change. |
 | `Shared/Signatures` | Handwritten signatures kept on the device, the pad for drawing one, and placing one on a page as ink. |
 | `Shared/Intents` | Shortcuts actions and their Siri and Spotlight phrases, over `DocumentActions`, which the unattended journey also runs. |
@@ -73,4 +73,4 @@ xcrun simctl launch booted com.evotec.officeimo.studio -OfficeIMOOpen sample.pdf
 
 Copy the PDF into the container first; `xcrun simctl get_app_container booted com.evotec.officeimo.studio data` prints its folder. The harness shows the same window as a system document but saves nothing back.
 
-`-OfficeIMOScanFromPhotos` shows the launch screen's **PDF from Photos** action on its own and opens the scan it makes in the same kind of window. Add a photo of a printed page with `xcrun simctl addmedia booted <image>` first; the simulator has no document camera.
+`-OfficeIMOScanFromPhotos` shows **Create PDF**'s **PDF from Photos** action on its own and opens the scan it makes in the same kind of window. Add a photo of a printed page with `xcrun simctl addmedia booted <image>` first; the simulator has no document camera.

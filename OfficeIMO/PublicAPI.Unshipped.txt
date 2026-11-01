@@ -1,4 +1,6 @@
 #nullable enable
+OfficeIMO.OfficeConversionOptions.PowerPointHtml.get -> OfficeIMO.PowerPoint.Html.PowerPointHtmlSaveOptions?
+OfficeIMO.OfficeConversionOptions.PowerPointHtml.set -> void
 OfficeIMO.OfficeBatchItemReport.SkippedReason.get -> string?
 OfficeIMO.OfficeBatchItemReport.SkippedReason.init -> void
 OfficeIMO.OfficeBatchOptions.SkipExistingOutputs.get -> bool

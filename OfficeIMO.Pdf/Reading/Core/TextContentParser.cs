@@ -142,9 +142,10 @@ internal static partial class TextContentParser {
         public bool ActualTextEmitted { get; set; }
 
         public MarkedContentState(ActualTextValue? actualText, bool isArtifact, bool isHidden, int? mcid = null, bool isOptionalContent = false,
-            bool preserveAnchorGeometry = false) {
+            bool preserveAnchorGeometry = false, bool allowExactGlyphMapping = false) {
             _actualText = actualText;
             HasActualText = actualText.HasValue;
+            _allowExactGlyphMapping = allowExactGlyphMapping;
             IsArtifact = isArtifact;
             IsHidden = isHidden;
             Mcid = mcid;
@@ -821,7 +822,9 @@ internal static partial class TextContentParser {
                         IsHiddenOptionalContent(args.Count > 1 ? args[args.Count - 2] : null, args.Count > 0 ? args[args.Count - 1] : null),
                         GetMcid(args.Count > 0 ? args[args.Count - 1] : null),
                         IsOptionalContentTag(args.Count > 1 ? args[args.Count - 2] : null),
-                        HasLogicalBoundsHint(args.Count > 0 ? args[args.Count - 1] : null));
+                        HasLogicalBoundsHint(args.Count > 0 ? args[args.Count - 1] : null),
+                        allowExactGlyphMapping: inText && args.Count == 2 && args[0] is string tag && tag == "Span" &&
+                            args[1] is PdfContentDictionary { Items.Count: 1 } && GetActiveActualTextState() == null);
                     if (markedState.HasActualText) GetActiveActualTextState()?.RejectLogicalLayoutEvidence();
                     if (onCompletedDrawingActualText != null && markedState.HasActualText) {
                         var origin = ctm.Transform(0D, 0D);

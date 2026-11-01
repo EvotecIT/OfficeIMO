@@ -11,7 +11,7 @@
       "parameterSets": [
         {
           "name": "Content",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -39,7 +39,7 @@
               "type": "datetime",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Shown on the Title slide, formatted for -Culture of the theme; defaults to no date."
+              "notes": "Shown on the Title slide using the current culture's short date format; defaults to no date."
             },
             {
               "name": "Theme",
@@ -47,6 +47,13 @@
               "mandatory": false,
               "pipeline": "none",
               "notes": "Built-in theme name (Modern default, Classic, Minimal, Boardroom, Dark), theme object or .potx/.pptx path. A template supplies its own masters and layouts."
+            },
+            {
+              "name": "Template",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Copies an existing presentation or template as starting content; Theme applies visual styling separately."
             },
             {
               "name": "Accent",
@@ -60,21 +67,21 @@
               "type": "PowerPointDeckStyle",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Advanced designer-engine tuning: Auto (default, follows -Theme), FieldProof, EditorialCaseStudy, TechnicalMap, QuietAppendix."
+              "notes": "Advanced native design-brief tuning: Auto (default, follows Theme), FieldProof, EditorialCaseStudy, TechnicalMap, QuietAppendix. Density adjusts body typography and spacing; the chosen theme retains its palette and fonts."
             },
             {
               "name": "Purpose",
               "type": "string",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Plain-language deck purpose matched to a built-in design recipe."
+              "notes": "Plain-language purpose matched to a built-in native recipe, including its eyebrow and composition intent. An explicit Style selects its own recipe."
             },
             {
               "name": "LayoutStrategy",
               "type": "PowerPointAutoLayoutStrategy",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "ContentFirst, DesignFirst, Compact, VisualFirst."
+              "notes": "ContentFirst keeps content-fit allocation (default); Compact uses denser body text and equal columns; VisualFirst gives a visual column more space; DesignFirst selects valid column proportions deterministically from Seed. Explicit strategy overrides the recipe."
             },
             {
               "name": "Seed",
@@ -88,7 +95,7 @@
               "type": "PowerPointSlideSizePreset",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Screen16x9 by default."
+              "notes": "Screen16x9 by default. A copied template retains its dimensions unless SlideSize is supplied."
             },
             {
               "name": "NoFooter",
@@ -146,7 +153,7 @@
         },
         {
           "name": "Live",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Path",
@@ -168,7 +175,7 @@
               "type": "datetime",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Shown on the Title slide, formatted for -Culture of the theme; defaults to no date."
+              "notes": "Shown on the Title slide using the current culture's short date format; defaults to no date."
             },
             {
               "name": "Theme",
@@ -176,6 +183,13 @@
               "mandatory": false,
               "pipeline": "none",
               "notes": "Built-in theme name (Modern default, Classic, Minimal, Boardroom, Dark), theme object or .potx/.pptx path. A template supplies its own masters and layouts."
+            },
+            {
+              "name": "Template",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Copies an existing presentation or template as starting content; Theme applies visual styling separately."
             },
             {
               "name": "Accent",
@@ -189,21 +203,21 @@
               "type": "PowerPointDeckStyle",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Advanced designer-engine tuning: Auto (default, follows -Theme), FieldProof, EditorialCaseStudy, TechnicalMap, QuietAppendix."
+              "notes": "Advanced native design-brief tuning: Auto (default, follows Theme), FieldProof, EditorialCaseStudy, TechnicalMap, QuietAppendix. Density adjusts body typography and spacing; the chosen theme retains its palette and fonts."
             },
             {
               "name": "Purpose",
               "type": "string",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Plain-language deck purpose matched to a built-in design recipe."
+              "notes": "Plain-language purpose matched to a built-in native recipe, including its eyebrow and composition intent. An explicit Style selects its own recipe."
             },
             {
               "name": "LayoutStrategy",
               "type": "PowerPointAutoLayoutStrategy",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "ContentFirst, DesignFirst, Compact, VisualFirst."
+              "notes": "ContentFirst keeps content-fit allocation (default); Compact uses denser body text and equal columns; VisualFirst gives a visual column more space; DesignFirst selects valid column proportions deterministically from Seed. Explicit strategy overrides the recipe."
             },
             {
               "name": "Seed",
@@ -217,7 +231,7 @@
               "type": "PowerPointSlideSizePreset",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Screen16x9 by default."
+              "notes": "Screen16x9 by default. A copied template retains its dimensions unless SlideSize is supplied."
             },
             {
               "name": "NoFooter",
@@ -908,7 +922,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Text",
@@ -1039,7 +1053,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Content",
@@ -1143,7 +1157,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Items",
@@ -1232,7 +1246,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Content",
@@ -1306,7 +1320,7 @@
           ]
         }
       ],
-      "notes": "Replaces Add-OfficePowerPointBullets. Theme list style by default; long lists shrink to the theme minimum, then continue on a new slide. -Numbered makes a numbered list; -Numbering picks the number scheme and implies -Numbered. -Items are written at -Level (1-based); rich and nested items use a PowerPointListItem block.",
+      "notes": "Replaces Add-OfficePowerPointBullets. Theme list style by default; long lists shrink to the theme minimum, then continue on a new slide. -Numbered makes a numbered list; -Numbering picks the number scheme and implies -Numbered. -Items are written at -Level (1-based); rich and nested items use a PowerPointListItem block. Explicit -Slide or geometry creates a fixed native frame. Numbering selects the top-level scheme; BulletChar cannot be combined with numbering. Native edits made inside the content block take precedence over these defaults.",
       "examples": [
         {
           "title": "Add a bulleted list",
@@ -1462,7 +1476,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "InputObject",
@@ -1600,7 +1614,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Rows",
@@ -1694,14 +1708,14 @@
       "parameterSets": [
         {
           "name": "InputObject",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Slide",
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "InputObject",
@@ -1782,14 +1796,14 @@
         },
         {
           "name": "Sample",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Slide",
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Type",
@@ -1885,13 +1899,19 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Path",
               "type": "string",
               "mandatory": true,
               "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "Title",
+              "type": "string",
+              "mandatory": false,
               "pipeline": "none"
             },
             {
@@ -1969,7 +1989,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "X",
@@ -2108,7 +2128,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Text",
@@ -2569,7 +2589,7 @@
           ]
         }
       ],
-      "notes": "Replaces Add-OfficePowerPointDesignerDeck -FooterLeft/-FooterRight. Content block takes PowerPointText and PowerPointSlideNumber.",
+      "notes": "Replaces Add-OfficePowerPointDesignerDeck -FooterLeft/-FooterRight. Content takes PowerPointText and PowerPointSlideNumber and runs once. Deck slots update existing slides; slide overrides repeat across continuations. Saved definitions survive reopening and appending. NoFooter hides text independently of NoSlideNumber. Explicit run formatting and links are retained.",
       "examples": [
         {
           "title": "Add a footer to every slide",
@@ -2616,7 +2636,7 @@
           "code": "New-OfficePowerPoint -Path .\\Reports\\Board-Pack.pptx -Theme Boardroom {\n    PowerPointFooter {\n        PowerPointText 'Board pack, November 2026 | Slide '\n        PowerPointSlideNumber\n    }\n    PowerPointSlide -Title 'Board pack' -Subtitle 'November 2026'\n    PowerPointSlide -Title 'Agenda' {\n        PowerPointList 'Financial results', 'Risk register', 'Approvals'\n    }\n}"
         }
       ],
-      "notes": "Used inside PowerPointFooter. Writes to the native slide-number placeholder."
+      "notes": "Used inside PowerPointFooter. Writes a native slide-number field; IncludeTotal adds the physical slide count. Saving refreshes managed footer values after append or reorder, leaving ordinary authored fields unchanged."
     },
     {
       "name": "Add-OfficePowerPointTextBox",
@@ -2634,7 +2654,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Text",
@@ -2704,7 +2724,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Content",
@@ -2796,7 +2816,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Type",
@@ -2904,7 +2924,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Type",
@@ -2949,7 +2969,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Type",
@@ -2994,8 +3014,8 @@
         },
         {
           "title": "Build a deck from a corporate template",
-          "description": "Uses a company .potx as the theme and fills the placeholders of its own layouts by type.",
-          "code": "New-OfficePowerPoint -Path .\\Reports\\Q3-Partner-Update.pptx -Theme .\\Templates\\Contoso-2026.potx {\n    PowerPointSlide -TemplateLayout 'Title Slide' {\n        PowerPointPlaceholder -Type CenteredTitle 'Partner update'\n        PowerPointPlaceholder -Type SubTitle 'Q3 2026'\n    }\n    PowerPointSlide -TemplateLayout 'Title and Content' {\n        PowerPointPlaceholder -Type Title 'Highlights'\n        PowerPointPlaceholder -Type Body {\n            PowerPointParagraph 'Three new regions live'\n            PowerPointParagraph 'Partner portal adoption at 74%'\n        }\n        PowerPointPlaceholder -Type Footer 'Partner confidential' -IgnoreMissing\n    }\n}"
+          "description": "Copies a company .potx template and fills the placeholders of its own layouts by type.",
+          "code": "New-OfficePowerPoint -Path .\\Reports\\Q3-Partner-Update.pptx -Template .\\Templates\\Contoso-2026.potx {\n    PowerPointSlide -TemplateLayout 'Title Slide' {\n        PowerPointPlaceholder -Type CenteredTitle 'Partner update'\n        PowerPointPlaceholder -Type SubTitle 'Q3 2026'\n    }\n    PowerPointSlide -TemplateLayout 'Title and Content' {\n        PowerPointPlaceholder -Type Title 'Highlights'\n        PowerPointPlaceholder -Type Body {\n            PowerPointParagraph 'Three new regions live'\n            PowerPointParagraph 'Partner portal adoption at 74%'\n        }\n        PowerPointPlaceholder -Type Footer 'Partner confidential' -IgnoreMissing\n    }\n}"
         }
       ]
     },
@@ -3169,7 +3189,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Alignment",
@@ -3213,7 +3233,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Distribute",
@@ -3275,7 +3295,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Grid",
@@ -4049,7 +4069,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "IncludeEmpty",
@@ -4095,7 +4115,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Index",
@@ -4134,7 +4154,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Text",
@@ -4185,7 +4205,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Pattern",
@@ -4493,7 +4513,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "OldValue",
@@ -4560,7 +4580,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Document",
@@ -4591,7 +4611,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Document",
@@ -4923,7 +4943,7 @@
           ]
         }
       ],
-      "notes": "Advanced: everyday placement uses layouts or -Column/-Span. Boxes expose X/Y/Width/Height as OfficeLength so they feed -X/-Y directly.",
+      "notes": "Advanced: everyday placement uses layouts or -Column/-Span. Boxes expose Left/Top/Width/Height as OfficeLength so they feed -X/-Y directly.",
       "examples": [
         {
           "title": "Get the content area",
@@ -4933,7 +4953,7 @@
         {
           "title": "Place shapes in equal columns",
           "description": "Computes three columns and places one labelled shape exactly in each.",
-          "code": "$deck = New-OfficePowerPoint -Path .\\Reports\\Pillars.pptx\n$columns = Get-OfficePowerPointLayoutBox -Document $deck -Columns 3 -Margin 1.5cm -Gutter 1cm\n$pillars = 'Secure', 'Reliable', 'Affordable'\nPowerPointSlide -Document $deck -Title 'Our pillars' {\n    for ($i = 0; $i -lt $columns.Count; $i++) {\n        $box = $columns[$i]\n        PowerPointShape -Type RoundRectangle -Name $pillars[$i] -X $box.X -Y $box.Y -Width $box.Width -Height $box.Height\n        PowerPointTextBox $pillars[$i] -X $box.X -Y $box.Y -Width $box.Width -Height 2cm\n    }\n}\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
+          "code": "$deck = New-OfficePowerPoint -Path .\\Reports\\Pillars.pptx\n$columns = Get-OfficePowerPointLayoutBox -Document $deck -Columns 3 -Margin 1.5cm -Gutter 1cm\n$pillars = 'Secure', 'Reliable', 'Affordable'\nPowerPointSlide -Document $deck -Title 'Our pillars' {\n    for ($i = 0; $i -lt $columns.Count; $i++) {\n        $box = $columns[$i]\n        PowerPointShape -Type RoundRectangle -Name $pillars[$i] -X $box.Left -Y $box.Top -Width $box.Width -Height $box.Height\n        PowerPointTextBox $pillars[$i] -X $box.Left -Y $box.Top -Width $box.Width -Height 2cm\n    }\n}\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
         }
       ]
     },
@@ -5658,7 +5678,7 @@
           "parameters": [
             {
               "name": "Profile",
-              "type": "OfficePowerPointHtmlProfile",
+              "type": "PowerPointHtmlExportProfile",
               "mandatory": false,
               "pipeline": "none",
               "notes": "SemanticSlides (default) or VisualReview."
@@ -5806,7 +5826,7 @@
         "Preview": null
       },
       "hint": "New-OfficePowerPoint -Path .\\Deck.pptx -Accent '#0F766E' -Purpose 'monthly service brief' { PowerPointSlide -Title 'Service Review' }",
-      "reason": "Every slide is rendered by the designer engine as it is written, so there is no separate plan-render step. Brand and direction options moved to New-OfficePowerPoint so ordinary slides share the design. -Name comes from -Theme; -NoApplyTheme is the default behavior of Open-OfficePowerPoint (opening never restyles); -Preview is replaced by Get-OfficePowerPointSlide -Summary, which reports each slide's chosen layout; -AlternativeCount was an internal search-width knob whose result is fixed by -Seed."
+      "reason": "Every slide is rendered by the designer engine as it is written, so there is no separate plan-render step. Brand and direction options moved to New-OfficePowerPoint so ordinary slides share the design. -Name comes from -Theme; -NoApplyTheme is the default behavior of Open-OfficePowerPoint (opening never restyles); -Preview is replaced by Get-OfficePowerPointSlide -Summary, which reports each slide's chosen layout; -AlternativeCount was an internal search-width knob whose result is fixed by -Seed. FooterLeft and FooterRight become PowerPointFooter slots; rich content runs once, slide overrides continue across physical slides, and managed slide numbers/counts refresh when the reopened deck is saved."
     },
     {
       "old": "Add-OfficePowerPointImage",
@@ -5814,7 +5834,8 @@
       "action": "keep",
       "new": "Add-OfficePowerPointImage",
       "parameterSet": "Path",
-      "reason": "Geometry parameters take OfficeLength instead of point doubles; -Column/-Span add theme-grid placement. Without placement the image fills the layout's image area."
+      "hint": "PowerPointImage -Slide $slide -Path .\\Photo.png -Width 6cm",
+      "reason": "Geometry parameters take OfficeLength instead of point doubles; -Column/-Span add theme-grid placement. Without placement the image fills the layout's image area. Pass a native slide or one-based slide position with -Slide; slide objects no longer bind from the pipeline, which carries visual inputs."
     },
     {
       "old": "Add-OfficePowerPointPlanCapability",
@@ -6001,7 +6022,7 @@
         "Run": "Content"
       },
       "hint": "PowerPointTextBox -X 2cm -Y 4cm -Width 10cm { PowerPointText 'Status: ' -Bold; PowerPointText 'On track' -Color Success }",
-      "reason": "Kept for deliberate placement. Styled text uses a content block of PptParagraph/PptText; -Run hashtables are removed. Integer points become OfficeLength."
+      "reason": "Kept for deliberate placement. Styled text uses a content block of PowerPointParagraph/PowerPointText; -Run hashtables are removed. Integer points become OfficeLength."
     },
     {
       "old": "Add-OfficePowerPointVisual",
@@ -6209,7 +6230,8 @@
         "Index": "Slide",
         "ShapeIndex": "Index"
       },
-      "reason": "Absorbs Find-OfficePowerPointShape. -Slide (object or 1-based number) replaces -Index; -Index now means 1-based shape positions (was -ShapeIndex)."
+      "hint": "Get-OfficePowerPointShape -Document $deck -Slide 1 -Index 1   # SlideIndex and ShapeIndex are also 1-based",
+      "reason": "Absorbs Find-OfficePowerPointShape. -Slide (object or 1-based number) replaces -Index; -Index now means 1-based shape positions (was -ShapeIndex). Returned SlideIndex and ShapeIndex positions are also 1-based."
     },
     {
       "old": "Get-OfficePowerPointSlide",
@@ -6562,7 +6584,7 @@
       "parameters": {
         "Run": "Content"
       },
-      "reason": "Row and column are 1-based; -Run hashtables are replaced by a content block of PptText runs."
+      "reason": "Row and column are 1-based; -Run hashtables are replaced by a content block of PowerPointText runs and PowerPointParagraph blocks."
     },
     {
       "old": "Set-OfficePowerPointThemeColor",

@@ -40,8 +40,8 @@ New-OfficeVisio -Path $path -Title 'Customer onboarding flow' -Author 'PSWriteOf
     VisioConnector -From rework -To validate -Kind Straight -FromSide Left -ToSide Bottom -EndArrow Triangle -LineColor '#E11D48'
 }
 
-ConvertTo-OfficeVisioSvg -Path $path -OutputPath $svgPath
-ConvertTo-OfficeVisioPng -Path $path -OutputPath $pngPath
+Export-OfficeDocumentImage -Path $path -Page 1 -Format Svg -OutputPath $svgPath | Out-Null
+Export-OfficeDocumentImage -Path $path -Page 1 -Format Png -OutputPath $pngPath | Out-Null
 
 if ($Open) {
     Invoke-Item $svgPath

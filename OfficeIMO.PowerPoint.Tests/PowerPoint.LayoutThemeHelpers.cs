@@ -189,6 +189,17 @@ namespace OfficeIMO.Tests {
                     Assert.IsType<A.EastAsianFont>(fontScheme.MinorFont.ChildElements[1]);
                     Assert.IsType<A.ComplexScriptFont>(fontScheme.MinorFont.ChildElements[2]);
                 }
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
+                    presentation.SetThemeFonts(new PowerPointThemeFontSet(null, "Arial", null, null, null, null),
+                        keepExistingWhenNull: false);
+                    presentation.Save();
+                }
+                using (PowerPointDocument cleared = PowerPointDocument.Load(filePath)) {
+                    Assert.Empty(cleared.ValidateDocument());
+                    Assert.Equal("Arial", cleared.GetThemeFonts().MinorLatin);
+                    Assert.Equal(string.Empty, cleared.GetThemeFonts().MajorLatin);
+                    Assert.Equal(string.Empty, cleared.GetThemeFonts().MinorEastAsian);
+                }
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

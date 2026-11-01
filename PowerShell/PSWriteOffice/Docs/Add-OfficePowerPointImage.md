@@ -6,39 +6,78 @@ schema: 2.0.0
 ---
 # Add-OfficePowerPointImage
 ## SYNOPSIS
-Adds an image to a PowerPoint slide.
+Adds a native picture from a local image, SVG or reusable visual, using the slide layout or explicit lengths.
 
 ## SYNTAX
-### __AllParameterSets
+### Path (Default)
 ```powershell
-Add-OfficePowerPointImage [-Path] <string> [-Slide <PowerPointSlide>] [-AlternativeText <string>] [-X <double>] [-Y <double>] [-Width <double>] [-Height <double>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointImage [-Path] <string> [-AlternativeText <string>] [-Slide <PowerPointSlideSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Column <Int32>] [-Span <Int32>] [-FocalPoint <PowerPointFocalPoint>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Title <string>] [<CommonParameters>]
+```
+
+### Visual
+```powershell
+Add-OfficePowerPointImage [-InputObject] <Object> [-AlternativeText <string>] [-Slide <PowerPointSlideSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Column <Int32>] [-Span <Int32>] [-FocalPoint <PowerPointFocalPoint>] [-PassThru] [-SvgPolicy <OfficeVisualSvgPolicy>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-PointsPerPixel <double>] [-MaximumSvgElements <Int32>] [-MaximumSvgViewportDimension <Double>] [-MaximumSvgViewportPixelCount <Int64>] [-Id <string>] [-Title <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Places the picture at the requested coordinates using point measurements.
+Coordinates use points or unit suffixes. Explicit coordinates, dimensions, grid columns or Slide select fixed placement. Otherwise the image flows through the shared slide layout. FocalPoint controls cover crops.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $image = '.\Tests\Assets\CellImage.png'
-New-OfficePowerPoint -Path .\Examples\Documents\PowerPointImage.pptx {
-    $slide = Add-OfficePowerPointSlide -Layout 1 -PassThru
-    Set-OfficePowerPointSlideTitle -Slide $slide -Title 'Evidence'
-    Add-OfficePowerPointImage -Slide $slide -Path $image -X 60 -Y 130 -Width 180 -Height 120
+PowerPointSlide -Title 'Evidence' {
+    PowerPointImage -Path ./evidence.png -Column 2 -Span 5 -Y 3cm -Height 5cm -AlternativeText 'Deployment health'
 }
 ```
 
-Adds a picture to a generated slide.
+
+### EXAMPLE 2
+```powershell
+$visual | PowerPointImage -Slide $slide -X 36 -Y 54 -PassThru
+```
+
 
 ## PARAMETERS
 
 ### -AlternativeText
-Accessible description of the image.
+Accessible description for the visual or placed image.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, Visual
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Column
+One-based starting column in the native twelve-column slide grid.
+
+```yaml
+Type: Int32
+Parameter Sets: Path, Visual
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -FocalPoint
+Center, Top, Bottom, Left, Right or fractional x,y coordinates kept in view by a cover crop.
+
+```yaml
+Type: PowerPointFocalPoint
+Parameter Sets: Path, Visual
 Aliases: None
 Possible values:
 
@@ -50,11 +89,91 @@ Accept wildcard characters: False
 ```
 
 ### -Height
-Image height in points.
+Optional output height; numbers mean points and unit suffixes are accepted.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Path, Visual
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Id
+Optional stable identifier for an SVG file input.
+
+```yaml
+Type: String
+Parameter Sets: Visual
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -InputObject
+Visual artifact, OfficeVisualSource, prepared conversion or SVG path.
+
+```yaml
+Type: Object
+Parameter Sets: Visual
+Aliases: None
+Possible values:
+
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -MaximumSvgElements
+Optional OfficeIMO SVG import element limit.
+
+```yaml
+Type: Int32
+Parameter Sets: Visual
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaximumSvgViewportDimension
+Optional maximum SVG viewport width or height. Increase the safe default only for trusted input.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Visual
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaximumSvgViewportPixelCount
+Optional maximum SVG viewport area in pixels. Increase the safe default only for trusted input.
+
+```yaml
+Type: Int64
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -66,11 +185,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the object created or changed by the command.
+Return the native editable picture.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, Visual
 Aliases: None
 Possible values:
 
@@ -82,11 +201,11 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Path to the image file.
+Literal local image path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -97,28 +216,92 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Slide
-Target slide that will receive the picture (optional inside DSL).
+### -PointsPerPixel
+Conversion factor from ChartForgeX pixels to Office points.
 
 ```yaml
-Type: PowerPointSlide
-Parameter Sets: __AllParameterSets
+Type: Double
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
 Required: False
 Position: named
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Slide
+Native slide or a one-based position in the current document; omitted inside PowerPointSlide.
+
+```yaml
+Type: PowerPointSlideSelector
+Parameter Sets: Path, Visual
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Span
+Number of grid columns occupied by the frame; defaults to twelve with Column.
+
+```yaml
+Type: Int32
+Parameter Sets: Path, Visual
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -SvgPolicy
+SVG fidelity policy used by OfficeIMO.ChartForgeX.
+
+```yaml
+Type: OfficeVisualSvgPolicy
+Parameter Sets: Visual
+Aliases: None
+Possible values: PreserveVector, RasterizeWhenNeeded, RequireVector
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Title
+Optional title for an SVG file input.
+
+```yaml
+Type: String
+Parameter Sets: Path, Visual
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Width
-Image width in points.
+Optional output width; numbers mean points and unit suffixes are accepted.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Path, Visual
 Aliases: None
 Possible values:
 
@@ -130,11 +313,11 @@ Accept wildcard characters: False
 ```
 
 ### -X
-Left offset (in points) from the slide origin.
+Left position; numbers mean points.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Path, Visual
 Aliases: None
 Possible values:
 
@@ -146,11 +329,11 @@ Accept wildcard characters: False
 ```
 
 ### -Y
-Top offset (in points) from the slide origin.
+Top position; numbers mean points.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Path, Visual
 Aliases: None
 Possible values:
 
@@ -166,7 +349,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointSlide`
+- `System.Object`
 
 ## OUTPUTS
 

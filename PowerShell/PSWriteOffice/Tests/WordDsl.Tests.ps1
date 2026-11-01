@@ -663,7 +663,7 @@ Describe 'Word DSL surface' {
                 WordTextRun 'LinkHalf' -LinkUri 'https://example.org/half' -FontSize 10.5
             )
             $styled = WordParagraph -Text 'StyledHalf' -PassThru
-            @($styled.GetRuns())[0] | Set-OfficeWordTextStyle -FontSize 10.5
+            @($styled.GetRuns())[0] | Set-OfficeWordText -Size 10.5
         } | Out-Null
 
         $documentXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'word/document.xml'
@@ -1269,7 +1269,7 @@ Describe 'Word DSL surface' {
             Add-OfficeWordParagraph { Add-OfficeWordComboBox -Items 'Red','Blue' -DefaultValue 'Blue' -Alias 'Color' }
             Add-OfficeWordParagraph { Add-OfficeWordRepeatingSection -SectionTitle 'Items' -Alias 'LineItems' }
             Add-OfficeWordTableOfContents -Style Template1
-            Update-OfficeWordFields
+            Update-OfficeWordField
         } | Out-Null
 
         Test-Path $path | Should -BeTrue
@@ -1814,13 +1814,13 @@ Describe 'Word DSL surface' {
         New-OfficeWord -Path $path {
             $paragraph = WordParagraph -Text 'Executive Summary' -PassThru
             $paragraph |
-                Set-OfficeWordParagraphStyle -Style Heading2 -Alignment Center -SpacingBeforePoints 6 -SpacingAfterPoints 12 -IndentationBeforePoints 18 -KeepWithNext $true -PassThru |
+                Set-OfficeWordParagraph -Style Heading2 -Alignment Center -SpacingBefore 6 -SpacingAfter 12 -IndentationBefore 18 -KeepWithNext:$true -PassThru |
                 Should -Not -BeNullOrEmpty
 
             $textParagraph = WordParagraph -Text 'Initial' -PassThru
             $textItem = @($textParagraph.GetRuns())[0]
             $textItem |
-                Set-OfficeWordTextStyle -Text 'Styled text' -Bold $true -Italic $true -Underline Single -Color '#C00000' -FontSize 14 -FontFamily 'Aptos' -Highlight Yellow -CapsStyle SmallCaps -Strike $true -Style Heading2Char -PassThru |
+                Set-OfficeWordText -Text 'Styled text' -Bold:$true -Italic:$true -Underline Single -Color '#C00000' -Size 14 -Font 'Aptos' -Highlight Yellow -CapsStyle SmallCaps -Strikethrough:$true -Style Heading2Char -PassThru |
                 Should -Not -BeNullOrEmpty
         } | Out-Null
 

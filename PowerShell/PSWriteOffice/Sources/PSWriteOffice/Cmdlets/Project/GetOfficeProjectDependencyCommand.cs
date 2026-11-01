@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 ///   <summary>Returns project dependencies.</summary>
 ///   <code>$project | Get-OfficeProjectDependency</code>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeProjectDependency")]
+[Cmdlet(VerbsCommon.Get, "OfficeProjectDependency", DefaultParameterSetName = "Document")]
 [OutputType(typeof(ProjectDependency))]
 public sealed class GetOfficeProjectDependencyCommand : PSCmdlet {
     /// <summary>Project document.</summary>

@@ -39,6 +39,11 @@ Convert-OfficeDocument [-OutputPath] <string> -LiteralPath <string[]> [-To <stri
 Convert-OfficeDocument [-Text] <string> -To <string> -From <string> [-OutputPath <string>] [-Options <Object[]>] [-Password <securestring>] [-Route <string>] [-OutputProfile <OfficeConversionProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-CompressPdf] [-NoClobber] [-AutoRename] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-SummaryVariable <string>] [-AsString] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
+### Document
+```powershell
+Convert-OfficeDocument [-Document] <Object> -To <string> [-OutputPath <string>] [-Options <Object[]>] [-Password <securestring>] [-Route <string>] [-OutputProfile <OfficeConversionProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-CompressPdf] [-NoClobber] [-AutoRename] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-SummaryVariable <string>] [-From <string>] [-AsString] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
 ## DESCRIPTION
 Writes each completed file's conversion evidence as it finishes. Paths resolve through the FileSystem provider before background execution; LiteralPath preserves wildcard characters. Saved jobs use the same contract as Studio and the CLI.
 
@@ -87,7 +92,7 @@ Explicitly accept the native legacy Word importer's reported reductions.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text, Document
 Aliases: None
 Possible values:
 
@@ -103,7 +108,7 @@ Return converted text to the pipeline instead of publishing a main output file.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, LiteralPath, Text
+Parameter Sets: Path, LiteralPath, Text, Document
 Aliases: None
 Possible values:
 
@@ -119,7 +124,7 @@ Choose a unique destination name when the requested output exists.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text, Document
 Aliases: None
 Possible values:
 
@@ -151,7 +156,7 @@ Apply verified lossless compression to PDF output.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text, Document
 Aliases: None
 Possible values:
 
@@ -159,6 +164,22 @@ Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Document
+Caller-owned live document. Conversion captures current edits without saving or closing its source.
+
+```yaml
+Type: Object
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -183,7 +204,7 @@ Reject a conversion that reports fidelity loss before publishing its output.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text, Document
 Aliases: None
 Possible values:
 
@@ -199,7 +220,7 @@ Source format family or exact codec extension. Overrides filenames while retaini
 
 ```yaml
 Type: String
-Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text, Document
 Aliases: None
 Possible values:
 
@@ -279,7 +300,7 @@ Maximum source bytes per file.
 
 ```yaml
 Type: Int64
-Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text, Document
 Aliases: None
 Possible values:
 
@@ -295,7 +316,7 @@ Maximum serialized output bytes per file.
 
 ```yaml
 Type: Int64
-Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text, Document
 Aliases: None
 Possible values:
 
@@ -311,7 +332,7 @@ Maximum XML characters in one package part.
 
 ```yaml
 Type: Int64
-Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text, Document
 Aliases: None
 Possible values:
 
@@ -327,7 +348,7 @@ Leave an existing destination unchanged and report its input as skipped.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text, Document
 Aliases: None
 Possible values:
 
@@ -343,7 +364,7 @@ Format-owned settings, typed conversion options, or property hashtables.
 
 ```yaml
 Type: Object[]
-Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text, Document
 Aliases: None
 Possible values:
 
@@ -375,7 +396,7 @@ Single-file destination. Its extension selects the target when To is omitted.
 
 ```yaml
 Type: String
-Parameter Sets: PathFile, LiteralPathFile, Text
+Parameter Sets: PathFile, LiteralPathFile, Text, Document
 Aliases: None
 Possible values:
 
@@ -391,7 +412,7 @@ Output intent, subject to the selected route's supported profiles.
 
 ```yaml
 Type: OfficeConversionProfile
-Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text, Document
 Aliases: None
 Possible values: Faithful, Lightweight, PrintReady, TextOnly
 
@@ -407,7 +428,7 @@ Runtime source password; saved definitions contain references rather than passwo
 
 ```yaml
 Type: SecureString
-Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text, Document
 Aliases: None
 Possible values:
 
@@ -551,7 +572,7 @@ Exact executable route identifier from Get-OfficeDocumentCapability -Conversion.
 
 ```yaml
 Type: String
-Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text, Document
 Aliases: None
 Possible values:
 
@@ -599,7 +620,7 @@ Final batch counts or single-file evidence assigned before any terminal batch er
 
 ```yaml
 Type: String
-Parameter Sets: Path, Job, LiteralPath, PathFile, LiteralPathFile, Text
+Parameter Sets: Path, Job, LiteralPath, PathFile, LiteralPathFile, Text, Document
 Aliases: None
 Possible values:
 
@@ -647,7 +668,7 @@ Target format family, such as Pdf or Word, or an exact physical extension, such 
 
 ```yaml
 Type: String
-Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text, Document
 Aliases: None
 Possible values:
 
@@ -664,6 +685,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 - `System.String[]`
+- `System.Object`
 - `System.String`
 
 ## OUTPUTS

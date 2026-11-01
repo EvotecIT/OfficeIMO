@@ -9,7 +9,7 @@ schema: 2.0.0
 Sets a built-in or custom document property on a Word document.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Set-OfficeWordDocumentProperty [-Name] <string> [[-Value] <Object>] [-Document <WordDocument>] [-Custom] [-PassThru] [<CommonParameters>]
 ```
@@ -38,7 +38,7 @@ Treat the property as a custom document property.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -54,7 +54,7 @@ Document to update when provided explicitly.
 
 ```yaml
 Type: WordDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -70,7 +70,7 @@ Property name to update.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -86,7 +86,7 @@ Emit the updated document.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -102,7 +102,7 @@ Property value.
 
 ```yaml
 Type: Object
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

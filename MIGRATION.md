@@ -334,7 +334,7 @@ Read-OfficeDocument -Path .\Knowledge -Recurse -Extension .docx, .pdf, .pptx, .x
 
 The `OfficeIMO` package is the front door for applications that want the common formats and conversions in one reference: `dotnet add package OfficeIMO`. It targets `netstandard2.0`, `net8.0`, `net10.0`, plus `net472` on Windows, the same as the format packages.
 
-It references `OfficeIMO.Core`, `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, `OfficeIMO.Pdf`, `OfficeIMO.Markdown`, `OfficeIMO.Word.Pdf`, `OfficeIMO.Excel.Pdf`, `OfficeIMO.PowerPoint.Pdf`, `OfficeIMO.Pdf.Word`, `OfficeIMO.Pdf.Excel`, `OfficeIMO.Pdf.PowerPoint`, `OfficeIMO.Word.Markdown`, `OfficeIMO.Word.Html`, `OfficeIMO.Markdown.Html`, `OfficeIMO.Markdown.Pdf`, `OfficeIMO.Reader.All`.
+It references `OfficeIMO.Core`, `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, `OfficeIMO.Pdf`, `OfficeIMO.Markdown`, `OfficeIMO.Word.Pdf`, `OfficeIMO.Excel.Pdf`, `OfficeIMO.PowerPoint.Pdf`, `OfficeIMO.PowerPoint.Html`, `OfficeIMO.Pdf.Word`, `OfficeIMO.Pdf.Excel`, `OfficeIMO.Pdf.PowerPoint`, `OfficeIMO.Word.Markdown`, `OfficeIMO.Word.Html`, `OfficeIMO.Markdown.Html`, `OfficeIMO.Markdown.Pdf`, `OfficeIMO.Reader.All`.
 
 `OfficeConverter`, the batch types and the shared foundations, including `OfficeColor`, live in the `OfficeIMO` namespace. Format types keep their per-format namespaces.
 
@@ -429,7 +429,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 | `Add-OfficeWordTabStop` | `Add-OfficeWordTabStop` | Kept |   | `WordTabStop -Position 3in -Alignment Decimal` |
 | `Add-OfficeWordText` | `Add-OfficeWordText` | Kept | `-Strike` &rarr; `-Strikethrough`<br>`-FontSize` &rarr; `-Size`<br>`-FontName`, `-FontFamily`, `-Typeface` &rarr; `-Font`<br>Removed: `-Run` | `WordParagraph { WordText 'Important: ' -Bold; WordText 'read first' -Italic }` |
 | `Add-OfficeWordTextBox` | `Add-OfficeWordTextBox` | Kept | `-WidthCentimeters` &rarr; `-Width`<br>`-HeightCentimeters` &rarr; `-Height`<br>`-HorizontalOffsetCentimeters` &rarr; `-X`<br>`-VerticalOffsetCentimeters` &rarr; `-Y`<br>`-WrapText` &rarr; `-Wrap` | `WordTextBox 'Note' -Width 5cm -X 2cm -Y 1cm` |
-| `Add-OfficeWordVisual` | `Add-OfficeWordImage` (`InputObject` set) | Merged | `-AlternativeText` &rarr; `-Description`<br>`-MaximumSvgViewportPixels` &rarr; `-MaximumSvgViewportPixelCount` | `$artifact \| WordImage -Width 420` |
+| `Add-OfficeWordVisual` | `Add-OfficeWordImage` (`Visual` set) | Merged | `-AlternativeText` &rarr; `-Description`<br>`-MaximumSvgViewportPixels` &rarr; `-MaximumSvgViewportPixelCount` | `$artifact \| WordImage -Width 420` |
 | `Add-OfficeWordWatermark` | `Add-OfficeWordWatermark` | Kept | `-HorizontalOffset` &rarr; `-X`<br>`-VerticalOffset` &rarr; `-Y` |   |
 | `Close-OfficeWord` | `Close-OfficeWord` | Kept | `-Open` &rarr; `-Show`<br>Removed: `-Current` |   |
 | `Compare-OfficeWordDocument` | `Compare-OfficeDocument` (`Path` set) | Cross-format | `-RedlinePath` &rarr; `-OutputPath` | `Compare-OfficeDocument -ReferencePath .\Before.docx -DifferencePath .\After.docx -OutputPath .\Redline.docx -Options (New-OfficeWordComparisonOptions)` |
@@ -485,7 +485,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 | `Set-OfficeWordDocumentProperty` | `Set-OfficeWordDocumentProperty` | Kept |   |   |
 | `Set-OfficeWordImage` | `Set-OfficeWordImage` | Kept |   |   |
 | `Set-OfficeWordPageSetup` | `Set-OfficeWordPageSetup` | Kept | `-Margin` &rarr; `-MarginPreset`<br>`-Left` &rarr; `-MarginLeft`<br>`-Right` &rarr; `-MarginRight`<br>`-Top` &rarr; `-MarginTop`<br>`-Bottom` &rarr; `-MarginBottom`<br>`-Header` &rarr; `-HeaderDistance`<br>`-Footer` &rarr; `-FooterDistance` | `WordPageSetup -PageSize A4 -Margin 2cm` |
-| `Set-OfficeWordParagraphStyle` | `Set-OfficeWordParagraph` | Renamed | `-IndentationBeforePoints` &rarr; `-IndentationBefore`<br>`-IndentationAfterPoints` &rarr; `-IndentationAfter`<br>`-IndentationFirstLinePoints` &rarr; `-IndentationFirstLine`<br>`-IndentationHangingPoints` &rarr; `-IndentationHanging`<br>`-LineSpacingPoints` &rarr; `-LineSpacing`<br>`-SpacingBeforePoints` &rarr; `-SpacingBefore`<br>`-SpacingAfterPoints` &rarr; `-SpacingAfter` | `$p \| Set-OfficeWordParagraph -SpacingAfter 6pt -KeepWithNext` |
+| `Set-OfficeWordParagraphStyle` | `Set-OfficeWordParagraph` | Renamed | `-IndentationBeforePoints` &rarr; `-IndentationBefore`<br>`-IndentationAfterPoints` &rarr; `-IndentationAfter`<br>`-IndentationFirstLinePoints` &rarr; `-IndentationFirstLine`<br>`-IndentationHangingPoints` &rarr; `-IndentationHanging`<br>`-LineSpacingPoints` &rarr; `-LineSpacing`<br>`-SpacingBeforePoints` &rarr; `-SpacingBefore`<br>`-SpacingAfterPoints` &rarr; `-SpacingAfter` | `$p \| Set-OfficeWordParagraph -SpacingAfter 6pt -KeepWithNext` (physical LineSpacing uses Exact or AtLeast; use native WordLineSpacing for Auto multiples) |
 | `Set-OfficeWordShape` | `Set-OfficeWordShape` | Kept | `-Left` &rarr; `-X`<br>`-Top` &rarr; `-Y` |   |
 | `Set-OfficeWordTableCell` | `Set-OfficeWordTableCell` | Kept | `-MarginTopCentimeters` &rarr; `-MarginTop`<br>`-MarginBottomCentimeters` &rarr; `-MarginBottom`<br>`-MarginLeftCentimeters` &rarr; `-MarginLeft`<br>`-MarginRightCentimeters` &rarr; `-MarginRight`<br>`-ShadingFillColor` &rarr; `-BackgroundColor`<br>`-WidthType` &rarr; `-WidthPercent`<br>`-WrapText` &rarr; `-NoWrap` | `$cells \| Set-OfficeWordTableCell -MarginTop 1.2mm -BackgroundColor Accent1` |
 | `Set-OfficeWordTableOfContents` | `Set-OfficeWordTableOfContents` | Kept |   |   |
@@ -921,7 +921,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 | `Add-OfficePowerPointBullets` | `Add-OfficePowerPointList` (`Items` set) | Merged | `-Bullets` &rarr; `-Items`<br>`-Level`, `-Slide` (same name, changed) | `PowerPointList -Items 'Wins','Risks'` (or PowerPointList { PowerPointListItem 'Wins' }) |
 | `Add-OfficePowerPointChart` | `Add-OfficePowerPointChart` (`InputObject` set) | Kept | `-CategoryProperty`, `-XProperty` &rarr; `-Category`<br>`-SeriesProperty`, `-YProperty` &rarr; `-Value` | `PowerPointChart -InputObject $rows -Category Month -Value Sales,Profit` |
 | `Add-OfficePowerPointDesignerDeck` | `Add-OfficePowerPointSlide` (`Content` set) | Merged | `-Presentation` &rarr; `-Document`<br>`-AccentColor` &rarr; `New-OfficePowerPoint -Accent`<br>`-Seed` &rarr; `New-OfficePowerPoint -Seed`<br>`-Purpose` &rarr; `New-OfficePowerPoint -Purpose`<br>`-Eyebrow` &rarr; `Add-OfficePowerPointSlide -Eyebrow`<br>`-FooterLeft` &rarr; `Add-OfficePowerPointFooter -Alignment Left`<br>`-FooterRight` &rarr; `Add-OfficePowerPointFooter -Alignment Right`<br>`-CreativeDirectionPack` &rarr; `New-OfficePowerPoint -Style`<br>`-LayoutStrategy` &rarr; `New-OfficePowerPoint -LayoutStrategy`<br>Removed: `-Plan`, `-Name`, `-AlternativeCount`, `-NoApplyTheme`, `-Preview` | `New-OfficePowerPoint -Path .\Deck.pptx -Accent '#0F766E' -Purpose 'monthly service brief' { PowerPointSlide -Title 'Service Review' }` |
-| `Add-OfficePowerPointImage` | `Add-OfficePowerPointImage` (`Path` set) | Kept |   |   |
+| `Add-OfficePowerPointImage` | `Add-OfficePowerPointImage` (`Path` set) | Kept |   | `PowerPointImage -Slide $slide -Path .\Photo.png -Width 6cm` |
 | `Add-OfficePowerPointPlanCapability` | `Add-OfficePowerPointSlide` (`Content` set) | Merged | `-Sections` &rarr; `-Content`<br>`-Title`, `-Subtitle`, `-Seed` (same name, changed)<br>Removed: `-Plan` | `PowerPointSlide -Title 'Capabilities' -Layout Cards { PowerPointCard 'Identity' -Text 'Directory and access' -Items 'SSO','MFA' }` |
 | `Add-OfficePowerPointPlanCardGrid` | `Add-OfficePowerPointSlide` (`Content` set) | Merged | `-Cards` &rarr; `-Content`<br>`-Title`, `-Subtitle`, `-Seed` (same name, changed)<br>Removed: `-Plan` | `PowerPointSlide -Title 'Current signals' { PowerPointCard 'Availability' -Items 'Healthy'; PowerPointCard 'Risk' -Items 'One dependency on watch' }` |
 | `Add-OfficePowerPointPlanCaseStudy` | `Add-OfficePowerPointSlide` (`Content` set) | Merged | `-Sections`, `-Metrics` &rarr; `-Content`<br>`-Title`, `-Seed` (same name, changed)<br>Removed: `-Plan` | `PowerPointSlide -Title 'Automation impact' -Layout CaseStudy { PowerPointCard 'Challenge' -Text '...'; PowerPointKpi '4h' 'saved each cycle' }` |
@@ -949,7 +949,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 | `Get-OfficePowerPointNotes` | `Get-OfficePowerPointNotes` (`Document` set) | Kept | `-Presentation` &rarr; `-Document`<br>`-Index` &rarr; `-Slide` |   |
 | `Get-OfficePowerPointPlaceholder` | `Get-OfficePowerPointPlaceholder` (`Slide` set) | Kept | `-PlaceholderType` &rarr; `-Type` |   |
 | `Get-OfficePowerPointSection` | `Get-OfficePowerPointSection` (`Document` set) | Kept | `-Presentation` &rarr; `-Document` |   |
-| `Get-OfficePowerPointShape` | `Get-OfficePowerPointShape` (`All` set) | Kept | `-Presentation` &rarr; `-Document`<br>`-Index` &rarr; `-Slide`<br>`-ShapeIndex` &rarr; `-Index` |   |
+| `Get-OfficePowerPointShape` | `Get-OfficePowerPointShape` (`All` set) | Kept | `-Presentation` &rarr; `-Document`<br>`-Index` &rarr; `-Slide`<br>`-ShapeIndex` &rarr; `-Index` | `Get-OfficePowerPointShape -Document $deck -Slide 1 -Index 1   # SlideIndex and ShapeIndex are also 1-based` |
 | `Get-OfficePowerPointSlide` | `Get-OfficePowerPointSlide` (`Document` set) | Kept | `-Presentation` &rarr; `-Document`<br>`-Index` &rarr; `-Slide` |   |
 | `Get-OfficePowerPointSlideSummary` | `Get-OfficePowerPointSlide` (`Document \| Path` set) | Merged | `-Presentation` &rarr; `-Document`<br>`-Index` &rarr; `-Slide`<br>`-Slide` (same name, changed) | `Get-OfficePowerPointSlide -Path .\Deck.pptx -Summary` |
 | `Get-OfficePowerPointTheme` | `Get-OfficePowerPointTheme` (`Document` set) | Kept | `-Presentation` &rarr; `-Document` |   |
@@ -1128,7 +1128,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 | `Set-OfficePdfPageBorder` | `Set-OfficePdfPageBorder` | Kept | Removed: `-Document`, `-PassThru` |   |
 | `Set-OfficePdfPageSetup` | `Set-OfficePdfPageSetup` | Kept | `-Landscape` &rarr; `-Orientation Landscape`<br>`-Left` &rarr; `-MarginLeft`<br>`-Top` &rarr; `-MarginTop`<br>`-Right` &rarr; `-MarginRight`<br>`-Bottom` &rarr; `-MarginBottom`<br>Removed: `-Document`, `-PassThru` |   |
 | `Set-OfficePdfSignature` | `Set-OfficePdfSignature` | Kept | `-PassThruReport` &rarr; `-PassThru` |   |
-| `Set-OfficePdfTheme` | `New-OfficePdf` (`Content \| Document` set) | Now a parameter | `-Theme` &rarr; `-Theme` (OfficeTheme) | `New-OfficePdf -Path .\Report.pdf -Theme Modern { ... }` |
+| `Set-OfficePdfTheme` | `New-OfficePdf` (`Content \| Live` set) | Now a parameter | `-Theme` &rarr; `-Theme` (OfficeTheme) | `New-OfficePdf -Path .\Report.pdf -Theme Modern { ... }` |
 | `Split-OfficePdf` | `Split-OfficeDocument` (`PathByPageCount \| PathByRange \| PathByBookmark` set) | Cross-format | `-FilePath` &rarr; `-Path`<br>`-PagesPerDocument` &rarr; `-PageCount`<br>`-PageRange`, `-Range`, `-PageRanges` &rarr; `-Page`<br>`-BookmarkName`, `-BookmarkTitle` &rarr; `-Bookmark`<br>Removed: `-IgnorePermissionRestrictions` | `Split-OfficeDocument -Path .\In.pdf -OutputDirectory .\Parts -PageCount 1` |
 | `Test-OfficePdfRewrite` | `Test-OfficePdfRewrite` | Kept | `-ReferencePassword` &rarr; `-Password`<br>`-IgnoreReferencePermissionRestrictions` &rarr; `-IgnorePermissionRestrictions` |   |
 
@@ -1183,7 +1183,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 | `PdfTableCellField` | `PdfFormField` | Renamed | `PdfFormField -Type Text` |
 | `PdfTableCellImage` | `PdfImage` | Renamed | `PdfImage .\logo.png` |
 | `PdfText` | `PdfText` | Kept |   |
-| `PdfTheme` | `New-OfficePdf` (`Content \| Document` set) | Now a parameter | `New-OfficePdf -Path .\Report.pdf -Theme Modern { ... }` |
+| `PdfTheme` | `New-OfficePdf` (`Content \| Live` set) | Now a parameter | `New-OfficePdf -Path .\Report.pdf -Theme Modern { ... }` |
 | `PdfVisual` | `PdfImage` | Renamed | `PdfImage -InputObject $visual` |
 | `PdfWatermark` | `PdfWatermark` | Kept |   |
 
@@ -1499,7 +1499,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO
 
 <details>
-<summary>7 changes</summary>
+<summary>8 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -1509,6 +1509,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Conversion | `OfficeIMO.Workflows.OfficeWorkflow.Convert(string inputPath)` | Moved | `OfficeIMO.OfficeConverter.Convert(string source, string destination, OfficeConversionOptions options = null)` | OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the \*ToPdfBytes helpers. |
 | Conversion | `OfficeIMO.Workflows.OfficeWorkflow.ConvertDirectory(string inputDirectory)` | Moved | `OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeDocumentFormat target, OfficeBatchOptions options = null)` | OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the \*ToPdfBytes helpers. |
 | Conversion | `OfficeIMO.Workflows.OfficeWorkflow.ConvertFiles(string[] inputPaths)` | Moved | `OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeDocumentFormat target, OfficeBatchOptions options = null)` | OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the \*ToPdfBytes helpers. |
+| Conversion | `pptx-html is catalogued but is not executable through OfficeConverter` | Changed | `OfficeConverter converts PowerPoint files or captured streams to semantic or visual-review HTML using OfficeConversionOptions.PowerPointHtml` | The front door uses the existing OfficeIMO.PowerPoint.Html adapter, retains native load and HTML fidelity diagnostics, snapshots reusable settings, and applies its existing output limits, cancellation and atomic publication. Advanced HTML settings remain execution-only in saved jobs and are rejected explicitly rather than silently discarded. |
 | Visibility | `OfficeIMO.OfficeBatchReportSerializer` | Internal | &mdash; | Use the documented document, options and result APIs. |
 
 </details>
@@ -1890,7 +1891,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Word.Pdf
 
 <details>
-<summary>17 changes</summary>
+<summary>18 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -1911,6 +1912,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocumentResult(PdfDocument document, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Merged | `PdfDocument.ToWord(WordPdfImportOptions options, out OfficeConversionReport report)` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
 | Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocumentResult(PdfDocumentReadResult document, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
 | Options | `OfficeIMO.Word.Pdf.PdfToWordOptions` | Moved | `OfficeIMO.Pdf.Word.WordPdfImportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
+| Options | `WordImageExportOptions batch image selection` | Changed | `WordImageExportOptions.PageSelection (PdfPageSelection)` | Batch images and visual snapshots can select noncontiguous one-based pages in caller order, including repeats, through the canonical PDF page selector and aggregate output limits. PageSelection overrides PageIndex/PageCount only for batches; single-page operations retain PageIndex. |
 
 </details>
 
@@ -2379,7 +2381,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.PowerPoint
 
 <details>
-<summary>568 changes</summary>
+<summary>573 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -2413,6 +2415,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Lifecycle | `OfficeIMO.PowerPoint.PowerPointPresentation.ToEncryptedBytes(string password, PowerPointFileFormat format = Pptx, PowerPointSaveOptions options = null)` | Merged | `OfficeIMO.PowerPoint.PowerPointDocument.ToBytes(PowerPointSaveOptions { Password = ... })` | One way to do each thing. |
 | Lifecycle | `OfficeIMO.PowerPoint.PowerPointPresentation.ToStream()` | Removed | &mdash; | Use Save(Stream) or ToBytes(). |
 | Lifecycle | `OfficeIMO.PowerPoint.PowerPointPresentation.ToStream(PowerPointFileFormat format, PowerPointSaveOptions options = null)` | Removed | &mdash; | Use Save(Stream) or ToBytes(). |
+| Lifecycle | `PowerPointDocument.ToBytes(options) rejects a read-only PPTX/PPTM source.` | Changed | `PowerPointDocument.ToBytes(options) captures read-only Open XML presentations through an isolated native copy.` | Live conversion can export a read-only presentation without saving or closing it. Native signature and password policy are retained; Save, SaveCopy and stream saves still reject read-only documents. Legacy binary carrier snapshot restrictions are unchanged. |
 | Conversion | `OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport` | Merged | `OfficeIMO.OfficeConversionReport` | OfficeConversionReport with OfficeDiagnostic is the single conversion report type. |
 | Conversion | `OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult` | Merged | `OfficeIMO.OfficeConversionReport` | OfficeConversionReport with OfficeDiagnostic is the single conversion report type. |
 | Conversion | `OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdf(PowerPointPresentation presentation, Stream stream, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null)` | Changed | `PowerPointDocument.SaveAsPdf(Stream stream, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
@@ -2455,6 +2458,8 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Authoring | `OfficeIMO.PowerPoint.PowerPointPresentation.AddColumnGuides(int columnCount, long marginEmus, long gutterEmus, bool includeOuterEdges = True, bool clearExisting = False)` | Changed | `OfficeIMO.PowerPoint.PowerPointDocument.AddColumnGuides(int count, OfficeLength margin, OfficeLength gutter, ...) : IReadOnlyList<PowerPointGuideInfo>` | Add\* methods return the created object. |
 | Authoring | `OfficeIMO.PowerPoint.PowerPointPresentation.AddGuide(PowerPointGuideOrientation orientation, long positionEmus)` | Changed | `OfficeIMO.PowerPoint.PowerPointDocument.AddGuide(PowerPointGuideOrientation orientation, OfficeLength position) : PowerPointGuideInfo` | Add\* methods return the created object. |
 | Authoring | `OfficeIMO.PowerPoint.PowerPointPresentation.AddRowGuides(int rowCount, long marginEmus, long gutterEmus, bool includeOuterEdges = True, bool clearExisting = False)` | Changed | `OfficeIMO.PowerPoint.PowerPointDocument.AddRowGuides(int count, OfficeLength margin, OfficeLength gutter, ...) : IReadOnlyList<PowerPointGuideInfo>` | Add\* methods return the created object. |
+| Authoring | `OfficeIMO.PowerPoint.PowerPointPresentation.SetThemeColor(PowerPointThemeColor color, string hexValue, int masterIndex = 0)` | Changed | `OfficeIMO.PowerPoint.PowerPointDocument.SetThemeColor(PowerPointThemeColor color, string hexValue, int masterIndex = 0)` | New charts use current native theme colors after edits, including when authoring tokens were already cached. Semantic series, point, marker and hatch paint resolves through the deck theme before native serialization. Chart creation, updates and text defaults use the consuming slide master and its theme overrides. |
+| Authoring | `OfficeIMO.PowerPoint.PowerPointPresentation.SetThemeFonts(PowerPointThemeFontSet fonts, int masterIndex = 0, bool keepExistingWhenNull = true)` | Changed | `OfficeIMO.PowerPoint.PowerPointDocument.SetThemeFonts(PowerPointThemeFontSet fonts, int masterIndex = 0, bool keepExistingWhenNull = true)` | Subsequent authoring reads updated fonts while retaining unrelated theme tokens. With keepExistingWhenNull:false, unspecified fonts have empty typefaces in the required DrawingML slots so saved presentations remain valid. |
 | Authoring | `OfficeIMO.PowerPoint.PowerPointPresentation.ToImages()` | Removed | &mdash; | Use ToImage/SaveAsImage/SaveAsImages with PowerPointImageExportOptions. |
 | Authoring | `OfficeIMO.PowerPoint.PowerPointPresentation.ToImages(PowerPointPresentationImageExportOptions options)` | Removed | &mdash; | Use ToImage/SaveAsImage/SaveAsImages with PowerPointImageExportOptions. |
 | Authoring | `OfficeIMO.PowerPoint.PowerPointSlide.AddChart(OfficeChartKind chartKind, OfficeChartData data, long left = 0, long top = 0, long width = 5486400, long height = 3200400, PowerPointChartAccessibilityOptions accessibility = null)` | Changed | `OfficeIMO.PowerPoint.PowerPointSlide.AddChart(OfficeChartType chartKind, OfficeChartData data, OfficeChartOptions options)` | Shared OfficeChartType, typed AddChart, OfficeLength geometry (raw EMU defaults 5486400 x 3200400 today). |
@@ -2486,6 +2491,8 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Authoring | `OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddVisualFrame(PowerPointLayoutBox bounds, string imagePath, PowerPointVisualFrameVariant variant)` | Changed | `OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddVisualFrame(...) : IReadOnlyList<PowerPointShape>` | Add\* methods return the created object. |
 | Authoring | `OfficeIMO.PowerPoint.PowerPointTable.AddColumn(int? index = null)` | Changed | `OfficeIMO.PowerPoint.PowerPointTable.AddColumn(int? index = null) : PowerPointTableColumn` | Add\* methods return the created object. |
 | Authoring | `OfficeIMO.PowerPoint.PowerPointTable.AddRow(int? index = null)` | Changed | `OfficeIMO.PowerPoint.PowerPointTable.AddRow(int? index = null) : PowerPointTableRow` | Add\* methods return the created object. |
+| Authoring | `PowerPointTextBox.SetNumberedList(...) and AddNumberedList(...) default to an 18-point number gutter` | Changed | `Numbered list defaults reserve a 28-point hanging indent` | Matches automatic PowerPoint list layout and leaves room between Roman number markers and body text. Character bullets retain their 18-point gutter; custom margins and indents are preserved. |
+| Authoring | `Repeated PowerPointDocument.ImportSlide(source, sourceIndex, insertAt) calls` | Changed | `PowerPointDocument.ImportSlides(PowerPointDocument source, IEnumerable<int> sourceIndices, int? insertAt = null) : IReadOnlyList<PowerPointSlide>` | The native batch preserves zero-based selection order and imports shared linked targets once. The PowerShell `Import-OfficePowerPointSlide` command accepts one-based SourceSlide arrays. An omitted SourceSlide imports every source slide; Position is one-based, and output requires PassThru. |
 | Units | `OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeBoldTextThresholdPoints` | Merged | `OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeBoldTextThreshold : OfficeLength` | Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix. |
 | Units | `OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeTextThresholdPoints` | Merged | `OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeTextThreshold : OfficeLength` | Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix. |
 | Units | `OfficeIMO.PowerPoint.PowerPointAutoShape.Stroke(string color, double? widthPoints = null)` | Changed | `OfficeIMO.PowerPoint.PowerPointAutoShape.Stroke(... OfficeLength ...)` | Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix. |
@@ -3461,11 +3468,13 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Html
 
 <details>
-<summary>1 change</summary>
+<summary>3 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
-| Conversion | `HTML p elements: margin-top 0; margin-bottom 1em` | Changed | `HTML p elements: margin-top 1em; margin-bottom 1em` | HTML to PDF and image rendering use browser paragraph defaults: one em above and below each p element, including Document mode. Adjacent block margins still collapse into one gap. A bottom margin at the end of a page is dropped rather than opening an empty page when the content fits. HTML that relied on no paragraph top margin gains space above paragraphs; set p { margin-top: 0 } to keep the previous layout. |
+| Conversion | `HTML p elements: margin-top 0; margin-bottom 1em` | Changed | `HTML p elements: margin-top 1em; margin-bottom 1em` | HTML to PDF and image rendering use browser paragraph defaults: one em above and below each p element, including Document mode. Adjacent block margins still collapse into one gap. Word-to-HTML output keeps paragraphs inside list items at zero margin, so exported Word lists retain their compact spacing. A bottom margin at the end of a page is dropped rather than opening an empty page when the content fits. HTML that relied on no paragraph top margin gains space above paragraphs; set p { margin-top: 0 } to keep the previous layout. |
+| Conversion | `OfficeHtmlDocumentOptions.Theme selects only OfficeVisualThemeKind presets` | Changed | `OfficeHtmlDocumentOptions.DocumentTheme accepts an OfficeTheme; when set, it overrides the preset palette and font choices` | Use the same immutable document theme for semantic HTML and Office files. The shared HTML shell projects its palette, font stack, table-header text and light or dark color scheme. Existing enum presets remain available when DocumentTheme is omitted. `New-OfficePowerPointHtmlOptions` defaults its shared document theme to Modern. |
+| Options | `HtmlRenderOptions batch image selection` | Changed | `HtmlRenderOptions.PageSelection (PdfPageSelection)` | Batch image export can select noncontiguous one-based retained surfaces in caller order, including repeats, through the canonical PDF page selector and selected-count limits. The request page set, HTML layout, PDF output, archives and single-image operations retain their existing selection contracts. |
 
 </details>
 

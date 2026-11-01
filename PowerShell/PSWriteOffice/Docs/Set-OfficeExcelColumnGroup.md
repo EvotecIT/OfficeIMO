@@ -9,7 +9,7 @@ schema: 2.0.0
 Configures collapsible Excel outline grouping for worksheet columns.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Set-OfficeExcelColumnGroup [[-StartColumn] <Object>] [[-EndColumn] <Object>] [-StartColumnName <string>] [-EndColumnName <string>] [-OutlineLevel <int>] [-Collapsed] [-Hidden] [-Clear] [-KeepHidden] [-SummaryRight <Boolean>] [-PassThru] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Clear column grouping metadata from the target range.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Hide the grouped columns and mark the following summary column as collapsed.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Last 1-based column in the group. Defaults to the start column.
 
 ```yaml
 Type: Object
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Last column letter in the group.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: EndColumnLetter
 Possible values:
 
@@ -97,7 +97,7 @@ Hide the grouped columns without marking the group collapsed.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Keep hidden columns hidden when clearing column grouping metadata.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -129,7 +129,7 @@ Excel outline level from 1 through 7.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -145,7 +145,7 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -161,7 +161,7 @@ First 1-based column in the group.
 
 ```yaml
 Type: Object
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: Column
 Possible values:
 
@@ -177,7 +177,7 @@ First column letter in the group.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: StartColumnLetter, ColumnName, ColumnLetter, Letter
 Possible values:
 
@@ -193,7 +193,7 @@ Set whether column summary controls appear to the right of grouped columns.
 
 ```yaml
 Type: Boolean
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

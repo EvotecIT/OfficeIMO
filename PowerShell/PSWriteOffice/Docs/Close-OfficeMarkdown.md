@@ -9,7 +9,7 @@ schema: 2.0.0
 Completes a live Markdown document's lifetime without saving.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Close-OfficeMarkdown -Document <MarkdownDocument> [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Markdown document to close.
 
 ```yaml
 Type: MarkdownDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

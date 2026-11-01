@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.Reader;
 /// <code>$ocr = New-OfficeOcrOptions -Language English,Polish -NoLanguageDownload
 /// $reader = New-OfficeDocumentReader -OcrOptions $ocr
 /// Read-OfficeDocument ./Scans -Reader $reader</code></example>
-[Cmdlet(VerbsCommon.New, "OfficeDocumentReader")]
+[Cmdlet(VerbsCommon.New, "OfficeDocumentReader", DefaultParameterSetName = "Default")]
 [OutputType(typeof(OfficeDocumentReader))]
 public sealed class NewOfficeDocumentReaderCommand : AsyncPSCmdlet {
     /// <summary>Typed common and format options, or common/format-keyed hashtables.</summary>

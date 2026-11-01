@@ -28,7 +28,7 @@ namespace OfficeIMO.PowerPoint {
             byte[] workbookBytes = OfficeOpenXmlChartWriter.BuildWorkbook(data, chartKind);
             PowerPointChart chart = AddChartInternal(workbookBytes, (chartPart, embeddedRelId) =>
                 OfficeOpenXmlChartWriter.PopulateSharedChart(chartPart, embeddedRelId, data, chartKind,
-                    OwnerDocument?.LayoutTheme.Theme ?? OfficeTheme.Default),
+                    AuthoringTheme),
                 nativeLeft, nativeTop, nativeWidth, nativeHeight);
             if (options?.Title != null) chart.SetTitle(options.Title);
             ApplyChartAccessibility(chart, data, chartKind, placement?.Accessibility);

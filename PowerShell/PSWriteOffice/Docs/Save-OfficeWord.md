@@ -9,7 +9,7 @@ schema: 2.0.0
 Saves a live Word document without closing it.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Save-OfficeWord [-Document] <WordDocument> [-Path <string>] [-Password <securestring>] [-AllowLoss] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -41,7 +41,7 @@ Explicitly accept reported native-save reductions.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -57,7 +57,7 @@ Live Word document to save.
 
 ```yaml
 Type: WordDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -73,7 +73,7 @@ Return the saved FileInfo.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -89,7 +89,7 @@ Override the output password; omission preserves the document's loaded encryptio
 
 ```yaml
 Type: SecureString
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -105,7 +105,7 @@ Optional new destination; omission uses the associated path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -121,7 +121,7 @@ Open the saved file in its registered default application.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

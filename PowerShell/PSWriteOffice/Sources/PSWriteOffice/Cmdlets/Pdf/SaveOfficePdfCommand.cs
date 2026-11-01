@@ -18,7 +18,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// <example><summary>Restrict printing and accessibility without requiring an opening password.</summary>
 /// <code>$owner = Read-Host -AsSecureString
 /// Save-OfficePdf -Document $pdf -Path ./Restricted.pdf -OwnerPassword $owner -Permission Print,Accessibility</code></example>
-[Cmdlet(VerbsData.Save, "OfficePdf", SupportsShouldProcess = true)]
+[Cmdlet(VerbsData.Save, "OfficePdf", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
 [OutputType(typeof(FileInfo))]
 public sealed class SaveOfficePdfCommand : OfficeCmdlet {
     /// <summary>Live PDF to save.</summary>

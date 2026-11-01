@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Packaging;
 using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Core.Internal;
@@ -42,6 +43,7 @@ public sealed partial class PowerPointDocument {
     }
 
     private byte[] CreateUnifiedBytesForPath(string path, PowerPointSaveOptions? options) {
+        EnsureWritableForSave();
         PowerPointFileFormat format = PowerPointDocumentLoadRouting.GetFormat(path);
         if (IsLegacyBinaryFormat(format)) {
             PowerPointSaveOptions native = options?.Clone() ?? new PowerPointSaveOptions();
@@ -53,7 +55,10 @@ public sealed partial class PowerPointDocument {
             : CreateBytesForPath(path, options);
     }
     /// <summary>Encodes the native presentation using one save options bag.</summary>
+    /// <remarks>A read-only Open XML presentation is captured through an independent native copy. Saving the read-only document remains forbidden.</remarks>
     public byte[] ToBytes(PowerPointSaveOptions? options = null) {
+        if (AccessMode == DocumentAccessMode.ReadOnly && _legacyPptPackage == null)
+            return CaptureReadOnlyPackage(options);
         PowerPointFileFormat format = options?.Format ?? PowerPointFileFormat.Pptx;
         options = ApplySavedLegacyProfile(options, format);
         if (IsLegacyBinaryFormat(format) && _legacyPptPackage?.WasEncryptedSource == true) {
@@ -65,8 +70,31 @@ public sealed partial class PowerPointDocument {
         }
         return ResolveSavePassword(options) is string password ? ToEncryptedBytes(password, format, options) : EncodeBytes(format, options);
     }
+    private void EnsureWritableForSave() {
+        ThrowIfDisposed();
+        if (AccessMode == DocumentAccessMode.ReadOnly)
+            throw new InvalidOperationException("The presentation is read-only and cannot be saved.");
+    }
+
+    private byte[] CaptureReadOnlyPackage(PowerPointSaveOptions? options) {
+        ThrowIfDisposed();
+        using var package = new MemoryStream();
+        using (_document!.Clone(package)) { }
+        package.Position = 0;
+        using var snapshot = Load(package, new PowerPointLoadOptions {
+            MaxInputBytes = package.Length,
+            OpenSettings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = _maximumSlideXmlCharacters },
+            PersistenceMode = DocumentPersistenceMode.Explicit
+        });
+        snapshot.SignatureMutationPolicy = SignatureMutationPolicy;
+        var effective = options?.Clone() ?? new PowerPointSaveOptions();
+        if (!effective.HasPasswordOverride) effective.Password = ResolveSavePassword(options);
+        return snapshot.ToBytes(effective);
+    }
+
     /// <summary>Saves the native presentation to a caller-owned stream.</summary>
     public void Save(Stream destination, PowerPointSaveOptions? options = null) {
+        EnsureWritableForSave();
         OfficeStreamWriter.WriteAllBytes(destination, ToBytes(options));
         RecordSavedSecurity(options, IsLegacyBinaryFormat(options?.Format ?? PowerPointFileFormat.Pptx));
         _discardChangesOnDispose = false;
@@ -77,6 +105,7 @@ public sealed partial class PowerPointDocument {
     /// <summary>Saves the native presentation asynchronously to a caller-owned stream.</summary>
     public async Task SaveAsync(Stream destination, PowerPointSaveOptions? options, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
+        EnsureWritableForSave();
         byte[] bytes = ToBytes(options);
         await OfficeStreamWriter.WriteAllBytesAsync(destination, bytes, cancellationToken).ConfigureAwait(false);
         RecordSavedSecurity(options, IsLegacyBinaryFormat(options?.Format ?? PowerPointFileFormat.Pptx));

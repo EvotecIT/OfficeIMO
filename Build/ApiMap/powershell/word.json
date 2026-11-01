@@ -9,7 +9,7 @@
       "outputType": "WordDocument, System.IO.FileInfo",
       "parameterSets": [
         {
-          "name": "Document",
+          "name": "Live",
           "default": true,
           "parameters": [
             {
@@ -103,7 +103,7 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "Keeping a document open means leaving out the block: the Document set returns the live WordDocument, and -Path is optional there (Save-OfficeWord -Path later). With a block -Path is required. With -Content saves and closes when the block ends and returns the file only with -PassThru; if the block throws nothing is saved and the partial file is removed. -NoSave is removed. -Template clones an existing .docx as starting content; -Theme applies a visual theme (built-in name, OfficeTheme or a .dotx/.docx whose theme is read). Refuses to replace an existing file without -Force. Password is valid only with a content block; apply save policy through Save-OfficeWord when working with a live document. Theme reads the source palette and Latin fonts; Template copies the document content.",
+      "notes": "Keeping a document open means leaving out the block: the Live set returns the live WordDocument, and -Path is optional there (Save-OfficeWord -Path later). With a block -Path is required. With -Content saves and closes when the block ends and returns the file only with -PassThru; if the block throws nothing is saved and the partial file is removed. -NoSave is removed. -Template clones an existing .docx as starting content; -Theme applies a visual theme (built-in name, OfficeTheme or a .dotx/.docx whose theme is read). Refuses to replace an existing file without -Force. Password is valid only with a content block; apply save policy through Save-OfficeWord when working with a live document. Theme reads the source palette and Latin fonts; Template copies the document content.",
       "examples": [
         {
           "title": "Create a one-paragraph document",
@@ -2788,7 +2788,7 @@
           ]
         },
         {
-          "name": "InputObject",
+          "name": "Visual",
           "default": false,
           "parameters": [
             {
@@ -2878,7 +2878,7 @@
           ]
         }
       ],
-      "notes": "Absorbs Add-OfficeWordVisual (the InputObject set): both commands put a picture into a paragraph and return WordImage. -AlternativeText becomes -Description to match Set-OfficeWordImage. SVG limits are API-enforced resource limits and stay. Inner types of the SVG limits follow the current C# options.",
+      "notes": "Absorbs Add-OfficeWordVisual (the Visual set): both commands put a picture into a paragraph and return WordImage. -AlternativeText becomes -Description to match Set-OfficeWordImage. SVG limits are API-enforced resource limits and stay. Inner types of the SVG limits follow the current C# options.",
       "examples": [
         {
           "title": "Insert a logo",
@@ -4506,7 +4506,7 @@
           ]
         }
       ],
-      "notes": "Was Set-OfficeWordParagraphStyle. bool? parameters become switches; -KeepWithNext:$false turns a setting off. Without -Paragraph it formats the current DSL paragraph, so it works inside WordParagraph blocks without an alias.",
+      "notes": "Was Set-OfficeWordParagraphStyle. bool? parameters become switches; -KeepWithNext:$false turns a setting off. Without -Paragraph it formats the current DSL paragraph, so it works inside WordParagraph blocks without an alias. -LineSpacing is a physical height and defaults to Exact; use AtLeast explicitly or retain an existing minimum height. Auto line multiples cannot be combined with a physical height.",
       "examples": [
         {
           "title": "Keep a paragraph with the next one",
@@ -8495,7 +8495,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates Word-to-HTML settings for Convert-OfficeDocument -To Html.",
-      "outputType": "WordToHtmlOptions",
+      "outputType": "WordHtmlExportOptions",
       "parameterSets": [
         {
           "name": "Default",
@@ -8571,7 +8571,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates Word-to-Markdown settings for Convert-OfficeDocument -To Markdown.",
-      "outputType": "WordToMarkdownOptions",
+      "outputType": "WordMarkdownExportOptions",
       "parameterSets": [
         {
           "name": "Default",
@@ -8597,7 +8597,7 @@
             },
             {
               "name": "ImageExportMode",
-              "type": "ImageExportMode",
+              "type": "WordMarkdownImageExportMode",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8629,7 +8629,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates HTML-to-Word settings for Convert-OfficeDocument -To Word.",
-      "outputType": "HtmlToWordOptions",
+      "outputType": "WordHtmlImportOptions",
       "parameterSets": [
         {
           "name": "Default",
@@ -8685,13 +8685,13 @@
             },
             {
               "name": "TableCaptionPosition",
-              "type": "TableCaptionPosition",
+              "type": "WordHtmlTableCaptionPosition",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "SectionTagHandling",
-              "type": "SectionTagHandling",
+              "type": "WordHtmlSectionTagHandling",
               "mandatory": false,
               "pipeline": "none"
             }
@@ -9247,7 +9247,7 @@
       "kind": "cmdlet",
       "action": "merge",
       "new": "Add-OfficeWordImage",
-      "parameterSet": "InputObject",
+      "parameterSet": "Visual",
       "parameters": {
         "AlternativeText": "Description",
         "MaximumSvgViewportPixels": "MaximumSvgViewportPixelCount"
@@ -9848,8 +9848,8 @@
         "SpacingBeforePoints": "SpacingBefore",
         "SpacingAfterPoints": "SpacingAfter"
       },
-      "hint": "$p | Set-OfficeWordParagraph -SpacingAfter 6pt -KeepWithNext",
-      "reason": "It sets any paragraph property, not only the style; unit-suffixed names become lengths and bool? becomes switches."
+      "hint": "$p | Set-OfficeWordParagraph -SpacingAfter 6pt -KeepWithNext (physical LineSpacing uses Exact or AtLeast; use native WordLineSpacing for Auto multiples)",
+      "reason": "It sets any paragraph property, not only the style; unit-suffixed names become lengths and bool? becomes switches. Physical -LineSpacing uses Exact or AtLeast; Auto multiples require the native WordLineSpacing API."
     },
     {
       "old": "Set-OfficeWordShape",
@@ -10140,7 +10140,7 @@
       "action": "merge",
       "new": "WordImage",
       "hint": "$artifact | WordImage",
-      "reason": "Add-OfficeWordVisual merged into WordImage (InputObject set)."
+      "reason": "Add-OfficeWordVisual merged into WordImage (Visual set)."
     },
     {
       "old": "WordWatermark",

@@ -9,9 +9,9 @@ schema: 2.0.0
 Creates PowerPoint/OpenDocument conversion settings.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
-New-OfficePowerPointOpenDocumentOptions [-LossPolicy <OdfConversionLossPolicy>] [-IncludeImages] [-IncludeSpeakerNotes] [-IncludeBasicFormatting] [-MaxTableRows <Int32>] [-MaxTableColumns <Int32>] [<CommonParameters>]
+New-OfficePowerPointOpenDocumentOptions [-LossPolicy <OfficeConversionLossPolicy>] [-NoImages] [-NoSpeakerNotes] [-NoBasicFormatting] [-MaxTableRows <Int32>] [-MaxTableColumns <Int32>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,69 +21,21 @@ Creates PowerPoint/OpenDocument conversion settings.
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficePowerPointOpenDocumentOptions -IncludeImages -IncludeSpeakerNotes -IncludeBasicFormatting
-ConvertTo-OfficeOpenDocument -Path .\Deck.pptx -OutputPath .\Deck.odp -PowerPointOptions $options
+$options = New-OfficePowerPointOpenDocumentOptions -NoSpeakerNotes
+Convert-OfficeDocument -Path ./Review.pptx -To OpenDocument -Options $options
 ```
 
 
 ## PARAMETERS
 
-### -IncludeBasicFormatting
-Copy common fills, outlines, and text-run formatting.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludeImages
-Copy supported embedded images.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludeSpeakerNotes
-Copy plain speaker-note text.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -LossPolicy
-Whether conversion loss is reported or rejected.
+Gets or sets whether known omitted content is rejected or reported; omission retains the adapter default.
 
 ```yaml
-Type: OdfConversionLossPolicy
-Parameter Sets: __AllParameterSets
+Type: OfficeConversionLossPolicy
+Parameter Sets: Default
 Aliases: None
-Possible values: ReportOnly, ThrowOnSkippedOrUnsupported, ThrowOnAnyLoss
+Possible values: Block, Allow
 
 Required: False
 Position: named
@@ -93,11 +45,11 @@ Accept wildcard characters: False
 ```
 
 ### -MaxTableColumns
-Maximum columns in converted presentation tables.
+Gets or sets the maximum number of columns in a converted table.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -109,11 +61,59 @@ Accept wildcard characters: False
 ```
 
 ### -MaxTableRows
-Maximum rows in converted presentation tables.
+Gets or sets the maximum number of rows in a converted table.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoBasicFormatting
+Gets or sets whether common fill, outline and run formatting is omitted.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoImages
+Gets or sets whether embedded images are omitted.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoSpeakerNotes
+Gets or sets whether speaker notes are omitted.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

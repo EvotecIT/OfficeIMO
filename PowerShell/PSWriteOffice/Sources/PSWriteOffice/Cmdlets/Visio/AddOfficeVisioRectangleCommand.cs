@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.Visio;
 /// }</code>
 ///   <para>Adds a rectangle and registers a key for later connector commands.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeVisioRectangle")]
+[Cmdlet(VerbsCommon.Add, "OfficeVisioRectangle", DefaultParameterSetName = "Page")]
 [Alias("VisioRectangle")]
 [OutputType(typeof(VisioShape))]
 public sealed class AddOfficeVisioRectangleCommand : OfficeVisioShapeCmdlet {
