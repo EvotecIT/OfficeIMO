@@ -2639,11 +2639,17 @@ Describe 'Excel DSL surface' {
                 Set-OfficeExcelCell -Address 'B1' -Value 20
                 Set-OfficeExcelFormula -Address 'C1' -Formula 'SUM(A1:B1)'
                 Set-OfficeExcelNamedRange -Name 'Totals' -Range 'A1:C1'
-                Set-OfficeExcelHeaderFooter -HeaderCenter 'Demo' -FooterRight 'Page &P of &N'
+                ExcelHeader -Center 'Demo'
+                ExcelFooter -Right 'Page &P of &N'
             }
         }
 
-        Test-Path $path | Should -BeTrue
+        $worksheet = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/worksheets/sheet1.xml'
+        $worksheet.SelectSingleNode("//*[local-name()='oddHeader']").InnerText | Should -Be '&CDemo'
+        $worksheet.SelectSingleNode("//*[local-name()='oddFooter']").InnerText | Should -Be '&RPage &P of &N'
+        $worksheet.SelectSingleNode("//*[local-name()='c'][@r='C1']/*[local-name()='f']").InnerText | Should -Be 'SUM(A1:B1)'
+        $workbook = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/workbook.xml'
+        $workbook.SelectSingleNode("//*[local-name()='definedName'][@name='Totals']").InnerText | Should -Be "'Data'!`$A`$1:`$C`$1"
     }
 
     It 'applies friendly AutoFilter conditions by header' {
