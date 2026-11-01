@@ -50,9 +50,11 @@ internal static partial class PdfWriter {
             var listFont = ChooseNormal(currentOpts.DefaultFont);
             bool splitKeptItemAcrossPages = prepared.Style?.KeepTogether == true &&
                 prepared.Style.KeepTogetherOverflow == PdfKeepTogetherOverflowBehavior.SplitAcrossPages &&
-                MeasureRichLinesFrameFitHeight(lines, lineHeights, leading) > GetMaximumBlockContinuationHeight() + .001D;
-            double ClosingPadding() => GetFootnoteClosingTextPadding(lines, lineIndex, spacingAfter,
-                closesContainer: itemIndex == prepared.Items.Count - 1);
+                MeasureParagraphFirstLinesFrameFitHeight(lines, lineHeights, leading, lines.Count,
+                    itemIndex == prepared.Items.Count - 1 ? GetClosingContainerSpace() : default, spacingAfter) >
+                GetMaximumBlockContinuationHeight() + .001D;
+            bool closesList = itemIndex == prepared.Items.Count - 1;
+            double ClosingPadding() => GetFootnoteClosingTextPadding(lines, lineIndex, spacingAfter, closesContainer: closesList);
             void NewListFrame(bool preserveEmptyPage = false) {
                 if (CanQueueColumnBalanceRemainder(blockList)) {
                     QueueColumnBalanceRemainder(MeasureListColumnBalanceUnits(prepared, itemIndex, lineIndex, lineHeights,
@@ -87,7 +89,7 @@ internal static partial class PdfWriter {
                 while (true) {
                     available = y - FootnoteBodyBottom;
                     closingPadding = ClosingPadding();
-                    firstLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], GetRichLineHeight(lineHeights, lineIndex, leading)) + (lineIndex == lines.Count - 1 ? closingPadding : 0D);
+                    firstLineHeight = GetTextLineFitHeight(lines[lineIndex], GetRichLineHeight(lineHeights, lineIndex, leading), closesList && lineIndex == lines.Count - 1) + (lineIndex == lines.Count - 1 ? closingPadding : 0D);
                     if (firstLineHeight > GetMaximumBlockContinuationHeight() + .001D) {
                         if (TryAdvanceForRunningContent(ref runningAdmission, firstLineHeight,
                             preserve => NewListFrame(preserveEmptyPage: preserve))) continue;
@@ -103,7 +105,7 @@ internal static partial class PdfWriter {
                 double heightSum = 0;
                 for (int k = lineIndex; k < lines.Count; k++) {
                     double lineHeight = GetRichLineHeight(lineHeights, k, leading);
-                    if (heightSum + GetRichLineFrameFitHeight(lines[k], lineHeight) + (k == lines.Count - 1 ? closingPadding : 0D) > available) {
+                    if (heightSum + GetTextLineFitHeight(lines[k], lineHeight, closesList && k == lines.Count - 1) + (k == lines.Count - 1 ? closingPadding : 0D) > available) {
                         break;
                     }
 

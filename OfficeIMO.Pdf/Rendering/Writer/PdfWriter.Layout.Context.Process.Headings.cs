@@ -107,7 +107,7 @@ internal static partial class PdfWriter {
                 for (int index = lineIndex; index < lines.Count; index++) {
                     double lineHeight = lineHeights[index];
                     double closingPadding = index == lines.Count - 1 ? GetFootnoteClosingTextPadding(lines, lineIndex, spacingAfter) : 0D;
-                    if (heightSum + GetRichLineFrameFitHeight(lines[index], lineHeight, lineGaps[index]) + closingPadding > available + 0.001) break;
+                    if (heightSum + GetTextLineFitHeight(lines[index], lineHeight, index == lines.Count - 1, lineGaps[index]) + closingPadding > available + 0.001) break;
                     heightSum += lineHeight;
                     take++;
                 }
@@ -116,7 +116,7 @@ internal static partial class PdfWriter {
                     throw new ArgumentException("The heading reference and first footnote fragment exceed the available page body height.");
                 if (!noteSliceFits) { NewHeadingFrame(); continue; }
                 if (take == 0) {
-                    double minimumHeight = GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], lineGaps[lineIndex]) +
+                    double minimumHeight = GetTextLineFitHeight(lines[lineIndex], lineHeights[lineIndex], lineIndex == lines.Count - 1, lineGaps[lineIndex]) +
                         (lineIndex == lines.Count - 1 ? GetFootnoteClosingTextPadding(lines, lineIndex, spacingAfter) : 0D);
                     if (!ShouldAdvanceForBlockHeight(minimumHeight)) {
                         if (TryAdvanceForRunningContent(ref runningAdmission, minimumHeight,
