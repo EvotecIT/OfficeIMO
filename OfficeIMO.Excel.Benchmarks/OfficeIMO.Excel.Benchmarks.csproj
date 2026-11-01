@@ -36,6 +36,10 @@
     <Compile Include="..\Benchmarks\MarkPflug65KFixture.cs" Link="Shared\MarkPflug65KFixture.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="XlBenchShapes\sales_template.xlsx" LogicalName="XlBenchShapes.sales_template.xlsx" />
+  </ItemGroup>
+
   <Target Name="RemoveIncompatibleExcelReaderGenerator" BeforeTargets="CoreCompile">
     <ItemGroup>
       <Analyzer Remove="$(NuGetPackageRoot)excelreader.net\$(ExcelReaderBenchmarkVersion)\analyzers\dotnet\cs\ExcelReader.Generator.dll" />

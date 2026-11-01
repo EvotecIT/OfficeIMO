@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
             bool hasUnsupportedControl = false;
             foreach (WorksheetPart worksheetPart in InspectMutationPlanElements(WorkbookPartRoot.WorksheetParts, budget)) {
                 if (InspectMutationPlanElements(
-                        worksheetPart.Worksheet?.Descendants<Controls>() ?? Enumerable.Empty<Controls>(),
+                        worksheetPart.Worksheet?.MetadataDescendants<Controls>() ?? Enumerable.Empty<Controls>(),
                         budget).Any()
                     || InspectMutationPlanElements(worksheetPart.ControlPropertiesParts, budget).Any()) {
                     hasUnsupportedControl = true;
@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException(
                     "Cannot structurally edit a workbook containing form controls because their anchors and cross-sheet links cannot yet be remapped safely.");
             }
-            if (InspectMutationPlanElements(WorksheetRoot.Descendants<OleObjects>(), budget).Any()
+            if (InspectMutationPlanElements(WorksheetRoot.MetadataDescendants<OleObjects>(), budget).Any()
                 || InspectMutationPlanElements(_worksheetPart.EmbeddedObjectParts, budget).Any()) {
                 throw new InvalidOperationException(
                     "Cannot structurally edit a worksheet containing embedded OLE objects because their VML anchors cannot yet be remapped safely.");

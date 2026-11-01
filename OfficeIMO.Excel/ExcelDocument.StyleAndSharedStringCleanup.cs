@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel {
             foreach (var worksheetPart in workbookPart.WorksheetParts) {
                 var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
                 bool worksheetChanged = false;
-                foreach (var cell in worksheet.Descendants<Cell>()) {
+                foreach (var cell in ExcelWorksheetScan.Cells(worksheet)) {
                     if (cell.StyleIndex?.Value >= cellFormatCount) {
                         cell.StyleIndex = 0U;
                         worksheetChanged = true;

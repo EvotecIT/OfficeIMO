@@ -7,6 +7,8 @@ using Xnsv = DocumentFormat.OpenXml.Office2021.Excel.NamedSheetViews;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private string?[]?[] _movedCellReferences = Array.Empty<string?[]?>();
+
         /// <summary>
         /// Inserts blank worksheet rows immediately before <paramref name="firstRow"/> and shifts existing rows down.
         /// Formulas, defined names, tables, merges, comments, hyperlinks, validations, conditional formatting,
@@ -24,10 +26,7 @@ namespace OfficeIMO.Excel {
         /// </exception>
         public void InsertRows(int firstRow, int count = 1) {
             ValidateStructuralRowArguments(firstRow, count);
-            WriteLockConditional(() => {
-                ShiftRowsDown(firstRow, count);
-                WorksheetRoot.Save();
-            });
+            WriteLockConditional(() => ShiftRowsDown(firstRow, count));
         }
 
         /// <summary>
@@ -47,10 +46,7 @@ namespace OfficeIMO.Excel {
         /// </exception>
         public void DeleteRows(int firstRow, int count = 1) {
             ValidateStructuralRowArguments(firstRow, count);
-            WriteLockConditional(() => {
-                RemoveRowsAndShiftUp(firstRow, count);
-                WorksheetRoot.Save();
-            });
+            WriteLockConditional(() => RemoveRowsAndShiftUp(firstRow, count));
         }
 
         /// <summary>Plans and transactionally inserts rows with bounded rollback and post-edit diagnostics.</summary>
@@ -85,7 +81,6 @@ namespace OfficeIMO.Excel {
                     RemoveRowsAndShiftUp(firstRow, count, cancellationToken);
                 }
                 cancellationToken.ThrowIfCancellationRequested();
-                WorksheetRoot.Save();
                 MarkRequiresSavePreparation();
             }
 
@@ -113,6 +108,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            using ExcelWorksheetScan.FormulaScope formulaScope = ExcelWorksheetScan.BeginFormulaScope();
             cancellationToken.ThrowIfCancellationRequested();
             PreflightRowInsertion(firstRow, count);
             cancellationToken.ThrowIfCancellationRequested();
@@ -121,23 +117,10 @@ namespace OfficeIMO.Excel {
 
             if (sheetData != null) {
                 NormalizeImplicitRowIndices(sheetData);
-                foreach (Row row in sheetData.Elements<Row>()
-                    .Where(item => item.RowIndex?.Value >= (uint)firstRow)
-                    .OrderByDescending(item => item.RowIndex?.Value ?? 0U)
-                    .ToList()) {
+                foreach (Row row in sheetData.Elements<Row>()) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    int newRowIndex = checked((int)(row.RowIndex!.Value + (uint)count));
-                    row.RowIndex = (uint)newRowIndex;
-                    foreach (Cell cell in row.Elements<Cell>()) {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        if (cell.CellReference?.Value is not string reference || reference.Length == 0) {
-                            continue;
-                        }
-
-                        int column = GetColumnIndex(reference);
-                        if (column > 0) {
-                            cell.CellReference = BuildCellReference(newRowIndex, column);
-                        }
+                    if (row.RowIndex!.Value >= (uint)firstRow) {
+                        MoveRow(row, checked((int)(row.RowIndex.Value + (uint)count)));
                     }
                 }
             }
@@ -158,6 +141,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            using ExcelWorksheetScan.FormulaScope formulaScope = ExcelWorksheetScan.BeginFormulaScope();
             cancellationToken.ThrowIfCancellationRequested();
             int lastRemovedRow = firstRow + count - 1;
             PreflightRowDeletion(firstRow, count);
@@ -166,7 +150,10 @@ namespace OfficeIMO.Excel {
             SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData != null) {
                 NormalizeImplicitRowIndices(sheetData);
-                foreach (Row row in sheetData.Elements<Row>().ToList()) {
+                OpenXmlElement? next;
+                for (OpenXmlElement? item = sheetData.FirstChild; item != null; item = next) {
+                    next = item.NextSibling();
+                    if (item is not Row row) continue;
                     cancellationToken.ThrowIfCancellationRequested();
                     int rowIndex = checked((int)row.RowIndex!.Value);
                     if (rowIndex >= firstRow && rowIndex <= lastRemovedRow) {
@@ -175,25 +162,11 @@ namespace OfficeIMO.Excel {
                             RemoveCellWithValueMetadataCleanup(cell);
                         }
                         row.Remove();
-                        continue;
-                    }
-
-                    if (rowIndex > lastRemovedRow) {
-                        int newRowIndex = rowIndex - count;
-                        row.RowIndex = (uint)newRowIndex;
-                        foreach (Cell cell in row.Elements<Cell>()) {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            if (cell.CellReference?.Value is not string reference || reference.Length == 0) {
-                                continue;
-                            }
-
-                            int column = GetColumnIndex(reference);
-                            if (column > 0) {
-                                cell.CellReference = BuildCellReference(newRowIndex, column);
-                            }
-                        }
+                    } else if (rowIndex > lastRemovedRow) {
+                        MoveRow(row, rowIndex - count);
                     }
                 }
+                formulaScope.Refresh(WorksheetRoot);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -205,6 +178,30 @@ namespace OfficeIMO.Excel {
             cancellationToken.ThrowIfCancellationRequested();
             InvalidateStructuralFormulaResults();
             ResetStructuralMutationCaches();
+        }
+
+        /// <summary>Renumbers a row and its cells, updating the existing attribute values rather than replacing them.</summary>
+        private void MoveRow(Row row, int newRowIndex) {
+            row.RowIndex!.Value = (uint)newRowIndex;
+            for (OpenXmlElement? item = row.FirstChild; item != null; item = item.NextSibling()) {
+                if (item is not Cell cell
+                    || cell.CellReference is not { Value: { Length: > 0 } reference } cellReference) continue;
+                int column = GetColumnIndex(reference);
+                if (column > 0) cellReference.Value = GetMovedCellReference(newRowIndex, column);
+            }
+        }
+
+        /// <summary>Shares reference text between repeated row edits, which rewrite the same addresses for every row below.</summary>
+        private string GetMovedCellReference(int row, int column) {
+            if (row >= _movedCellReferences.Length) {
+                Array.Resize(ref _movedCellReferences, Math.Max(row + 1, _movedCellReferences.Length * 2));
+            }
+            string?[]? columns = _movedCellReferences[row];
+            if (columns == null || column >= columns.Length) {
+                Array.Resize(ref columns, Math.Max(column + 1, 32));
+                _movedCellReferences[row] = columns;
+            }
+            return columns[column] ??= BuildCellReference(row, column);
         }
 
         private void PreflightRowInsertion(int firstRow, int count) {
@@ -230,7 +227,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void ValidateRowInsertionAgainstArrayFormulas(int firstRow) {
-            foreach (CellFormula formula in WorksheetRoot.Descendants<CellFormula>()
+            foreach (CellFormula formula in ExcelWorksheetScan.CellFormulas(WorksheetRoot)
                 .Where(item => item.FormulaType?.Value == CellFormulaValues.Array
                     || item.FormulaType?.Value == CellFormulaValues.DataTable)) {
                 if (formula.Reference?.Value is not string reference
@@ -254,7 +251,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void ValidateRowDeletionAgainstOwnedRanges(int firstDeletedRow, int lastDeletedRow) {
-            foreach (CellFormula formula in WorksheetRoot.Descendants<CellFormula>()
+            foreach (CellFormula formula in ExcelWorksheetScan.CellFormulas(WorksheetRoot)
                 .Where(item => item.FormulaType?.Value == CellFormulaValues.Array
                     || item.FormulaType?.Value == CellFormulaValues.DataTable)) {
                 if (formula.Reference?.Value is not string reference
@@ -447,7 +444,7 @@ namespace OfficeIMO.Excel {
             uint previous = 0U;
             foreach (Row row in sheetData.Elements<Row>()) {
                 uint effective = GetEffectiveRowIndex(row, previous);
-                row.RowIndex = effective;
+                if (row.RowIndex?.Value != effective) row.RowIndex = effective;
                 previous = effective;
             }
         }
@@ -511,13 +508,13 @@ namespace OfficeIMO.Excel {
                         rewriteUnqualified);
                 }
 
-                foreach (Hyperlink hyperlink in worksheet.Descendants<Hyperlink>()) {
+                foreach (Hyperlink hyperlink in worksheet.MetadataDescendants<Hyperlink>()) {
                     if (string.IsNullOrWhiteSpace(hyperlink.Id?.Value)) {
                         ThrowIfFormulaReferenceOverflows(hyperlink.Location?.Value, firstRow, count, rewriteUnqualified);
                     }
                 }
 
-                foreach (DataReference source in worksheet.Descendants<DataReference>()) {
+                foreach (DataReference source in worksheet.MetadataDescendants<DataReference>()) {
                     if (string.IsNullOrWhiteSpace(source.Id?.Value)
                         && string.Equals(source.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)) {
                         ValidateReferenceListDoesNotOverflow(source.Reference?.Value, firstRow, count);
@@ -579,22 +576,22 @@ namespace OfficeIMO.Excel {
                 ValidateReferenceListDoesNotOverflow(dataTableFormula.R1?.Value, firstRow, count);
                 ValidateReferenceListDoesNotOverflow(dataTableFormula.R2?.Value, firstRow, count);
             }
-            foreach (CellWatch cellWatch in WorksheetRoot.Descendants<CellWatch>()) {
+            foreach (CellWatch cellWatch in WorksheetRoot.MetadataDescendants<CellWatch>()) {
                 ValidateReferenceListDoesNotOverflow(cellWatch.CellReference?.Value, firstRow, count);
             }
-            foreach (InputCells input in WorksheetRoot.Descendants<InputCells>()) {
+            foreach (InputCells input in WorksheetRoot.MetadataDescendants<InputCells>()) {
                 ValidateReferenceListDoesNotOverflow(input.CellReference?.Value, firstRow, count);
             }
-            foreach (Selection selection in WorksheetRoot.Descendants<Selection>()) {
+            foreach (Selection selection in WorksheetRoot.MetadataDescendants<Selection>()) {
                 ValidateReferenceListDoesNotOverflow(selection.ActiveCell?.Value, firstRow, count);
             }
-            foreach (SheetView view in WorksheetRoot.Descendants<SheetView>()) {
+            foreach (SheetView view in WorksheetRoot.MetadataDescendants<SheetView>()) {
                 ValidateReferenceListDoesNotOverflow(view.TopLeftCell?.Value, firstRow, count);
             }
-            foreach (CustomSheetView view in WorksheetRoot.Descendants<CustomSheetView>()) {
+            foreach (CustomSheetView view in WorksheetRoot.MetadataDescendants<CustomSheetView>()) {
                 ValidateReferenceListDoesNotOverflow(view.TopLeftCell?.Value, firstRow, count);
             }
-            foreach (Pane pane in WorksheetRoot.Descendants<Pane>()) {
+            foreach (Pane pane in WorksheetRoot.MetadataDescendants<Pane>()) {
                 ValidateReferenceListDoesNotOverflow(pane.TopLeftCell?.Value, firstRow, count);
             }
             foreach (NamedSheetViewsPart part in _worksheetPart.NamedSheetViewsParts) {
@@ -609,7 +606,7 @@ namespace OfficeIMO.Excel {
                     ValidateReferenceAttributesDoNotOverflow(part.QueryTable, firstRow, count);
                 }
             }
-            foreach (OpenXmlElement smartTag in WorksheetRoot.Descendants()
+            foreach (OpenXmlElement smartTag in WorksheetRoot.MetadataDescendants<OpenXmlElement>()
                 .Where(element => string.Equals(element.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase))) {
                 OpenXmlAttribute referenceAttribute = smartTag.GetAttributes()
                     .FirstOrDefault(attribute => string.Equals(attribute.LocalName, "r", StringComparison.OrdinalIgnoreCase));
@@ -643,7 +640,7 @@ namespace OfficeIMO.Excel {
                 ValidateReferenceListDoesNotOverflow(reference.Text, firstRow, count);
             }
 
-            foreach (Break pageBreak in WorksheetRoot.Descendants<RowBreaks>().SelectMany(rowBreaks => rowBreaks.Elements<Break>())) {
+            foreach (Break pageBreak in WorksheetRoot.MetadataDescendants<RowBreaks>().SelectMany(rowBreaks => rowBreaks.Elements<Break>())) {
                 if (pageBreak.Id?.Value is uint row && row >= firstRow && (long)row + count > ExcelA1.MaxRows) {
                     throw new InvalidOperationException("Inserting rows would move a page break beyond Excel's row limit.");
                 }
@@ -927,21 +924,15 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                bool changed = false;
-                foreach (CellFormula formula in worksheet.Descendants<CellFormula>()) {
+                foreach (CellFormula formula in ExcelWorksheetScan.CellFormulas(worksheet)) {
                     if (formula.CalculateCell?.Value != true) {
                         formula.CalculateCell = true;
-                        changed = true;
                     }
-                }
-
-                if (changed) {
-                    worksheet.Save();
                 }
             }
 
             _excelDocument.CleanupCalculationArtifacts(
-                save: true,
+                save: false,
                 policy: ExcelCalculationCleanupPolicy.RequestFullCalculationOnOpen);
         }
 

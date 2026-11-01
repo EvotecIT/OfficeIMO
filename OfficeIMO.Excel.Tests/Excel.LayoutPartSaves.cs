@@ -142,7 +142,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("wrapText=\"1\"", batched.Styles, StringComparison.Ordinal);
             // The batch saves the stylesheet when it ends, and each WrapCells range saves it once.
             Assert.Equal(1 + 3, batched.StyleSaves);
-            Assert.True(perCall.StyleSaves > 100, $"Per-call styling saved the stylesheet {perCall.StyleSaves} times.");
+            // Repeating a style changes nothing, so per-call styling saves only when a new format appears.
+            Assert.True(perCall.StyleSaves < 59, $"Per-call styling saved the stylesheet {perCall.StyleSaves} times.");
         }
 
         [Fact]

@@ -27,29 +27,41 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Runs <paramref name="derive"/>, which gives <paramref name="cell"/> a format derived from its current one.
-        /// Inside a style batch the resulting index is remembered per starting format and <paramref name="operation"/>,
-        /// so styling many cells the same way resolves the format once instead of cloning and comparing it per cell.
+        /// Gives <paramref name="cell"/> the format <paramref name="derive"/> derives from its current one and saves
+        /// the stylesheet. The resulting index is remembered per starting format, <paramref name="operation"/> and
+        /// <paramref name="argument"/>, so repeating a style resolves without cloning, comparing or saving anything.
         /// </summary>
-        private static void ApplyDerivedCellFormat(Stylesheet stylesheet, Cell cell, string operation, Action derive) {
-            StyleBatch? batch = BatchFor(stylesheet);
+        private static void ApplyDerivedCellFormat(
+            WorkbookStylesPart stylesPart,
+            Stylesheet stylesheet,
+            Cell cell,
+            string operation,
+            string? argument,
+            Action derive) {
+            StyleBatch writer = WriterFor(stylesheet);
             uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-            if (batch is not null && batch.TryGetDerivedFormat(baseIndex, operation, out uint index)) {
+            if (writer.TryGetDerivedFormat(baseIndex, operation, argument, out uint index)) {
                 cell.StyleIndex = index;
                 return;
             }
 
             derive();
-            if (batch is not null && cell.StyleIndex?.Value is uint derived) {
-                batch.SetDerivedFormat(baseIndex, operation, derived);
+            if (cell.StyleIndex?.Value is uint derived) {
+                writer.SetDerivedFormat(baseIndex, operation, argument, derived);
             }
+            SaveStylesheet(stylesPart);
         }
 
         private static void ApplyCellFormatOverride(Stylesheet stylesheet, Cell cell, Action<CellFormat> mutate) {
-            var baseFormat = GetBaseCellFormat(stylesheet, cell.StyleIndex?.Value ?? 0U);
+            var baseFormat = GetWritableBaseCellFormat(stylesheet, cell.StyleIndex?.Value ?? 0U);
             mutate(baseFormat);
             cell.StyleIndex = AppendOrReuseCellFormat(stylesheet, baseFormat);
         }
+
+        private static CellFormat GetWritableBaseCellFormat(Stylesheet stylesheet, uint styleIndex) =>
+            WriterFor(stylesheet).CellFormat(styleIndex) is { } format
+                ? (CellFormat)format.CloneNode(true)
+                : new CellFormat { NumberFormatId = 0U, FontId = 0U, FillId = 0U, BorderId = 0U, FormatId = 0U };
 
         private static uint GetOrAddCellFormatOverride(
             Dictionary<uint, uint> styleIndexes,
@@ -57,7 +69,7 @@ namespace OfficeIMO.Excel {
             uint baseStyleIndex,
             Action<CellFormat> mutate) {
             if (!styleIndexes.TryGetValue(baseStyleIndex, out uint styleIndex)) {
-                var format = GetBaseCellFormat(stylesheet, baseStyleIndex);
+                var format = GetWritableBaseCellFormat(stylesheet, baseStyleIndex);
                 mutate(format);
                 styleIndex = AppendOrReuseCellFormat(stylesheet, format);
                 styleIndexes.Add(baseStyleIndex, styleIndex);
@@ -66,57 +78,14 @@ namespace OfficeIMO.Excel {
             return styleIndex;
         }
 
-        private static uint AppendOrReuseCellFormat(Stylesheet stylesheet, CellFormat candidate) {
-            if (BatchFor(stylesheet) is { } batch) return batch.CellFormatIndex(candidate);
-            var cellFormats = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
-            var existing = cellFormats.Elements<CellFormat>()
-                .Select((format, index) => new { format, index })
-                .FirstOrDefault(entry => string.Equals(entry.format.OuterXml, candidate.OuterXml, StringComparison.Ordinal));
-            if (existing != null) {
-                return (uint)existing.index;
-            }
+        private static uint AppendOrReuseCellFormat(Stylesheet stylesheet, CellFormat candidate) =>
+            WriterFor(stylesheet).CellFormatIndex(candidate);
 
-            cellFormats.Append(candidate);
-            cellFormats.Count = (uint)cellFormats.Count();
-            return cellFormats.Count!.Value - 1;
-        }
+        private static uint GetOrCreateFill(Stylesheet stylesheet, Fill candidate) =>
+            WriterFor(stylesheet).FillIndex(candidate);
 
-        private static uint GetOrCreateFill(Stylesheet stylesheet, Fill candidate) {
-            if (BatchFor(stylesheet) is { } batch) return batch.FillIndex(candidate);
-            var fills = stylesheet.Fills ??= new Fills();
-            var existing = fills.Elements<Fill>()
-                .Select((fill, index) => new { fill, index })
-                .FirstOrDefault(entry => string.Equals(entry.fill.OuterXml, candidate.OuterXml, StringComparison.Ordinal));
-            if (existing != null) {
-                return (uint)existing.index;
-            }
-
-            fills.Append(candidate);
-            fills.Count = (uint)fills.Count();
-            return fills.Count!.Value - 1;
-        }
-
-        private static uint GetOrCreateNumberFormatId(Stylesheet stylesheet, string numberFormat) {
-            if (BatchFor(stylesheet) is { } batch) return batch.NumberFormatId(numberFormat);
-            stylesheet.NumberingFormats ??= new NumberingFormats();
-            NumberingFormat? existingFormat = stylesheet.NumberingFormats.Elements<NumberingFormat>()
-                .FirstOrDefault(n => n.FormatCode != null && n.FormatCode.Value == numberFormat);
-
-            if (existingFormat != null) {
-                return existingFormat.NumberFormatId!.Value;
-            }
-
-            uint numberFormatId = stylesheet.NumberingFormats.Elements<NumberingFormat>().Any()
-                ? stylesheet.NumberingFormats.Elements<NumberingFormat>().Max(n => n.NumberFormatId!.Value) + 1
-                : 164U;
-            NumberingFormat numberingFormat = new NumberingFormat {
-                NumberFormatId = numberFormatId,
-                FormatCode = StringValue.FromString(numberFormat)
-            };
-            stylesheet.NumberingFormats.Append(numberingFormat);
-            stylesheet.NumberingFormats.Count = (uint)stylesheet.NumberingFormats.Count();
-            return numberFormatId;
-        }
+        private static uint GetOrCreateNumberFormatId(Stylesheet stylesheet, string numberFormat) =>
+            WriterFor(stylesheet).NumberFormatId(numberFormat);
 
         private static uint GetOrCreateBorderVariant(Stylesheet stylesheet, uint? baseBorderId, Action<Border> mutate) {
             var borders = stylesheet.Borders ??= new Borders(new Border());
@@ -140,11 +109,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static uint GetOrCreateFontVariant(Stylesheet stylesheet, uint? baseFontId, Action<DocumentFormat.OpenXml.Spreadsheet.Font> mutate) {
-            var fonts = stylesheet.Fonts ??= new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
-            StyleBatch? batch = BatchFor(stylesheet);
-            var baseFont = batch is not null
-                ? batch.Font(baseFontId ?? 0U)
-                : fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ElementAtOrDefault((int)(baseFontId ?? 0U));
+            StyleBatch writer = WriterFor(stylesheet);
+            var baseFont = writer.Font(baseFontId ?? 0U);
             var candidate = baseFont != null
                 ? (DocumentFormat.OpenXml.Spreadsheet.Font)baseFont.CloneNode(true)
                 : new DocumentFormat.OpenXml.Spreadsheet.Font();
@@ -152,18 +118,7 @@ namespace OfficeIMO.Excel {
             mutate(candidate);
             NormalizeFontChildOrder(candidate);
 
-            if (batch is not null) return batch.FontIndex(candidate);
-
-            var existing = fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>()
-                .Select((font, index) => new { font, index })
-                .FirstOrDefault(entry => string.Equals(entry.font.OuterXml, candidate.OuterXml, StringComparison.Ordinal));
-            if (existing != null) {
-                return (uint)existing.index;
-            }
-
-            fonts.Append(candidate);
-            fonts.Count = (uint)fonts.Count();
-            return fonts.Count!.Value - 1;
+            return writer.FontIndex(candidate);
         }
 
         private static uint? GetOptionalValue(UInt32Value? value) {
@@ -325,12 +280,13 @@ namespace OfficeIMO.Excel {
         /// 1 CellStyleFormat, and 1 CellFormat present.
         /// </summary>
         private static void EnsureDefaultStylePrimitives(Stylesheet stylesheet) {
-            // Inside a style batch the primitives are ensured once; repeating the sweep for every styled cell
+            // The primitives are ensured once per index; repeating the sweep for every styled cell
             // only re-enumerates fonts, fills and formats without changing them.
-            StyleBatch? batch = BatchFor(stylesheet);
-            if (batch is { PrimitivesEnsured: true }) return;
+            StyleBatch writer = WriterFor(stylesheet);
+            if (writer.PrimitivesEnsured) return;
             EnsureDefaultStylePrimitivesCore(stylesheet);
-            if (batch is not null) { batch.PrimitivesEnsured = true; batch.MarkModified(); }
+            writer.PrimitivesEnsured = true;
+            writer.MarkModified();
         }
 
         private static void EnsureDefaultStylePrimitivesCore(Stylesheet stylesheet) {

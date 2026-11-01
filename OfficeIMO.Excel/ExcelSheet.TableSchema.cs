@@ -189,7 +189,6 @@ namespace OfficeIMO.Excel {
                 if (removedNames.Length > 0) _excelDocument.InvalidateTableColumnReferences(tableName, removedNames, table);
                 if (renameMap.Count > 0) _excelDocument.RewriteTableColumnReferences(tableName, renameMap, table);
                 table.Save();
-                WorksheetRoot.Save();
                 bool schemaChanged = rangeChanged
                     || existing.Count != names.Length
                     || renames.Count > 0;

@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
             int rowDelta,
             int? lastDeletedRow) {
             foreach (X14.ConditionalFormattings formattings in
-                WorksheetRoot.Descendants<X14.ConditionalFormattings>().ToList()) {
+                WorksheetRoot.MetadataDescendants<X14.ConditionalFormattings>().ToList()) {
                 foreach (X14.ConditionalFormatting formatting in
                     formattings.Elements<X14.ConditionalFormatting>().ToList()) {
                     Xm.ReferenceSequence? target = formatting.GetFirstChild<Xm.ReferenceSequence>();

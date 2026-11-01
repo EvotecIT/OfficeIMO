@@ -386,7 +386,17 @@ namespace OfficeIMO.Excel {
         private bool _preserveDirectDataSetSaveCandidateForNextDirtyMark;
         private int _directDataSetSaveCandidatePreservationDepth;
         private int _materializedDirectDataSetFastSaveModelPreservationDepth;
-        private byte[]? _unchangedPackageBytes;
+        private byte[]? _unchangedPackageBytesValue;
+        private byte[]? _propertiesOnlySourceBytes;
+
+        /// <summary>The package as last loaded or saved, while nothing has changed since.</summary>
+        private byte[]? _unchangedPackageBytes {
+            get => _unchangedPackageBytesValue;
+            set {
+                _unchangedPackageBytesValue = value;
+                _propertiesOnlySourceBytes = null;
+            }
+        }
         private bool _simplePackageContentKnown;
         private DirectDataSetSaveCandidate? _directDataSetSaveCandidate;
         private DirectDataSetWorkbookModel? _materializedDirectDataSetFastSaveModel;
@@ -414,6 +424,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal void MarkPackageDirty() {
+            _propertiesOnlySourceBytes = null;
             bool preserveMaterializedDirectModel = _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark
                 || _materializedDirectDataSetFastSaveModelPreservationDepth > 0;
             if (!preserveMaterializedDirectModel && !_materializingDeferredDataSetImport) {
@@ -447,9 +458,17 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal void MarkPackagePropertiesDirty() {
+        /// <summary>Application properties live in their own part, so they rule out replacing the core properties alone.</summary>
+        internal void MarkApplicationPropertiesDirty() {
             _packagePropertiesDirty = true;
             MarkPackageDirty();
+        }
+
+        internal void MarkPackagePropertiesDirty() {
+            byte[]? source = _unchangedPackageBytes ?? _propertiesOnlySourceBytes;
+            _packagePropertiesDirty = true;
+            MarkPackageDirty();
+            _propertiesOnlySourceBytes = source;
         }
 
         internal bool IsPackageDirty => _packageDirty;

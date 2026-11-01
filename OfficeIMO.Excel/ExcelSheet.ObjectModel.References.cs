@@ -205,6 +205,9 @@ namespace OfficeIMO.Excel {
             if (rowDelta == 0 || firstAffectedRow <= 0 || string.IsNullOrEmpty(formula)) {
                 return formula;
             }
+            if (TryRewritePlainFormula(formula, ExcelFormulaAxisShift.Rows(firstAffectedRow, null, rowDelta), rewriteUnqualifiedReferences, out string plain)) {
+                return plain;
+            }
 
             return ExcelFormulaReferenceRewriter.RewriteReferences(formula, match => {
                 if (IsFormulaFunctionReferenceToken(formula, match)
@@ -233,6 +236,9 @@ namespace OfficeIMO.Excel {
             if (rowDelta == 0 || firstDeletedRow <= 0 || lastDeletedRow < firstDeletedRow || string.IsNullOrEmpty(formula)) {
                 return formula;
             }
+            if (TryRewritePlainFormula(formula, ExcelFormulaAxisShift.Rows(firstDeletedRow, lastDeletedRow, rowDelta), rewriteUnqualifiedReferences, out string plain)) {
+                return plain;
+            }
 
             return ExcelFormulaReferenceRewriter.RewriteReferences(formula, match => {
                 if (IsFormulaFunctionReferenceToken(formula, match)
@@ -251,6 +257,17 @@ namespace OfficeIMO.Excel {
                 }
                 return match.Text;
             });
+        }
+
+        private static bool TryRewritePlainFormula(
+            string formula,
+            ExcelFormulaAxisShift shift,
+            bool rewriteUnqualifiedReferences,
+            out string rewritten) {
+            rewritten = formula;
+            return rewriteUnqualifiedReferences
+                ? shift.TryRewrite(formula, out rewritten)
+                : formula.IndexOf('!') < 0;
         }
 
         /// <summary>

@@ -15,7 +15,8 @@ namespace OfficeIMO.Excel {
             Action? consumeScannedElement = null,
             ExcelReference? rewriteBoundary = null,
             ExcelCellShiftDirection? cellShiftDirection = null,
-            Func<ExcelReference, ExcelReference?>? capacityTransform = null) {
+            Func<ExcelReference, ExcelReference?>? capacityTransform = null,
+            ExcelFormulaAxisShift? plainFormulaShift = null) {
             List<Sheet> sheets = WorkbookRoot.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
             int editedSheetIndex = sheets.FindIndex(sheet =>
                 string.Equals(sheet.Name?.Value, editedSheet.Name, StringComparison.OrdinalIgnoreCase));
@@ -26,8 +27,12 @@ namespace OfficeIMO.Excel {
             int sc2 = 0;
             rewriteBoundary?.GetBounds(out sr1, out sc1, out sr2, out sc2);
 
+            bool onlySheetSpansMatter = consumeScannedElement == null && rewriteBoundary == null && capacityTransform == null;
             foreach (MutationFormulaContext formula in EnumerateMutationFormulaContexts(sheets, editedSheetIndex)) {
                 consumeScannedElement?.Invoke();
+                bool unqualified = formula.Text.IndexOf('!') < 0;
+                if (unqualified && (onlySheetSpansMatter || !formula.UnqualifiedTargetsEdited && rewriteBoundary == null)) continue;
+                if (formula.UnqualifiedTargetsEdited && plainFormulaShift?.TryInspect(formula.Text, out _) == true) continue;
                 foreach (ExcelFormulaReferenceSyntax referenceNode in ExcelFormulaSyntaxTree.Parse(formula.Text)
                     .Nodes.OfType<ExcelFormulaReferenceSyntax>()) {
                     consumeScannedElement?.Invoke();
@@ -125,7 +130,10 @@ namespace OfficeIMO.Excel {
                 .Concat(worksheetPart.NamedSheetViewsParts.Select(part => part.NamedSheetViews));
             foreach (OpenXmlPartRootElement? root in roots) {
                 if (root == null) continue;
-                foreach (OpenXmlElement element in root.Descendants().Prepend(root).Where(IsMutationRangeMetadataElement)) {
+                IEnumerable<OpenXmlElement> elements = root is Worksheet worksheet
+                    ? worksheet.MetadataDescendants<OpenXmlElement>()
+                    : root.Descendants();
+                foreach (OpenXmlElement element in elements.Prepend(root).Where(IsMutationRangeMetadataElement)) {
                     foreach (OpenXmlAttribute attribute in element.GetAttributes().Where(attribute =>
                         string.Equals(attribute.LocalName, "ref", StringComparison.OrdinalIgnoreCase)
                         || string.Equals(attribute.LocalName, "sqref", StringComparison.OrdinalIgnoreCase))) {
@@ -155,7 +163,7 @@ namespace OfficeIMO.Excel {
 
         private IEnumerable<string> EnumerateMutationExternalRangeMetadataReferences(ExcelSheet editedSheet) {
             foreach (WorksheetPart worksheetPart in WorkbookPartRoot.WorksheetParts) {
-                foreach (DataReference source in worksheetPart.Worksheet?.Descendants<DataReference>()
+                foreach (DataReference source in worksheetPart.Worksheet?.MetadataDescendants<DataReference>()
                     ?? Enumerable.Empty<DataReference>()) {
                     if (string.IsNullOrWhiteSpace(source.Id?.Value)
                         && string.Equals(source.Sheet?.Value, editedSheet.Name, StringComparison.OrdinalIgnoreCase)
@@ -198,7 +206,7 @@ namespace OfficeIMO.Excel {
                 if (part is WorksheetPart worksheetPart) {
                     bool ownerIsEdited = sheetIndex == editedSheetIndex;
                     foreach (string formula in EnumerateMutationFormulaTexts(worksheetPart.Worksheet)) yield return new MutationFormulaContext(formula, ownerIsEdited);
-                    foreach (Hyperlink hyperlink in worksheetPart.Worksheet?.Descendants<Hyperlink>()
+                    foreach (Hyperlink hyperlink in worksheetPart.Worksheet?.MetadataDescendants<Hyperlink>()
                         ?? Enumerable.Empty<Hyperlink>()) {
                         if (string.IsNullOrWhiteSpace(hyperlink.Id?.Value)
                             && !string.IsNullOrWhiteSpace(hyperlink.Location?.Value)) {
@@ -242,10 +250,17 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static IEnumerable<OpenXmlLeafTextElement> EnumerateMutationFormulaLeaves(OpenXmlPartRootElement root) {
+            if (root is not Worksheet worksheet) {
+                return root.Descendants<OpenXmlLeafTextElement>().Where(IsMutationFormulaLeaf);
+            }
+            return ExcelWorksheetScan.CellFormulas(worksheet)
+                .Concat(worksheet.MetadataDescendants<OpenXmlLeafTextElement>().Where(IsMutationFormulaLeaf));
+        }
+
         private static IEnumerable<string> EnumerateMutationFormulaTexts(OpenXmlPartRootElement? root) {
             if (root == null) yield break;
-            foreach (OpenXmlLeafTextElement leaf in root.Descendants<OpenXmlLeafTextElement>()
-                .Where(IsMutationFormulaLeaf)) {
+            foreach (OpenXmlLeafTextElement leaf in EnumerateMutationFormulaLeaves(root)) {
                 if (!string.IsNullOrEmpty(leaf.Text)) yield return leaf.Text;
             }
         }

@@ -71,7 +71,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            foreach (X14.IgnoredErrors extendedErrors in WorksheetRoot.Descendants<X14.IgnoredErrors>().ToList()) {
+            foreach (X14.IgnoredErrors extendedErrors in WorksheetRoot.MetadataDescendants<X14.IgnoredErrors>().ToList()) {
                 foreach (X14.IgnoredError ignoredError in extendedErrors.Elements<X14.IgnoredError>().ToList()) {
                     if (ignoredError.ReferenceSequence?.Text is not string references
                         || !TryRemapShiftedReferenceListRows(
@@ -243,7 +243,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 bool changed = false;
-                foreach (DataReference source in worksheet.Descendants<DataReference>().ToList()) {
+                foreach (DataReference source in worksheet.MetadataDescendants<DataReference>().ToList()) {
                     if (!string.IsNullOrWhiteSpace(source.Id?.Value)
                         || !string.Equals(source.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)
                         || source.Reference?.Value is not string reference
@@ -268,7 +268,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                foreach (DataReferences sources in worksheet.Descendants<DataReferences>().ToList()) {
+                foreach (DataReferences sources in worksheet.MetadataDescendants<DataReferences>().ToList()) {
                     uint sourceCount = (uint)sources.Elements<DataReference>().Count();
                     if (sourceCount == 0U) {
                         sources.Remove();
@@ -328,7 +328,7 @@ namespace OfficeIMO.Excel {
             int rowDelta,
             int? lastDeletedRow) {
             var affectedContainers = new HashSet<OpenXmlElement>();
-            foreach (OpenXmlElement tag in WorksheetRoot.Descendants()
+            foreach (OpenXmlElement tag in WorksheetRoot.MetadataDescendants<OpenXmlElement>()
                 .Where(element => string.Equals(element.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase))
                 .ToList()) {
                 OpenXmlAttribute referenceAttribute = tag.GetAttributes()
@@ -388,7 +388,7 @@ namespace OfficeIMO.Excel {
             int rowDelta,
             int? lastDeletedRow) {
             bool changed = false;
-            foreach (SortState sortState in root.Descendants<SortState>().ToList()) {
+            foreach (SortState sortState in (root is Worksheet worksheet ? worksheet.MetadataDescendants<SortState>() : root.Descendants<SortState>()).ToList()) {
                 if (sortState.Reference?.Value is string sortReference
                     && TryRemapShiftedReferenceListRows(
                         sortReference,
@@ -482,7 +482,7 @@ namespace OfficeIMO.Excel {
             int firstAffectedRow,
             int rowDelta,
             int? lastDeletedRow) {
-            foreach (SheetView view in WorksheetRoot.Descendants<SheetView>()) {
+            foreach (SheetView view in WorksheetRoot.MetadataDescendants<SheetView>()) {
                 string? current = view.TopLeftCell?.Value;
                 string? remapped = RemapShiftedViewTopLeftCell(
                     current,
@@ -493,7 +493,7 @@ namespace OfficeIMO.Excel {
                     view.TopLeftCell = remapped;
                 }
             }
-            foreach (CustomSheetView view in WorksheetRoot.Descendants<CustomSheetView>()) {
+            foreach (CustomSheetView view in WorksheetRoot.MetadataDescendants<CustomSheetView>()) {
                 string? current = view.TopLeftCell?.Value;
                 string? remapped = RemapShiftedViewTopLeftCell(
                     current,
@@ -504,7 +504,7 @@ namespace OfficeIMO.Excel {
                     view.TopLeftCell = remapped;
                 }
             }
-            foreach (Pane pane in WorksheetRoot.Descendants<Pane>()) {
+            foreach (Pane pane in WorksheetRoot.MetadataDescendants<Pane>()) {
                 string? current = pane.TopLeftCell?.Value;
                 string? remapped = RemapShiftedViewTopLeftCell(
                     current,
@@ -516,7 +516,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            foreach (Selection selection in WorksheetRoot.Descendants<Selection>()) {
+            foreach (Selection selection in WorksheetRoot.MetadataDescendants<Selection>()) {
                 string? activeCell = selection.ActiveCell?.Value;
                 if (!string.IsNullOrWhiteSpace(activeCell)
                     && TryRemapShiftedReferenceListRows(

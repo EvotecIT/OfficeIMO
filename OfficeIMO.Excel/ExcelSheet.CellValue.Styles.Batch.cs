@@ -1,10 +1,16 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private static readonly AsyncLocal<StyleBatch?> CurrentStyleBatch = new();
+
+        // Style writers run under the workbook write lock, so one index per stylesheet can outlive a single call.
+        // Rollback replaces the stylesheet root and therefore starts a new index.
+        private static readonly ConditionalWeakTable<Stylesheet, StyleBatch> StyleWriters = new();
 
         /// <summary>
         /// Applies or clears text wrapping for selected cells under one workbook
@@ -70,6 +76,13 @@ namespace OfficeIMO.Excel {
         private static StyleBatch? BatchFor(Stylesheet stylesheet) =>
             CurrentStyleBatch.Value is { } batch && batch.Matches(stylesheet) ? batch : null;
 
+        /// <summary>
+        /// Returns the index that serves style writes: the active batch, or the stylesheet's own writer index.
+        /// Only write paths may use it, because reads are not serialized against the index being rebuilt.
+        /// </summary>
+        private static StyleBatch WriterFor(Stylesheet stylesheet) =>
+            BatchFor(stylesheet) ?? StyleWriters.GetValue(stylesheet, static target => new StyleBatch(target));
+
         /// <summary>Persists style changes immediately or joins the active matching workbook's style batch.</summary>
         internal static void SaveStylesheet(WorkbookStylesPart stylesPart) {
             if (stylesPart.Stylesheet is { } stylesheet && BatchFor(stylesheet) is { } batch) {
@@ -80,7 +93,7 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class StyleBatch : IDisposable {
-            private readonly WorkbookPart _workbookPart;
+            private readonly WorkbookPart? _workbookPart;
             private readonly int _ownerThreadId = Environment.CurrentManagedThreadId;
             private readonly StyleBatch? _parent;
             private List<CellFormat>? _cellFormats;
@@ -90,7 +103,9 @@ namespace OfficeIMO.Excel {
             private List<DocumentFormat.OpenXml.Spreadsheet.Font>? _fonts;
             private Dictionary<string, uint>? _fontIndexes;
             private Dictionary<string, uint>? _numberFormatIds;
-            private Dictionary<(uint BaseIndex, string Operation), uint>? _derivedFormatIndexes;
+            private Dictionary<(uint BaseIndex, string Operation, string? Argument), uint>? _derivedFormatIndexes;
+            private CellFormats? _cellFormatsElement;
+            private OpenXmlElement? _lastCellFormat;
             private int _numberFormatCount = -1;
             private uint _nextNumberFormatId;
             private readonly bool _saveOnDispose;
@@ -109,6 +124,11 @@ namespace OfficeIMO.Excel {
                 _saveOnDispose = stylesheet is not null;
             }
 
+            /// <summary>Creates the long-lived writer index of one stylesheet. It has no scope and never saves.</summary>
+            internal StyleBatch(Stylesheet stylesheet) {
+                _stylesheet = stylesheet;
+            }
+
             internal Stylesheet Stylesheet => _stylesheet ?? throw new InvalidOperationException("The style batch is not bound to a stylesheet.");
 
             /// <summary>Whether the default fonts, fills, borders and formats were ensured for this batch.</summary>
@@ -118,7 +138,7 @@ namespace OfficeIMO.Excel {
             internal bool Matches(Stylesheet stylesheet) {
                 if (_disposed || _ownerThreadId != Environment.CurrentManagedThreadId) return false;
                 if (_stylesheet is not null) return ReferenceEquals(_stylesheet, stylesheet);
-                if (stylesheet.OpenXmlPart is null || !ReferenceEquals(stylesheet.OpenXmlPart, _workbookPart.WorkbookStylesPart)) return false;
+                if (stylesheet.OpenXmlPart is null || !ReferenceEquals(stylesheet.OpenXmlPart, _workbookPart!.WorkbookStylesPart)) return false;
                 _stylesheet = stylesheet;
                 return true;
             }
@@ -131,15 +151,15 @@ namespace OfficeIMO.Excel {
             /// started from <paramref name="baseIndex"/>. Formats, fonts and fills are only appended while the batch is
             /// open, so the same starting format and operation always resolve to the same index.
             /// </summary>
-            internal bool TryGetDerivedFormat(uint baseIndex, string operation, out uint index) {
+            internal bool TryGetDerivedFormat(uint baseIndex, string operation, string? argument, out uint index) {
                 RefreshCellFormats();
-                return _derivedFormatIndexes!.TryGetValue((baseIndex, operation), out index);
+                return _derivedFormatIndexes!.TryGetValue((baseIndex, operation, argument), out index);
             }
 
             /// <summary>Records the format index <paramref name="operation"/> produced for <paramref name="baseIndex"/>.</summary>
-            internal void SetDerivedFormat(uint baseIndex, string operation, uint index) {
+            internal void SetDerivedFormat(uint baseIndex, string operation, string? argument, uint index) {
                 RefreshCellFormats();
-                _derivedFormatIndexes![(baseIndex, operation)] = index;
+                _derivedFormatIndexes![(baseIndex, operation, argument)] = index;
             }
 
             internal CellFormat? CellFormat(uint index) {
@@ -155,6 +175,7 @@ namespace OfficeIMO.Excel {
                 index = (uint)_cellFormats!.Count;
                 formats.Append(candidate);
                 _cellFormats.Add(candidate);
+                _lastCellFormat = candidate;
                 _cellFormatIndexes.Add(key, index);
                 formats.Count = (uint)_cellFormats.Count;
                 _modified = true;
@@ -222,11 +243,24 @@ namespace OfficeIMO.Excel {
             }
 
             private void RefreshCellFormats() {
-                var formats = Stylesheet.CellFormats ??= new CellFormats(new CellFormat());
-                if (_cellFormats is not null && _cellFormats.Count == formats.ChildElements.Count) return;
+                // The formats are append-only here, so the last child is an O(1) change check;
+                // replacements in place go through InvalidateCellFormats.
+                var formats = FindCellFormats() ?? (Stylesheet.CellFormats = new CellFormats(new CellFormat()));
+                if (_cellFormats is not null
+                    && ReferenceEquals(formats, _cellFormatsElement)
+                    && ReferenceEquals(formats.LastChild, _lastCellFormat)) return;
+                _cellFormatsElement = formats;
+                _lastCellFormat = formats.LastChild;
                 _cellFormats = formats.Elements<CellFormat>().ToList();
                 _cellFormatIndexes = IndexXml(_cellFormats);
-                _derivedFormatIndexes = new Dictionary<(uint BaseIndex, string Operation), uint>();
+                _derivedFormatIndexes = new Dictionary<(uint BaseIndex, string Operation, string? Argument), uint>();
+            }
+
+            private CellFormats? FindCellFormats() {
+                for (OpenXmlElement? child = Stylesheet.FirstChild; child != null; child = child.NextSibling()) {
+                    if (child is CellFormats formats) return formats;
+                }
+                return null;
             }
 
             /// <summary>Discards cached bases and derivations when named styles replace formats without changing the count.</summary>
@@ -240,6 +274,7 @@ namespace OfficeIMO.Excel {
                 for (StyleBatch? batch = CurrentStyleBatch.Value; batch != null; batch = batch._parent) {
                     if (batch.Matches(stylesheet)) batch.InvalidateCellFormats();
                 }
+                if (StyleWriters.TryGetValue(stylesheet, out StyleBatch? writer)) writer.InvalidateCellFormats();
             }
 
             private void RefreshFonts() {
@@ -267,7 +302,7 @@ namespace OfficeIMO.Excel {
                 _disposed = true;
                 if (_stylesheet is null || !(_saveOnDispose || _modified)) return;
                 // A stylesheet replaced inside the batch was saved by whoever replaced it; never write the old one back.
-                if (!ReferenceEquals(_workbookPart.WorkbookStylesPart?.Stylesheet, _stylesheet)) return;
+                if (!ReferenceEquals(_workbookPart!.WorkbookStylesPart?.Stylesheet, _stylesheet)) return;
                 if (_parent?.Matches(_stylesheet) == true) {
                     _parent.MarkModified();
                 } else {

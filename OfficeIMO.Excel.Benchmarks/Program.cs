@@ -56,6 +56,16 @@ if (comparePairedDataTableExecution) {
     return;
 }
 
+if (args.Length > 0 && string.Equals(args[0], "--compare-xlbench-shapes", StringComparison.OrdinalIgnoreCase)) {
+    XlBenchShapeRunner.Run(args);
+    return;
+}
+
+if (args.Length > 0 && string.Equals(args[0], "--profile-xlbench-shape", StringComparison.OrdinalIgnoreCase)) {
+    XlBenchShapeRunner.Profile(args);
+    return;
+}
+
 if (comparePairedXlsb || comparePairedXls) {
     ExcelLegacyReadPairedRunner.Run(args, useXlsb: comparePairedXlsb);
     return;

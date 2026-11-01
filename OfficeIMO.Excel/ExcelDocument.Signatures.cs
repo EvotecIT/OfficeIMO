@@ -58,6 +58,12 @@ namespace OfficeIMO.Excel {
         }
 
         private void ApplySignatureMutationPolicy(ExcelSaveOptions? options) {
+            // A package clone exposes only what the live package does, so it is built only when there is something to report.
+            if (_spreadSheetDocument.DigitalSignatureOriginPart == null
+                && _spreadSheetDocument.ExtendedFilePropertiesPart?.Properties?.DigitalSignature == null) {
+                return;
+            }
+
             ExcelSignatureInfo signatureInfo = InspectSignatures();
             if (!signatureInfo.HasSignatures) {
                 return;
