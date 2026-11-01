@@ -90,6 +90,7 @@ public static partial class PowerPointHtmlConverterExtensions {
             .Append(slideNumber.ToString(CultureInfo.InvariantCulture))
             .Append('"');
         AppendHiddenSlideAttribute(body, slide);
+        AppendSemanticSlideStyle(body, slide);
         body.Append('>');
         if (options.IncludeSlideHeadings) body.Append("<h2>Slide ").Append(visibleIndex.ToString(CultureInfo.InvariantCulture)).Append("</h2>");
 

@@ -5672,7 +5672,7 @@
           "parameters": [
             {
               "name": "Profile",
-              "type": "OfficePowerPointHtmlProfile",
+              "type": "PowerPointHtmlExportProfile",
               "mandatory": false,
               "pipeline": "none",
               "notes": "SemanticSlides (default) or VisualReview."

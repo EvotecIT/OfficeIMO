@@ -6,11 +6,12 @@ using PSWriteOffice.Cmdlets.PowerPoint;
 using PSWriteOffice.Cmdlets.OpenDocument;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.PowerPoint.OpenDocument;
+using OfficeIMO.PowerPoint.Html;
 
 namespace PSWriteOffice.Tests;
 
 [Collection(PowerShellRunspaceCollection.Name)]
-public sealed class PowerPointOptionWorkflowTests {
+public sealed partial class PowerPointOptionWorkflowTests {
     [Theory]
     [InlineData("Pdf", "", true)]
     [InlineData("Pdf", "-NoPictures -NoSpeakerNotes -Font 'Aptos Display'", false)]
@@ -21,6 +22,9 @@ public sealed class PowerPointOptionWorkflowTests {
     [InlineData("OpenDocument", "", true)]
     [InlineData("OpenDocument", "-NoImages -NoSpeakerNotes -NoBasicFormatting -LossPolicy Block", false)]
     [InlineData("OpenDocument", "-NoImages:$false -NoSpeakerNotes:$false -NoBasicFormatting:$false", true)]
+    [InlineData("Html", "", true)]
+    [InlineData("Html", "-NoNotes -NoTables -NoHeading -NoSlideHeadings -NoRenderDiagnostics -NoMasterInventory -NoExtractionProof -NoDefaultStyles", false)]
+    [InlineData("Html", "-NoNotes:$false -NoTables:$false -NoHeading:$false -NoSlideHeadings:$false -NoRenderDiagnostics:$false -NoMasterInventory:$false -NoExtractionProof:$false -NoDefaultStyles:$false", true)]
     public void NegativeRenderFlagsPreserveDefaultsAndExplicitFalse(string format, string arguments, bool included) {
         using var runspace = Open();
         using var shell = PowerShell.Create();
@@ -41,6 +45,16 @@ public sealed class PowerPointOptionWorkflowTests {
             Assert.Equal(included, options.IncludeBasicFormatting);
             Assert.Equal(arguments.Contains("Block", StringComparison.Ordinal)
                 ? OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported : OdfConversionLossPolicy.ReportOnly, options.LossPolicy);
+        } else if (format == "Html") {
+            var options = Assert.IsType<PowerPointHtmlSaveOptions>(value);
+            Assert.Equal(included, options.IncludeNotes);
+            Assert.Equal(included, options.IncludeTables);
+            Assert.Equal(included, options.IncludeHeading);
+            Assert.Equal(included, options.IncludeSlideHeadings);
+            Assert.Equal(included, options.IncludeRenderDiagnostics);
+            Assert.Equal(included, options.IncludeMasterInventory);
+            Assert.Equal(included, options.IncludeExtractionProof);
+            Assert.Equal(included, options.IncludeDefaultStyles);
         } else {
             var options = Assert.IsType<PowerPointImageExportOptions>(value);
             Assert.Equal(included, options.IncludePictures);
@@ -67,6 +81,8 @@ public sealed class PowerPointOptionWorkflowTests {
         state.Commands.Add(new SessionStateCmdletEntry("New-OfficePowerPointPdfOptions", typeof(NewOfficePowerPointPdfOptionsCommand), null));
         state.Commands.Add(new SessionStateCmdletEntry("New-OfficePowerPointImageOptions", typeof(NewOfficePowerPointImageOptionsCommand), null));
         state.Commands.Add(new SessionStateCmdletEntry("New-OfficePowerPointOpenDocumentOptions", typeof(NewOfficePowerPointOpenDocumentOptionsCommand), null));
+        state.Commands.Add(new SessionStateCmdletEntry("New-OfficePowerPointHtmlOptions", typeof(NewOfficePowerPointHtmlOptionsCommand), null));
+        state.Commands.Add(new SessionStateCmdletEntry("Convert-OfficeDocument", typeof(PSWriteOffice.Cmdlets.Conversion.ConvertOfficeDocumentCommand), null));
         var runspace = RunspaceFactory.CreateRunspace(state);
         runspace.Open();
         return runspace;

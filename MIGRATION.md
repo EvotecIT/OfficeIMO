@@ -334,7 +334,7 @@ Read-OfficeDocument -Path .\Knowledge -Recurse -Extension .docx, .pdf, .pptx, .x
 
 The `OfficeIMO` package is the front door for applications that want the common formats and conversions in one reference: `dotnet add package OfficeIMO`. It targets `netstandard2.0`, `net8.0`, `net10.0`, plus `net472` on Windows, the same as the format packages.
 
-It references `OfficeIMO.Core`, `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, `OfficeIMO.Pdf`, `OfficeIMO.Markdown`, `OfficeIMO.Word.Pdf`, `OfficeIMO.Excel.Pdf`, `OfficeIMO.PowerPoint.Pdf`, `OfficeIMO.Pdf.Word`, `OfficeIMO.Pdf.Excel`, `OfficeIMO.Pdf.PowerPoint`, `OfficeIMO.Word.Markdown`, `OfficeIMO.Word.Html`, `OfficeIMO.Markdown.Html`, `OfficeIMO.Markdown.Pdf`, `OfficeIMO.Reader.All`.
+It references `OfficeIMO.Core`, `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, `OfficeIMO.Pdf`, `OfficeIMO.Markdown`, `OfficeIMO.Word.Pdf`, `OfficeIMO.Excel.Pdf`, `OfficeIMO.PowerPoint.Pdf`, `OfficeIMO.PowerPoint.Html`, `OfficeIMO.Pdf.Word`, `OfficeIMO.Pdf.Excel`, `OfficeIMO.Pdf.PowerPoint`, `OfficeIMO.Word.Markdown`, `OfficeIMO.Word.Html`, `OfficeIMO.Markdown.Html`, `OfficeIMO.Markdown.Pdf`, `OfficeIMO.Reader.All`.
 
 `OfficeConverter`, the batch types and the shared foundations, including `OfficeColor`, live in the `OfficeIMO` namespace. Format types keep their per-format namespaces.
 
@@ -1499,7 +1499,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO
 
 <details>
-<summary>7 changes</summary>
+<summary>8 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -1509,6 +1509,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Conversion | `OfficeIMO.Workflows.OfficeWorkflow.Convert(string inputPath)` | Moved | `OfficeIMO.OfficeConverter.Convert(string source, string destination, OfficeConversionOptions options = null)` | OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the \*ToPdfBytes helpers. |
 | Conversion | `OfficeIMO.Workflows.OfficeWorkflow.ConvertDirectory(string inputDirectory)` | Moved | `OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeDocumentFormat target, OfficeBatchOptions options = null)` | OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the \*ToPdfBytes helpers. |
 | Conversion | `OfficeIMO.Workflows.OfficeWorkflow.ConvertFiles(string[] inputPaths)` | Moved | `OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeDocumentFormat target, OfficeBatchOptions options = null)` | OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the \*ToPdfBytes helpers. |
+| Conversion | `pptx-html is catalogued but is not executable through OfficeConverter` | Changed | `OfficeConverter converts PowerPoint files or captured streams to semantic or visual-review HTML using OfficeConversionOptions.PowerPointHtml` | The front door uses the existing OfficeIMO.PowerPoint.Html adapter, retains native load and HTML fidelity diagnostics, snapshots reusable settings, and applies its existing output limits, cancellation and atomic publication. Advanced HTML settings remain execution-only in saved jobs and are rejected explicitly rather than silently discarded. |
 | Visibility | `OfficeIMO.OfficeBatchReportSerializer` | Internal | &mdash; | Use the documented document, options and result APIs. |
 
 </details>
@@ -3463,11 +3464,12 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Html
 
 <details>
-<summary>1 change</summary>
+<summary>2 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
 | Conversion | `HTML p elements: margin-top 0; margin-bottom 1em` | Changed | `HTML p elements: margin-top 1em; margin-bottom 1em` | HTML to PDF and image rendering use browser paragraph defaults: one em above and below each p element, including Document mode. Adjacent block margins still collapse into one gap. Word-to-HTML output keeps paragraphs inside list items at zero margin, so exported Word lists retain their compact spacing. A bottom margin at the end of a page is dropped rather than opening an empty page when the content fits. HTML that relied on no paragraph top margin gains space above paragraphs; set p { margin-top: 0 } to keep the previous layout. |
+| Conversion | `OfficeHtmlDocumentOptions.Theme selects only OfficeVisualThemeKind presets` | Changed | `OfficeHtmlDocumentOptions.DocumentTheme accepts an OfficeTheme; when set, it overrides the preset palette and font choices` | Use the same immutable document theme for semantic HTML and Office files. The shared HTML shell projects its palette, font stack, table-header text and light or dark color scheme. Existing enum presets remain available when DocumentTheme is omitted. `New-OfficePowerPointHtmlOptions` defaults its shared document theme to Modern. |
 
 </details>
 
