@@ -53,6 +53,7 @@ internal static partial class PdfWriter {
         public bool KeepTogether;
         public bool IsFirstInKeepGroup;
         public double KeepGroupHeight;
+        public int KeepGroupItemCount;
         public bool KeepWithNext;
         public bool IsFirstInKeepWithNextGroup;
         public int KeepWithNextGroupItemCount;

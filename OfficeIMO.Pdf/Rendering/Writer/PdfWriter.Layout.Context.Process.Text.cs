@@ -21,7 +21,7 @@ internal static partial class PdfWriter {
                 ? WrapPictureParagraph(rpb, currentOpts.MarginLeft.ToPoints(), width, size,
                     y - ResolveTopLevelSpacingBefore(spacingBefore))
                 : WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null, cancellationToken: cancellationToken);
-            bool splittingConstrainedParagraph = ResolveParagraphConstraintOverflow(paragraphStyle, lines, lineHeights, leading) !=
+            bool splittingConstrainedParagraph = ResolveParagraphConstraintOverflow(paragraphStyle, lines, lineHeights, leading, GetClosingContainerSpace()) !=
                 PdfKeepTogetherOverflowBehavior.Reject;
             bool SkipColumnsForParagraphOverflow() => splittingConstrainedParagraph &&
                 paragraphStyle?.KeepTogetherOverflow == PdfKeepTogetherOverflowBehavior.SplitAcrossPages;
@@ -58,7 +58,7 @@ internal static partial class PdfWriter {
                 if (lines.Count == 1 && (CanOverflowImportedExactLine(paragraphStyle) ||
                     CanOverflowImportedPictureLine(lines[0]))) return false;
                 if (paragraphStyle.KeepTogetherOverflow != PdfKeepTogetherOverflowBehavior.Reject &&
-                    MeasureRichLinesFrameFitHeight(lines, lineHeights, leading) > GetMaximumBlockContinuationHeight() + .001D) {
+                    MeasureTextBlockAdmissionHeight(lines, lineHeights, leading, spacingAfter) > GetMaximumBlockContinuationHeight() + .001D) {
                     splittingConstrainedParagraph = true;
                     return false;
                 }
@@ -82,7 +82,7 @@ internal static partial class PdfWriter {
             if (IsKeptInCurrentFrame()) {
                 while (true) {
                     if (!IsKeptInCurrentFrame()) break;
-                    double paragraphContentHeight = MeasureRichLinesFrameFitHeight(lines, lineHeights, leading);
+                    double paragraphContentHeight = MeasureTextBlockAdmissionHeight(lines, lineHeights, leading, spacingAfter);
                     if (paragraphContentHeight > GetMaximumBlockContinuationHeight() + 0.001) {
                         if (TryAdvanceForRunningContent(ref runningAdmission, paragraphContentHeight,
                             preserve => NewParagraphStartFrame(preserveEmptyPage: preserve))) continue;
@@ -163,7 +163,7 @@ internal static partial class PdfWriter {
                     ? MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft.ToPoints(), width, size, actualHeight + spacingAfter) : 0;
                 bool simulatedPageBreak = floatingPageStarts.Count > 0;
                 double fitHeight = (y < frameStart - 0.001 ? spacingBefore : 0D) +
-                    MeasureRichLinesFrameFitHeight(lines, lineHeights, leading, floatingLineGaps);
+                    MeasureTextBlockAdmissionHeight(lines, lineHeights, leading, spacingAfter, floatingLineGaps);
                 bool mustMove = IsKeptInCurrentFrame() &&
                     (simulatedPageBreak || fitHeight > y - FootnoteBodyBottom + 0.001);
                 mustMove |= nextHeight > 0 && (simulatedPageBreak || actualHeight + spacingAfter + nextHeight > y - FootnoteBodyBottom + 0.001) &&
@@ -176,7 +176,7 @@ internal static partial class PdfWriter {
             bool firstLogicalLine = true;
             textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft.ToPoints(), width);
             void NewParagraphPage(bool preserveEmptyPage = false) {
-                double firstBodyHeight = GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], floatingLineGaps?[lineIndex] ?? 0D);
+                double firstBodyHeight = GetTextLineFitHeight(lines[lineIndex], lineHeights[lineIndex], lineIndex == lines.Count - 1, floatingLineGaps?[lineIndex] ?? 0D);
                 if (lineIndex == lines.Count - 1) firstBodyHeight += GetClosingTextPadding(spacingAfter);
                 firstBodyHeight += GetRunningBodyContinuationReservation();
                 bool forcePhysicalPage = SkipColumnsForParagraphOverflow() || AdvancePastPartialColumn(firstBodyHeight);
@@ -283,7 +283,7 @@ internal static partial class PdfWriter {
             }
             while (lineIndex < lines.Count) {
                 if (floatingPageStarts?.Remove(lineIndex) == true && (HasFloatingTables || y < frameStart - 0.001)) NewParagraphPage();
-                double minimumLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], floatingLineGaps?[lineIndex] ?? 0D);
+                double minimumLineHeight = GetTextLineFitHeight(lines[lineIndex], lineHeights[lineIndex], lineIndex == lines.Count - 1, floatingLineGaps?[lineIndex] ?? 0D);
                 if (lineIndex == lines.Count - 1) minimumLineHeight += GetFootnoteClosingTextPadding(lines, lineIndex, spacingAfter);
                 if (minimumLineHeight > GetMaximumParagraphContinuationHeight() + .001D &&
                     !CanOverflowImportedExactLine(paragraphStyle) &&
@@ -295,7 +295,7 @@ internal static partial class PdfWriter {
                 }
                 while (ShouldAdvanceForBlockHeight(minimumLineHeight) || AdvancePastPartialColumn(minimumLineHeight)) {
                     NewParagraphPage();
-                    minimumLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], floatingLineGaps?[lineIndex] ?? 0D) + (lineIndex == lines.Count - 1 ? GetFootnoteClosingTextPadding(lines, lineIndex, spacingAfter) : 0D);
+                    minimumLineHeight = GetTextLineFitHeight(lines[lineIndex], lineHeights[lineIndex], lineIndex == lines.Count - 1, floatingLineGaps?[lineIndex] ?? 0D) + (lineIndex == lines.Count - 1 ? GetFootnoteClosingTextPadding(lines, lineIndex, spacingAfter) : 0D);
                     while (minimumLineHeight > GetMaximumParagraphContinuationHeight() + .001D &&
                         !CanOverflowImportedExactLine(paragraphStyle) &&
                         !CanOverflowImportedPictureLine(lines[lineIndex]) &&
@@ -303,7 +303,7 @@ internal static partial class PdfWriter {
                         if (!TryAdvanceForRunningContent(ref runningAdmission, minimumLineHeight,
                             preserve => NewParagraphPage(preserve), GetMaximumParagraphContinuationHeight()))
                             throw new ArgumentException("Paragraph line height exceeds the available page content height.");
-                        minimumLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], floatingLineGaps?[lineIndex] ?? 0D) +
+                        minimumLineHeight = GetTextLineFitHeight(lines[lineIndex], lineHeights[lineIndex], lineIndex == lines.Count - 1, floatingLineGaps?[lineIndex] ?? 0D) +
                             (lineIndex == lines.Count - 1 ? GetFootnoteClosingTextPadding(lines, lineIndex, spacingAfter) : 0D);
                     }
                 }
@@ -320,7 +320,7 @@ internal static partial class PdfWriter {
                         CanOverflowImportedPictureLine(lines[lineIndex]) ||
                         CanOverlapRunningFooterWithFirstLine(paragraphStyle, minimumLineHeight)))) {
                     NewParagraphPage();
-                    minimumLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], floatingLineGaps?[lineIndex] ?? 0D) + (lineIndex == lines.Count - 1 ? GetFootnoteClosingTextPadding(lines, lineIndex, spacingAfter) : 0D);
+                    minimumLineHeight = GetTextLineFitHeight(lines[lineIndex], lineHeights[lineIndex], lineIndex == lines.Count - 1, floatingLineGaps?[lineIndex] ?? 0D) + (lineIndex == lines.Count - 1 ? GetFootnoteClosingTextPadding(lines, lineIndex, spacingAfter) : 0D);
                     available = y - FootnoteBodyBottom;
                     if (y >= frameStart - 0.001) {
                         segmentSpacingBefore = 0;
@@ -337,7 +337,7 @@ internal static partial class PdfWriter {
                     if (k > lineIndex && floatingPageStarts?.Contains(k) == true) break;
                     double lineHeight = lineHeights[k];
                     double closingPadding = k == lines.Count - 1 ? GetFootnoteClosingTextPadding(lines, lineIndex, spacingAfter) : 0D;
-                    if (heightSum + GetRichLineFrameFitHeight(lines[k], lineHeight, floatingLineGaps?[k] ?? 0D) + closingPadding > roomForText) {
+                    if (heightSum + GetTextLineFitHeight(lines[k], lineHeight, k == lines.Count - 1, floatingLineGaps?[k] ?? 0D) + closingPadding > roomForText) {
                         break;
                     }
 

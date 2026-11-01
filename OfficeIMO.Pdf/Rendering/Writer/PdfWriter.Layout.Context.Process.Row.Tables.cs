@@ -10,9 +10,9 @@ internal static partial class PdfWriter {
             public double Y, Remaining, Consumed;
         }
 
-        private bool RenderColumnTable(ColTable table, List<ColItem> items, ColumnTableCursor state, double xCol, double wCol, double fullColumnHeight, double columnPageStartY, double closingPadding = 0D) {
+        private bool RenderColumnTable(ColTable table, List<ColItem> items, ColumnTableCursor state, double xCol, double wCol, double fullColumnHeight, double columnPageStartY, IReadOnlyList<ColumnGroup> activeGroups, ContainerClosingSpace closingSpace = default) {
         var tbColumn = table.Block;
-        if (closingPadding > 0D) closingPadding += table.Style.SpacingAfter.ToPoints();
+        double closingPadding = closingSpace.Padding + (closingSpace.RequiresFullAdvance ? table.Style.SpacingAfter.ToPoints() : 0D);
         var tableStyle = table.Style;
         StringBuilder? pairedBorders = null;
         var collapsedBorders = tableStyle.CollapseHorizontalCellBorders ? new CollapsedTableBorders() : null;
@@ -40,12 +40,14 @@ internal static partial class PdfWriter {
         int[] viewportRowGroups = GetTableViewportRowGroups(tbColumn, table.Columns);
         double tableSpacingBefore = state.Line == 0 && state.Consumed > 0.001 ? tableStyle.SpacingBefore.ToPoints() : 0D;
         if (state.Line == 0 && tableStyle.KeepTogether) {
-            double keepHeight = tableSpacingBefore + table.CaptionHeight + GetTableRowsHeight(table.RowHeights, 0, table.RowHeights.Length, columnTableRowGap) + tableStyle.SpacingAfter.ToPoints();
-            if (keepHeight > maxContentHeight + 0.001) {
-                throw new ArgumentException("Table height exceeds the available page content height.");
-            }
-
+            double keepHeight = tableSpacingBefore + table.CaptionHeight + GetTableRowsHeight(table.RowHeights, 0, table.RowHeights.Length, columnTableRowGap) +
+                tableStyle.SpacingAfter.ToPoints() + closingSpace.Padding;
             if (keepHeight > state.Remaining + 0.001) {
+                var continuationFrame = GetRowColumnContinuationFrame(activeGroups);
+                double continuationHeight = keepHeight - tableSpacingBefore +
+                    ResolveColumnSpacingBefore(tableStyle.SpacingBefore.ToPoints(), continuationFrame.ConsumedBefore);
+                if (continuationHeight > continuationFrame.Height + 0.001)
+                    throw new ArgumentException("Table height exceeds the available page content height.");
                 if (state.Consumed > 0) return false;
                 state.Remaining = 0;
                 return false;

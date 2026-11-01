@@ -51,7 +51,7 @@ internal static partial class PdfWriter {
 
             var colStates = CreateRowColumnStates(ncols);
             var colItems = BuildRowColumnItems(rb, colWs);
-            var closingColumnPaddings = colItems.Select(BuildClosingColumnGroupPaddings).ToArray();
+            var closingColumnSpaces = colItems.Select(items => BuildClosingColumnGroupSpaces(items, rowSpacingAfter)).ToArray();
             var columnGroups = Enumerable.Range(0, ncols).Select(_ => new List<ColumnGroup>()).ToArray();
             var columnListStructureElementIndexes = new int?[ncols];
             var columnListStructurePages = new LayoutResult.Page?[ncols];
@@ -89,15 +89,17 @@ internal static partial class PdfWriter {
 
             if (rowStyle?.KeepTogether == true) {
                 double rowContentHeight = GetRowMeasurement().PaintExtent;
-                double rowKeepHeight = rowSpacingBefore + rowContentHeight + rowSpacingAfter;
-                double availableHeight = GetFullPageContentHeight();
-                if (rowKeepHeight > availableHeight + 0.001) {
-                    throw new ArgumentException("Row height exceeds the available page content height.");
-                }
-
-                if (y < GetCurrentFramePageStartY() - 0.001 && y - rowKeepHeight < currentOpts.MarginBottom.ToPoints()) {
+                double continuationKeepHeight = rowContentHeight + rowSpacingAfter + GetClosingContainerPadding();
+                double rowKeepHeight = rowSpacingBefore + continuationKeepHeight;
+                while (ShouldAdvanceForBlockHeight(rowKeepHeight)) {
+                    if (continuationKeepHeight > GetMeasuredContinuationFrameHeight() + .001D)
+                        throw new ArgumentException("Row height exceeds the available page content height.");
                     NewPage();
                     rowSpacingBefore = 0D;
+                    rowKeepHeight = continuationKeepHeight;
+                }
+                if (rowKeepHeight > GetFullPageContentHeight() + 0.001) {
+                    throw new ArgumentException("Row height exceeds the available page content height.");
                 }
             }
 
@@ -157,7 +159,8 @@ internal static partial class PdfWriter {
                     while (idx < items.Count && (remain > 0.1 || items[idx] is ColGroupEnd)) {
                         if ((idx & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
                         var it = items[idx];
-                        double closingPadding = closingColumnPaddings[ci][idx + 1];
+                        ContainerClosingSpace closingSpace = closingColumnSpaces[ci][idx + 1];
+                        double closingPadding = closingSpace.Padding;
                         double remainingForFinalItem = remain - closingPadding;
                         xCol = colXs[ci] + it.ColumnXOffset;
                         wCol = it.ColumnWidth;
@@ -208,15 +211,16 @@ internal static partial class PdfWriter {
 
                             if (paragraphStyle?.KeepTogether == true && line == 0 &&
                                 !(lines.Count == 1 && CanOverflowImportedPictureLine(lines[0]))) {
-                                double paragraphHeight = spacingBefore + heights.Sum() + spacingAfter;
+                                double paragraphHeight = spacingBefore + heights.Sum() + spacingAfter + closingPadding;
                                 double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D));
                                 bool importedPictureOverflow = paragraphHeight > availableHeight + .001D &&
                                     lines.Any(HasImportedOverflowPicture);
-                                if (paragraphHeight > availableHeight + 0.001 && !importedPictureOverflow) {
-                                    throw new ArgumentException("Paragraph height exceeds the available page content height.");
-                                }
-
                                 if (paragraphHeight > remain + 0.001 && !importedPictureOverflow) {
+                                    var continuationFrame = GetRowColumnContinuationFrame(activeGroups);
+                                    double continuationHeight = paragraphHeight - spacingBefore +
+                                        ResolveColumnSpacingBefore(GetParagraphSpacingBefore(paragraphStyle), continuationFrame.ConsumedBefore);
+                                    if (continuationHeight > continuationFrame.Height + 0.001)
+                                        throw new ArgumentException("Paragraph height exceeds the available page content height.");
                                     if (consumed > 0) break;
                                     remain = 0;
                                     break;
@@ -346,13 +350,14 @@ internal static partial class PdfWriter {
                             double leading = listItem.Leading;
                             double spacingBefore = line == 0 ? ResolveColumnSpacingBefore(listItem.SpacingBefore, consumed) : 0D;
                             if (line == 0 && listItem.KeepTogether && listItem.IsFirstInKeepGroup) {
-                                double keepGroupHeight = listItem.KeepGroupHeight - listItem.SpacingBefore + spacingBefore;
-                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D));
-                                if (keepGroupHeight > availableHeight + 0.001) {
-                                    throw new ArgumentException("List height exceeds the available page content height.");
-                                }
-
+                                double keepGroupHeight = listItem.KeepGroupHeight - listItem.SpacingBefore + spacingBefore +
+                                    closingColumnSpaces[ci][idx + listItem.KeepGroupItemCount].Padding;
                                 if (keepGroupHeight > remain + 0.001) {
+                                    var continuationFrame = GetRowColumnContinuationFrame(activeGroups);
+                                    double continuationHeight = keepGroupHeight - spacingBefore +
+                                        ResolveColumnSpacingBefore(listItem.SpacingBefore, continuationFrame.ConsumedBefore);
+                                    if (continuationHeight > continuationFrame.Height + 0.001)
+                                        throw new ArgumentException("List height exceeds the available page content height.");
                                     if (consumed > 0) break;
                                     remain = 0;
                                     break;
@@ -479,7 +484,7 @@ internal static partial class PdfWriter {
                             var state = new ColumnTableCursor { Index = idx, Line = line, Subline = subline, Y = yCol, Remaining = remain, Consumed = consumed };
                             bool completed = RenderColumnTable(table, items, state, xCol, wCol,
                                 GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D)),
-                                GetCurrentFramePageStartY() - activeGroups.Sum(group => group.Style?.GetFragmentTopPadding(group.Decoration?.IsContinuation == true) ?? 0D), closingPadding);
+                                GetCurrentFramePageStartY() - activeGroups.Sum(group => group.Style?.GetFragmentTopPadding(group.Decoration?.IsContinuation == true) ?? 0D), activeGroups, closingSpace);
                             // A merged-cell tail can advance without changing the row cursor.
                             // Repainting only a repeated header consumes space but does not advance content.
                             if (pendingSpanLines > 0 &&
@@ -549,6 +554,10 @@ internal static partial class PdfWriter {
                             RecordFlowPlacement(yCol);
                             ReserveImageNavigationTarget(pageImage);
                             currentPage!.Images.Add(pageImage);
+                            if (activeContainerScopes.Count > 0 || activeGroups.Any(group => group.Decoration != null)) {
+                                pageImage.InlineDrawToken = AllocateInlineImageDrawToken(currentPage!);
+                                sb.Append(pageImage.InlineDrawToken);
+                            }
                             AddImageLinkAnnotation(ib2, imageStyle, pageImage, xImg, yCol - ciimg.Height, ciimg.Width, ciimg.Height);
                             pageDirty = true;
                             yCol -= ciimg.Height + imageStyle.SpacingAfter.ToPoints(); remain -= needed; consumed += needed; idx++;

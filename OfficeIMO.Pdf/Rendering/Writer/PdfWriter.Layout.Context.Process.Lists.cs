@@ -27,7 +27,7 @@ internal static partial class PdfWriter {
             void AdmitKeptListFrame() {
                 if (prepared.Style?.KeepTogether != true) return;
                 while (true) {
-                    double fitHeight = MeasurePreparedListHeight(prepared, frameFit: true);
+                    double fitHeight = MeasurePreparedListAdmissionHeight(prepared, GetClosingContainerSpace());
                     if (fitHeight > GetMaximumBlockContinuationHeight() + .001D) {
                         if (prepared.Style?.KeepTogetherOverflow is null or PdfKeepTogetherOverflowBehavior.Reject) {
                             if (TryAdvanceForRunningContent(ref runningAdmission, fitHeight,

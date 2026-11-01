@@ -26,7 +26,7 @@ internal static partial class PdfWriter {
             double contentWidth = frame.ContentWidth;
 
             double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints());
-            var firstVisual = MeasureContainerFirstVisual(container, style, outerX + style.PaddingX.ToPoints(), contentWidth, GetClosingContainerPadding());
+            var firstVisual = MeasureContainerFirstVisual(container, style, outerX + style.PaddingX.ToPoints(), contentWidth, GetClosingContainerSpace());
             double firstVisualHeight = firstVisual.Height;
             double minimumStartHeight = spacingBefore + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset.ToPoints() + firstVisualHeight;
             double firstContentHeight = minimumStartHeight - spacingBefore;
@@ -37,7 +37,7 @@ internal static partial class PdfWriter {
                 parentLeft = currentOpts.MarginLeft.ToPoints(); parentWidth = width;
                 frame = ResolveContainerFrame(container, style, parentLeft, parentWidth);
                 outerWidth = frame.Width; outerX = frame.X; contentWidth = frame.ContentWidth;
-                firstVisual = MeasureContainerFirstVisual(container, style, frame.X + style.PaddingX.ToPoints(), frame.ContentWidth, GetClosingContainerPadding());
+                firstVisual = MeasureContainerFirstVisual(container, style, frame.X + style.PaddingX.ToPoints(), frame.ContentWidth, GetClosingContainerSpace());
                 firstVisualHeight = firstVisual.Height;
                 minimumStartHeight = spacingBefore + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset.ToPoints() + firstVisualHeight;
                 firstContentHeight = minimumStartHeight - spacingBefore;
@@ -285,18 +285,22 @@ internal static partial class PdfWriter {
                 return;
             }
 
-            var decoration = new StringBuilder();
             bool top = scope.Style.RepeatFragmentDecoration || !scope.IsContinuation;
             bool end = scope.Style.RepeatFragmentDecoration || !continues;
             if (scope.Style.Background.HasValue) {
-                DrawRoundedRowFill(decoration, scope.Style.Background.Value, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, scope.Style.CornerRadius.ToPoints(), top, top, end, end, emitGeneratedStructure);
+                var background = new StringBuilder();
+                DrawRoundedRowFill(background, scope.Style.Background.Value, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, scope.Style.CornerRadius.ToPoints(), top, top, end, end, emitGeneratedStructure);
+                sb.Insert(scope.InsertionIndex, background.ToString());
+                pageDirty = true;
             }
 
-            DrawPanelBorder(decoration, scope.Style, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, emitGeneratedStructure,
+            // Child fills can reach the perimeter when padding is zero, so the
+            // background stays behind them and the border paints after the content.
+            int borderStart = sb.Length;
+            DrawPanelBorder(sb, scope.Style, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, emitGeneratedStructure,
                 top, end && !scope.MoveTrailingSeparatorToNextFrame);
-            DrawContainerTableFrame(decoration, scope, bottom, fragmentHeight, top, end);
-            if (decoration.Length > 0) {
-                sb.Insert(scope.InsertionIndex, decoration.ToString());
+            DrawContainerTableFrame(sb, scope, bottom, fragmentHeight, top, end);
+            if (sb.Length > borderStart) {
                 pageDirty = true;
             }
         }
