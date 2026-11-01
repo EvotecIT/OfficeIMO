@@ -231,6 +231,8 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException("The presentation is read-only and cannot be saved.");
             }
             ApplySignatureMutationPolicy();
+            PersistFooterDefinitions();
+            RefreshFooterFields();
             foreach (PowerPointSlide slide in _slides) {
                 slide.Save();
             }

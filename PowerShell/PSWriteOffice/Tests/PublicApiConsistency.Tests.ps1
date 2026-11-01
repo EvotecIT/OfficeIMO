@@ -85,9 +85,11 @@ Describe 'PSWriteOffice public API consistency' {
             # These semantic blocks form a larger composition and have no single native object output.
             'Add-OfficePowerPointCard'
             'Add-OfficePowerPointColumn'
+            'Add-OfficePowerPointFooter'
             'Add-OfficePowerPointKpi'
             'Add-OfficePowerPointLocation'
             'Add-OfficePowerPointQuote'
+            'Add-OfficePowerPointSlideNumber'
             'Add-OfficePowerPointStep'
         )
         $missing = @(

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Management.Automation;
+using OfficeIMO;
 using OfficeIMO.PowerPoint;
 using PSWriteOffice.Foundation;
 
@@ -29,6 +30,7 @@ internal sealed class PowerPointContentScope : IDisposable {
     internal PowerPointContentScope Slide { get; }
     internal PowerPointSlide NativeSlide => Slide._materialization!.Slide;
     internal List<PowerPointLayoutBlock> Blocks { get; } = new();
+    internal Dictionary<OfficeAlignment, PowerPointLayoutFooter> Footers { get; } = new();
 
     internal static PowerPointContentScope? Current {
         get {
@@ -69,6 +71,7 @@ internal sealed class PowerPointContentScope : IDisposable {
         // Validate before transferring ownership; a rejected column rolls back its own native frames and notes.
         var block = new PowerPointLayoutColumn(title, column.Blocks);
         Blocks.Add(block);
+        foreach (var footer in column.Footers) Footers[footer.Key] = footer.Value;
         _bodies.AddRange(column._bodies);
         _tables.AddRange(column._tables);
         _figures.AddRange(column._figures);
@@ -77,6 +80,7 @@ internal sealed class PowerPointContentScope : IDisposable {
 
     internal IReadOnlyList<PowerPointSlide> Complete(PowerPointContentPlanSlide plan, PowerPointCompositionOptions options,
         Action<IReadOnlyList<PowerPointSlide>>? finalize = null) {
+        plan.FooterTemplates = Slide.Footers;
         foreach (var body in _bodies) body.Freeze();
         foreach (var table in _tables) table.FreezeNativeRows();
         var result = _materialization!.Complete(plan, options, finalize);

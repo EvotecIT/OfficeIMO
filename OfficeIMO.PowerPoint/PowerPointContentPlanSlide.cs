@@ -58,12 +58,14 @@ namespace OfficeIMO.PowerPoint {
         internal override int ContentItemCount => Blocks.Count;
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) => deck.AddContentSlide(this);
 
+        internal Dictionary<OfficeAlignment, PowerPointLayoutFooter>? FooterTemplates { get; set; }
+
         internal PowerPointLayoutSlide ToLayout() {
             var slide = new PowerPointLayoutSlide {
                 Title = Title, Subtitle = Subtitle, Layout = Layout, Eyebrow = Eyebrow,
                 MapLabel = MapLabel, TemplateLayout = TemplateLayout,
                 Notes = Notes, Takeaway = Takeaway, SourceNote = SourceNote,
-                NoFooter = NoFooter, NoSlideNumber = NoSlideNumber,
+                NoFooter = NoFooter, NoSlideNumber = NoSlideNumber, FooterTemplates = FooterTemplates,
                 HasFixedContent = Blocks.Count == 0 && MaterializedSlide?.Shapes.Count > 0
             };
             slide.Blocks.AddRange(Blocks);

@@ -2589,7 +2589,7 @@
           ]
         }
       ],
-      "notes": "Replaces Add-OfficePowerPointDesignerDeck -FooterLeft/-FooterRight. Content block takes PowerPointText and PowerPointSlideNumber.",
+      "notes": "Replaces Add-OfficePowerPointDesignerDeck -FooterLeft/-FooterRight. Content takes PowerPointText and PowerPointSlideNumber and runs once. Deck slots update existing slides; slide overrides repeat across continuations. Saved definitions survive reopening and appending. NoFooter hides text independently of NoSlideNumber. Explicit run formatting and links are retained.",
       "examples": [
         {
           "title": "Add a footer to every slide",
@@ -2636,7 +2636,7 @@
           "code": "New-OfficePowerPoint -Path .\\Reports\\Board-Pack.pptx -Theme Boardroom {\n    PowerPointFooter {\n        PowerPointText 'Board pack, November 2026 | Slide '\n        PowerPointSlideNumber\n    }\n    PowerPointSlide -Title 'Board pack' -Subtitle 'November 2026'\n    PowerPointSlide -Title 'Agenda' {\n        PowerPointList 'Financial results', 'Risk register', 'Approvals'\n    }\n}"
         }
       ],
-      "notes": "Used inside PowerPointFooter. Writes to the native slide-number placeholder."
+      "notes": "Used inside PowerPointFooter. Writes a native slide-number field; IncludeTotal adds the physical slide count. Saving refreshes managed footer values after append or reorder, leaving ordinary authored fields unchanged."
     },
     {
       "name": "Add-OfficePowerPointTextBox",
@@ -5826,7 +5826,7 @@
         "Preview": null
       },
       "hint": "New-OfficePowerPoint -Path .\\Deck.pptx -Accent '#0F766E' -Purpose 'monthly service brief' { PowerPointSlide -Title 'Service Review' }",
-      "reason": "Every slide is rendered by the designer engine as it is written, so there is no separate plan-render step. Brand and direction options moved to New-OfficePowerPoint so ordinary slides share the design. -Name comes from -Theme; -NoApplyTheme is the default behavior of Open-OfficePowerPoint (opening never restyles); -Preview is replaced by Get-OfficePowerPointSlide -Summary, which reports each slide's chosen layout; -AlternativeCount was an internal search-width knob whose result is fixed by -Seed."
+      "reason": "Every slide is rendered by the designer engine as it is written, so there is no separate plan-render step. Brand and direction options moved to New-OfficePowerPoint so ordinary slides share the design. -Name comes from -Theme; -NoApplyTheme is the default behavior of Open-OfficePowerPoint (opening never restyles); -Preview is replaced by Get-OfficePowerPointSlide -Summary, which reports each slide's chosen layout; -AlternativeCount was an internal search-width knob whose result is fixed by -Seed. FooterLeft and FooterRight become PowerPointFooter slots; rich content runs once, slide overrides continue across physical slides, and managed slide numbers/counts refresh when the reopened deck is saved."
     },
     {
       "old": "Add-OfficePowerPointImage",

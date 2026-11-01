@@ -35,6 +35,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Explicit footer text; null means the deck title, empty turns the footer text off.</summary>
         internal string? FooterText { get; set; }
 
+        internal Dictionary<OfficeAlignment, PowerPointLayoutFooter> Footers { get; } = new();
+
         internal bool ShowSlideNumber { get; set; } = true;
 
         /// <summary>Suppress footer text throughout a composed deck.</summary>

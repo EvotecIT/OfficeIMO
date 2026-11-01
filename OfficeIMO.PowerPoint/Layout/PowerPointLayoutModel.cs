@@ -58,6 +58,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Caption or source line under the content (caption style).</summary>
         internal string? SourceNote { get; set; }
+        internal Dictionary<OfficeAlignment, PowerPointLayoutFooter>? FooterTemplates { get; set; }
 
         /// <summary>A specific template layout to use instead of the mapped built-in layout.</summary>
         internal PowerPointTemplateLayoutInfo? TemplateLayout { get; set; }
@@ -97,6 +98,7 @@ namespace OfficeIMO.PowerPoint {
                 Layout = Layout,
                 HasFixedContent = HasFixedContent,
                 NoFooter = NoFooter,
+                FooterTemplates = FooterTemplates,
                 NoSlideNumber = NoSlideNumber,
                 FooterRightText = FooterRightText,
                 IsFirst = false,
