@@ -2320,7 +2320,10 @@ hidden layers are removed without a mark and without touching what overlaps them
 (whole-block search takes the hidden line that holds the match). Tagged `Alt`,
 `ActualText`, `E` and `TU` entries holding the searched text are removed, in property
 lists and inline marked content alike, and the output is refused if those entries or
-a Form XObject that no page paints still hold it.
+a Form XObject that no page paints still hold it. A section that loses content loses its
+alternate text, however it is stored and whichever content stream closes it; a named
+property list stays only for sections that still use it. A page-scoped search leaves a
+shared list with the pages it did not cover.
 
 A search mark keeps its full height, but only image pixels follow that rectangle.
 Vector paths and annotations are removed when they overlap the matched glyphs, so a
