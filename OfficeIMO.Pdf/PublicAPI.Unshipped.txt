@@ -1,4 +1,6 @@
 #nullable enable
+OfficeIMO.Pdf.PdfTableStyle.CellHeaderScopes.get -> System.Collections.Generic.Dictionary<(int Row, int Column), OfficeIMO.Pdf.PdfCanvasTableHeaderScope>?
+OfficeIMO.Pdf.PdfTableStyle.CellHeaderScopes.set -> void
 OfficeIMO.Pdf.PdfContentBuilder.Subtitle(string! text, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.Title(string! text, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.OfficeColor? color = null, OfficeIMO.Pdf.PdfHeadingStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfCreateOptions.EmbedDefaultFonts.get -> bool

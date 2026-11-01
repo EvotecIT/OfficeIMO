@@ -797,6 +797,7 @@ public partial class PdfTableStyle {
                 clone.CellPaddings[cellPadding.Key] = cellPadding.Value.Clone();
             }
         }
+        clone.CellHeaderScopes = CellHeaderScopes;
         if (CellAlignments != null) clone.CellAlignments = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign>(CellAlignments);
         if (CellVerticalAlignments != null) clone.CellVerticalAlignments = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellVerticalAlign>(CellVerticalAlignments);
         if (Alignments != null) clone.Alignments = new System.Collections.Generic.List<PdfColumnAlign>(Alignments);

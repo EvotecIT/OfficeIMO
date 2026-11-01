@@ -334,14 +334,16 @@ internal static partial class PdfWriter {
         }
 
         private void RenderCanvasTableCellText(PdfCanvasTableItem item, PdfTableStyle style, TableCellLayout cell, int rowIndex, int columnIndex, bool rowIsHeader, bool rowIsFooter, bool rowUsesBold, double cellX, double cellTop, double cellBottom, double cellWidth, double cellHeight, double fontSize, double leading, double runFontSizeScale, double cellYFromTop) {
+            string headerScope = GetTableCellHeaderScope(style, rowIndex, columnIndex, rowIsHeader);
+            bool cellIsHeader = headerScope.Length != 0;
             double textClipBleed = style.ClipTextToCellBounds ? 0D : TableCellClipBleed;
             TableCellContentFrame contentFrame = GetTableCellContentFrame(cell, cellX, cellTop, cellWidth, cellHeight);
             if (cell.TextRotation != 0) {
                 PdfColumnAlign orientedAlign = GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text);
                 global::OfficeIMO.OfficeColor? orientedColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
                 var orientedParagraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, cell.LinkUri, cell.LinkDestinationName), MapTableCellAlignment(orientedAlign), orientedColor);
-                string orientedRole = rowIsHeader ? "TH" : "TD";
-                int? orientedId = RegisterTextStructureElement(orientedRole, _canvasStructureParentElement, rowIsHeader ? "Column" : string.Empty, cell.ColumnSpan, cell.RowSpan);
+                string orientedRole = cellIsHeader ? "TH" : "TD";
+                int? orientedId = RegisterTextStructureElement(orientedRole, _canvasStructureParentElement, headerScope, cell.ColumnSpan, cell.RowSpan);
                 RenderOrientedTableCellContent(cell, style, rowIndex, columnIndex, contentFrame, cellX, cellTop, cellWidth, cellHeight,
                     GetTableRowFont(currentOpts, rowUsesBold), fontSize, leading, runFontSizeScale, orientedParagraph, orientedRole, orientedId,
                     diagnosticTransform: CreateCanvasRotationTransform(item.X, currentOpts.PageHeight.ToPoints() - item.Y - item.Height, item.Width, item.Height, item.RotationAngle));
@@ -421,9 +423,9 @@ internal static partial class PdfWriter {
                     paragraph.Align, firstBaseline, contentFrame.Left + padLeft, innerWidth,
                     inkClip.Left, inkClip.Top - inkClip.Height, inkClip.Width, inkClip.Height, leading, fontSize, currentOpts, cellFont);
             int? markedContentId = RegisterTextStructureElement(
-                rowIsHeader ? "TH" : "TD",
+                cellIsHeader ? "TH" : "TD",
                 _canvasStructureParentElement,
-                rowIsHeader ? "Column" : string.Empty,
+                headerScope,
                 cell.ColumnSpan,
                 cell.RowSpan);
             WriteClippedRichParagraph(
@@ -442,7 +444,7 @@ internal static partial class PdfWriter {
                 inkClip.Height + (textClipBleed * 2D),
                 contentFrame.Left + padLeft,
                 innerWidth,
-                structureType: rowIsHeader ? "TH" : "TD",
+                structureType: cellIsHeader ? "TH" : "TD",
                 markedContentId: markedContentId,
                 structurePage: currentPage,
                 lineAlignments: visibleAlignments,
