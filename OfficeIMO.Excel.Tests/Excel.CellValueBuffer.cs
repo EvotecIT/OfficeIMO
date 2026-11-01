@@ -195,6 +195,100 @@ namespace OfficeIMO.Tests {
             Assert.Equal(Widths(materializeFirst: true), Widths(materializeFirst: false));
         }
 
+        private static CellFormat FormatOf(ExcelDocument document, string reference) {
+            var workbookPart = document.OpenXmlDocument.WorkbookPart!;
+            Cell cell = document.Sheets[0].WorksheetPart.Worksheet!.Descendants<Cell>()
+                .Single(candidate => candidate.CellReference?.Value == reference);
+            return workbookPart.WorkbookStylesPart!.Stylesheet!.CellFormats!.Elements<CellFormat>()
+                .ElementAt((int)cell.StyleIndex!.Value);
+        }
+
+        [Fact]
+        public void CellValueBuffer_CellFormatsStayWithBufferedCells() {
+            using MemoryStream output = SaveWorkbook(document => {
+                ExcelSheet styled = document.AddSheet("Styled");
+                ExcelSheet plain = document.AddSheet("Plain");
+                styled.CellValue(1, 1, "Header");
+                styled.CellBold(1, 1);
+                WriteBufferedRows(styled, firstRow: 2, rows: 200);
+                styled.FormatCell(150, 2, "0.000");
+                styled.CellBackground(150, 3, "#DDEBF7");
+                styled.CellBold(160, 1);
+                styled.CellValue(160, 1, "overwritten");
+                WriteBufferedRows(plain, firstRow: 1, rows: 100);
+                Assert.True(document.HasPendingDirectCellValues);
+            }, options: null);
+
+            using ExcelDocument reopened = ExcelDocument.Load(output);
+            Assert.Empty(reopened.ValidateOpenXml());
+            var styles = reopened.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+            Assert.NotNull(styles.Fonts!.Elements<Font>().ElementAt((int)FormatOf(reopened, "A1").FontId!.Value).Bold);
+            Assert.NotNull(styles.Fonts!.Elements<Font>().ElementAt((int)FormatOf(reopened, "A160").FontId!.Value).Bold);
+            CellFormat dated = FormatOf(reopened, "C150");
+            Assert.Equal(14U, dated.NumberFormatId!.Value);
+            Assert.NotEqual(0U, dated.FillId!.Value);
+            Assert.Contains(reopened.Sheets[0].EnumerateCells(), cell => cell.Row == 160 && Equals(cell.Value, "overwritten"));
+        }
+
+        [Fact]
+        public void CellValueBuffer_HoldsMoreFormatsThanTwelveBitsCanIndex() {
+            const int formats = 4200;
+            using MemoryStream output = SaveWorkbook(document => {
+                ExcelSheet sheet = document.AddSheet("Data");
+                for (int row = 1; row <= formats; row++) {
+                    sheet.CellValue(row, 1, row);
+                    sheet.FormatCell(row, 1, "0\"" + row + "\"");
+                }
+
+                Assert.True(document.HasPendingDirectCellValues);
+            }, options: null);
+
+            using ExcelDocument reopened = ExcelDocument.Load(output);
+            var stylesheet = reopened.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+            var cells = reopened.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet!.Descendants<Cell>().ToArray();
+            CellFormat[] cellFormats = stylesheet.CellFormats!.Elements<CellFormat>().ToArray();
+            var codes = stylesheet.NumberingFormats!.Elements<NumberingFormat>().ToDictionary(format => format.NumberFormatId!.Value, format => format.FormatCode!.Value);
+            Assert.Equal(formats, cells.Length);
+            Assert.Equal(formats, cells.Select(cell => cell.StyleIndex!.Value).Distinct().Count());
+            Assert.Equal("0\"" + formats + "\"", codes[cellFormats[(int)cells[formats - 1].StyleIndex!.Value].NumberFormatId!.Value]);
+        }
+
+        [Fact]
+        public void CellValueBuffer_RowSettingsTablesRulesChartsAndPropertiesStayOutOfTheDom() {
+            using MemoryStream output = SaveWorkbook(document => {
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Amount");
+                sheet.CellValue(1, 3, "When");
+                WriteBufferedRows(sheet, firstRow: 2, rows: 200);
+                sheet.SetRowHeight(150, ExcelColumnWidth.Characters(30));
+                sheet.SetRowHidden(151, true);
+                sheet.AddTable("A1:C201", true, "Sales", ExcelTableStyle.TableStyleMedium2);
+                sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
+                    Range = "B2:B201",
+                    Type = "expression",
+                    Formulas = new[] { "B2>10" },
+                    DifferentialFillColorArgb = "C6EFCE"
+                });
+                sheet.AddChart(OfficeChartType.Line, new ExcelChartDataRange("Data", 1, 2, 200, 1, true), new ExcelChartOptions { Row = 1, Column = 6 });
+                document.BuiltinDocumentProperties.Title = "Sales report";
+                Assert.True(document.HasPendingDirectCellValues);
+            }, options: null);
+
+            using ExcelDocument reopened = ExcelDocument.Load(output);
+            Assert.Empty(reopened.ValidateOpenXml());
+            Assert.Equal("Sales report", reopened.BuiltinDocumentProperties.Title);
+            var part = reopened.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single();
+            Assert.Equal("Sales", part.TableDefinitionParts.Single().Table!.Name!.Value);
+            Assert.Single(part.DrawingsPart!.ChartParts);
+            Row[] rows = part.Worksheet!.Descendants<Row>().ToArray();
+            Assert.True(rows[149].CustomHeight!.Value);
+            Assert.True(rows[150].Hidden!.Value);
+            ConditionalFormattingRule rule = part.Worksheet.Descendants<ConditionalFormattingRule>().Single();
+            Assert.NotNull(reopened.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.DifferentialFormats!
+                .Elements<DifferentialFormat>().ElementAt((int)rule.FormatId!.Value));
+        }
+
         [Fact]
         public void CellValueBuffer_FreezeAndFilterStayOnTheDirectWriter() {
             using ExcelDocument document = ExcelDocument.Create();

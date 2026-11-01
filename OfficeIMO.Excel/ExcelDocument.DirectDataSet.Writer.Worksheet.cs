@@ -352,6 +352,10 @@ namespace OfficeIMO.Excel {
                     writer.Write(metadata!.Structure!.LegacyDrawingXml);
                 }
 
+                if (!string.IsNullOrEmpty(metadata?.Structure?.TablePartsXml)) {
+                    writer.Write(metadata!.Structure!.TablePartsXml);
+                }
+
                 if (sheet.HasTable) {
                     writer.Write("<tableParts count=\"1\"><tablePart r:id=\"");
                     WriteEscaped(writer, tableRelationshipId ?? "rId1");

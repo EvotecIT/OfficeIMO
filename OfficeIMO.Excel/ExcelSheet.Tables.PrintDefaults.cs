@@ -1,3 +1,4 @@
+using System.Threading;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
@@ -68,7 +69,9 @@ namespace OfficeIMO.Excel {
             }
 
             if (lastColumn == 0) return 0D;
-            IReadOnlyList<ExcelColumnInfo> columns = GetColumnDefinitions();
+            IReadOnlyList<ExcelColumnInfo> columns = _excelDocument.HasPendingDirectCellValues
+                ? GetColumnDefinitionsCore(CancellationToken.None)
+                : GetColumnDefinitions();
             double defaultWidth = DefaultColumnWidth is ExcelColumnWidth configured && configured.ToCharacters(this) > 0D ? configured.ToCharacters(this) : 8.43D;
             double width = 0D;
             for (int column = 1; column <= lastColumn; column++) {

@@ -137,7 +137,7 @@ namespace OfficeIMO.Excel {
             // path, which must invoke that callback only once.
             bool appends = buffer.CanAdd(row, column);
             int existingCell = appends ? -1 : buffer.FindCell(row, column);
-            if (!appends && existingCell < 0) {
+            if (!appends && (existingCell < 0 || _worksheetPart.TableDefinitionParts.Any())) {
                 MaterializePendingDirectCellValues();
                 return false;
             }

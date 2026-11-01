@@ -400,6 +400,10 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (var tableDefinitionPart in worksheetPart.TableDefinitionParts) {
+                if (allowWorksheetParts) {
+                    break;
+                }
+
                 if (!sheetModel.HasTable) {
                     skipReason = "Worksheet contains table metadata outside the direct table model.";
                     return false;
@@ -428,6 +432,7 @@ namespace OfficeIMO.Excel {
             string? mergeCellsXml = null;
             string? hyperlinksXml = null;
             string? legacyDrawingXml = null;
+            string? tablePartsXml = null;
             IReadOnlyDictionary<int, string>? rowAttributes = null;
             IReadOnlyList<DirectOverlayCell> overlayCells = Array.Empty<DirectOverlayCell>();
             List<string>? conditionalFormattingXml = null;
@@ -497,6 +502,9 @@ namespace OfficeIMO.Excel {
                         break;
                     case TableParts when sheetModel.HasTable:
                         break;
+                    case TableParts tableParts when allowWorksheetParts:
+                        tablePartsXml = tableParts.OuterXml;
+                        break;
                     default:
                         skipReason = "Worksheet contains unsupported element '" + child.LocalName + "' for the direct DataSet package writer.";
                         return false;
@@ -515,6 +523,7 @@ namespace OfficeIMO.Excel {
                 && hyperlinksXml == null
                 && legacyDrawingXml == null
                 && rowAttributes == null
+                && tablePartsXml == null
                 && overlayCells.Count == 0
                 && (conditionalFormattingXml == null || conditionalFormattingXml.Count == 0)
                 && (postDataValidationXml == null || postDataValidationXml.Count == 0)) {
@@ -532,9 +541,9 @@ namespace OfficeIMO.Excel {
                 drawingXml,
                 postDataValidationXml?.ToArray() ?? Array.Empty<string>(),
                 overlayCells,
-                columnsXml == null && mergeCellsXml == null && hyperlinksXml == null && legacyDrawingXml == null && rowAttributes == null
+                columnsXml == null && mergeCellsXml == null && hyperlinksXml == null && legacyDrawingXml == null && tablePartsXml == null && rowAttributes == null
                     ? null
-                    : new DirectWorksheetStructure(columnsXml, mergeCellsXml, hyperlinksXml, legacyDrawingXml, rowAttributes));
+                    : new DirectWorksheetStructure(columnsXml, mergeCellsXml, hyperlinksXml, legacyDrawingXml, tablePartsXml, rowAttributes));
             return true;
         }
 

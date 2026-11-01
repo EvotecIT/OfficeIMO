@@ -16,6 +16,7 @@ namespace OfficeIMO.Excel {
 
             if (plan.Columns.Count > 0) {
                 AutoFitColumnsInternal(plan, mode, ct);
+                RefreshTablePrintDefaults();
             }
 
             return true;

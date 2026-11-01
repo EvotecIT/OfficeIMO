@@ -57,7 +57,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Resolves a row height without applying column padding or column-width rounding.</summary>
         internal double ToRowPoints(ExcelSheet sheet) => _isLength ? _length.ToPoints()
-            : _characters * ExcelColumnGeometry.GetMaximumDigitWidth(sheet.WorksheetPart) * 72D / 96D;
+            : _characters * ExcelColumnGeometry.GetMaximumDigitWidth(sheet.DeferredMetadataWorksheetPart) * 72D / 96D;
 
         /// <inheritdoc />
         public bool Equals(ExcelColumnWidth other) => _isLength == other._isLength

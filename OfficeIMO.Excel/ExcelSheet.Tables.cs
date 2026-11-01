@@ -561,7 +561,6 @@ namespace OfficeIMO.Excel {
         /// </summary>
         private void AlignNumericTableHeaders(string range) {
             if (!ExcelA1.TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) || lastRow <= firstRow) return;
-            MaterializePendingDirectCellValues();
             int lastSampledRow = Math.Min(lastRow, firstRow + 1000);
             var numericColumns = new List<int>();
             Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
@@ -569,7 +568,7 @@ namespace OfficeIMO.Excel {
                     bool sawNumber = false;
                     bool onlyNumbers = true;
                     for (int row = firstRow + 1; row <= lastSampledRow && onlyNumbers; row++) {
-                        Cell? cell = TryGetExistingCell(row, column);
+                        Cell? cell = InspectTableCell(row, column);
                         if (cell == null) continue;
                         DocumentFormat.OpenXml.Spreadsheet.CellValues? type = cell.DataType?.Value;
                         bool numericType = type == null ||
@@ -594,7 +593,7 @@ namespace OfficeIMO.Excel {
             });
 
             foreach (int column in numericColumns) {
-                if (string.IsNullOrWhiteSpace(GetCellStyle(firstRow, column).HorizontalAlignment)) {
+                if (!HasHorizontalAlignment(firstRow, column)) {
                     CellAlign(firstRow, column, ExcelHorizontalAlignment.Right);
                 }
             }
@@ -612,8 +611,13 @@ namespace OfficeIMO.Excel {
 
             string resolvedName = string.Empty;
             WriteLock(() => {
-                if (_excelDocument.HasPendingDirectCellValues) {
+                IReadOnlyList<string>? pendingHeaders = null;
+                bool pendingTable = hasHeader && TryGetPendingTableHeaders(range, out pendingHeaders);
+                if (_excelDocument.HasPendingDirectCellValues && !pendingTable) {
                     MaterializeDeferredDataSetImportIfNeeded();
+                } else if (pendingTable) {
+                    ensureRangeCellsExist = false;
+                    headerNames ??= pendingHeaders;
                 }
 
                 if (_excelDocument.ShouldMaterializeDeferredDirectTabularSaveCandidateForTable(this, range, hasHeader)) {
