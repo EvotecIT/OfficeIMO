@@ -44,6 +44,24 @@ public sealed class PublisherKerningWritingTests {
         Assert.Equal(source, document.ToPubBytes());
     }
 
+    [Theory]
+    [InlineData(0, 8D)]
+    [InlineData(1, null)]
+    public void Selected_style_omissions_keep_native_character_defaults_instead_of_global_explicit_values(int selected, double? expected) {
+        byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture(
+            "NativeComparison/StyleKerningDefaults/native-selected-" + selected + ".pub"));
+        PublisherDocument document = PublisherDocument.Load(source);
+        PublisherTextStory story = Assert.Single(document.TextStories);
+        Assert.Contains("Publisher text", story.Text);
+        Assert.All(story.Paragraphs.SelectMany(paragraph => paragraph.Runs), run => {
+            Assert.Equal(expected, run.AutomaticPairKerningThreshold);
+            Assert.Equal(selected == 0, run.Strikethrough);
+            Assert.Equal(selected == 0 ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, run.UnderlineStyle);
+            Assert.Equal(selected == 0 ? OfficeTextBaseline.Superscript : OfficeTextBaseline.Normal, run.Baseline);
+        });
+        Assert.Equal(source, document.ToPubBytes());
+    }
+
     [Fact]
     public void Explicit_threshold_set_reset_and_unspecified_saves_keep_text_opaque_fields_and_neighboring_stories() {
         byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/TextPairKerning/native-threshold-8.pub"));

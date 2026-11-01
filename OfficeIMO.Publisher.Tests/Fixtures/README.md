@@ -314,5 +314,14 @@ visibly identical runs.
 before native save/reopen. Thresholds 0, 8, 12 and 14 points distinguish disabled,
 below-size, equal-size and above-size kerning in Arial 12 pt. Publisher removes
 the observed 14-point default when saving. These files qualify scalar recovery
-and source editing; managed threshold-aware rendering remains open. Their
-provenance records the exact source and retained file hashes.
+and source editing; effective omitted defaults and native mixed-run rendering
+remain open. Their provenance records the exact source and retained file hashes.
+
+`StyleKerningDefaults` contains two source-derived controls from the independent
+`Text` publication. Global STSH pair zero explicitly enables an 8-point threshold,
+strikethrough, single underline and superscript. Selecting pair one, which omits
+those fields, resets to its own native defaults. Publisher's getters report a
+14-point threshold with no strike, underline or superscript before and after
+native save/reopen. The retained native-resaved PUB/PDF files protect selected
+snapshot decoding and byte-exact unmodified source saves; they do not qualify
+template-free creation or repair-free opening.

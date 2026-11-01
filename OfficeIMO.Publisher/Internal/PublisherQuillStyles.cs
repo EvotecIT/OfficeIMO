@@ -95,6 +95,9 @@ internal sealed class PublisherCharacterStyle {
     public uint? LanguageId { get; internal set; }
     public double? Size { get; internal set; }
     public double? AutomaticPairKerningThreshold { get; internal set; }
+    // A selected STSH snapshot supplies its omitted native default too. Keep
+    // that metadata nullable without inheriting an unrelated global threshold.
+    internal bool HasAutomaticPairKerningSetting { get; set; }
     public uint? Font { get; internal set; }
     public uint? Color { get; internal set; }
     public bool? Bold { get; internal set; }
@@ -107,7 +110,9 @@ internal sealed class PublisherCharacterStyle {
         Bold = Bold ?? fallback.Bold, Italic = Italic ?? fallback.Italic, Strikethrough = Strikethrough ?? fallback.Strikethrough,
         UnderlineStyle = UnderlineStyle ?? fallback.UnderlineStyle,
         Baseline = Baseline ?? fallback.Baseline, LanguageId = LanguageId ?? fallback.LanguageId,
-        AutomaticPairKerningThreshold = AutomaticPairKerningThreshold ?? fallback.AutomaticPairKerningThreshold
+        AutomaticPairKerningThreshold = HasAutomaticPairKerningSetting ? AutomaticPairKerningThreshold
+            : AutomaticPairKerningThreshold ?? fallback.AutomaticPairKerningThreshold,
+        HasAutomaticPairKerningSetting = HasAutomaticPairKerningSetting || fallback.HasAutomaticPairKerningSetting
     };
 }
 internal sealed class PublisherCharacterRange {

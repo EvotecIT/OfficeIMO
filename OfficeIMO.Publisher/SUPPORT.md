@@ -618,8 +618,20 @@ threshold in points. `WithAutomaticPairKerningThreshold(double?)` returns an
 independent run for explicit source edits. Zero disables native pair kerning;
 null leaves the selected native definition unchanged when saving. A missing
 stored threshold remains null rather than being replaced with an assumed
-application default. Direct and selected-style values use the existing native
-style resolver; broader style-default producer profiles remain unqualified.
+application default. A selected STSH character snapshot supplies its own omitted
+defaults instead of inheriting explicit values from the global snapshot.
+The [selected-style controls](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/StyleKerningDefaults/provenance.json)
+qualify this distinction for kerning, strikethrough, underline and baseline:
+the selected snapshot's omissions retain null threshold metadata, no strike or
+underline, and a normal baseline despite explicit global values. Both controls
+retain byte-exact unmodified native saves.
+
+For the qualified modern producer, native getters and the native character-format
+initializer establish a 14-point effective default when the threshold is omitted.
+Public metadata remains null. Applying this default during managed rendering,
+including an unspecified replacement that retains a different source threshold,
+still requires source-definition correspondence; broader producer profiles remain
+unqualified.
 
 The scalar writer accepts finite values from 0 through 999.5 points that are
 exactly representable in 1/12700-point units. It preserves other OPL fields,
@@ -665,10 +677,14 @@ The mixed same-font controls retain both native thresholds, but native PDF
 activation follows the first setting across the observed line. Shared rendering
 applies each run independently. Six additional source-edit controls show that a color change and a space retain
 this behavior, while a new paragraph applies its own setting. All six native
-initial/resaved pages agree at 144 dpi. The cause and behavior across soft line
-breaks remain unresolved; the controls do not establish native mixed-run parity. Native repair-free opening, other
-application defaults, inherited-default activation, broader mixed baselines and
-exact managed/native glyph geometry remain unqualified.
+initial/resaved pages agree at 144 dpi. Eight further controls in both setting
+directions show that soft line breaks, tabs, font-size changes and face changes
+reset activation. Their initial/resaved native pages also agree at 144 dpi.
+These boundaries do not establish native mixed-run parity: shared rendering still
+measures and paints separate source runs, whereas native kerning can span a color
+boundary. Native repair-free opening, other application defaults, effective
+inherited-default rendering, broader mixed baselines and exact managed/native
+glyph geometry remain unqualified.
 
 The `nativeLanguageFeasibility` record isolates the language-dependent native
 layout gap. Scratch variants adding character property `0x12` with language ID

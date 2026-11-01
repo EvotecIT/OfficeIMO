@@ -84,7 +84,11 @@ internal sealed partial class PublisherQuillStyleReader {
         var result = new PublisherCharacterStyle {
             Size = styleDefinition ? 12D : null,
             Bold = styleDefinition ? false : null,
-            Italic = styleDefinition ? false : null
+            Italic = styleDefinition ? false : null,
+            Strikethrough = styleDefinition ? false : null,
+            UnderlineStyle = styleDefinition ? OfficeTextDecorationStyle.None : null,
+            Baseline = styleDefinition ? OfficeTextBaseline.Normal : null,
+            HasAutomaticPairKerningSetting = styleDefinition
         };
         foreach (PublisherBlock field in _blocks.Chunk(offset, end)) {
             switch (field.Id) {
@@ -96,6 +100,7 @@ internal sealed partial class PublisherQuillStyleReader {
                     else _context.Add("PUB_TEXT_LANGUAGE_UNASSESSED", "The native character language token is outside the qualified 16-bit scalar profile and remains opaque.", OfficeConversionLossKind.Unassessed, "Quill/language");
                     break;
                 case 0x18:
+                    result.HasAutomaticPairKerningSetting = true;
                     if (field.Type == 0x22 && field.Value <= 12700 * 999.5D) result.AutomaticPairKerningThreshold = field.Value / 12700D;
                     else _context.Add("PUB_TEXT_KERNING_UNASSESSED", "The native pair-kerning threshold is outside the qualified scalar profile and remains opaque.", OfficeConversionLossKind.Unassessed, "Quill/kerning");
                     break;
