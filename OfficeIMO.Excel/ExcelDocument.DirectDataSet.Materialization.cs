@@ -124,6 +124,19 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        // Worksheet metadata can stay on the direct model; a rejected promotion leaves the
+        // pending cells for the caller's DOM route.
+        private void PromotePendingDirectCellValuesForMetadata(ExcelSheet sheet) {
+            if (!ReferenceEquals(_pendingDirectCellValueSheet, sheet)) {
+                return;
+            }
+
+            bool requiresSavePreflight = _pendingDirectCellValueRequiresSavePreflight;
+            if (sheet.TryPromotePendingDirectCellValuesToSaveCandidate()) {
+                _requiresSavePreflight |= requiresSavePreflight;
+            }
+        }
+
         internal void MaterializeDeferredDataSetImport() =>
             MaterializeDeferredDataSetImport(CancellationToken.None);
 

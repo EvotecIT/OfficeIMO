@@ -152,6 +152,7 @@ namespace OfficeIMO.Excel {
             bool? requireWorksheetTable,
             Func<DirectWorksheetMetadata?, DirectWorksheetMetadata?> updateMetadata,
             bool mergeCapturedMetadata = false) {
+            PromotePendingDirectCellValuesForMetadata(sheet);
             var candidate = _directDataSetSaveCandidate;
             if (candidate == null || !candidate.IsValid || !candidate.IsDeferred || candidate.Model.Sheets.Count != 1) {
                 return false;
@@ -613,6 +614,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            PromotePendingDirectCellValuesForMetadata(sheet);
             var candidate = _directDataSetSaveCandidate;
             var sourceModel = candidate?.IsValid == true ? candidate.Model : _materializedDirectDataSetFastSaveModel;
             if (sourceModel == null || !ReferenceEquals(sheet.Document, this)) {

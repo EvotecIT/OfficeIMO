@@ -75,6 +75,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CellValueBuffer_FreezeAndFilterStayOnTheDirectWriter() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Data");
+            WriteBufferedRows(sheet, firstRow: 1, rows: 100);
+            sheet.Freeze(topRows: 1);
+            sheet.AutoFilterAdd("A1:C100");
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            output.Position = 0;
+
+            using ExcelDocument reopened = ExcelDocument.Load(output);
+            var worksheet = reopened.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet!;
+            Assert.Equal(1D, worksheet.Descendants<Pane>().Single().VerticalSplit!.Value);
+            Assert.Equal("A1:C100", worksheet.GetFirstChild<AutoFilter>()!.Reference!.Value);
+        }
+
+        [Fact]
         public void CellValueBuffer_FarSparseCellsLeaveTheRectangleWriters() {
             Action<ExcelSheet> write = sheet => {
                 WriteBufferedRows(sheet, firstRow: 1, rows: 100);
