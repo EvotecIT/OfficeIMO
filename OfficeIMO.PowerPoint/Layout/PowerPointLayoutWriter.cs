@@ -12,7 +12,9 @@ namespace OfficeIMO.PowerPoint {
     internal sealed class PowerPointLayoutRun {
         internal PowerPointLayoutRun(string text, PowerPointTextStyleSpec style, double? size = null, string? color = null,
             bool? bold = null) {
-            Text = style.Upper ? (text ?? string.Empty).ToUpperInvariant() : text ?? string.Empty;
+            // A vertical tab is PowerPoint's soft line break, which runs write as <a:br/>.
+            string value = (text ?? string.Empty).Replace('\v', '\n');
+            Text = style.Upper ? value.ToUpperInvariant() : value;
             Heading = style.HeadingFont;
             Size = size ?? style.Size;
             Color = color ?? style.Color;
@@ -72,7 +74,10 @@ namespace OfficeIMO.PowerPoint {
 
         private static string E(double points) => ((long)Math.Round(points * 12700D)).ToString(CultureInfo.InvariantCulture);
         private static string I(double value) => ((int)Math.Round(value)).ToString(CultureInfo.InvariantCulture);
-        private static string X(string text) => SecurityElement.Escape(text) ?? string.Empty;
+        internal static string X(string text) {
+            PowerPointXmlValueValidator.ValidateCharacters(text, nameof(text), "Layout text");
+            return SecurityElement.Escape(text) ?? string.Empty;
+        }
 
         /// <summary>A colour as a theme reference when it is a theme slot, otherwise a literal.</summary>
         internal string ColorXml(string hex, double alpha = 1D) {

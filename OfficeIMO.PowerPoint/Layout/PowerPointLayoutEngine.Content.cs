@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Security;
 using System.Text;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Presentation;
@@ -514,9 +513,16 @@ namespace OfficeIMO.PowerPoint {
                 if (!header && (text == "Degraded" || text == "Warning")) color = theme.Warning;
                 string align = metrics.Numeric[column] ? "r" : "l";
                 var b = new StringBuilder("<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:pPr algn=\"").Append(align).Append("\"><a:lnSpc><a:spcPct val=\"100000\"/></a:lnSpc><a:buNone/></a:pPr>");
-                b.Append("<a:r><a:rPr lang=\"en-US\" sz=\"").Append(((int)Math.Round(size * 100D)).ToString(CultureInfo.InvariantCulture))
-                    .Append("\" b=\"").Append(header ? '1' : '0').Append("\" dirty=\"0\"><a:solidFill>").Append(writer.ColorXml(color))
-                    .Append("</a:solidFill><a:latin typeface=\"+mn-lt\"/></a:rPr><a:t>").Append(SecurityElement.Escape(text ?? string.Empty)).Append("</a:t></a:r></a:p></a:txBody>");
+                string properties = "<a:rPr lang=\"en-US\" sz=\"" + ((int)Math.Round(size * 100D)).ToString(CultureInfo.InvariantCulture) +
+                    "\" b=\"" + (header ? '1' : '0') + "\" dirty=\"0\"><a:solidFill>" + writer.ColorXml(color) +
+                    "</a:solidFill><a:latin typeface=\"+mn-lt\"/></a:rPr>";
+                string[] lines = (text ?? string.Empty).Split('\v');
+                for (int i = 0; i < lines.Length; i++) {
+                    if (i > 0) b.Append("<a:br>").Append(properties).Append("</a:br>");
+                    b.Append("<a:r>").Append(properties).Append("<a:t>").Append(PowerPointLayoutWriter.X(lines[i])).Append("</a:t></a:r>");
+                }
+
+                b.Append("</a:p></a:txBody>");
                 b.Append("<a:tcPr marL=\"").Append(Emu(pad + 5D)).Append("\" marR=\"").Append(Emu(pad + 5D)).Append("\" marT=\"").Append(Emu(topPad))
                     .Append("\" marB=\"").Append(Emu(topPad)).Append("\" anchor=\"ctr\">");
                 b.Append(Line("lnL", null, "0")).Append(Line("lnR", null, "0")).Append(Line("lnT", null, "0")).Append(Line("lnB", bottomColor, bottomWidth));

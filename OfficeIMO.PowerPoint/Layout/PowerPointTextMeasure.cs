@@ -52,7 +52,7 @@ namespace OfficeIMO.PowerPoint {
         internal static List<string> Wrap(string text, double size, double width, string family, bool bold = false,
             double tracking = 0D) {
             var lines = new List<string>();
-            foreach (string paragraph in (text ?? string.Empty).Replace("\r\n", "\n").Split('\n')) {
+            foreach (string paragraph in (text ?? string.Empty).Replace("\r\n", "\n").Replace('\v', '\n').Split('\n')) {
                 string current = string.Empty;
                 foreach (string word in paragraph.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
                     string candidate = current.Length == 0 ? word : current + " " + word;
@@ -75,7 +75,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>The widest single word, so a caller can keep words whole (logo names, labels).</summary>
         internal static double LongestWord(string text, double size, string family, bool bold = false) =>
-            (text ?? string.Empty).Split(new[] { ' ', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            (text ?? string.Empty).Split(new[] { ' ', '\n', '\v' }, StringSplitOptions.RemoveEmptyEntries)
             .Select(word => Width(word, size, family, bold)).DefaultIfEmpty(0D).Max();
 
         /// <summary>
@@ -87,7 +87,7 @@ namespace OfficeIMO.PowerPoint {
         internal static double BalancedWidth(string text, double size, double width, string family, bool bold = false,
             double tracking = 0D) {
             List<string> lines = Wrap(text, size, width, family, bold, tracking);
-            if (lines.Count < 2 || text.IndexOf('\n') >= 0) return width;
+            if (lines.Count < 2 || text.IndexOfAny(new[] { '\n', '\v' }) >= 0) return width;
             string[] words = text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
             if (words.Length < 3) return width;
             // Shrink the measure until the line count would grow; the narrowest measure that keeps the count is balanced.
