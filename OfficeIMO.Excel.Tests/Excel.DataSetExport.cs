@@ -426,5 +426,22 @@ namespace OfficeIMO.Tests {
             Assert.Contains(ExcelA1.MaxColumns.ToString(CultureInfo.InvariantCulture), exception.Message);
         }
 
+
+        [Fact]
+        public void StreamingWriter_ZeroRowTableKeepsABlankDataRow() {
+            using var memory = new MemoryStream();
+            ExcelDataSetImportResult result;
+            using (var writer = ExcelDocument.CreateWriter(memory, leaveOpen: true)) {
+                result = writer.WriteTable("Empty", Array.Empty<string>(), new[] { "Id", "Name" }, (_, _) => { });
+            }
+
+            Assert.Equal(0, result.RowCount);
+            Assert.Equal("A1:B1", result.Range);
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var table = spreadsheet.WorkbookPart!.WorksheetParts.Single().TableDefinitionParts.Single().Table!;
+            Assert.Equal("A1:B2", table.Reference!.Value);
+            Assert.Equal("A1:B2", table.AutoFilter!.Reference!.Value);
+        }
     }
 }
