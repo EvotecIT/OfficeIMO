@@ -79,7 +79,7 @@ internal static class MarkdownOptionUtilities
             else if (value is IDictionary dictionary)
             {
                 options ??= MarkdownLoadOptions.CreateOfficeIMOProfile();
-                binder.ApplyTo(engine, options, dictionary);
+                options = ((MarkdownLoadOptions)binder.ApplyTo(engine, options, dictionary)).Clone();
             }
             else throw new PSArgumentException("Options accepts Markdown reader settings or a hashtable of native reader properties.");
         }

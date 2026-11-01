@@ -10,7 +10,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <summary>Creates native Excel-to-Google-Sheets planning and export settings without contacting Google.</summary>
 /// <example><summary>Review a workbook with explicit formula and chart policies before uploading it.</summary>
 /// <code>$options = New-OfficeExcelGoogleSheetsOptions -Title 'Quarterly forecast' -UnsupportedFormula PreserveWithWarning
-/// Export-OfficeExcelGoogleSpreadsheet -Document $workbook -Options $options -PlanOnly</code></example>
+/// Export-OfficeExcelGoogleSpreadsheet -Document $workbook -Options $options -Mode Plan</code></example>
 [Cmdlet(VerbsCommon.New, "OfficeExcelGoogleSheetsOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(GoogleSheetsSaveOptions))]
 public sealed class NewOfficeExcelGoogleSheetsOptionsCommand : OfficeCmdlet {

@@ -27,13 +27,11 @@ internal static class OfficeMergeOptionBinding {
             if (typed) throw new PSArgumentException("Provide at most one typed merge options object.");
             typed = true;
             // Override tables apply to a separate bag rather than modifying the caller's options object.
-            result = CopyProperties(value);
-            if (result is PdfMergeOptions pdfCopy && pdfCopy.Policy != null)
-                pdfCopy.Policy = (PdfMergePolicy)CopyProperties(pdfCopy.Policy);
+            result = CopyOptions(value);
         }
         var binder = new OfficeOptionsTransformationAttribute(type);
         foreach (object item in values ?? Array.Empty<object>()) {
-            if (Unwrap(item) is IDictionary table) result = binder.ApplyTo(engine, result, table);
+            if (Unwrap(item) is IDictionary table) result = CopyOptions(binder.ApplyTo(engine, result, table));
         }
         ValidateEnums(result);
         if (result is ExcelWorkbookMergeOptions excel) {
@@ -60,7 +58,19 @@ internal static class OfficeMergeOptionBinding {
         return value;
     }
 
-    // Merge option records contain scalar settings; PDF's separately mutable policy needs its own copy.
+    private static object CopyOptions(object source) {
+        object copy = CopyProperties(source);
+        if (copy is PdfMergeOptions pdf) {
+            if (pdf.Policy != null) pdf.Policy = (PdfMergePolicy)CopyProperties(pdf.Policy);
+            if (pdf.ResizePages is PdfPageResizeOptions resize)
+                pdf.ResizePages = new PdfPageResizeOptions(resize.PageSize) {
+                    Margin = resize.Margin, Mode = resize.Mode, CancellationToken = resize.CancellationToken
+                };
+        }
+        return copy;
+    }
+
+    // Native merge option records are scalar apart from PDF's explicitly captured policy and resize settings.
     private static object CopyProperties(object source) {
         Type type = source.GetType();
         object copy = Activator.CreateInstance(type)!;

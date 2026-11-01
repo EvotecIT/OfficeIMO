@@ -7818,7 +7818,7 @@
           "parameters": [
             {
               "name": "Path",
-              "type": "string",
+              "type": "string[]",
               "mandatory": true,
               "position": 0,
               "pipeline": "none",
@@ -7856,7 +7856,7 @@
           "parameters": [
             {
               "name": "LiteralPath",
-              "type": "string",
+              "type": "string[]",
               "mandatory": true,
               "pipeline": "byPropertyName",
               "aliases": [

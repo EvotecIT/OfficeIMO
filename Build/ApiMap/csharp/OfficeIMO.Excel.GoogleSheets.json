@@ -14,6 +14,12 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "Worksheet sizing calls use ExcelColumnWidth.Characters for existing stored column units and ExcelColumnWidth.Length(OfficeLength.Points(...)) for existing row points. Default dimension reads convert explicitly at numeric format boundaries. This is a mechanical consumer migration; conversion/layout behavior is retained."
+    },
+    {
+      "phase": "M5",
+      "action": "add",
+      "new": "GoogleSheetsSaveOptions.Clone()",
+      "reason": "Creates independent native export settings for typed options combined with property overrides, including nested mutable collections. The shell preserves the caller options and reuses native translation and export."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

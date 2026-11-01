@@ -204,7 +204,7 @@ public sealed class MergeDocumentWorkflowTests {
         };
         using var runspace = OpenRunspace();
         Set(runspace, ("inputs", new[] { first, second }), ("output", output), ("settings", options));
-        Invoke(runspace, "Merge-OfficeDocument -LiteralPath $inputs -OutputPath $output -Options $settings, @{ FlattenVisualAnnotations = $true; Policy = @{ Metadata = 'Drop' } } -ErrorAction Stop");
+        Invoke(runspace, "Merge-OfficeDocument -LiteralPath $inputs -OutputPath $output -Options $settings, @{ Policy = $settings.Policy }, @{ FlattenVisualAnnotations = $true; Policy = @{ Metadata = 'Drop' } } -ErrorAction Stop");
         Assert.Equal(PdfMergeStructureMode.KeepPrimary, options.Policy.Metadata);
         Assert.Equal(PdfMergeStructureMode.Combine, options.Policy.Outlines);
         using var saved = PdfDocument.Load(output);

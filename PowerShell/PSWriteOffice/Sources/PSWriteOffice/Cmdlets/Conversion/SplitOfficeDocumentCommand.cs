@@ -133,7 +133,7 @@ public sealed class SplitOfficeDocumentCommand : AsyncPSCmdlet {
             object? option = OfficeArgumentValue.Unwrap(value);
             if (option is PdfLoadOptions typed) load = typed.Clone();
             else if (option is IDictionary table)
-                load = (PdfLoadOptions)new OfficeOptionsTransformationAttribute(typeof(PdfLoadOptions)).ApplyTo(engine, load, table);
+                load = ((PdfLoadOptions)new OfficeOptionsTransformationAttribute(typeof(PdfLoadOptions)).ApplyTo(engine, load, table)).Clone();
             else throw new PSArgumentException("Options requires PDF load options or a property hashtable.");
         }
         if (Password != null) load = load.Clone(null, new NetworkCredential(string.Empty, Password).Password);

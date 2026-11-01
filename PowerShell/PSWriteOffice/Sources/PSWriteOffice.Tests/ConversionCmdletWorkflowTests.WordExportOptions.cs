@@ -92,7 +92,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
         shell.AddScript("""
             $defaults = New-OfficeWordGoogleDocsOptions
             $options = New-OfficeWordGoogleDocsOptions -Title 'Prepared report' -ExistingFileId synthetic-file -TabStrategy SelectedTab -TabId synthetic-tab -ExpectedRevisionId synthetic-revision -Comments Skip
-            Export-OfficeWordGoogleDocument -Document $document -Options $options -AsBatch -ErrorAction Stop
+            Export-OfficeWordGoogleDocument -Document $document -Options @($options, @{ Tabs = $options.Tabs }, @{ Title = 'Scoped report'; Tabs = @{ TabId = 'override-tab' } }) -Mode Batch -ErrorAction Stop
             $defaults
             $options
             """);
@@ -100,12 +100,13 @@ public sealed partial class ConversionCmdletWorkflowTests {
         Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
         Assert.Equal(3, output.Count);
         var batch = Assert.IsType<GoogleDocsBatch>(output[0].BaseObject);
-        Assert.Equal("Prepared report", batch.Title);
+        Assert.Equal("Scoped report", batch.Title);
         Assert.Contains(batch.Requests.OfType<GoogleDocsInsertParagraphRequest>(), item => item.Paragraph.Text.Contains("Offline Google batch evidence", StringComparison.Ordinal));
         var defaults = Assert.IsType<GoogleDocsSaveOptions>(output[1].BaseObject);
         Assert.Equal(GoogleDocsCommentMode.UnanchoredDriveComments, defaults.Comments);
         Assert.Equal(GoogleDocsRevisionConflictMode.RequireRevision, defaults.Replace.ConflictMode);
         var options = Assert.IsType<GoogleDocsSaveOptions>(output[2].BaseObject);
+        Assert.Equal("Prepared report", options.Title);
         Assert.Equal("synthetic-file", options.Location.ExistingFileId);
         Assert.Equal("synthetic-tab", options.Tabs.TabId);
         Assert.Equal(GoogleDocsTabStrategy.SelectedTab, options.Tabs.Strategy);
