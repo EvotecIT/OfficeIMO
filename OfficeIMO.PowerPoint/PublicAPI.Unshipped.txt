@@ -149,3 +149,4 @@ OfficeIMO.PowerPoint.PowerPointTextStyle.UnderlineStyle.get -> OfficeIMO.PowerPo
 OfficeIMO.PowerPoint.PowerPointTextStyle.WithUnderlineStyle(OfficeIMO.PowerPoint.PowerPointUnderlineStyle? underlineStyle) -> OfficeIMO.PowerPoint.PowerPointTextStyle
 override OfficeIMO.PowerPoint.PowerPointContentPlanSlide.Kind.get -> OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind
 static OfficeIMO.PowerPoint.PowerPointLayoutKpi.FromDelta(string! value, string! label, double delta, string? unit = null, OfficeIMO.PowerPoint.PowerPointKpiDirection goodDirection = OfficeIMO.PowerPoint.PowerPointKpiDirection.Up, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.PowerPoint.PowerPointLayoutKpi!
+OfficeIMO.PowerPoint.PowerPointDocument.ImportSlides(OfficeIMO.PowerPoint.PowerPointDocument! sourcePresentation, System.Collections.Generic.IEnumerable<int>! sourceIndices, int? insertAt = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointSlide!>!

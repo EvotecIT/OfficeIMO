@@ -2380,7 +2380,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.PowerPoint
 
 <details>
-<summary>570 changes</summary>
+<summary>571 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -2489,6 +2489,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Authoring | `OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddVisualFrame(PowerPointLayoutBox bounds, string imagePath, PowerPointVisualFrameVariant variant)` | Changed | `OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddVisualFrame(...) : IReadOnlyList<PowerPointShape>` | Add\* methods return the created object. |
 | Authoring | `OfficeIMO.PowerPoint.PowerPointTable.AddColumn(int? index = null)` | Changed | `OfficeIMO.PowerPoint.PowerPointTable.AddColumn(int? index = null) : PowerPointTableColumn` | Add\* methods return the created object. |
 | Authoring | `OfficeIMO.PowerPoint.PowerPointTable.AddRow(int? index = null)` | Changed | `OfficeIMO.PowerPoint.PowerPointTable.AddRow(int? index = null) : PowerPointTableRow` | Add\* methods return the created object. |
+| Authoring | `Repeated PowerPointDocument.ImportSlide(source, sourceIndex, insertAt) calls` | Changed | `PowerPointDocument.ImportSlides(PowerPointDocument source, IEnumerable<int> sourceIndices, int? insertAt = null) : IReadOnlyList<PowerPointSlide>` | The native batch preserves zero-based selection order and imports shared linked targets once. The PowerShell `Import-OfficePowerPointSlide` command accepts one-based SourceSlide arrays. An omitted SourceSlide imports every source slide; Position is one-based, and output requires PassThru. |
 | Units | `OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeBoldTextThresholdPoints` | Merged | `OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeBoldTextThreshold : OfficeLength` | Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix. |
 | Units | `OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeTextThresholdPoints` | Merged | `OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeTextThreshold : OfficeLength` | Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix. |
 | Units | `OfficeIMO.PowerPoint.PowerPointAutoShape.Stroke(string color, double? widthPoints = null)` | Changed | `OfficeIMO.PowerPoint.PowerPointAutoShape.Stroke(... OfficeLength ...)` | Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix. |

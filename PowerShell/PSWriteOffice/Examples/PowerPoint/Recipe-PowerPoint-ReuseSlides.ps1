@@ -1,22 +1,23 @@
-$sourcePath = '.\PowerPoint-Reusable-Slides.pptx'
-$targetPath = '.\PowerPoint-Combined-Deck.pptx'
+param(
+    [string] $OutputDirectory = (Join-Path $PWD 'PowerPoint-ReusedSlides')
+)
 
-PptNew -Path $sourcePath {
-    PptSlide {
-        PptTitle -Title 'Reusable Architecture'
-        PowerPointTextBox -Text 'Shared platform diagram' -X 80 -Y 150 -Width 500 -Height 80
+Import-Module PSWriteOffice -ErrorAction Stop
+$null = New-Item -Path $OutputDirectory -ItemType Directory -Force
+$sourcePath = Join-Path $OutputDirectory 'PowerPoint-Reusable-Slides.pptx'
+$targetPath = Join-Path $OutputDirectory 'PowerPoint-Combined-Deck.pptx'
+
+New-OfficePowerPoint -Path $sourcePath -Force {
+    PowerPointSlide -Title 'Reusable Architecture' {
+        PowerPointParagraph 'Shared platform diagram'
     }
 }
 
-PptNew -Path $targetPath {
-    PptSlide {
-        PptTitle -Title 'Customer Briefing'
-        PowerPointTextBox -Text 'Prepared for review' -X 80 -Y 150 -Width 500 -Height 80
+New-OfficePowerPoint -Path $targetPath -Force -PassThru {
+    PowerPointSlide -Title 'Customer Briefing' {
+        PowerPointParagraph 'Prepared for review'
     }
+    Import-OfficePowerPointSlide -LiteralPath $sourcePath -SourceSlide 1 -Position 2
+    Copy-OfficePowerPointSlide -Slide 1 -Position 3
+    Add-OfficePowerPointSection -Name 'Shared material' -Slide 2
 }
-
-$target = Get-OfficePowerPoint -Path $targetPath
-Import-OfficePowerPointSlide -Presentation $target -SourcePath $sourcePath -SourceIndex 0 -InsertAt 1
-Copy-OfficePowerPointSlide -Presentation $target -Index 0 -InsertAt 2
-Add-OfficePowerPointSection -Document $target -Name 'Shared material' -Slide 2
-Close-OfficePowerPoint -Presentation $target -Save

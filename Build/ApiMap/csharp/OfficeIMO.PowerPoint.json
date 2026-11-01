@@ -12183,6 +12183,21 @@
       "new": "OfficeIMO.PowerPoint.PowerPointDocument.SetThemeFonts(PowerPointThemeFontSet fonts, int masterIndex = 0, bool keepExistingWhenNull = true)",
       "category": "authoring",
       "reason": "Subsequent authoring reads updated fonts while retaining unrelated theme tokens. With keepExistingWhenNull:false, unspecified fonts have empty typefaces in the required DrawingML slots so saved presentations remain valid."
+    },
+    {
+      "phase": "M5",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Repeated PowerPointDocument.ImportSlide(source, sourceIndex, insertAt) calls",
+      "new": "PowerPointDocument.ImportSlides(PowerPointDocument source, IEnumerable<int> sourceIndices, int? insertAt = null) : IReadOnlyList<PowerPointSlide>",
+      "reason": "The native batch preserves zero-based selection order and imports shared linked targets once. The PowerShell Import-OfficePowerPointSlide command accepts one-based SourceSlide arrays. An omitted SourceSlide imports every source slide; Position is one-based, and output requires PassThru.",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointDocument.Slides.cs",
+        "OfficeIMO.PowerPoint/PowerPointDocument.SlideImport.CustomShows.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/ImportOfficePowerPointSlideCommand.cs"
+      ],
+      "category": "authoring",
+      "kind": "method"
     }
   ],
   "packageMoves": [

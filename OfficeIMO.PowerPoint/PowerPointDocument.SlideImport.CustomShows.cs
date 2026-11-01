@@ -33,11 +33,11 @@ namespace OfficeIMO.PowerPoint {
 
         private SlideImportPlan CollectSlideImportPlan(
             PowerPointDocument sourcePresentation,
-            PowerPointSlide requestedSource,
+            IReadOnlyList<PowerPointSlide> requestedSources,
             bool includeLinkedSlides) {
             if (!includeLinkedSlides) {
                 return new SlideImportPlan(
-                    new[] { requestedSource },
+                    requestedSources,
                     Array.Empty<CustomShow>());
             }
 
@@ -48,7 +48,7 @@ namespace OfficeIMO.PowerPoint {
             var selectedSlides = new HashSet<SlidePart>();
             var selectedShows = new Dictionary<uint, CustomShow>();
             var pending = new Queue<SlidePart>();
-            pending.Enqueue(requestedSource.SlidePart);
+            foreach (PowerPointSlide source in requestedSources) pending.Enqueue(source.SlidePart);
             while (pending.Count > 0) {
                 SlidePart sourcePart = pending.Dequeue();
                 if (!selectedSlides.Add(sourcePart)) continue;
@@ -81,9 +81,10 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            PowerPointSlide[] slides = new[] { requestedSource }
+            var requestedParts = new HashSet<SlidePart>(requestedSources.Select(slide => slide.SlidePart));
+            PowerPointSlide[] slides = requestedSources
                 .Concat(sourceSlides.Where(slide =>
-                    !ReferenceEquals(slide, requestedSource)
+                    !requestedParts.Contains(slide.SlidePart)
                     && selectedSlides.Contains(slide.SlidePart)))
                 .ToArray();
             CustomShow[] shows = sourcePresentation.PresentationRoot

@@ -398,7 +398,7 @@ Describe 'PowerPointShapeEditing workflows' {
         $replacements = Update-OfficePowerPointText -Document $target -OldValue 'FY24' -NewValue 'FY25' -IncludeNotes -PassThru
         $replacements | Should -BeGreaterThan 0
 
-        $importedSlide = Import-OfficePowerPointSlide -Presentation $target -SourcePath $sourcePath -SourceIndex 0 -InsertAt 1
+        $importedSlide = Import-OfficePowerPointSlide -Document $target -LiteralPath $sourcePath -SourceSlide 1 -Position 2 -PassThru
         $importedSlide | Should -Not -BeNullOrEmpty
 
         Save-OfficePowerPoint -Document $target
