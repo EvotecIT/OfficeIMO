@@ -21,9 +21,11 @@ internal static partial class PublisherQuillParagraphWriter {
                 && p.Runs.Count > 0 && p.Runs.All(r => r.Text.Length > 0)), PublisherTextComparison.ParagraphTexts);
             var content = new HashSet<OfficeRichTextParagraph>(before.Paragraphs.Where(p => p.Label == null
                 && p.Runs.Count > 0 && p.Runs.All(r => r.Text.Length > 0)), PublisherTextComparison.ParagraphContent);
+            var emptySources = before.Paragraphs.Where(p => p.Label == null && p.Runs.Count == 1 && p.Runs[0].Text.Length == 0).ToArray();
             extended = true;
             return after.Paragraphs.All(p => p.Label == null && (retained.Contains(p)
-                || p.Runs.Count > 0 && p.Runs.All(r => r.Text.Length > 0) && (texts.Contains(p) || content.Contains(p) || formats.Contains(p))));
+                || p.Runs.Count > 0 && p.Runs.All(r => r.Text.Length > 0) && (texts.Contains(p) || content.Contains(p) || formats.Contains(p)
+                    || emptySources.Any(source => CanRefillParagraph(source, p)))));
         }
         for (int paragraph = 0; paragraph < after.Paragraphs.Count; paragraph++) {
             OfficeRichTextParagraph a = before.Paragraphs[reshape ? 0 : paragraph], b = after.Paragraphs[paragraph];

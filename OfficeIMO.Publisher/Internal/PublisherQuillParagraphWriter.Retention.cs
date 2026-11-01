@@ -90,7 +90,14 @@ internal static partial class PublisherQuillParagraphWriter {
                         if (!retainedContent.IsUnambiguous(last)) return false;
                         template = retainedContent.First; resegment = true;
                     } else {
-                        if (!replacements.TryGetValue(paragraph, out TextReplacementCandidates? matching) || !matching.IsUnambiguous(last)) return false;
+                        if (!replacements.TryGetValue(paragraph, out TextReplacementCandidates? matching)) {
+                            if (!TryPlanEmptyRefill(data, context, templates, paragraph, token, resources, out var refill, out var refillDefinition)) return false;
+                            foreach (var range in refill) AppendRange(pc, checked(position + range.AbsoluteEnd), range.Style);
+                            position = checked(position + (paragraph.Runs.Sum(r => r.Text.Length) + 1) * 2);
+                            pp.Add(new PublisherQuillFormattingRange(position, refillDefinition!));
+                            continue;
+                        }
+                        if (!matching.IsUnambiguous(last)) return false;
                         template = matching.First; replaceText = true;
                     }
                 }
@@ -156,13 +163,14 @@ internal static partial class PublisherQuillParagraphWriter {
             List<PublisherQuillFormattingRange> body, IReadOnlyList<PublisherQuillSourceSpan> bodySpans,
             PublisherQuillSourceSpan terminatorSpan, byte[] terminator, int length, int nativeStart) {
             Paragraph = paragraph; Definition = definition; Body = body; Terminator = terminator; Length = length;
-            DefinitionSpan = definitionSpan;
+            DefinitionSpan = definitionSpan; TerminatorSpan = terminatorSpan;
             NativeStart = nativeStart;
             ReplacementBody = MapRuns(bodySpans, terminatorSpan, out var mappedSpans); ReplacementSpans = mappedSpans;
         }
         internal OfficeRichTextParagraph Paragraph { get; }
         internal byte[] Definition { get; }
         internal PublisherQuillSourceSpan DefinitionSpan { get; }
+        internal PublisherQuillSourceSpan TerminatorSpan { get; }
         internal List<PublisherQuillFormattingRange> Body { get; }
         internal byte[] Terminator { get; }
         internal byte[]? InteriorTerminator { get; set; }
