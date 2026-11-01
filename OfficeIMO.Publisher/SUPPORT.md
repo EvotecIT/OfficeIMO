@@ -607,6 +607,12 @@ remaining gap within the observed 18 pt zone moves the next word to a new line
 before hyphenation. Generic drawing defaults are unchanged. The approximation
 report identifies the language-pattern and application-zone boundary.
 
+Unspecified language in an imported text replacement retains the effective
+native direct or selected/global style language in scene copies as well as on
+save. Explicit run language wins; resolving the scene does not change the public
+replacement metadata. Supported language selection is independent of host culture
+data, including under .NET invariant globalization.
+
 Generated hyphens paint with the last prefix run and consume no source UTF-16
 characters. Region slices retain original-word opportunities rather than looking
 up a shortened suffix. Selected line ends, generated suffixes, fitting widths
@@ -842,7 +848,8 @@ run values, and an explicit source edit rewrites only the qualified primary
 scalar. An unspecified replacement retains imported language tokens. Unknown
 scalar encodings remain opaque and explicit edits refuse them. The opaque
 companion field is preserved. Shared copies, tint/scale, flow and measured
-segments retain the annotation without adding managed hyphenation.
+segments retain the annotation. The bounded managed hyphenation contract is
+described above.
 
 The `runLanguageLifecycle` record qualifies public English/French set, reset and
 unspecified saves on generated, normalized and independent ordinary-frame
@@ -856,7 +863,7 @@ cell stories: 42 native operations, 12 public reloads and 36 stable native resav
 page pairs. These cases preserve visual-template correspondence and raw-source
 ambiguity checks while applying the explicit language to copied bodies and CRs.
 Native clearing of imported overrides,
-broader languages/scripts, paragraph-terminator defaults, managed hyphenation,
+broader languages/scripts, paragraph-terminator defaults, dictionary equivalence,
 column balancing and repair-free opening require separate qualification.
 
 Crop source saving can set or clear all four edge fractions, including local

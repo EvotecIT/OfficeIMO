@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.Internal;
 
-/// <summary>Resolves retained native thresholds for scene/flow copies without changing public metadata or save requests.</summary>
+/// <summary>Resolves retained native thresholds and languages for scene/flow copies without changing public metadata or save requests.</summary>
 internal sealed class PublisherQuillKerningProjection {
     private readonly PublisherPublicationState _publication;
     private readonly PublisherImportedResidue? _imported;
@@ -91,20 +91,22 @@ internal sealed class PublisherQuillKerningProjection {
     private bool TryApply(PublisherTextStory story, IReadOnlyList<PublisherQuillFormattingRange> pc,
         IReadOnlyList<PublisherQuillFormattingRange> pp, out IReadOnlyList<OfficeRichTextParagraph> paragraphs) {
         paragraphs = story.Paragraphs;
-        var thresholds = new List<(int End, double? Value)>();
+        var thresholds = new List<(int End, double? Value, IReadOnlyList<PublisherBlock> Fields)>();
         int last = 0;
         foreach (var range in pc) {
+            IReadOnlyList<PublisherBlock> fields = Fields(range.Style);
             if (range.AbsoluteEnd <= last || (range.AbsoluteEnd & 1) != 0
-                || !PublisherQuillKerning.TryRead(Fields(range.Style), out double? threshold)) return false;
-            thresholds.Add((range.AbsoluteEnd / 2, threshold));
+                || !PublisherQuillKerning.TryRead(fields, out double? threshold)) return false;
+            thresholds.Add((range.AbsoluteEnd / 2, threshold, fields));
             last = range.AbsoluteEnd;
         }
         if (thresholds.Count == 0 || last != story.Text.Length * 2) return false;
-        var selectors = new List<(int End, double Default)>();
+        var selectors = new List<(int End, double Default, uint? Language)>();
         last = 0;
         foreach (var range in pp) {
-            if (range.AbsoluteEnd <= last || (range.AbsoluteEnd & 1) != 0 || !Default(Fields(range.Style), out double value)) return false;
-            selectors.Add((range.AbsoluteEnd / 2, value));
+            if (range.AbsoluteEnd <= last || (range.AbsoluteEnd & 1) != 0
+                || !Default(Fields(range.Style), out double value, out uint? language)) return false;
+            selectors.Add((range.AbsoluteEnd / 2, value, language));
             last = range.AbsoluteEnd;
         }
         if (selectors.Count == 0 || last != story.Text.Length * 2) return false;
@@ -124,7 +126,8 @@ internal sealed class PublisherQuillKerningProjection {
                     int length = Math.Min(run.Text.Length - offset, thresholds[character].End - position);
                     if (++runCount > 4096) return false;
                     runs.Add(Copy(run, run.Text.Substring(offset, length), run.AutomaticPairKerningThreshold
-                        ?? thresholds[character].Value ?? inherited));
+                        ?? thresholds[character].Value ?? inherited,
+                        run.LanguageId ?? Language(thresholds[character].Fields, selectors[paragraphIndex].Language)));
                     offset += length;
                     position += length;
                 } while (offset < run.Text.Length);
@@ -153,8 +156,9 @@ internal sealed class PublisherQuillKerningProjection {
     private IReadOnlyList<PublisherBlock> Fields(byte[] bytes) =>
         new PublisherBlockReader(new PublisherBinaryData(bytes, "Quill/kerning"), _context).Chunk(0, bytes.Length);
 
-    private bool Default(IReadOnlyList<PublisherBlock> fields, out double threshold) {
+    private bool Default(IReadOnlyList<PublisherBlock> fields, out double threshold, out uint? language) {
         threshold = PublisherQuillKerning.DefaultThreshold;
+        language = null;
         var selectors = fields.Where(field => field.Id == 0x19).ToArray();
         var catalog = _imported!.Styles.Definitions;
         if (selectors.Length > 1 || selectors.Any(field => field.Type != 0x22) || catalog.Count == 0) return false;
@@ -164,12 +168,23 @@ internal sealed class PublisherQuillKerningProjection {
         IReadOnlyList<PublisherBlock> definition = new PublisherBlockReader(_layout!.Data, _context).Chunk(span.Offset, span.Offset + span.Length);
         if (!PublisherQuillKerning.TryRead(definition, out double? value)) return false;
         threshold = value ?? PublisherQuillKerning.DefaultThreshold;
+        PublisherQuillSourceSpan global = catalog[0].CharacterDefinition;
+        language = Language(definition, Language(new PublisherBlockReader(_layout.Data, _context)
+            .Chunk(global.Offset, global.Offset + global.Length), null));
         return true;
     }
 
-    private static OfficeRichTextRun Copy(OfficeRichTextRun run, string text, double threshold) =>
+    private static uint? Language(IReadOnlyList<PublisherBlock> fields, uint? inherited) {
+        PublisherBlock[] languages = fields.Where(field => field.Id == 0x12).ToArray();
+        if (languages.Length == 0) return inherited;
+        // An opaque direct setting must not acquire a dictionary through a fallback.
+        return languages.Length == 1 && languages[0].Type == 0x22 && languages[0].Value <= ushort.MaxValue
+            ? languages[0].Value : null;
+    }
+
+    private static OfficeRichTextRun Copy(OfficeRichTextRun run, string text, double threshold, uint? language) =>
         new(text, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily,
             run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle, run.Baseline, run.ParagraphIndent) {
-            AutomaticPairKerningThreshold = threshold, LanguageId = run.LanguageId, LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName
+            AutomaticPairKerningThreshold = threshold, LanguageId = language, LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName
         };
 }
