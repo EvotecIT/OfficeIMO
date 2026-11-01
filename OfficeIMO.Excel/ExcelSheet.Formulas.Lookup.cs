@@ -59,7 +59,8 @@ namespace OfficeIMO.Excel {
         private bool TryEvaluateXLookupValue(IReadOnlyList<string> tokens, out FormulaArgumentValue result) {
             result = default;
             if (!TrySelectXLookupSource(tokens, out FormulaLookupSource selected) || selected.Count != 1) return false;
-            result = NormalizeLookupResult(selected[0]);
+            // Preserve a selected empty reference until its consumer chooses value semantics.
+            result = selected[0];
             return !result.IsUnresolvedFormula;
         }
 

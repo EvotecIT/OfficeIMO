@@ -7,12 +7,16 @@ namespace OfficeIMO.Tests {
         [InlineData("index", "INDEX(A1:A3,2)")]
         [InlineData("offset", "OFFSET(A1,1,0)")]
         [InlineData("name", "EmptyCell")]
+        [InlineData("xlookup-range", "XLOOKUP(1,A1:A3,A2:A4)")]
+        [InlineData("xlookup-array", "XLOOKUP(2,{1;2;3},A1:A3)")]
+        [InlineData("xlookup-name", "EmptyLookup")]
         public void FormulaEvaluator_BlankReferenceFunctionsRetainContextUntilCellEvaluation(string caseId, string reference) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("References");
             sheet.CellValue(1, 1, 1d);
             sheet.CellValue(3, 1, 3d);
             document.SetNamedRange("EmptyCell", "'References'!$A$2");
+            document.SetNamedFormula("EmptyLookup", "XLOOKUP(2,{1;2;3},'References'!A1:A3)", save: false);
             (string Formula, string Expected)[] cases = {
                 (reference, "0"),
                 ($"ISBLANK({reference})", "1"),
@@ -47,6 +51,7 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData("INDEX(A1:A3,2)")]
         [InlineData("OFFSET(A1,1,0)")]
+        [InlineData("XLOOKUP(2,{1;2;3},A1:A3)")]
         public void FormulaEvaluator_BlankReferencesCoerceAtNumericAndCriteriaConsumers(string reference) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Consumers");
@@ -78,6 +83,7 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData("INDEX(A1:A3,2)")]
         [InlineData("OFFSET(A1,1,0)")]
+        [InlineData("XLOOKUP(2,{1;2;3},A1:A3)")]
         public void FormulaEvaluator_BlankCriteriaReferencesUseZeroRatherThanFormulaText(string reference) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Criteria");

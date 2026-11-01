@@ -62,7 +62,8 @@ namespace OfficeIMO.Excel {
             array = null!;
             var values = new FormulaArgumentValue[source.Count];
             for (int index = 0; index < values.Length; index++) {
-                values[index] = NormalizeLookupResult(source[index]);
+                // Range consumers retain empty references; output-cell publication applies zero coercion.
+                values[index] = source[index];
                 if (values[index].IsUnresolvedFormula) return false;
             }
             array = new FormulaArrayValue(source.Rows, source.Columns, values);

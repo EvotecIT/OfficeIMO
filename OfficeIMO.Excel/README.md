@@ -1401,10 +1401,10 @@ evaluated error and preserves the fallback's number, text or Boolean type.
 Out-of-range positive lookup positions return `#REF!`; negative `INDEX`
 positions and nonpositive `VLOOKUP`/`HLOOKUP` positions return `#VALUE!`.
 A selected blank cell caches zero when used as a formula cell's result. Nested
-`INDEX` and `OFFSET` references retain their blank type for `ISBLANK`, empty-text
-comparisons, concatenation and range aggregates. Scalar numeric arguments and
-criteria coerce the reference to zero; fixed and dynamic array output cells also
-cache numeric zero. Row, column and area positions accept
+`INDEX`, `OFFSET` and range-backed `XLOOKUP` results retain their blank type for
+`ISBLANK`, empty-text comparisons, concatenation and range aggregates. Scalar
+numeric arguments and criteria coerce the reference to zero; fixed and dynamic
+array output cells also cache numeric zero. Row, column and area positions accept
 numeric text and Boolean values and truncate positive fractions. Invalid text
 positions return `#VALUE!`; discrete match/search modes retain their own
 supported values. Lookup keys preserve the distinction between numbers,
