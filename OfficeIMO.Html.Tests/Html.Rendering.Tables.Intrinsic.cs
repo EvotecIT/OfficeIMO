@@ -6,6 +6,28 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlTables_AlignAttributeOverridesHeaderDefaultAndYieldsToAuthorCss() {
+        const string html = "<style>.css{text-align:right}</style><table style='width:300px;border-spacing:0'>"
+            + "<tr><th align='left'>Left</th></tr><tr><th align='right'>Right</th></tr><tr><th>Plain</th></tr>"
+            + "<tr align='left'><th>Row</th></tr><tbody align='right'><tr><td>Body</td></tr></tbody>"
+            + "<tr><th class='css' align='left'>Css</th></tr></table>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous, ViewportWidth = 320D, ViewportHeight = 200D, Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        double X(string text) => DrawingTestTraversal.Elements(rendered.Pages[0].CreateDrawing())
+            .OfType<OfficeDrawingText>().Single(item => item.Text.Trim() == text).X;
+        Assert.True(X("Left") < 10D);
+        Assert.True(X("Right") > 200D);
+        Assert.InRange(X("Plain"), 100D, 200D);
+        Assert.True(X("Row") < 10D);
+        Assert.True(X("Body") > 200D);
+        Assert.True(X("Css") > 200D);
+    }
+
+    [Fact]
     public void HtmlTables_ColspanContributionsDoNotDependOnSourceRowOrder() {
         const string spanning = "<tr><td colspan='2' style='width:400px'></td></tr>";
         const string singleColumns = "<tr><td id='left' style='width:300px'></td><td id='right' style='width:10px'></td></tr>";
