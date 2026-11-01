@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -8,6 +9,9 @@ namespace OfficeIMO.Excel {
     /// visits every cell, so metadata searches skip the grid and grid searches use direct child links.
     /// </summary>
     internal static class ExcelWorksheetScan {
+        [ThreadStatic]
+        private static FormulaScope? _formulaScope;
+
         /// <summary>Finds the formula of a cell through sibling links, which allocates nothing unlike the typed property.</summary>
         internal static CellFormula? FindFormula(Cell cell) {
             for (OpenXmlElement? child = cell.FirstChild; child != null; child = child.NextSibling()) {
@@ -56,12 +60,40 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal static IEnumerable<CellFormula> CellFormulas(Worksheet worksheet) {
+        internal static IEnumerable<CellFormula> CellFormulas(Worksheet worksheet) =>
+            _formulaScope?.Formulas(worksheet) ?? ScanCellFormulas(worksheet);
+
+        private static IEnumerable<CellFormula> ScanCellFormulas(Worksheet worksheet) {
             foreach (Row row in Rows(worksheet)) {
                 for (OpenXmlElement? cell = row.FirstChild; cell != null; cell = cell.NextSibling()) {
                     if (cell is Cell typed && FindFormula(typed) is { } formula) yield return formula;
                 }
             }
+        }
+
+        /// <summary>
+        /// Keeps the formula list of each worksheet for one structural edit, whose checks and rewrites all visit it.
+        /// The edit must call <see cref="FormulaScope.Refresh"/> after it adds or removes formula cells.
+        /// </summary>
+        internal static FormulaScope BeginFormulaScope() => new FormulaScope();
+
+        internal sealed class FormulaScope : IDisposable {
+            private readonly FormulaScope? _parent = _formulaScope;
+            private readonly Dictionary<Worksheet, List<CellFormula>> _formulas = new Dictionary<Worksheet, List<CellFormula>>();
+
+            internal FormulaScope() => _formulaScope = this;
+
+            internal IEnumerable<CellFormula> Formulas(Worksheet worksheet) {
+                if (!_formulas.TryGetValue(worksheet, out List<CellFormula>? formulas)) {
+                    formulas = new List<CellFormula>(ScanCellFormulas(worksheet));
+                    _formulas.Add(worksheet, formulas);
+                }
+                return formulas;
+            }
+
+            internal void Refresh(Worksheet worksheet) => _formulas.Remove(worksheet);
+
+            public void Dispose() => _formulaScope = _parent;
         }
 
         internal static bool HasCellFormulas(Worksheet worksheet) {

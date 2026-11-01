@@ -145,9 +145,10 @@ namespace OfficeIMO.Excel {
 
         private List<Cell> FindSharedFormulaCells() {
             var cells = new List<Cell>();
-            foreach (Cell cell in ExcelWorksheetScan.Cells(WorksheetRoot)) {
-                CellFormula? formula = ExcelWorksheetScan.FindFormula(cell);
-                if (formula?.FormulaType?.Value == CellFormulaValues.Shared && formula.SharedIndex?.Value != null) {
+            foreach (CellFormula formula in ExcelWorksheetScan.CellFormulas(WorksheetRoot)) {
+                if (formula.FormulaType?.Value == CellFormulaValues.Shared
+                    && formula.SharedIndex?.Value != null
+                    && formula.Parent is Cell cell) {
                     cells.Add(cell);
                 }
             }

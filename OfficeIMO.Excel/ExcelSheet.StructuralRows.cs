@@ -108,6 +108,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            using ExcelWorksheetScan.FormulaScope formulaScope = ExcelWorksheetScan.BeginFormulaScope();
             cancellationToken.ThrowIfCancellationRequested();
             PreflightRowInsertion(firstRow, count);
             cancellationToken.ThrowIfCancellationRequested();
@@ -140,6 +141,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            using ExcelWorksheetScan.FormulaScope formulaScope = ExcelWorksheetScan.BeginFormulaScope();
             cancellationToken.ThrowIfCancellationRequested();
             int lastRemovedRow = firstRow + count - 1;
             PreflightRowDeletion(firstRow, count);
@@ -164,6 +166,7 @@ namespace OfficeIMO.Excel {
                         MoveRow(row, rowIndex - count);
                     }
                 }
+                formulaScope.Refresh(WorksheetRoot);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
