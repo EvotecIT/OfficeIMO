@@ -52,7 +52,7 @@ internal sealed partial class PublisherNativeWriter {
             if (_baseline.Text.TableStories.ContainsKey(entry.Key)) {
                 if (!CanRewriteTableStory(entry.Key)) return false;
                 changedFormatting = true;
-            } else if (!CanRewriteStory(entry.Value, current, out changedFormatting) || !CanRewriteStoryFrames(entry.Key)) return false;
+            } else if (!PublisherQuillParagraphWriter.CanRewriteStory(entry.Value, current, out changedFormatting) || !CanRewriteStoryFrames(entry.Key)) return false;
             extended |= changedFormatting;
         }
         if (!extended && _baseline.Text.Stories.Count == 1 && _baseline.Text.Frames.Count == 1 && _styleDependencies.Count == 1) {
@@ -73,7 +73,7 @@ internal sealed partial class PublisherNativeWriter {
             && _current.CellTextEditLimitation(current) == null)) return false;
         PublisherTableStory before = _baseline.Text.TableStories[storyId], after = _current.Text.TableStories[storyId];
         return before.Segments.Count == after.Segments.Count && before.Segments.Zip(after.Segments, (a, b) =>
-            StoryEqual(a, b) || CanRewriteStory(a, b, out _)).All(value => value);
+            StoryEqual(a, b) || PublisherQuillParagraphWriter.CanRewriteStory(a, b, out _)).All(value => value);
     }
 
     private bool TableStoryUnchanged(uint storyId) => _baseline.Text.TableStories.TryGetValue(storyId, out PublisherTableStory? before)
@@ -92,48 +92,6 @@ internal sealed partial class PublisherNativeWriter {
         return chain.All(id => _baseline.Text.Frames.TryGetValue(id, out PublisherFrameState? frame)
             && frame.StoryId == storyId && frame.Available && frame.SupportsContinuation
             && frame.PageId.HasValue && pages.Contains(frame.PageId.Value));
-    }
-
-    private static bool CanRewriteStory(PublisherTextStory before, PublisherTextStory after, out bool extended) {
-        extended = false;
-        if (before.Id != after.Id || before.Paragraphs.Count == 0 || after.Paragraphs.Count == 0) return false;
-        bool reshape = before.Paragraphs.Count != after.Paragraphs.Count;
-        if (reshape && before.Paragraphs.Any(paragraph => paragraph.Runs.Count != 1 || paragraph.Label != null
-            || !ParagraphFormattingEqual(before.Paragraphs[0], paragraph)
-            || !RunFormattingEqual(before.Paragraphs[0].Runs[0], paragraph.Runs[0]))) {
-            // Formatting matches admit text replacement; the native planner
-            // separately requires complete, unambiguous source definitions.
-            var retained = new HashSet<OfficeRichTextParagraph>(before.Paragraphs.Where(p => p.Label == null), PublisherTextComparison.Paragraphs);
-            var formats = new HashSet<OfficeRichTextParagraph>(before.Paragraphs.Where(p => p.Label == null
-                && p.Runs.Count > 0 && (p.Runs.Count == 1 || p.Runs.All(r => r.Text.Length > 0))), PublisherTextComparison.ParagraphFormats);
-            var texts = new HashSet<OfficeRichTextParagraph>(before.Paragraphs.Where(p => p.Label == null
-                && p.Runs.Count > 0 && p.Runs.All(r => r.Text.Length > 0)), PublisherTextComparison.ParagraphTexts);
-            var content = new HashSet<OfficeRichTextParagraph>(before.Paragraphs.Where(p => p.Label == null
-                && p.Runs.Count > 0 && p.Runs.All(r => r.Text.Length > 0)), PublisherTextComparison.ParagraphContent);
-            extended = true;
-            return after.Paragraphs.All(p => p.Label == null && (retained.Contains(p)
-                || p.Runs.Count > 0 && p.Runs.All(r => r.Text.Length > 0) && (texts.Contains(p) || content.Contains(p) || formats.Contains(p))));
-        }
-        for (int paragraph = 0; paragraph < after.Paragraphs.Count; paragraph++) {
-            OfficeRichTextParagraph a = before.Paragraphs[reshape ? 0 : paragraph], b = after.Paragraphs[paragraph];
-            bool empty = b.Runs.Count == 0 || b.Runs.Count == 1 && b.Runs[0].Text.Length == 0;
-            bool content = !empty && !PublisherTextComparison.ParagraphTexts.Equals(a, b) && PublisherTextComparison.ParagraphContent.Equals(a, b);
-            if (a.Runs.Count < 1 || !empty && !content && a.Runs.Count != 1 && a.Runs.Count != b.Runs.Count
-                || a.Label != null || b.Label != null) return false;
-            if (content && a.Runs.Count > 1) { extended = true; continue; }
-            extended |= empty || PublisherQuillParagraphStyleWriter.HasChanges(a, b);
-            if (empty) {
-                if (b.Runs.Count == 1 && !RunPreservedFormattingEqual(a.Runs[a.Runs.Count - 1], b.Runs[0])) return false;
-                continue;
-            }
-            for (int index = 0; index < b.Runs.Count; index++) {
-                if (b.Runs[index].Text.Length == 0
-                    || !RunPreservedFormattingEqual(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index])) return false;
-                extended |= PublisherQuillCharacterStyleWriter.HasExtendedChanges(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index])
-                    || PublisherQuillCharacterStyleWriter.HasExplicitAttributeChange(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index]);
-            }
-        }
-        return true;
     }
 
     private bool PageDefinitionsEqual() => _baseline.Pages.Count == _current.Pages.Count

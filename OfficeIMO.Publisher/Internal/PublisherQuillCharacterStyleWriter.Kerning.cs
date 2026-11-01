@@ -12,9 +12,8 @@ internal static partial class PublisherQuillCharacterStyleWriter {
 
     private static byte[]? KerningField(IReadOnlyList<PublisherBlock> fields, double threshold) {
         double value = Math.Round(threshold * 12700D);
-        PublisherBlock[] source = fields.Where(field => field.Id == 0x18).ToArray();
         if (threshold < 0 || threshold > 999.5D || double.IsNaN(value) || threshold != value / 12700D
-            || source.Length > 1 || source.Any(field => field.Type != 0x22 || field.Value > 12700 * 999.5D)) return null;
+            || !PublisherQuillKerning.TryRead(fields, out _)) return null;
         return PublisherOplWriter.UInt32(0x18, checked((uint)value));
     }
 

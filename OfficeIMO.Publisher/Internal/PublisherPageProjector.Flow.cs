@@ -9,7 +9,7 @@ internal sealed partial class PublisherPageProjector {
         foreach (var chain in _publication.Text.Chains) {
             _context.Token.ThrowIfCancellationRequested();
             if (!_publication.Text.Stories.TryGetValue(chain.Key, out PublisherTextStory? story)) continue;
-            var flow = new OfficeRichTextFlow(story.Paragraphs, _context.AccountTextLayout);
+            var flow = new OfficeRichTextFlow(_kerning.Story(story), _context.AccountTextLayout);
             bool unavailable = false;
             for (int frameIndex = 0; frameIndex < chain.Value.Count; frameIndex++) {
                 PublisherFrameState frame = _publication.Text.Frames[chain.Value[frameIndex]];

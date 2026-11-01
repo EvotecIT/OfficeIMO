@@ -90,7 +90,8 @@ internal sealed partial class PublisherQuillStyleReader {
             Baseline = styleDefinition ? OfficeTextBaseline.Normal : null,
             HasAutomaticPairKerningSetting = styleDefinition
         };
-        foreach (PublisherBlock field in _blocks.Chunk(offset, end)) {
+        IReadOnlyList<PublisherBlock> fields = _blocks.Chunk(offset, end);
+        foreach (PublisherBlock field in fields) {
             switch (field.Id) {
                 case 0x02: result.Bold = field.Type != 0x02; break;
                 case 0x03: result.Italic = field.Type != 0x02; break;
@@ -101,7 +102,7 @@ internal sealed partial class PublisherQuillStyleReader {
                     break;
                 case 0x18:
                     result.HasAutomaticPairKerningSetting = true;
-                    if (field.Type == 0x22 && field.Value <= 12700 * 999.5D) result.AutomaticPairKerningThreshold = field.Value / 12700D;
+                    if (PublisherQuillKerning.TryRead(fields, out double? threshold)) result.AutomaticPairKerningThreshold = threshold;
                     else _context.Add("PUB_TEXT_KERNING_UNASSESSED", "The native pair-kerning threshold is outside the qualified scalar profile and remains opaque.", OfficeConversionLossKind.Unassessed, "Quill/kerning");
                     break;
                 case 0x1E: result.UnderlineStyle = ReadUnderline(field.Value); break;

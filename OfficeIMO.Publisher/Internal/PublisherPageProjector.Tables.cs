@@ -40,8 +40,11 @@ internal sealed partial class PublisherPageProjector {
     private void ProjectTableText(uint id, OfficeDrawing drawing) {
         if (!_tables.TryGetValue(id, out PublisherTable? table) || !table.HasPlacement || !table.HasTextMapping) return;
         PublisherTableState state = _publication.Tables[id];
-        foreach (PublisherTableCell cell in table.Cells)
-            if (cell.Paragraphs.Count != 0) ProjectText(cell.Paragraphs, drawing, id, state.Padding, cell.X, cell.Y, cell.Width, cell.Height);
+        for (int index = 0; index < table.Cells.Count; index++) {
+            PublisherTableCell cell = table.Cells[index];
+            if (cell.Paragraphs.Count != 0) ProjectText(_kerning.Cell(table.StoryId!.Value, index), drawing, id,
+                state.Padding, cell.X, cell.Y, cell.Width, cell.Height);
+        }
         _usedStories.Add(table.StoryId!.Value);
         _context.Add("PUB_TEXT_LAYOUT_APPROXIMATED", state.IsAuthored
                 ? "Publication text uses shared drawing paragraph layout. Font availability, line breaking, fitting and overflow can differ from Publisher."

@@ -190,6 +190,10 @@ public sealed class PublisherKerningWritingTests {
         }, "NativeComparison/TextPairKerning/native-threshold-8.pub");
         PublisherDocument document = PublisherDocument.Load(source);
         Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_TEXT_KERNING_UNASSESSED");
+        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_TEXT_KERNING_SOURCE_UNASSESSED");
+        Assert.All(PublisherNativeTests.Elements(document.Pages[0].CreateDrawing()).OfType<OfficeDrawingRichText>()
+            .SelectMany(frame => frame.Paragraphs).SelectMany(paragraph => paragraph.Runs),
+            run => Assert.Null(run.AutomaticPairKerningThreshold));
         Assert.Equal(source, document.ToPubBytes());
         PublisherTextStory story = document.TextStories[0];
         document.ReplaceStoryParagraphs(story.Id, story.Paragraphs.Select(paragraph => WithThreshold(paragraph, 0)).ToArray());

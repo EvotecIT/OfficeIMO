@@ -12,9 +12,11 @@ internal sealed partial class PublisherPageProjector {
     private readonly HashSet<uint> _usedStories = new();
     private readonly Dictionary<uint, PublisherTable> _tables = new();
     private readonly PublisherPublicationState _publication;
+    private readonly PublisherQuillKerningProjection _kerning;
     private readonly Dictionary<uint, PublisherPageState> _pages;
     internal PublisherPageProjector(PublisherPublicationState publication, PublisherImportedResidue? imported, PublisherParseContext context) {
         _imported = imported; _context = context; _publication = publication;
+        _kerning = new PublisherQuillKerningProjection(publication, imported, context);
         _pages = _publication.Pages.ToDictionary(page => page.Id);
         foreach (PublisherPageState page in _publication.Pages.Where(page => !page.SupportsPlacementEditing))
             _context.Add("PUB_MASTER_COORDINATE_ORIGIN_UNASSESSED", "An unassessed master-page layout uses the centered page coordinate origin.",
