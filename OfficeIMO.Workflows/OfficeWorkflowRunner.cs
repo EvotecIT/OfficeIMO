@@ -588,10 +588,15 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     cancellationToken: cancellationToken).ConfigureAwait(false)) { }
                 break;
             case ".html":
+                // The output byte limit bounds this artifact. Ingestion size budgets would reject valid large output.
+                HtmlConversionLimits htmlLimits = HtmlConversionLimits.CreateUntrustedProfile();
+                htmlLimits.MaxInputCharacters = (int)Math.Min(loadOptions.Limits.MaxInputBytes, int.MaxValue);
+                htmlLimits.MaxHtmlNodes = null;
                 _ = await HtmlConversionDocument.LoadAsync(
                     stagingPath,
-                    encoding: Encoding.UTF8,
-                    cancellationToken: cancellationToken).ConfigureAwait(false);
+                    new HtmlConversionDocumentOptions { Limits = htmlLimits },
+                    Encoding.UTF8,
+                    cancellationToken).ConfigureAwait(false);
                 break;
             case ".md":
                 using (FileStream stream = OpenStagedArtifact(stagingPath)) {

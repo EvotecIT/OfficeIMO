@@ -42,6 +42,26 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
+    public async Task PdfToHtmlPublishesOutputLargerThanHtmlIngestionNodeBudget() {
+        using var scope = new TestDirectory();
+        string input = System.IO.Path.Combine(scope.Path, "large.pdf"), output = System.IO.Path.Combine(scope.Path, "large.html");
+        File.WriteAllBytes(input, PdfDocument.Create(compose => compose.Page(page => {
+            page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(1600));
+            page.Content(content => {
+                for (int line = 0; line < 62_000; line++) content.Paragraph(paragraph => paragraph.Text("line"));
+            });
+        })).ToBytes());
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output, ConversionRouteId = "pdf-html"
+        });
+
+        Assert.True(result.Status == OfficeWorkflowStatus.Completed, result.Summary);
+        var published = HtmlConversionDocument.Parse(File.ReadAllText(output), HtmlConversionDocumentOptions.CreateTrustedProfile()).Document;
+        Assert.True(published.QuerySelectorAll("p").Count > 40_000);
+    }
+
+    [Fact]
     public void CatalogProjectsCanonicalRoutesAndSupportedExecutionContracts() {
         Assert.Equal(OfficeConversionCapabilityCatalog.All.Count, OfficeWorkflowCatalog.Routes.Count);
         Assert.Equal(
