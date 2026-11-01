@@ -42,6 +42,7 @@ namespace OfficeIMO.Tests {
 
         [Theory]
         [InlineData("INDEX(A1:A2,MATCH(9,A1:A2,0))", "#N/A")]
+        [InlineData("INDEX(NA(),1)", "#N/A")]
         [InlineData("INDEX(A1:B2,1,NA())", "#N/A")]
         [InlineData("INDEX(A1:B2,1/0,1)", "#DIV/0!")]
         [InlineData("INDEX(A1:A2,3)", "#REF!")]

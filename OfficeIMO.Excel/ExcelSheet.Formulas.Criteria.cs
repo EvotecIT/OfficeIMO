@@ -133,6 +133,7 @@ namespace OfficeIMO.Excel {
             error = default;
             if (!TryResolveFormulaArgument(condition, out FormulaArgumentValue value) || value.IsUnresolvedFormula) return false;
             if (value.IsError) { error = value; return true; }
+            if (!value.HasValue && value.SourceCellKind == ExcelCellDataKind.Blank) return true;
             if (!value.Number.HasValue) return false;
             result = Math.Abs(value.Number.Value) >= double.Epsilon;
             return true;
@@ -140,6 +141,12 @@ namespace OfficeIMO.Excel {
 
         private static bool TryCompareFormulaValues(FormulaArgumentValue left, string comparisonOperator, FormulaArgumentValue right, out bool result) {
             result = false;
+            // A blank reference compares as zero against a numeric operand;
+            // an actual empty text value retains text comparison semantics.
+            if (!left.HasValue && left.SourceCellKind == ExcelCellDataKind.Blank && right.Number.HasValue)
+                left = new FormulaArgumentValue(0d, "0");
+            if (!right.HasValue && right.SourceCellKind == ExcelCellDataKind.Blank && left.Number.HasValue)
+                right = new FormulaArgumentValue(0d, "0");
             int comparison;
             if (left.Number.HasValue && right.Number.HasValue) {
                 comparison = left.Number.Value.CompareTo(right.Number.Value);

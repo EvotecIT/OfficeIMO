@@ -276,8 +276,9 @@ namespace OfficeIMO.Excel {
             }
 
             bool matchEnd = false;
-            if (tokens.Count >= 5 && !TryResolveBooleanArgument(tokens[4], out matchEnd)) {
-                return false;
+            if (tokens.Count >= 5) {
+                if (!TryEvaluateCondition(tokens[4], out matchEnd, out FormulaArgumentValue matchEndError)) return false;
+                if (matchEndError.IsError && !_formulaReferenceError.IsError) _formulaReferenceError = matchEndError;
             }
 
             if (_formulaReferenceError.IsError) return true;
@@ -420,8 +421,10 @@ namespace OfficeIMO.Excel {
                 && !TryGetLookupIntegerArgument(tokens[2], out columnIndex, out columnError)) return false;
             // Qualify known array selectors before an error can activate IFERROR.
             if ((!rowError.IsError && rowIndex == 0) || (!columnError.IsError && columnIndex == 0)) return false;
-            if (!TryResolveFormulaRangeReference(tokens[0], out ExcelSheet rangeSheet, out int r1, out int c1, out int r2, out int c2))
-                return _formulaReferenceError.IsError;
+            if (!TryResolveFormulaRangeReference(tokens[0], out ExcelSheet rangeSheet, out int r1, out int c1, out int r2, out int c2)) {
+                if (_formulaReferenceError.IsError) return true;
+                return TryResolveFormulaArgument(tokens[0], out result) && !result.IsUnresolvedFormula && result.IsError;
+            }
 
             int rowCount = r2 - r1 + 1;
             int columnCount = c2 - c1 + 1;

@@ -21,6 +21,8 @@ namespace OfficeIMO.Tests {
         [InlineData("TEXT(NA(),\"0\")")]
         [InlineData("TEXT(1,NA())")]
         [InlineData("REPT(\"x\",NA())")]
+        [InlineData("TEXTBEFORE(\"a:b\",\":\",1,0,NA())")]
+        [InlineData("TEXTAFTER(\"a:b\",\":\",1,0,NA())")]
         [InlineData("SUMPRODUCT(A1:A2,B1:B2)")]
         public void Test_FormulaEvaluator_ComposedErrorsRemainTyped(string expression) {
             using var document = ExcelDocument.Create();
@@ -64,6 +66,35 @@ namespace OfficeIMO.Tests {
             sheet.CellFormula(1, 1, "TEXTBEFORE(\"a:b\",\":\",1,0,0,NA())");
             Assert.Equal(1, document.Calculate());
             AssertFormulaCache(sheet, 1, 1, "a");
+        }
+
+        [Fact]
+        public void Test_FormulaEvaluator_BlankReferenceConditionsUseNumericZero() {
+            using var document = ExcelDocument.Create();
+            var sheet = document.AddWorksheet("Blank");
+            sheet.CellValue(2, 1, "");
+            string[] formulas = { "IF(A1=0,1,2)", "IF(0=A1,1,2)", "IF(A1<1,1,2)",
+                "IF(A1=\"0\",1,2)", "IF(A2=0,1,2)", "IFS(A1=0,1,TRUE,2)",
+                "IF(A1,1,2)", "AND(A1=0,TRUE)", "OR(A1=0,FALSE)", "NOT(A1=0)" };
+            string[] expected = { "1", "1", "1", "2", "2", "1", "2", "1", "1", "0" };
+            for (int index = 0; index < formulas.Length; index++) sheet.CellFormula(index + 1, 3, formulas[index]);
+            Assert.Equal(formulas.Length, document.Calculate());
+            for (int index = 0; index < formulas.Length; index++) AssertFormulaCache(sheet, index + 1, 3, expected[index]);
+        }
+
+        [Fact]
+        public void Test_FormulaEvaluator_LookupErrorsPropagateInsideArithmetic() {
+            using var document = ExcelDocument.Create();
+            var sheet = document.AddWorksheet("Arithmetic");
+            sheet.CellValue(1, 1, 1d);
+            sheet.CellValue(2, 1, 2d);
+            sheet.CellValue(1, 2, 10d);
+            sheet.CellValue(2, 2, 20d);
+            string[] expressions = { "INDEX(A1:A2,3)+1", "VLOOKUP(9,A1:B2,2,FALSE)+1",
+                "HLOOKUP(9,A1:B2,2,FALSE)+1", "XLOOKUP(9,A1:A2,B1:B2)+1" };
+            for (int index = 0; index < expressions.Length; index++) sheet.CellFormula(index + 1, 4, $"IFERROR({expressions[index]},99)");
+            Assert.Equal(expressions.Length, document.Calculate());
+            for (int index = 0; index < expressions.Length; index++) AssertFormulaCache(sheet, index + 1, 4, "99");
         }
     }
 }
