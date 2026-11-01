@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel {
 
         private AutoFitMeasurementPlan? TryBuildPendingCellAutoFitPlan(IReadOnlyList<int>? columns, CancellationToken ct) {
             ExcelCellValueBuffer? buffer = _pendingCellValueDirectSaveBuffer;
-            if (buffer == null || HasStyledPendingCells || buffer.CellCount < PendingDirectCellValueMinimumCellCount) {
+            if (buffer == null || buffer.CellCount < PendingDirectCellValueMinimumCellCount) {
                 return null;
             }
 
@@ -59,19 +59,22 @@ namespace OfficeIMO.Excel {
                     }
 
                     ExcelBufferedCell cell = buffer.GetCell(cellIndex);
-                    if (cell.Kind == ExcelBufferedCellKind.Blank || cell.Reference is DirectFormulaCellValue) {
+                    if (cell.Kind == ExcelBufferedCellKind.Blank
+                        || cell.Kind == ExcelBufferedCellKind.StyleOnly
+                        || cell.Reference is DirectFormulaCellValue) {
                         continue;
                     }
 
+                    uint style = GetEffectiveBufferedStyle(buffer, cellIndex);
                     if (cell.Reference is string text && (sharedTexts.Contains(text) || _excelDocument.TryGetExistingSharedStringIndex(text, out _, out _, out _))) {
-                        if (!string.IsNullOrWhiteSpace(text) && uniqueMeasurements.Add(new AutoFitMeasurementKey(targetIndex, 0U, text, null))) {
-                            measurements.Add(new AutoFitMeasurement(targetIndex, 0U, text, null));
+                        if (!string.IsNullOrWhiteSpace(text) && uniqueMeasurements.Add(new AutoFitMeasurementKey(targetIndex, style, text, null))) {
+                            measurements.Add(new AutoFitMeasurement(targetIndex, style, text, null));
                         }
 
                         continue;
                     }
 
-                    if (!TryLoadAutoFitScratchCell(scratchCells, cell, out Cell? scratch)) {
+                    if (!TryLoadAutoFitScratchCell(scratchCells, cell, style, out Cell? scratch)) {
                         return null;
                     }
 
@@ -122,7 +125,7 @@ namespace OfficeIMO.Excel {
         }
 
         // One reusable cell per kind keeps measurement from allocating Open XML objects per cell.
-        private bool TryLoadAutoFitScratchCell(Dictionary<ExcelBufferedCellKind, Cell> scratchCells, in ExcelBufferedCell cell, out Cell? scratch) {
+        private bool TryLoadAutoFitScratchCell(Dictionary<ExcelBufferedCellKind, Cell> scratchCells, in ExcelBufferedCell cell, uint style, out Cell? scratch) {
             scratch = null;
             string raw;
             switch (cell.Kind) {
@@ -155,13 +158,13 @@ namespace OfficeIMO.Excel {
                         : cell.Kind == ExcelBufferedCellKind.Boolean ? XCellValues.Boolean
                         : XCellValues.Number
                 };
-                if (cell.Kind == ExcelBufferedCellKind.DateTime) {
-                    scratch.StyleIndex = GetAutomaticNumberFormatStyleIndex(0U, duration: false);
-                }
-
                 scratchCells.Add(cell.Kind, scratch);
             } else {
                 scratch.CellValue!.Text = raw;
+            }
+
+            if ((scratch.StyleIndex?.Value ?? 0U) != style) {
+                scratch.StyleIndex = style;
             }
 
             return true;

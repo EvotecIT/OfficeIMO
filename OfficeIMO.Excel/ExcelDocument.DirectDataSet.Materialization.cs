@@ -267,7 +267,7 @@ namespace OfficeIMO.Excel {
 
                 using var noLock = sheet.BeginNoLock();
                 if (sheetModel.Table.CellValueBuffer is { } cellValueBuffer) {
-                    sheet.ApplyCellValueBufferToWorksheet(cellValueBuffer, cancellationToken);
+                    sheet.ApplyCellValueBufferToWorksheet(cellValueBuffer, 0, cancellationToken);
                 } else if (sheetModel.HasTable) {
                     string tableRange;
                     if (hasExistingTablePart) {

@@ -41,11 +41,12 @@ namespace OfficeIMO.Excel {
                 WriteTextEntry(archive, "docProps/app.xml", model.AppPropertiesXml);
                 ReportTiming("Save.ExtendedPackage.WriteFixedEntries");
 
+                bool keepsWorkbookStyles = model.DirectDataSetModel?.WorkbookStyles != null;
                 bool wroteDirectStyles = false;
                 bool wroteDirectSharedStrings = false;
                 foreach (var part in model.Parts) {
                     ct.ThrowIfCancellationRequested();
-                    if (directWritePlan != null && part.Part is WorkbookStylesPart) {
+                    if (directWritePlan != null && !keepsWorkbookStyles && part.Part is WorkbookStylesPart) {
                         DirectDataSetWorkbookWriter.WriteExtendedStyles(archive, directWritePlan);
                         wroteDirectStyles = true;
                         ReportTiming("Save.ExtendedPackage.WriteDirectStyles");
@@ -105,7 +106,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                if (directWritePlan != null && !wroteDirectStyles) {
+                if (directWritePlan != null && !wroteDirectStyles && !keepsWorkbookStyles) {
                     DirectDataSetWorkbookWriter.WriteExtendedStyles(archive, directWritePlan);
                     ReportTiming("Save.ExtendedPackage.WriteDirectStyles");
                 }

@@ -96,21 +96,7 @@ namespace OfficeIMO.Excel {
                 private const string TimeFormatCode = "[h]:mm:ss";
                 private readonly Dictionary<string, string> _styleAttributeByFormat;
 
-                internal bool UsesWrapText { get; private set; }
-
-                internal bool UsesHyperlink { get; private set; }
-
-                internal string? GetBufferedCellStyleAttribute(ExcelBufferedCellStyle style) {
-                    int firstBufferedFormat = 5 + CustomNumberFormats.Count;
-                    switch (style) {
-                        case ExcelBufferedCellStyle.WrapText:
-                            return " s=\"" + InvariantNumberText.Get(firstBufferedFormat) + "\"";
-                        case ExcelBufferedCellStyle.Hyperlink:
-                            return " s=\"" + InvariantNumberText.Get(firstBufferedFormat + (UsesWrapText ? 1 : 0)) + "\"";
-                        default:
-                            return null;
-                    }
-                }
+                internal DirectWorkbookCellStyles? WorkbookStyles { get; private set; }
 
                 private DirectStylePlan(List<string> customNumberFormats, Dictionary<string, string> styleAttributeByFormat, ExcelTabularStylePlan? tabularStyles) {
                     CustomNumberFormats = customNumberFormats;
@@ -147,15 +133,7 @@ namespace OfficeIMO.Excel {
                         }
                     }
 
-                    var plan = new DirectStylePlan(customNumberFormats, styleAttributeByFormat, model.TabularStyles);
-                    for (int sheetIndex = 0; sheetIndex < model.Sheets.Count; sheetIndex++) {
-                        if (model.Sheets[sheetIndex].Table.CellValueBuffer is { } buffer) {
-                            plan.UsesWrapText |= buffer.UsesStyle(ExcelBufferedCellStyle.WrapText);
-                            plan.UsesHyperlink |= buffer.UsesStyle(ExcelBufferedCellStyle.Hyperlink);
-                        }
-                    }
-
-                    return plan;
+                    return new DirectStylePlan(customNumberFormats, styleAttributeByFormat, model.TabularStyles) { WorkbookStyles = model.WorkbookStyles };
                 }
 
                 private static void AddCustomNumberFormat(string? format, List<string> customNumberFormats, Dictionary<string, string> styleAttributeByFormat) {

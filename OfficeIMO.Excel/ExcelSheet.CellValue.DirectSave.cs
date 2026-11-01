@@ -74,38 +74,6 @@ namespace OfficeIMO.Excel {
                && !_excelDocument.HasDirectDataSetFastSaveState
                && (_pendingCellValueDirectSaveBuffer != null || (!_hasCellValueDomWrites && CanStartCellValueBuffer()));
 
-        // A link cell is text plus a direct format; its relationship stays on the worksheet part.
-        private bool TrySetPendingHyperlinkCell(int row, int column, string text, bool style) {
-            ExcelBufferedCell cell = style ? ExcelBufferedCell.HyperlinkText(text) : ExcelBufferedCell.Text(text);
-            if ((style && ExcelBufferedCell.Text(text).Style != ExcelBufferedCellStyle.None) || !CanAcceptPendingDirectCell()) {
-                return false;
-            }
-
-            CoerceValueHelper.ValidateSharedStringLength(text, "value");
-            var buffer = _pendingCellValueDirectSaveBuffer;
-            if (buffer == null || buffer.CanAdd(row, column)) {
-                return TrySetPendingDirectCellCore(row, column, cell);
-            }
-
-            int cellIndex = buffer.FindCell(row, column);
-            if (cellIndex < 0 || !HasDefaultCellFormat(buffer.GetCell(cellIndex))) {
-                return false;
-            }
-
-            buffer.Replace(cellIndex, cell);
-            if (cellIndex < PendingDirectCellValueMinimumCellCount - 1) {
-                CellValueCoreNoMaterialize(row, column, text);
-            }
-
-            return true;
-        }
-
-        // Linking keeps a cell's format, which only the DOM can combine with the link's font.
-        private static bool HasDefaultCellFormat(in ExcelBufferedCell cell)
-            => cell.Style == ExcelBufferedCellStyle.None
-               && cell.Kind != ExcelBufferedCellKind.DateTime
-               && cell.Kind != ExcelBufferedCellKind.Value;
-
         private bool TrySetPendingDirectCellLocked(int row, int column, in ExcelBufferedCell cell) {
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
             bool prepareDateTimeOffset = cell.Reference is DateTimeOffset;
@@ -165,7 +133,9 @@ namespace OfficeIMO.Excel {
             // Establish coordinate, sequence and thread admission before a
             // user conversion callback. A rejected buffer write uses the DOM
             // path, which must invoke that callback only once.
-            if (!buffer.CanAdd(row, column)) {
+            bool appends = buffer.CanAdd(row, column);
+            int existingCell = appends ? -1 : buffer.FindCell(row, column);
+            if (!appends && existingCell < 0) {
                 MaterializePendingDirectCellValues();
                 return false;
             }
@@ -180,11 +150,20 @@ namespace OfficeIMO.Excel {
                 bufferedCell = ExcelBufferedCell.DateTimeCell(converted);
             }
 
-            buffer.Add(row, column, bufferedCell);
+            if (appends) {
+                buffer.Add(row, column, bufferedCell);
+                if (bufferedCell.HasLineBreak) {
+                    SetBufferedAutomaticStyle(buffer, buffer.CellCount - 1, 0U, bufferedCell);
+                }
 
-            if (MirrorPendingDirectCellValueBufferToWorksheet || buffer.CellCount < PendingDirectCellValueMinimumCellCount) {
-                ApplyPendingDirectCellValueToDom(row, column, bufferedCell.ToValue());
-            } else if (bufferedCell.Reference is not DirectFormulaCellValue) {
+                if (MirrorPendingDirectCellValueBufferToWorksheet || buffer.CellCount < PendingDirectCellValueMinimumCellCount) {
+                    ApplyPendingDirectCellValueToDom(row, column, bufferedCell);
+                }
+            } else {
+                ReplaceBufferedCell(buffer, existingCell, row, column, bufferedCell);
+            }
+
+            if (bufferedCell.Reference is not DirectFormulaCellValue) {
                 _excelDocument.MarkFormulaInputMutation();
             }
 
@@ -193,6 +172,140 @@ namespace OfficeIMO.Excel {
             }
 
             return true;
+        }
+
+        // Overwriting keeps the cell's format, as the DOM does.
+        private void ReplaceBufferedCell(ExcelCellValueBuffer buffer, int cellIndex, int row, int column, in ExcelBufferedCell cell) {
+            uint baseStyle = GetEffectiveBufferedStyle(buffer, cellIndex);
+            buffer.Replace(cellIndex, cell);
+            if (IsMirroredBufferedCell(cellIndex)) {
+                ApplyPendingDirectCellValueToDom(row, column, cell);
+                buffer.SetStyle(cellIndex, GetCell(row, column).StyleIndex?.Value ?? 0U);
+                return;
+            }
+
+            buffer.SetStyle(cellIndex, baseStyle);
+            SetBufferedAutomaticStyle(buffer, cellIndex, baseStyle, cell);
+        }
+
+        private static bool IsMirroredBufferedCell(int cellIndex) => cellIndex < PendingDirectCellValueMinimumCellCount - 1;
+
+        // Date and time cells without a format take the automatic one when written.
+        private uint GetEffectiveBufferedStyle(ExcelCellValueBuffer buffer, int cellIndex) {
+            uint style = buffer.GetStyle(cellIndex);
+            if (style != 0U) {
+                return style;
+            }
+
+            ExcelBufferedCell cell = buffer.GetCell(cellIndex);
+            if (cell.Kind == ExcelBufferedCellKind.DateTime || IsBufferedDateValue(cell.Reference)) {
+                return GetAutomaticNumberFormatStyleIndex(0U, duration: false);
+            }
+
+            return IsBufferedTimeValue(cell.Reference)
+                ? GetAutomaticNumberFormatStyleIndex(0U, duration: true)
+                : 0U;
+        }
+
+        private static bool IsBufferedDateValue(object? value) {
+#if NET6_0_OR_GREATER
+            return value is DateOnly;
+#else
+            return false;
+#endif
+        }
+
+        private static bool IsBufferedTimeValue(object? value) {
+#if NET6_0_OR_GREATER
+            return value is TimeSpan or TimeOnly;
+#else
+            return value is TimeSpan;
+#endif
+        }
+
+        private void SetBufferedAutomaticStyle(ExcelCellValueBuffer buffer, int cellIndex, uint baseStyle, in ExcelBufferedCell cell) {
+            object? value = cell.ToValue();
+            var dataType = new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cell.Kind == ExcelBufferedCellKind.Text
+                ? DocumentFormat.OpenXml.Spreadsheet.CellValues.String
+                : DocumentFormat.OpenXml.Spreadsheet.CellValues.Number);
+            if (RequiresAutomaticCellFormatting(value, dataType)) {
+                Cell scratch = StyleScratchCell(baseStyle);
+                ApplyAutomaticCellFormatting(scratch, value, dataType);
+                buffer.SetStyle(cellIndex, scratch.StyleIndex?.Value ?? 0U);
+            }
+        }
+
+        private Cell StyleScratchCell(uint styleIndex) {
+            Cell scratch = _styleScratchCell ??= new Cell();
+            scratch.StyleIndex = styleIndex == 0U ? null : styleIndex;
+            return scratch;
+        }
+
+        private void WriteCellStyle(int row, int column, Action<Cell> apply) {
+            bool buffered;
+            if (HasCellValueWriteAccess) {
+                buffered = TryWritePendingCellStyle(row, column, apply);
+            } else {
+                var lck = _excelDocument.EnsureLock();
+                lck.EnterWriteLock();
+                try {
+                    buffered = TryWritePendingCellStyle(row, column, apply);
+                } finally {
+                    lck.ExitWriteLock();
+                }
+            }
+
+            if (!buffered) {
+                WriteLockConditional(() => apply(GetCell(row, column)));
+            }
+        }
+
+        private bool TryWritePendingCellStyle(int row, int column, Action<Cell> apply) {
+            if (!CanAcceptPendingDirectCell()) {
+                return false;
+            }
+
+            ExcelCellValueBuffer? buffer = _pendingCellValueDirectSaveBuffer;
+            int cellIndex = buffer?.FindCell(row, column) ?? -1;
+            if (cellIndex < 0) {
+                if (!TrySetPendingDirectCellCore(row, column, ExcelBufferedCell.StyleOnly)) {
+                    return false;
+                }
+
+                buffer = _pendingCellValueDirectSaveBuffer!;
+                cellIndex = buffer.CellCount - 1;
+            }
+
+            if (IsMirroredBufferedCell(cellIndex)) {
+                Cell cell = GetCell(row, column);
+                apply(cell);
+                buffer!.SetStyle(cellIndex, cell.StyleIndex?.Value ?? 0U);
+                return true;
+            }
+
+            Cell scratch = StyleScratchCell(GetEffectiveBufferedStyle(buffer!, cellIndex));
+            apply(scratch);
+            buffer!.SetStyle(cellIndex, scratch.StyleIndex?.Value ?? 0U);
+            return true;
+        }
+
+        // A link cell is text; its relationship stays on the worksheet part.
+        private bool TrySetPendingHyperlinkCell(int row, int column, string text) {
+            if (!CanAcceptPendingDirectCell()) {
+                return false;
+            }
+
+            ExcelBufferedCell cell = ExcelBufferedCell.Text(text);
+            return CanBufferDirectCell(cell) && TrySetPendingDirectCellCore(row, column, cell);
+        }
+
+        private void ApplyPendingDirectCellValueToDom(int row, int column, in ExcelBufferedCell cell) {
+            if (cell.Kind == ExcelBufferedCellKind.StyleOnly) {
+                GetCell(row, column);
+                return;
+            }
+
+            ApplyPendingDirectCellValueToDom(row, column, cell.ToValue());
         }
 
         private void ApplyPendingDirectCellValueToDom(int row, int column, object? value) {
@@ -267,18 +380,7 @@ namespace OfficeIMO.Excel {
             _materializingPendingCellValueDirectSaveBuffer = true;
             try {
                 // The first cells were mirrored as they arrived and may since have been edited in place.
-                int mirroredCells = PendingDirectCellValueMinimumCellCount - 1;
-                foreach (var cell in buffer.EnumerateWrittenCells()) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (mirroredCells > 0) {
-                        mirroredCells--;
-                        continue;
-                    }
-
-                    ApplyPendingDirectCellValueToDom(cell.Row, cell.Column, cell.Value);
-                }
-
-                ApplyBufferedHyperlinkStyles(buffer);
+                ApplyCellValueBufferToWorksheet(buffer, PendingDirectCellValueMinimumCellCount - 1, cancellationToken);
                 if (ReferenceEquals(_pendingCellValueDirectSaveBuffer, buffer)) {
                     _pendingCellValueDirectSaveBuffer = null;
                     _excelDocument.ClearPendingDirectCellValueSheet(this);
@@ -288,18 +390,19 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal void ApplyCellValueBufferToWorksheet(ExcelCellValueBuffer buffer, CancellationToken cancellationToken) {
-            foreach (var cell in buffer.EnumerateWrittenCells()) {
-                cancellationToken.ThrowIfCancellationRequested();
-                ApplyPendingDirectCellValueToDom(cell.Row, cell.Column, cell.Value);
-            }
-
-            ApplyBufferedHyperlinkStyles(buffer);
-        }
-
-        private void ApplyBufferedHyperlinkStyles(ExcelCellValueBuffer buffer) {
-            foreach ((int row, int column) in buffer.EnumerateHyperlinkCells()) {
-                ApplyHyperlinkStyle(GetCell(row, column));
+        internal void ApplyCellValueBufferToWorksheet(ExcelCellValueBuffer buffer, int firstCellIndex, CancellationToken cancellationToken) {
+            for (int rowIndex = 0; rowIndex < buffer.WrittenRowCount; rowIndex++) {
+                int row = buffer.GetRowNumber(rowIndex);
+                int end = buffer.GetEndCellIndex(rowIndex);
+                for (int cellIndex = Math.Max(firstCellIndex, buffer.GetFirstCellIndex(rowIndex)); cellIndex < end; cellIndex++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int column = buffer.GetColumn(cellIndex);
+                    ApplyPendingDirectCellValueToDom(row, column, buffer.GetCell(cellIndex));
+                    uint style = buffer.GetStyle(cellIndex);
+                    if (style != 0U) {
+                        GetCell(row, column).StyleIndex = style;
+                    }
+                }
             }
         }
 
@@ -320,8 +423,12 @@ namespace OfficeIMO.Excel {
             _excelDocument.ClearPendingDirectCellValueSheet(this);
         }
 
-        internal bool HasStyledPendingCells => _pendingCellValueDirectSaveBuffer is { } buffer
-            && (buffer.UsesStyle(ExcelBufferedCellStyle.WrapText) || buffer.UsesStyle(ExcelBufferedCellStyle.Hyperlink));
+        internal ExcelDocument.DirectWorkbookCellStyles CreateWorkbookCellStyles()
+            => new ExcelDocument.DirectWorkbookCellStyles(
+                GetAutomaticNumberFormatStyleIndex(0U, duration: false),
+                GetAutomaticNumberFormatStyleIndex(0U, duration: true));
+
+        internal bool HasStyledPendingCells => _pendingCellValueDirectSaveBuffer?.HasCellStyles == true;
 
         internal int PendingCellValueCount => _pendingCellValueDirectSaveBuffer?.CellCount ?? 0;
 
@@ -356,6 +463,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (buffer.CellCount < PendingDirectCellValueMinimumCellCount
+                || buffer.HasCellStyles
                 || !CanWriteCellValueBuffer(buffer)
                 || !IsOnlyVisibleWorksheetWithoutParts()) {
                 return false;

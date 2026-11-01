@@ -14,8 +14,13 @@ namespace OfficeIMO.Excel {
                 DirectSharedStringTable? sharedStrings,
                 CancellationToken ct) {
                 bool canCancel = ct.CanBeCanceled;
-                string? wrapTextStyle = stylePlan.GetBufferedCellStyleAttribute(ExcelBufferedCellStyle.WrapText);
-                string? hyperlinkStyle = stylePlan.GetBufferedCellStyleAttribute(ExcelBufferedCellStyle.Hyperlink);
+                DirectWorkbookCellStyles? workbookStyles = stylePlan.WorkbookStyles;
+                string dateStyle = workbookStyles?.DateAttribute ?? CellValueDateStyleAttribute;
+                string timeStyle = workbookStyles?.TimeAttribute ?? CellValueTimeStyleAttribute;
+                if (workbookStyles != null) {
+                    styleAttributes = null;
+                }
+
                 for (int rowIndex = 0; rowIndex < buffer.WrittenRowCount; rowIndex++) {
                     if (canCancel) ct.ThrowIfCancellationRequested();
                     string rowReference = InvariantNumberText.Get(buffer.GetRowNumber(rowIndex));
@@ -29,29 +34,38 @@ namespace OfficeIMO.Excel {
                         writer.Write(cellReferencePrefixes[columnIndex]);
                         writer.Write(rowReference);
                         writer.Write('"');
+                        uint cellStyle = buffer.GetStyle(cellIndex);
                         string? styleAttribute = styleAttributes?[columnIndex];
+                        if (cellStyle != 0U) {
+                            writer.Write(" s=\"");
+                            writer.Write(InvariantNumberText.Get(cellStyle));
+                            writer.Write('"');
+                        } else if (styleAttribute == null) {
+                            styleAttribute = cell.Kind == ExcelBufferedCellKind.DateTime
+                                ? dateStyle
+                                : cell.Kind == ExcelBufferedCellKind.Value
+                                    ? GetBufferedValueStyle(cell.Reference, dateStyle, timeStyle)
+                                    : null;
+                        }
+
+                        if (styleAttribute != null && cellStyle == 0U) {
+                            writer.Write(styleAttribute);
+                        }
+
                         switch (cell.Kind) {
                             case ExcelBufferedCellKind.Text:
-                                styleAttribute ??= cell.Style == ExcelBufferedCellStyle.None ? null
-                                    : cell.Style == ExcelBufferedCellStyle.WrapText ? wrapTextStyle : hyperlinkStyle;
-                                if (styleAttribute != null) writer.Write(styleAttribute);
                                 WriteStringCellValue(writer, (string)cell.Reference!, sharedStrings);
                                 break;
                             case ExcelBufferedCellKind.Number:
-                                if (styleAttribute != null) writer.Write(styleAttribute);
                                 WriteRawValueCell(writer, cell.NumberValue);
                                 break;
                             case ExcelBufferedCellKind.DateTime:
-                                writer.Write(styleAttribute ?? CellValueDateStyleAttribute);
                                 WriteDateTimeSerialCell(writer, cell.DateTimeValue, dateSystem);
                                 break;
-                            case ExcelBufferedCellKind.Value:
-                                string? effectiveStyle = styleAttribute ?? CreateStyleAttributeForValue(cell.Reference, useCellValueNumberFormats: true);
-                                if (effectiveStyle != null) writer.Write(effectiveStyle);
-                                WriteCellValue(writer, cell.Reference, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
+                            case ExcelBufferedCellKind.StyleOnly:
+                                writer.Write("/>");
                                 break;
                             default:
-                                if (styleAttribute != null) writer.Write(styleAttribute);
                                 WriteCellValue(writer, cell.ToValue(), dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                                 break;
                         }
@@ -59,6 +73,11 @@ namespace OfficeIMO.Excel {
 
                     writer.Write("</row>");
                 }
+            }
+
+            private static string? GetBufferedValueStyle(object? value, string dateStyle, string timeStyle) {
+                string? attribute = CreateStyleAttributeForValue(value, useCellValueNumberFormats: true);
+                return attribute == null ? null : attribute == CellValueDateStyleAttribute ? dateStyle : timeStyle;
             }
 
             private static void WriteCompactDirectValueRows(

@@ -269,18 +269,16 @@ namespace OfficeIMO.Excel {
                 }
 
                 builder.Append("</numFmts>");
-                builder.Append(stylePlan.UsesHyperlink ? "<fonts count=\"2\">" : "<fonts count=\"1\">");
-                AppendDirectFont(builder, theme, hyperlink: false);
-                if (stylePlan.UsesHyperlink) {
-                    AppendDirectFont(builder, theme, hyperlink: true);
-                }
-
-                builder.Append("</fonts>");
+                builder.Append("<fonts count=\"1\"><font><sz val=\"");
+                builder.Append(((theme ?? OfficeTheme.Default).TypeScale.Body.ToPoints()).ToString(CultureInfo.InvariantCulture));
+                builder.Append("\"/><color theme=\"1\"/><name val=\"");
+                AppendEscaped(builder, (theme ?? OfficeTheme.Default).Fonts.Body.Family);
+                builder.Append("\"/><family val=\"2\"/><scheme val=\"minor\"/></font></fonts>");
                 builder.Append("<fills count=\"2\"><fill><patternFill patternType=\"none\"/></fill><fill><patternFill patternType=\"gray125\"/></fill></fills>");
                 builder.Append("<borders count=\"1\"><border><left/><right/><top/><bottom/><diagonal/></border></borders>");
                 builder.Append("<cellStyleXfs count=\"1\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/></cellStyleXfs>");
                 builder.Append("<cellXfs count=\"");
-                builder.Append((5 + stylePlan.CustomNumberFormats.Count + (stylePlan.UsesWrapText ? 1 : 0) + (stylePlan.UsesHyperlink ? 1 : 0)).ToString(CultureInfo.InvariantCulture));
+                builder.Append((5 + stylePlan.CustomNumberFormats.Count).ToString(CultureInfo.InvariantCulture));
                 builder.Append("\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\"/><xf numFmtId=\"164\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyNumberFormat=\"1\"/><xf numFmtId=\"165\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyNumberFormat=\"1\"/><xf numFmtId=\"14\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyNumberFormat=\"1\"/><xf numFmtId=\"46\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyNumberFormat=\"1\"/>");
                 for (int i = 0; i < stylePlan.CustomNumberFormats.Count; i++) {
                     builder.Append("<xf numFmtId=\"");
@@ -288,27 +286,11 @@ namespace OfficeIMO.Excel {
                     builder.Append("\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyNumberFormat=\"1\"/>");
                 }
 
-                if (stylePlan.UsesWrapText) {
-                    builder.Append("<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyAlignment=\"1\"><alignment wrapText=\"1\"/></xf>");
-                }
-
-                if (stylePlan.UsesHyperlink) {
-                    builder.Append("<xf numFmtId=\"0\" fontId=\"1\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\"/>");
-                }
-
                 builder.Append("</cellXfs>");
                 builder.Append("<cellStyles count=\"1\"><cellStyle name=\"Normal\" xfId=\"0\" builtinId=\"0\"/></cellStyles>");
                 builder.Append("<tableStyles count=\"0\" defaultTableStyle=\"TableStyleMedium2\" defaultPivotStyle=\"PivotStyleLight16\"/>");
                 builder.Append("</styleSheet>");
                 WriteTextEntry(archive, "xl/styles.xml", builder.ToString());
-            }
-
-            private static void AppendDirectFont(StringBuilder builder, OfficeTheme? theme, bool hyperlink) {
-                builder.Append(hyperlink ? "<font><u val=\"single\"/><sz val=\"" : "<font><sz val=\"");
-                builder.Append(((theme ?? OfficeTheme.Default).TypeScale.Body.ToPoints()).ToString(CultureInfo.InvariantCulture));
-                builder.Append(hyperlink ? "\"/><color rgb=\"FF0563C1\"/><name val=\"" : "\"/><color theme=\"1\"/><name val=\"");
-                AppendEscaped(builder, (theme ?? OfficeTheme.Default).Fonts.Body.Family);
-                builder.Append(hyperlink ? "\"/></font>" : "\"/><family val=\"2\"/><scheme val=\"minor\"/></font>");
             }
 
             private static void WriteSharedStrings(ZipArchive archive, DirectSharedStringTable sharedStrings, CancellationToken ct = default) {

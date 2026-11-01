@@ -52,5 +52,6 @@ namespace OfficeIMO.Excel {
         private bool _disablePendingCellValueDirectSaveBuffer;
         private bool _materializingPendingCellValueDirectSaveBuffer;
         private bool _hasCellValueDomWrites;
+        private Cell? _styleScratchCell;
     }
 }

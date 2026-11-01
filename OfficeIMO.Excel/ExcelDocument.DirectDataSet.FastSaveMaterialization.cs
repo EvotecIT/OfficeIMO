@@ -1,5 +1,4 @@
 using System.Threading;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -27,33 +26,36 @@ namespace OfficeIMO.Excel {
             candidate.Dispose();
         }
 
-        // Moves buffered worksheets to the extended writer, which keeps workbook parts the
-        // direct package cannot express while the buffered sheets still skip the DOM.
+        // Moves buffered worksheets to the extended writer, which keeps the workbook stylesheet
+        // and every part the direct package cannot express while those sheets skip the DOM.
         private void PrepareCellValueBuffersForExtendedSave(ExcelSaveOptions? options) {
             if (options?.DisableFastPackageWriter == true
                 || options?.SafePreflight == true
                 || options?.SafeRepairDefinedNames == true
-                || _materializedDirectDataSetFastSaveModel != null
-                || !WorkbookStylesAreDirectWritable()) {
-                return;
-            }
-
-            if (_directDataSetSaveCandidate?.IsDeferred == true
-                && _directDataSetSaveCandidate.Model.Sheets[0].Table.CellValueBuffer != null) {
-                PreserveDeferredDataSetFastSaveModelAndClearCandidate();
-                return;
-            }
-
-            if (!HasPendingDirectCellValues || _directDataSetSaveCandidate != null) {
+                || _materializedDirectDataSetFastSaveModel != null) {
                 return;
             }
 
             long cellCount = 0;
             var buffers = new List<(ExcelSheet Sheet, ExcelCellValueBuffer Buffer)>();
-            foreach (ExcelSheet sheet in _pendingDirectCellValueSheets) {
-                cellCount += sheet.PendingCellValueCount;
-                if (sheet.TryTakeCellValueBufferForDirectWorksheet() is { } buffer) {
-                    buffers.Add((sheet, buffer));
+            DirectDataSetSaveCandidate? candidate = _directDataSetSaveCandidate;
+            if (candidate != null) {
+                if (!candidate.IsDeferred
+                    || candidate.Model.Sheets.Count != 1
+                    || candidate.Model.Sheets[0].ColumnNumberFormats != null
+                    || candidate.Model.Sheets[0].Table.CellValueBuffer is not { } promoted
+                    || TryGetExistingSheet(candidate.Model.Sheets[0].SheetName) is not { } promotedSheet) {
+                    return;
+                }
+
+                buffers.Add((promotedSheet, promoted));
+                cellCount = promoted.CellCount;
+            } else {
+                foreach (ExcelSheet sheet in _pendingDirectCellValueSheets) {
+                    cellCount += sheet.PendingCellValueCount;
+                    if (sheet.TryTakeCellValueBufferForDirectWorksheet() is { } buffer) {
+                        buffers.Add((sheet, buffer));
+                    }
                 }
             }
 
@@ -61,7 +63,8 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            var sourceModel = DirectDataSetWorkbookModel.CreateFromCellValueBuffers(buffers, _dateTimeOffsetWriteStrategy, DateSystem);
+            var sourceModel = DirectDataSetWorkbookModel.CreateFromCellValueBuffers(
+                buffers, _dateTimeOffsetWriteStrategy, DateSystem, buffers[0].Sheet.CreateWorkbookCellStyles());
             if (!TryCreateDirectPackageModel(sourceModel, out DirectDataSetWorkbookModel packageModel, out _, allowDrawings: true)) {
                 return;
             }
@@ -70,21 +73,11 @@ namespace OfficeIMO.Excel {
                 buffers[i].Sheet.ReleaseCellValueBuffer();
             }
 
+            ClearDirectDataSetSaveCandidate();
             MaterializePendingDirectCellValueSheetIfNeeded();
             _materializedDirectDataSetFastSaveModel = packageModel;
             _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet = false;
             _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark = true;
-        }
-
-        // The extended writer replaces the stylesheet with the direct one, so a workbook
-        // that defined fonts, fills, borders or differential formats keeps the DOM route.
-        private bool WorkbookStylesAreDirectWritable() {
-            Stylesheet? stylesheet = WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
-            return stylesheet == null
-                || ((stylesheet.Fonts?.ChildElements.Count ?? 0) <= 1
-                    && (stylesheet.Fills?.ChildElements.Count ?? 0) <= 2
-                    && (stylesheet.Borders?.ChildElements.Count ?? 0) <= 1
-                    && (stylesheet.DifferentialFormats?.ChildElements.Count ?? 0) == 0);
         }
 
         private void MaterializeDirectDataSetFastSaveModelIfNeeded(CancellationToken cancellationToken = default) {

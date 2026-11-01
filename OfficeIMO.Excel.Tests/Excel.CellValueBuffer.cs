@@ -148,14 +148,14 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void CellValueBuffer_LineBreakKeepsWrappedTextOnTheDirectWriter() {
+        public void CellValueBuffer_LineBreakKeepsWrappedTextOutOfTheDom() {
             using MemoryStream output = SaveCells(
                 sheet => {
                     WriteBufferedRows(sheet, firstRow: 1, rows: 100);
                     sheet.CellValue(101, 1, "line one\nline two");
                 },
                 options: null,
-                ExcelSavePackageWriter.DirectDataSetPackage);
+                ExcelSavePackageWriter.ExtendedPackage);
 
             using ExcelDocument reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());

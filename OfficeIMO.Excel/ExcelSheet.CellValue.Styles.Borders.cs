@@ -17,8 +17,7 @@ public partial class ExcelSheet {
         if (borders == ExcelCellBorders.None) return;
         BorderStyleValues value = style.ToOpenXml();
         string? argb = NormalizeOptionalHexColor(hexColor);
-        WriteLockConditional(() => {
-            var cell = GetCell(row, column);
+        WriteCellStyle(row, column, cell => {
             var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();

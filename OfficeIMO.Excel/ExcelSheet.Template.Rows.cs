@@ -151,7 +151,7 @@ namespace OfficeIMO.Excel {
                     string? numberFormat = ResolveTemplateNumberFormatAlias(format, options.FormatProvider);
                     if (numberFormat != null && replacement != null && reference.Row > 0 && reference.Col > 0) {
                         CellValueCore(reference.Row, reference.Col, replacement);
-                        FormatCellCore(reference.Row, reference.Col, numberFormat);
+                        FormatCellCore(GetCell(reference.Row, reference.Col), reference.Row, reference.Col, numberFormat);
                         replacements++;
                         continue;
                     }
