@@ -5607,7 +5607,7 @@
         {
           "title": "Split a folder of scans into two-page records",
           "description": "Splits every scanned batch into two-page files, reading restricted PDFs through a load-options hashtable.",
-          "code": "Get-ChildItem -Path .\\Scans\\Incoming -Filter *.pdf |\n    Split-OfficeDocument -OutputDirectory .\\Scans\\Records -PageCount 2 -Options @{ IgnorePermissionRestrictions = $true }"
+          "code": "Get-ChildItem -Path .\\Scans\\Incoming -Filter *.pdf |\n    Split-OfficeDocument -OutputDirectory .\\Scans\\Records -PageCount 2 -Options @{ PermissionPolicy = 'IgnoreRestrictions' }"
         }
       ]
     },

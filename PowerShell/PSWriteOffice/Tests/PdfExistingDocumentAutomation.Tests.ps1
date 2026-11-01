@@ -73,8 +73,7 @@ Describe 'Authenticated PDF automation' {
             'Set-OfficePdfForm',
             'Set-OfficePdfMetadata',
             'Set-OfficePdfPage',
-            'Set-OfficePdfSignature',
-            'Split-OfficePdf'
+            'Set-OfficePdfSignature'
         )) {
             $parameters = (Get-Command $name).Parameters.Keys
             $parameters | Should -Contain 'Password'

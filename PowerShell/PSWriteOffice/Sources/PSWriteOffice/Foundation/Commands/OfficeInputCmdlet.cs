@@ -30,19 +30,8 @@ public abstract class OfficeInputCmdlet : AsyncPSCmdlet {
     }
 
     /// <summary>Resolves captured pipeline path properties with the same per-item errors as named path parameters.</summary>
-    internal IReadOnlyList<string> ResolveInputs(IEnumerable<string> inputs, bool literal, bool allowDirectory = false) {
-        var result = new List<string>();
-        foreach (string input in inputs) {
-            try { result.AddRange(OfficePath.ResolveInput(SessionState, input, literal, allowDirectory,
-                (error, item) => WriteError(OfficeError.Create(error, "input-unreadable", item)))); }
-            catch (ArgumentException error) { ThrowTerminatingError(OfficeError.Create(error, "invalid-argument", input, ErrorCategory.InvalidArgument)); }
-            catch (Exception error) when ((error is System.IO.IOException or RuntimeException or UnauthorizedAccessException) &&
-                error is not (ActionPreferenceStopException or PipelineStoppedException)) {
-                WriteError(OfficeError.Create(error, "input-unreadable", input));
-            }
-        }
-        return result;
-    }
+    internal IReadOnlyList<string> ResolveInputs(IEnumerable<string> inputs, bool literal, bool allowDirectory = false) =>
+        OfficePath.ResolveInputs(this, inputs, literal, allowDirectory);
     /// <summary>Runs bounded background work and streams completions through the canonical pipeline bridge.</summary>
     /// <remarks>Call after provider resolution and confirmation. Workers must not invoke script blocks, SessionState, or raw PSCmdlet APIs.</remarks>
     protected Task RunBatchAsync<T>(IEnumerable<T> inputs, Func<T, System.Threading.CancellationToken, Task<object?>> worker,

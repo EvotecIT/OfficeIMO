@@ -26,6 +26,21 @@ public static class OfficePath {
         return null;
     }
 
+    /// <summary>Resolves a batch on the pipeline thread with the shared per-item errors and invalid-argument policy.</summary>
+    internal static IReadOnlyList<string> ResolveInputs(PSCmdlet cmdlet, IEnumerable<string> inputs, bool literal, bool allowDirectory = false) {
+        var result = new List<string>();
+        foreach (string input in inputs) {
+            try { result.AddRange(OfficePath.ResolveInput(cmdlet.SessionState, input, literal, allowDirectory,
+                (error, item) => cmdlet.WriteError(OfficeError.Create(error, "input-unreadable", item)))); }
+            catch (ArgumentException error) { cmdlet.ThrowTerminatingError(OfficeError.Create(error, "invalid-argument", input, ErrorCategory.InvalidArgument)); }
+            catch (Exception error) when ((error is System.IO.IOException or RuntimeException or UnauthorizedAccessException) &&
+                error is not (ActionPreferenceStopException or PipelineStoppedException)) {
+                cmdlet.WriteError(OfficeError.Create(error, "input-unreadable", input));
+            }
+        }
+        return result;
+    }
+
     /// <summary>Resolves existing input items through the current PowerShell provider; an optional reporter retains valid wildcard matches when other items are rejected.</summary>
     public static IReadOnlyList<string> ResolveInput(SessionState session, string path, bool literal, bool allowDirectory = false, Action<Exception, string>? reportItemError = null) {
         if (session == null) throw new ArgumentNullException(nameof(session));

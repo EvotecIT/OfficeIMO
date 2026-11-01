@@ -19634,7 +19634,7 @@
         "IgnorePermissionRestrictions": null
       },
       "hint": "Split-OfficeDocument -Path .\\In.pdf -OutputDirectory .\\Parts -PageCount 1",
-      "reason": "Splitting is the cross-format Split-OfficeDocument with page-count, range and bookmark sets. Split-OfficeDocument authenticates with -Password and has no owner-restriction override."
+      "reason": "Splitting is the cross-format Split-OfficeDocument with page-count, range and bookmark sets. Split-OfficeDocument authenticates with -Password; explicit permission policy uses -Options @{ PermissionPolicy = 'IgnoreRestrictions' }. Outputs use the source base name and an ordinal index. Existing outputs are replaced unless -NoClobber is set; bookmark splitting selects top-level chapters and retains nested pages."
     },
     {
       "old": "Test-OfficePdfRewrite",
