@@ -25204,6 +25204,7 @@
   },
   "effectiveNativeKerning": {
     "schema": "officeimo.publisher.effective-native-kerning.v1",
+    "subsequentRenderingEvidence": "nativeFontContextShaping",
     "sourceCommit": "212a92da8cb858f50e2e57c6305150a10cea4d27",
     "scope": "Derived effective settings for qualified modern Quill source profiles; public nullable metadata, authored generic defaults and native save requests remain distinct.",
     "contract": {
@@ -25581,6 +25582,460 @@
       "Native TableLabel PDF uses imposed sheet copies; physical managed page origins are not compared.",
       "Broader producer/source profiles, mixed baselines/scripts, device advances and exact native glyph geometry remain unqualified.",
       "Automatic hyphenation, repair-free opening, generic native creation and the full PUB00-PUB06 lifecycle remain open."
+    ]
+  },
+  "nativeFontContextShaping": {
+    "schema": "officeimo.publisher.native-font-context.v1",
+    "sourceCommit": "f4ae3bc5374fbacac2814e788b76a99401f4bcb6",
+    "contract": {
+      "scope": "Qualified modern source-bound plain printable-ASCII contexts with normal baseline and no decorations/background paint.",
+      "activation": "First effective threshold within one same-font visual line; color, threshold annotations and spaces retain context. Visual lines, tabs, size/face/language changes reset it.",
+      "layout": "Full candidate-line shaping and original-style multipart word breaking; retained glyph slices and measured word/space snapshots.",
+      "paint": "Raster with output metric scaling, SVG paths with logical aria-labels, and searchable embedded PDF commands against the exact selected static TrueType program.",
+      "fallback": "Unsupported scripts, paint styles or unsplittable clusters retain per-run rendering. PDF composite fallback requests do not enter the native-context route.",
+      "publicNullableAnnotationsChanged": false,
+      "nativeSaveCodecChanged": false,
+      "newPublicApi": false,
+      "newProductionDependency": false
+    },
+    "corpus": {
+      "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFontContext/provenance.json",
+      "sha256": "ade9f74bfce452af9fd1bb739d42da4f7fcd167b5aff7d1256339d123911d1b8",
+      "nativeResavedPublications": 5,
+      "nativePdfReferences": 5,
+      "derivedSources": true,
+      "independentNativeCreation": false
+    },
+    "native": {
+      "producer": "Microsoft Publisher16.0.20527.20088",
+      "arialSha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a",
+      "newFullRuns": 4,
+      "newOperations": 28,
+      "newInitialResaved144DpiPagePairs": 4,
+      "newNativePairsEqual": true,
+      "repairFreeQualified": false
+    },
+    "publicControls": [
+      {
+        "name": "default12",
+        "identicalQualifiedNativeInput": true,
+        "managedSave144DpiEqual": true,
+        "maxX": 0.10800933837890625,
+        "maxY": 0.0450439453125,
+        "priorMaxX": 0.10964202880859375
+      },
+      {
+        "name": "default14",
+        "identicalQualifiedNativeInput": true,
+        "managedSave144DpiEqual": true,
+        "maxX": 0.10799407958984375,
+        "maxY": 0.0889892578125,
+        "priorMaxX": 0.09815216064453125
+      },
+      {
+        "name": "retained8",
+        "identicalQualifiedNativeInput": true,
+        "managedSave144DpiEqual": true,
+        "maxX": 0.108001708984375,
+        "maxY": 0.0450439453125,
+        "priorMaxX": 0.11017608642578125
+      },
+      {
+        "name": "retained0",
+        "identicalQualifiedNativeInput": true,
+        "managedSave144DpiEqual": true,
+        "maxX": 0.10800933837890625,
+        "maxY": 0.0450439453125,
+        "priorMaxX": 0.10964202880859375
+      },
+      {
+        "name": "merged8-18",
+        "identicalQualifiedNativeInput": true,
+        "managedSave144DpiEqual": true,
+        "maxX": 0.108001708984375,
+        "maxY": 0.0450439453125,
+        "priorMaxX": 5.0439910888671875
+      },
+      {
+        "name": "cell-retained8",
+        "identicalQualifiedNativeInput": true,
+        "managedSave144DpiEqual": true
+      },
+      {
+        "name": "cell-merged8-18",
+        "identicalQualifiedNativeInput": true,
+        "managedSave144DpiEqual": true
+      }
+    ],
+    "boundaryControls": [
+      {
+        "name": "size-change-off-on",
+        "maxX": 0.1800309999999996,
+        "maxY": 0.06896899999999562,
+        "nativeInitialResaved144DpiEqual": true
+      },
+      {
+        "name": "size-change-on-off",
+        "maxX": 0.2110360000000071,
+        "maxY": 0.06896899999999562,
+        "nativeInitialResaved144DpiEqual": true
+      },
+      {
+        "name": "soft-line-off-on",
+        "maxX": 0.10800200000000615,
+        "maxY": 0.10296699999999248,
+        "nativeInitialResaved144DpiEqual": true
+      },
+      {
+        "name": "soft-line-on-off",
+        "maxX": 0.10800200000000615,
+        "maxY": 0.10296699999999248,
+        "nativeInitialResaved144DpiEqual": true
+      },
+      {
+        "name": "bold-change-off-on",
+        "maxX": 0.28800200000000586,
+        "maxY": 0.02502499999999941,
+        "nativeInitialResaved144DpiEqual": true
+      },
+      {
+        "name": "bold-change-on-off",
+        "maxX": 0.3199989999999957,
+        "maxY": 0.02502499999999941,
+        "nativeInitialResaved144DpiEqual": true
+      },
+      {
+        "name": "tab-off-on",
+        "maxX": 7.655997999999997,
+        "maxY": 0.02502499999999941,
+        "nativeInitialResaved144DpiEqual": true
+      },
+      {
+        "name": "tab-on-off",
+        "maxX": 7.655997999999997,
+        "maxY": 0.02502499999999941,
+        "nativeInitialResaved144DpiEqual": true
+      },
+      {
+        "name": "color-off-on",
+        "maxX": 0.18000800000000083,
+        "maxY": 0.02502499999999941,
+        "nativeInitialResaved144DpiEqual": true
+      },
+      {
+        "name": "color-on-off",
+        "maxX": 0.1429899999999975,
+        "maxY": 0.02502499999999941,
+        "nativeInitialResaved144DpiEqual": true
+      },
+      {
+        "name": "paragraph-off-on",
+        "maxX": 0.20400200000000268,
+        "maxY": 0.10296699999999248,
+        "nativeInitialResaved144DpiEqual": true
+      },
+      {
+        "name": "paragraph-on-off",
+        "maxX": 0.20400200000000268,
+        "maxY": 0.10296699999999248,
+        "nativeInitialResaved144DpiEqual": true
+      },
+      {
+        "name": "space-off-on",
+        "maxX": 0.19397699999998963,
+        "maxY": 0.02502499999999941,
+        "nativeInitialResaved144DpiEqual": true
+      },
+      {
+        "name": "space-on-off",
+        "maxX": 0.20400200000000268,
+        "maxY": 0.02502499999999941,
+        "nativeInitialResaved144DpiEqual": true
+      },
+      {
+        "name": "tight-color-off-on",
+        "maxX": 7.223998999999999,
+        "maxY": 15.501038000000008,
+        "nativeInitialResaved144DpiEqual": true
+      },
+      {
+        "name": "tight-color-on-off",
+        "maxX": 7.223998999999999,
+        "maxY": 15.51702800000001,
+        "nativeInitialResaved144DpiEqual": true
+      }
+    ],
+    "tight15p5Controls": [
+      {
+        "name": "tight-color-off-on",
+        "maxX": 0.10799789428710938,
+        "maxY": 0.10296630859375
+      },
+      {
+        "name": "tight-color-on-off",
+        "maxX": 0.11100006103515625,
+        "maxY": 0.10296630859375
+      }
+    ],
+    "review": {
+      "fullPasses": 1,
+      "targetedConfirmations": 1,
+      "findings": "Scale, multipart tab measurement and line-height snapshot defects reproduced and fixed. Targeted character-tab sibling uses the full field before retaining its prefix advance.",
+      "initialRegressions": {
+        "executed": 24,
+        "passed": 18,
+        "failed": 6
+      },
+      "firstRemediation": {
+        "executed": 24,
+        "passed": 24,
+        "failed": 0
+      },
+      "characterTabBefore": {
+        "executed": 25,
+        "passed": 24,
+        "failed": 1
+      },
+      "characterTabAfter": {
+        "executed": 25,
+        "passed": 25,
+        "failed": 0
+      }
+    },
+    "validation": {
+      "publisher-net10.0": {
+        "executed": 991,
+        "passed": 991,
+        "failed": 0
+      },
+      "publisher-net8.0": {
+        "executed": 991,
+        "passed": 991,
+        "failed": 0
+      },
+      "publisher-net472": {
+        "executed": 991,
+        "passed": 991,
+        "failed": 0
+      },
+      "core-net10.0": {
+        "executed": 281,
+        "passed": 281,
+        "failed": 0
+      },
+      "core-net8.0": {
+        "executed": 281,
+        "passed": 281,
+        "failed": 0
+      },
+      "core-net472": {
+        "executed": 281,
+        "passed": 281,
+        "failed": 0
+      },
+      "pdf-net10.0": {
+        "executed": 299,
+        "passed": 299,
+        "failed": 0
+      },
+      "pdf-net8.0": {
+        "executed": 299,
+        "passed": 299,
+        "failed": 0
+      },
+      "pdf-net472": {
+        "executed": 299,
+        "passed": 299,
+        "failed": 0
+      }
+    },
+    "readerValidation": {
+      "executed": 93,
+      "passed": 93,
+      "failed": 0
+    },
+    "powerShell": {
+      "runtime": "7.6.9",
+      "publisherSha256": "c9d04c4031b2b4a6959e7950d7d9d211c3eea8fd7f6028d1c3c6d3f130f5d403",
+      "cases": [
+        {
+          "recoveredThreshold": null,
+          "sceneThresholds": [
+            14.0
+          ],
+          "name": "default12",
+          "sourceUnchanged": true,
+          "pdfTextRecovered": true,
+          "publicThreshold": null
+        },
+        {
+          "recoveredThreshold": 0.0,
+          "sceneThresholds": [
+            0.0
+          ],
+          "name": "retained0",
+          "sourceUnchanged": true,
+          "pdfTextRecovered": true,
+          "publicThreshold": null
+        },
+        {
+          "recoveredThreshold": 8.0,
+          "sceneThresholds": [
+            8.0
+          ],
+          "name": "retained8",
+          "sourceUnchanged": true,
+          "pdfTextRecovered": true,
+          "publicThreshold": null
+        }
+      ],
+      "nativeCorpus": [
+        {
+          "name": "native-merged-8-18.pub",
+          "exactNoop": true,
+          "sha256": "0a3dd22e9c6b1da0e2535a71c100470f6daa3a6bccc0d119617e2707dc55fd6a"
+        },
+        {
+          "name": "native-width-15-5-off-on.pub",
+          "exactNoop": true,
+          "sha256": "cba79d80d8c864fba9204ccecb3261f9c4a91b616ad42e445332467403420edb"
+        },
+        {
+          "name": "native-width-15-5-on-off.pub",
+          "exactNoop": true,
+          "sha256": "698976dfce3fead38a32be1e19ff75180ad87b22594bf50104d3b5ccf404fd8b"
+        },
+        {
+          "name": "native-width-15-off-on.pub",
+          "exactNoop": true,
+          "sha256": "1fe55f59ee935f22ea6e6afcc3bf8793a79771734156e270068bd579a88f61da"
+        },
+        {
+          "name": "native-width-15-on-off.pub",
+          "exactNoop": true,
+          "sha256": "8c5b46d24cc43a33ab2f775063bb3ec7d68abc0ba89f286dde59817af9e5bcc5"
+        }
+      ]
+    },
+    "sourceFiles": [
+      {
+        "path": "OfficeIMO.Core/OfficeDrawing.ColorTint.cs",
+        "gitBlobSha256": "7519cc4fa9a440b48785fe131ca79ab8e4a0196ddfe11dd84088ddcf96dae0d4"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingSvgExporter.GlyphPaths.cs",
+        "gitBlobSha256": "04b3969a146260026b2ecb9e5333152e721f7dfc205a74794b971b82457f636a"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.Paragraphs.cs",
+        "gitBlobSha256": "126162beb24e8aaf908be6e012100164716a4a8441d2cd84a20f68b5f5f50e71"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.Publisher.cs",
+        "gitBlobSha256": "3c5c2c0da6b634330a8d99b4d437c2361d98ee698a265286ddfaff3448a9c7f2"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextMetrics.cs",
+        "gitBlobSha256": "13a825827ebc31a9d91b02b5b1b47b0ce5a513806d465827fac54405c5848a31"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficePreparedTextShaping.cs",
+        "gitBlobSha256": "d44810387ea0eca1d67898f422bf6024622a500ba25626574228ee188b30adc5"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextFlow.cs",
+        "gitBlobSha256": "5718b4ef0c1cb051ab6b98861bbe3e7cc548dd275ab73576b415f2d01904e783"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextLine.cs",
+        "gitBlobSha256": "6958d3fcd8f482cae7781a24b00098e414e96c1b5882bac41d109210107990d2"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextMeasurement.cs",
+        "gitBlobSha256": "f06cc1361a71c2360a53e050e480eb74ee46d5b101d13d926509f817d9c18bb5"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextParagraph.cs",
+        "gitBlobSha256": "b2688b46d1613fb94153c5f1dbfed53ee5b77cc51313fb840efe13a599e0dedc"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextSegment.cs",
+        "gitBlobSha256": "600ff9bab337d2b1b7e4eb088af6e744bd6fbb51303a52faf40a1056853a2bef"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextBlockRenderer.RichTextJustification.cs",
+        "gitBlobSha256": "41c74720cb363f036cd1964758cf439706eeab257653022c6b40731f401c9051"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextBlockRenderer.cs",
+        "gitBlobSha256": "bdf338443312d5d6e529333bf06a8f57f54de5fba51dae4c4995f345b1e27ee6"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextLayoutEngine.RichText.Context.cs",
+        "gitBlobSha256": "91338e2bae322f4ab8cb345f564b5b6904ca3f0c82a1d1e35d26fc101ca34cf1"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextLayoutEngine.RichText.Overflow.cs",
+        "gitBlobSha256": "b3930022a3b1f638e7b76652820979e77a25b0074543435fb6872dd3317aabeb"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextLayoutEngine.RichText.Runs.cs",
+        "gitBlobSha256": "f0beb393a35e641f1c4025268067a3941cc6f672f0ccc6b306f8b30fcf95d34e"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextLayoutEngine.RichText.cs",
+        "gitBlobSha256": "fcf0773b54598a3b248b01d082dc1f70a0ce655e6bfa48a31ca4f09b1f230fe9"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextLayoutEngine.Tabs.cs",
+        "gitBlobSha256": "145833df6b238afb74fca0efe87e4a91bdb796fa2ee4a930c5d85710662bb7ae"
+      },
+      {
+        "path": "OfficeIMO.Core/Raster/OfficeRasterCanvas.PublisherMetrics.cs",
+        "gitBlobSha256": "39dccf594c7baa7ee7557a556da48b96cadac292349f739d7998d8bf133248a1"
+      },
+      {
+        "path": "OfficeIMO.Core/Raster/OfficeRasterCanvas.RichTextShaping.cs",
+        "gitBlobSha256": "e292dda6a67bf4f339af643b6eda7eda13fb66394886c1b31add5d075ef1a358"
+      },
+      {
+        "path": "OfficeIMO.Drawing.Tests/Drawing.RichText.NativeContext.cs",
+        "gitBlobSha256": "35b3680189df3b44c65c1cc94fce4198f0195d9645ca2c545f0f738bae99dc3a"
+      },
+      {
+        "path": "OfficeIMO.Pdf.Tests/Pdf/PdfDrawingRichKerningTests.cs",
+        "gitBlobSha256": "910a73e8128c994873e07a63891e4e42a32461a82cab2a1c9f3ed6b94a9ad8ff"
+      },
+      {
+        "path": "OfficeIMO.Pdf/Rendering/Writer/PdfExternalTextShaper.Prepared.cs",
+        "gitBlobSha256": "e96125998e003483067ba51267fe3ea9bb56e112d2e2f5819ff636075331edeb"
+      },
+      {
+        "path": "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.DrawingTextMetrics.cs",
+        "gitBlobSha256": "23d7d933221174d4bf614aef12e1a900cb8be3ddda27e62ebc36c7d48af313cc"
+      },
+      {
+        "path": "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.Drawing.Text.cs",
+        "gitBlobSha256": "3204df995d20695d894509f73464d2a48c434058c5a31013a24b96c8b311176d"
+      },
+      {
+        "path": "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.PositionedText.cs",
+        "gitBlobSha256": "bba6ca2ffc46bb3fb199850d9f4e90fbd60541fd828d2f5df870722104da750c"
+      },
+      {
+        "path": "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Text.RichSegments.cs",
+        "gitBlobSha256": "742bc4c547fe5c85d2ac1cce91a98aaf8d362dcd05f37dfe9aabd6028964381d"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillKerningProjection.cs",
+        "gitBlobSha256": "2081c4e0f3acbb4b339ca2e6fafb9e4d5ad1f18418b511680bb73d525545d890"
+      }
+    ],
+    "limits": [
+      "At15pt native device fitting and managed design advances still assign different lines;15.5pt controls match within.111pt X/.103pt Y.",
+      "Absolute tab field origins still differ by7.656pt in the retained controls; this record qualifies activation reset, not full tab geometry.",
+      "Imposed table-label origins, exact glyph/pixel parity, broader fonts/scripts/baselines/decorations/provider clusters remain unqualified.",
+      "Automatic hyphenation, repair-free opening, template-free native creation and the full PUB00-PUB06 lifecycle remain open."
     ]
   }
 }
