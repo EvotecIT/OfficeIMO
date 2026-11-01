@@ -39,6 +39,21 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlBackgrounds_ClipTextShowsTextInsteadOfAFilledBarAndReportsIt() {
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous, ViewportWidth = 200D, ViewportHeight = 60D, Margins = HtmlRenderMargins.All(0D)
+        };
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(
+            "<p style='margin:0;background:linear-gradient(90deg,#ff0000,#0000ff);background-clip:text;color:transparent'>Word</p>"), options);
+
+        OfficeDrawingText text = Assert.Single(DrawingTestTraversal.Elements(rendered.Pages[0].CreateDrawing()).OfType<OfficeDrawingText>());
+        Assert.Equal(255, text.Color!.Value.A);
+        Assert.InRange(text.Color!.Value.R, 120, 135);
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Shape.FillGradient != null);
+        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+    }
+
+    [Fact]
     public void HtmlShadows_SmallEllipticalSpreadAdjustsEachAxis() {
         HtmlRenderPage page = RenderShadowSpread("2px 12px 0 2px / 12px 2px 12px 2px", 8);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(page.CreateDrawing());

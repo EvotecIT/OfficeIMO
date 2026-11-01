@@ -82,6 +82,7 @@ public static partial class HtmlComputedStyleEngine {
     };
     private static readonly HashSet<string> SupportedProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "all",
+        "-webkit-text-fill-color",
         "background",
         "background-attachment",
         "background-clip",

@@ -1002,6 +1002,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         bool hasDeclaredBackgroundImage = false;
         int unsupportedLayerCount = 0;
         int gradientStopLimitExceededCount = 0;
+        var textClipLayers = new List<string>();
         for (int index = 0; index < sourceLayers.Count; index++) {
             string sourceLayer = sourceLayers[index];
             IReadOnlyList<string> urls = HtmlResourcePipeline.ExtractCssUrls(sourceLayer);
@@ -1020,6 +1021,10 @@ internal sealed partial class HtmlRenderStyleResolver {
             string origin = GetLayerValue(originLayers, index, shorthandOrigin, "padding-box");
             string clip = GetLayerValue(clipLayers, index, shorthandClip, "border-box");
             string attachment = GetLayerValue(attachmentLayers, index, ExtractBackgroundAttachment(sourceLayer), "scroll");
+            if (string.Equals(clip.Trim(), "text", StringComparison.OrdinalIgnoreCase)) {
+                textClipLayers.Add(sourceLayer);
+                continue;
+            }
             if (urls.Count == 0) {
                 if (HtmlCssLinearGradientParser.TryParse(sourceLayer, _options.MaxGradientStops, out HtmlCssLinearGradientDefinition? linearGradient, out bool linearStopLimitExceeded)
                     && linearGradient != null) {
@@ -1056,6 +1061,37 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.UnsupportedBackgroundImageLayerCount = unsupportedLayerCount;
         style.GradientStopLimitExceededCount = gradientStopLimitExceededCount;
         style.BackgroundImageLayers = layers.AsReadOnly();
+        ApplyBackgroundClipText(computed, style, textClipLayers);
+    }
+
+    // Text cannot yet clip a paint server, so it takes the gradient's mean color rather than
+    // leaving a filled bar over transparent text.
+    private void ApplyBackgroundClipText(HtmlComputedStyle computed, HtmlRenderBoxStyle style, IReadOnlyList<string> layers) {
+        bool clipsSolidColor = layers.Count == 0 && style.BackgroundColor.HasValue
+            && computed.GetValue("background-clip").IndexOf("text", StringComparison.OrdinalIgnoreCase) >= 0;
+        if (layers.Count == 0 && !clipsSolidColor) return;
+        OfficeColor? fill = clipsSolidColor ? style.BackgroundColor : TryCreateGradientLayer(layers[0])?.MeanGradientColor;
+        if (clipsSolidColor) style.BackgroundColor = null;
+        string textFill = computed.GetValue("-webkit-text-fill-color").Trim();
+        if (fill.HasValue && (style.Color.A == 0 || string.Equals(textFill, "transparent", StringComparison.OrdinalIgnoreCase))) {
+            style.Color = fill.Value;
+        }
+        _diagnostics.Add("OfficeIMO.Html", HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
+            "background-clip:text is approximated: text takes the gradient's mean color, and other backgrounds are omitted.",
+            HtmlDiagnosticSeverity.Warning, "background-clip", "background-clip=" + computed.GetValue("background-clip"), OfficeConversionLossKind.Approximation);
+    }
+
+    private HtmlRenderBackgroundLayer? TryCreateGradientLayer(string value) {
+        const string position = "0% 0%", repeat = "no-repeat", size = "100% 100%", box = "border-box", attachment = "scroll";
+        if (HtmlCssLinearGradientParser.TryParse(value, _options.MaxGradientStops, out HtmlCssLinearGradientDefinition? linear, out _) && linear != null) {
+            return new HtmlRenderBackgroundLayer(linear, position, repeat, size, box, box, attachment);
+        }
+        if (HtmlCssRadialGradientParser.TryParse(value, _options.MaxGradientStops, out HtmlCssRadialGradientDefinition? radial, out _) && radial != null) {
+            return new HtmlRenderBackgroundLayer(radial, position, repeat, size, box, box, attachment);
+        }
+        return HtmlCssConicGradientParser.TryParse(value, _options.MaxGradientStops, out HtmlCssConicGradientDefinition? conic, out _) && conic != null
+            ? new HtmlRenderBackgroundLayer(conic, position, repeat, size, box, box, attachment)
+            : null;
     }
 
     private static string GetLayerValue(IReadOnlyList<string> values, int index, string shorthandValue, string fallback) {

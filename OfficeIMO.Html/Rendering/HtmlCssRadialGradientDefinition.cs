@@ -3,6 +3,8 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed class HtmlCssRadialGradientDefinition {
+    internal OfficeColor MeanColor => Stops.MeanColor();
+
     private const double MinimumRadius = 0.000001D;
     private static readonly double CornerScale = Math.Sqrt(2D);
 
