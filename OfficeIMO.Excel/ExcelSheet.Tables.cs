@@ -834,12 +834,14 @@ namespace OfficeIMO.Excel {
         /// Rules:
         /// - Allowed characters: letters, digits, underscore; spaces become underscores.
         /// - Names cannot start with a digit; an underscore is prefixed if necessary.
+        /// - Names cannot read as a cell in A1 or R1C1 notation, including bare R and C; an underscore is prefixed.
         /// - Names are scoped per workbook and checked case-insensitively.
         /// - When <paramref name="mode"/> is <see cref="ExcelTableNameValidationMode.Strict"/>, throws for invalid input.
         /// Examples:
         /// - "My Table" ⇒ "My_Table"
         /// - "Sales#2025" ⇒ "Sales_2025"
         /// - "123Report" ⇒ "_123Report"
+        /// - "Q1" ⇒ "_Q1"
         /// - If "Table" already exists, next becomes "Table2" ("Table3", ...)
         /// </summary>
         private string EnsureValidUniqueTableName(string name, ExcelTableNameValidationMode mode) {
@@ -877,6 +879,12 @@ namespace OfficeIMO.Excel {
                 sanitized.Insert(0, '_');
                 changed = true;
             }
+            if (ExcelA1.IsCellReferenceName(sanitized.ToString())) {
+                if (mode == ExcelTableNameValidationMode.Strict)
+                    throw new ArgumentException("Table name cannot be a cell reference in A1 or R1C1 notation.", nameof(name));
+                sanitized.Insert(0, '_');
+                changed = true;
+            }
 
             // If any character required sanitation, and in strict mode, throw
             if (mode == ExcelTableNameValidationMode.Strict && changed)
@@ -903,6 +911,7 @@ namespace OfficeIMO.Excel {
                 int maxBase = Math.Max(1, MaxLen - suffix.Length);
                 string trimmedBase = baseName.Length > maxBase ? baseName.Substring(0, maxBase) : baseName;
                 string candidate = trimmedBase + suffix;
+                if (ExcelA1.IsCellReferenceName(candidate)) candidate = "_" + candidate;
                 if (!used.Contains(candidate)) return candidate;
                 i++;
             }

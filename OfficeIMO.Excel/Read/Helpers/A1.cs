@@ -23,6 +23,20 @@ namespace OfficeIMO.Excel {
             return TryParseCellRef(cellRef, 0, cellRef?.Length ?? 0, out int row, out int col) ? (row, col) : (0, 0);
         }
 
+        /// <summary>True when Excel would read <paramref name="name"/> as a cell in A1 or R1C1 notation, which includes bare R and C.</summary>
+        internal static bool IsCellReferenceName(string name) {
+            if (ParseCellRef(name).Row > 0) return true;
+            int index = 0;
+            if (index < name.Length && name[index] is 'R' or 'r') index = SkipDigits(name, index + 1);
+            if (index < name.Length && name[index] is 'C' or 'c') index = SkipDigits(name, index + 1);
+            return index > 0 && index == name.Length;
+        }
+
+        private static int SkipDigits(string text, int index) {
+            while (index < text.Length && text[index] is >= '0' and <= '9') index++;
+            return index;
+        }
+
         /// <summary>
         /// Tries to parse an A1 range (e.g., "A1:B10") into 1-based, normalized bounds.
         /// Returns false when the input is not a valid A1 range.

@@ -443,5 +443,50 @@ namespace OfficeIMO.Tests {
             Assert.Equal("A1:B2", table.Reference!.Value);
             Assert.Equal("A1:B2", table.AutoFilter!.Reference!.Value);
         }
+
+        [Theory]
+        [InlineData("Q1", "_Q1")]
+        [InlineData("xfd1048576", "_xfd1048576")]
+        [InlineData("R", "_R")]
+        [InlineData("c", "_c")]
+        [InlineData("RC", "_RC")]
+        [InlineData("R1C1", "_R1C1")]
+        [InlineData("XFE1", "XFE1")]
+        [InlineData("Revenue", "Revenue")]
+        public void TableNames_ThatReadAsCellReferencesArePrefixed(string requested, string expected) {
+            using var memory = new MemoryStream();
+            using (var writer = ExcelDocument.CreateWriter(memory, leaveOpen: true)) {
+                writer.WriteTable(requested, new[] { "x" }, new[] { "Value" }, (row, value) => row.Write(value));
+            }
+
+            memory.Position = 0;
+            using (var spreadsheet = SpreadsheetDocument.Open(memory, false)) {
+                Assert.Equal(expected, spreadsheet.WorkbookPart!.WorksheetParts.Single().TableDefinitionParts.Single().Table!.Name!.Value);
+            }
+
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.CellValue(1, 1, "Value");
+            sheet.CellValue(2, 1, "x");
+            sheet.CellValue(1, 3, "Value");
+            sheet.CellValue(2, 3, "x");
+            Assert.Equal(expected, sheet.AddTable("A1:A2", name: requested).NameOrRange);
+            if (expected != requested) {
+                Assert.Throws<ArgumentException>(() => sheet.AddTable("C1:C2", name: requested, validationMode: ExcelTableNameValidationMode.Strict));
+            }
+        }
+
+        [Fact]
+        public void TableNames_UniquenessSuffixNeverProducesACellReference() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddSheet("Data");
+            foreach (int column in new[] { 1, 3 }) {
+                sheet.CellValue(1, column, "Value");
+                sheet.CellValue(2, column, "x");
+            }
+
+            Assert.Equal("T", sheet.AddTable("A1:A2", name: "T").NameOrRange);
+            Assert.Equal("_T2", sheet.AddTable("C1:C2", name: "T").NameOrRange);
+        }
     }
 }

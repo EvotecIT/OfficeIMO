@@ -508,21 +508,6 @@ namespace OfficeIMO.Excel {
                 name = "_";
             }
 
-            bool LooksLikeA1(string value) {
-                var parsed = OfficeIMO.Excel.ExcelA1.ParseCellRef(value);
-                return parsed.Row > 0 && parsed.Col > 0;
-            }
-            bool LooksLikeR1C1(string value) {
-                if (value.Length < 3 || (value[0] != 'R' && value[0] != 'r')) return false;
-                int index = 1;
-                while (index < value.Length && char.IsDigit(value[index])) index++;
-                if (index == 1 || index >= value.Length || (value[index] != 'C' && value[index] != 'c')) return false;
-                index++;
-                int digitStart = index;
-                while (index < value.Length && char.IsDigit(value[index])) index++;
-                return index > digitStart && index == value.Length;
-            }
-
             if (mode == ExcelDefinedNameValidationMode.Strict) {
                 if (name.Length > MaximumDefinedNameLength)
                     throw new System.ArgumentException($"Defined name '{name}' exceeds maximum length of {MaximumDefinedNameLength} characters (actual {name.Length}).", nameof(name));
@@ -533,7 +518,7 @@ namespace OfficeIMO.Excel {
                 if (string.Equals(name, "TRUE", System.StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, "FALSE", System.StringComparison.OrdinalIgnoreCase))
                     throw new System.ArgumentException($"Defined name '{name}' cannot be TRUE or FALSE.", nameof(name));
-                if (LooksLikeA1(name) || LooksLikeR1C1(name))
+                if (ExcelA1.IsCellReferenceName(name))
                     throw new System.ArgumentException($"Defined name '{name}' cannot be a cell address or R1C1 reference.", nameof(name));
                 return name;
             }
@@ -554,7 +539,7 @@ namespace OfficeIMO.Excel {
                 normalized = "_" + normalized;
             }
 
-            if (LooksLikeA1(normalized) || LooksLikeR1C1(normalized)) {
+            if (ExcelA1.IsCellReferenceName(normalized)) {
                 normalized = "_" + normalized;
             }
 
