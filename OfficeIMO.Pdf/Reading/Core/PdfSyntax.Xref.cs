@@ -191,8 +191,8 @@ internal static partial class PdfSyntax {
         }
 
         int position = offset + 4;
-        int sectionEnd = (int)Math.Min((long)trailerIndex, (long)position + 2_000_000L);
-        if (requireComplete && sectionEnd != trailerIndex) return false;
+        // Proof walks the whole table, which the trailer already bounds. Only recovery needs the cap.
+        int sectionEnd = requireComplete ? trailerIndex : (int)Math.Min((long)trailerIndex, (long)position + 2_000_000L);
         // The structural section estimate is deliberately capped. Growth uses pooled
         // arrays, and only the observed entries become a retained managed array.
         using var entryBuilder = new PdfPooledValueBuilder<(int ObjectNumber, int Offset, int Generation, bool InUse)>(

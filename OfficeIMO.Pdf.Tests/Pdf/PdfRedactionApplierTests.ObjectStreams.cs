@@ -167,7 +167,7 @@ public partial class PdfRedactionApplierTests {
         if (variant == "TruncatedClassicTable") {
             int tableOffset = output.Length;
             output.Append("xref\n0 110000\n");
-            for (int number = 0; number < 110000; number++) {
+            for (int number = 0; number < 1000; number++) {
                 if (offsets.TryGetValue(number, out int objectOffset)) output.Append(objectOffset.ToString("D10", CultureInfo.InvariantCulture)).Append(" 00000 n \n");
                 else output.Append("0000000000 65535 f \n");
             }
