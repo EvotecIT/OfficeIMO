@@ -185,6 +185,26 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
 
 The command uses the benchmark's own rendering and artifact checks, saves each input and PDF, and records any rejection in `html-payload-evidence.json`.
 
+### HTML head-to-head corpus
+
+`html-head-to-head` compares OfficeIMO.Html, PeachPDF and PdfPecker with Chromium as the reference across a whole document corpus: an invoice, a five-page tour, a 30-page table report, sixteen focused feature pages, OfficeIMO qualification fixtures and, when a local clone is supplied, samples from the peer repositories. Authored pages live in `Corpus/HeadToHead`. Peer samples are read from the clone and are not committed. Results are grouped by provenance, so a fixture from one engine's own test suite cannot stand for the whole corpus.
+
+Every engine runs with its default fonts and options, A4 and tagged output, in its own worker process. A timed first document includes browser start-up where there is one. The worker records wall and CPU time, allocation, peak RSS and parallel throughput. Fidelity is judged afterwards by one independent rasteriser: `pdftoppm` at 96 DPI against the Chromium page. The ink score is the mismatch on lightly blurred pages divided by the ink present on either page, so antialiasing does not dominate and blank margins do not flatter a result. Read the scores with the contact sheet: Chromium does not implement every CSS feature in the corpus, and a score only measures distance from Chromium.
+
+Requires Pillow plus `pdftoppm`, `pdftotext`, `pdfinfo`, `pdffonts` and `qpdf` on `PATH`, and the Playwright Chromium revision matching `Microsoft.Playwright`.
+
+```sh
+python3 OfficeIMO.Pdf.Benchmarks.Comparisons/HeadToHead/h2h.py corpus --out "$OUT/corpus" --peers "$PEER_CLONES"
+dotnet build OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0
+dotnet OfficeIMO.Pdf.Benchmarks.Comparisons/bin/Release/net10.0/OfficeIMO.Pdf.Benchmarks.Comparisons.dll html-head-to-head --corpus "$OUT/corpus" --output "$OUT/run" --cold 3 --warm 15 --warm-seconds 10 --parallel 4 --timeout 400
+dotnet OfficeIMO.Pdf.Benchmarks.Comparisons/bin/Release/net10.0/OfficeIMO.Pdf.Benchmarks.Comparisons.dll html-head-to-head-diagnostics --corpus "$OUT/corpus" --output "$OUT/run/officeimo-diagnostics.json"
+python3 OfficeIMO.Pdf.Benchmarks.Comparisons/HeadToHead/h2h.py deploy --out "$OUT/deploy"
+python3 OfficeIMO.Pdf.Benchmarks.Comparisons/HeadToHead/h2h.py analyze --run "$OUT/run" --corpus "$OUT/corpus"
+python3 OfficeIMO.Pdf.Benchmarks.Comparisons/HeadToHead/h2h.py sheet --run "$OUT/run"
+```
+
+`results.md` holds the per-document table and `contact/index.html` shows the pages side by side. Timing is host-dependent; repeat the run and compare medians. Appending a second run to the same output directory adds to those medians.
+
 For isolated build output, pass `-BuildArtifactsPath` to the comparison wrapper. The artifact exporter accepts `-InspectionAssemblyDirectory` when the matching Release PDF and Core assemblies live outside their usual project folders. Use the `net8.0` inspection assemblies with PowerShell running on .NET 8 or 9.
 
 For a local short engineering run without catalog updates:

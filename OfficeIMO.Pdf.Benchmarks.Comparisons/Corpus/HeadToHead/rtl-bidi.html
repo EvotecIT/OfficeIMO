@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>RTL and bidirectional text</title>
+<style>@page{size:A4;margin:18mm}body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;line-height:1.4;color:#1c2230}h1{font-size:20pt;margin:0 0 8pt}h2{font-size:13pt;margin:14pt 0 6pt}</style>
+<style>.ar{direction:rtl;text-align:right}table{width:100%;border-collapse:collapse;direction:rtl}td,th{border:1px solid #bbc;padding:5pt}.box{border-inline-start:4pt solid #2a7;padding-inline-start:8pt;margin:8pt 0}</style></head><body><h1>Right-to-left text</h1>
+<h2>Arabic</h2><p class="ar" lang="ar" dir="rtl">تعتمد الكتابة العربية على الربط بين الحروف، ويتغير شكل الحرف بحسب موقعه في الكلمة. يجب أن يعرض هذا النص من اليمين إلى اليسار مع وصل الحروف بشكل صحيح وعلامات الترقيم في مكانها.</p>
+<h2>Hebrew</h2><p class="ar" lang="he" dir="rtl">שפה עברית נכתבת מימין לשמאל, ומספרים כמו 2026 וגם מילים באנגלית כגון OfficeIMO נשארים בכיוון המקורי שלהם בתוך המשפט.</p>
+<h2>Mixed direction</h2><p>The product <span lang="ar" dir="rtl">مكتب البيانات</span> shipped version 3.5 in 2026, and <bdi lang="he">דוח שנתי</bdi> follows it in the same line of English.</p><p dir="rtl" lang="ar">فاتورة رقم INV-2026 بقيمة 1,250.75 دولار، بتاريخ 2026/11/03.</p>
+<h2>Right-to-left table and list</h2><table dir="rtl" lang="ar"><thead><tr><th>المنتج</th><th>الكمية</th><th>السعر</th></tr></thead><tbody><tr><td>حاسوب محمول</td><td>2</td><td>1,500</td></tr><tr><td>طابعة</td><td>1</td><td>320</td></tr></tbody></table><ul dir="rtl" lang="ar"><li>البند الأول</li><li>البند الثاني</li></ul>
+<div class="box" dir="rtl" lang="he">גבול לוגי: הפס צריך להופיע בצד ימין.</div><div class="box">Logical border: the bar should appear on the left.</div>
+</body>
+</html>
