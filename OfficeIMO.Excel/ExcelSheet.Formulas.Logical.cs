@@ -269,12 +269,12 @@ namespace OfficeIMO.Excel {
             }
 
             Cell? cell = referenceSheet.TryGetExistingCell(row, column);
-            formulaText = cell?.CellFormula == null
+            formulaText = (cell == null ? null : ExcelWorksheetScan.FindFormula(cell)) == null
                 ? string.Empty
                 : referenceSheet.ResolveCellFormulaText(
-                    cell,
-                    cell.CellFormula.FormulaType?.Value == CellFormulaValues.Shared
-                        && string.IsNullOrEmpty(cell.CellFormula.Text)
+                    cell!,
+                    ExcelWorksheetScan.FindFormula(cell!)!.FormulaType?.Value == CellFormulaValues.Shared
+                        && string.IsNullOrEmpty(ExcelWorksheetScan.FindFormula(cell!)!.Text)
                         ? GetFormulaEvaluationSharedDefinitions(referenceSheet)
                         : null);
             return formulaText.Length > 0;

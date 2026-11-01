@@ -83,8 +83,8 @@ namespace OfficeIMO.Excel {
 
             internal IReadOnlyList<Cell> GetFormulaCells(ExcelSheet sheet) {
                 if (!_formulaCells.TryGetValue(sheet.Name, out IReadOnlyList<Cell>? cells)) {
-                    cells = sheet.WorksheetRoot.Descendants<Cell>()
-                        .Where(cell => cell.CellFormula != null)
+                    cells = ExcelWorksheetScan.Cells(sheet.WorksheetRoot)
+                        .Where(cell => ExcelWorksheetScan.FindFormula(cell) != null)
                         .ToList();
                     _formulaCells.Add(sheet.Name, cells);
                 }
@@ -540,7 +540,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    if (dependencyCell.CellValue == null) {
+                    if (ExcelWorksheetScan.FindValue(dependencyCell) == null) {
                         issues.Add($"Dependency '{formattedDependencyCell}' is a formula without a cached result.");
                     }
 

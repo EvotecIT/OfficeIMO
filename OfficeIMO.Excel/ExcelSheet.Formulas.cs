@@ -64,13 +64,13 @@ namespace OfficeIMO.Excel {
                     .Select(reference => ExcelA1.TryParseRange(reference!, out int top, out int left, out int bottom, out int right)
                         ? (Top: top, Left: left, Bottom: bottom, Right: right) : default).ToArray();
                 var arrayIndex = new ExcelCellRangeIndex<bool>(arrays.Select(range => (range.Top, range.Left, range.Bottom, range.Right, true)));
-                foreach (var cell in WorksheetRoot.Descendants<Cell>()) {
-                    bool arrayMember = cell.CellFormula == null && arrays.Length != 0
+                foreach (var cell in ExcelWorksheetScan.Cells(WorksheetRoot)) {
+                    bool arrayMember = ExcelWorksheetScan.FindFormula(cell) == null && arrays.Length != 0
                         && cell.CellReference?.Value is string address
                         && TryParseCellReference(address, out int row, out int column)
                         && arrayIndex.At(row, column).Any();
-                    if (cell.CellFormula == null && !arrayMember) continue;
-                    if (cell.CellValue != null || cell.ValueMetaIndex != null) {
+                    if (ExcelWorksheetScan.FindFormula(cell) == null && !arrayMember) continue;
+                    if (ExcelWorksheetScan.FindValue(cell) != null || cell.ValueMetaIndex != null) {
                         cell.CellValue = null;
                         ClearCellValueMetadataAttribute(cell);
                         changed = true;
@@ -121,19 +121,19 @@ namespace OfficeIMO.Excel {
 
                 try {
                     if (_excelDocument.WorkbookPartRoot.CellMetadataPart != null) PlanDynamicArrayOwners();
-                    foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null).ToList()) {
+                    foreach (var cell in ExcelWorksheetScan.Cells(WorksheetRoot).Where(c => ExcelWorksheetScan.FindFormula(c) != null).ToList()) {
                         _formulaEvaluationGuardState.DependencyGuardBlocked = false;
                         if (!TryEvaluateFormulaCellValue(cell, out FormulaArgumentValue result)) {
                             allFormulasEvaluated = false;
                             if (_formulaEvaluationGuardState.DependencyGuardBlocked) {
-                                if (cell.CellValue != null || cell.ValueMetaIndex != null) {
+                                if (ExcelWorksheetScan.FindValue(cell) != null || cell.ValueMetaIndex != null) {
                                     cell.CellValue = null;
                                     ClearCellValueMetadataAttribute(cell);
                                     changed = true;
                                 }
 
-                                if (cell.CellFormula!.CalculateCell?.Value != true) {
-                                    cell.CellFormula.CalculateCell = true;
+                                if (ExcelWorksheetScan.FindFormula(cell)!.CalculateCell?.Value != true) {
+                                    ExcelWorksheetScan.FindFormula(cell)!.CalculateCell = true;
                                     changed = true;
                                 }
                             }
@@ -147,7 +147,7 @@ namespace OfficeIMO.Excel {
                             SetFormulaCachedValue(cell, result);
                             if (TryGetCalculatedArray(cell, out FormulaArrayValue array)) WriteFixedArrayFormulaCache(cell, array);
                         }
-                        cell.CellFormula!.CalculateCell = false;
+                        ExcelWorksheetScan.FindFormula(cell)!.CalculateCell = false;
                         _excelDocument.MarkFormulaCellRecalculated(
                             _worksheetPart,
                             cell.CellReference?.Value ?? string.Empty,
@@ -195,7 +195,7 @@ namespace OfficeIMO.Excel {
             out FormulaArgumentValue result,
             IReadOnlyDictionary<uint, SharedFormulaDefinition>? sharedFormulaDefinitions = null) {
             result = default;
-            if (cell.CellFormula == null) {
+            if (ExcelWorksheetScan.FindFormula(cell) == null) {
                 return false;
             }
 
@@ -216,7 +216,7 @@ namespace OfficeIMO.Excel {
                     || _formulaEvaluationDepthCache == null
                     || _formulaEvaluationStack == null
                     || _formulaEvaluationDepthFrames == null) {
-                    return cell.CellFormula.FormulaType?.Value == CellFormulaValues.Array
+                    return ExcelWorksheetScan.FindFormula(cell)!.FormulaType?.Value == CellFormulaValues.Array
                         ? TryEvaluateAuthoredFormulaCell(cell, formula, out result)
                         : TryEvaluateFormulaValue(formula, out result);
                 }
@@ -254,7 +254,7 @@ namespace OfficeIMO.Excel {
                 bool evaluated = false;
                 int evaluationDepth = 0;
                 try {
-                    if (!(cell.CellFormula.FormulaType?.Value == CellFormulaValues.Array
+                    if (!(ExcelWorksheetScan.FindFormula(cell)!.FormulaType?.Value == CellFormulaValues.Array
                         ? TryEvaluateAuthoredFormulaCell(cell, formula, out result)
                         : TryEvaluateFormulaValue(formula, out result))) {
                         return false;
@@ -346,7 +346,7 @@ namespace OfficeIMO.Excel {
                 FormulaDependencyAliasCatalog dependencyAliases = GetFormulaDependencyAliases();
                 FormulaDependencyTableCatalog dependencyTables = GetFormulaDependencyTables();
                 IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions = BuildSharedFormulaDefinitions();
-                List<Cell> formulaCells = WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null).ToList();
+                List<Cell> formulaCells = ExcelWorksheetScan.Cells(WorksheetRoot).Where(c => ExcelWorksheetScan.FindFormula(c) != null).ToList();
                 var dependencyInspectionContext = new FormulaDependencyInspectionContext(
                     this,
                     formulaCells,
@@ -398,9 +398,9 @@ namespace OfficeIMO.Excel {
                             Name,
                             cellReference,
                             formula,
-                            cell.CellValue?.Text,
+                            ExcelWorksheetScan.FindValue(cell)?.Text,
                             packageRequestsRecalculation
-                                || (cell.CellFormula!.CalculateCell?.Value ?? false)
+                                || (ExcelWorksheetScan.FindFormula(cell)!.CalculateCell?.Value ?? false)
                                 || _excelDocument.HasFormulaInputMutationsAfterFormulaBaseline(_worksheetPart, cellReference)
                                 || HasFormulaDependencyMutationsAfterBaseline(cellReference, dependencies),
                             supported,
@@ -455,7 +455,7 @@ namespace OfficeIMO.Excel {
         private static ExcelFormulaArrayInfo? CreateFormulaArrayInfo(
             Cell cell,
             Metadata? metadata) {
-            CellFormula? formula = cell.CellFormula;
+            CellFormula? formula = ExcelWorksheetScan.FindFormula(cell);
             if (formula?.FormulaType?.Value != CellFormulaValues.Array
                 || string.IsNullOrWhiteSpace(formula.Reference?.Value)) {
                 return null;
@@ -513,7 +513,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string? GetFormulaText(int row, int column) {
             Cell? cell = TryGetExistingCell(row, column);
-            return cell?.CellFormula == null ? null : ResolveCellFormulaText(cell);
+            return (cell == null ? null : ExcelWorksheetScan.FindFormula(cell!)) == null ? null : ResolveCellFormulaText(cell!);
         }
 
         /// <summary>
@@ -521,7 +521,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public bool TryGetCachedFormulaValue(int row, int column, out string? value) {
             var cell = TryGetExistingCell(row, column);
-            value = cell?.CellFormula == null ? null : ResolveRichValueError(cell, cell.CellValue?.Text);
+            value = (cell == null ? null : ExcelWorksheetScan.FindFormula(cell!)) == null ? null : ResolveRichValueError(cell!, ExcelWorksheetScan.FindValue(cell!)?.Text);
             return value != null;
         }
 
@@ -546,8 +546,8 @@ namespace OfficeIMO.Excel {
             string safeFormula = Utilities.ExcelSanitizer.SanitizeFormula(formula, qualifyArrayFunctions: true);
             var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             WriteLock(() => {
-                foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
-                    string? reference = cell.CellFormula?.Reference?.Value;
+                foreach (var cell in ExcelWorksheetScan.Cells(WorksheetRoot).Where(c => ExcelWorksheetScan.FindFormula(c)?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
+                    string? reference = ExcelWorksheetScan.FindFormula(cell)?.Reference?.Value;
                     if (!string.IsNullOrWhiteSpace(reference)
                         && TryFixedArrayBounds(reference!, out int existingR1, out int existingC1, out int existingR2, out int existingC2)
                         && RangesOverlapInclusive((r1, c1, r2, c2), (existingR1, existingC1, existingR2, existingC2))) {
@@ -556,7 +556,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 var topLeft = GetCell(r1, c1);
-                bool retainsCachedValue = topLeft.CellValue != null;
+                bool retainsCachedValue = ExcelWorksheetScan.FindValue(topLeft) != null;
                 ClearCellValueMetadata(topLeft);
                 topLeft.CellMetaIndex = dynamic ? EnsureDynamicArrayMetadata() : null;
                 topLeft.CellFormula = new CellFormula(safeFormula) {
@@ -564,7 +564,7 @@ namespace OfficeIMO.Excel {
                     Reference = a1Range
                 };
                 if (retainsCachedValue) {
-                    topLeft.CellFormula.CalculateCell = true;
+                    ExcelWorksheetScan.FindFormula(topLeft)!.CalculateCell = true;
                 }
                 _excelDocument.MarkFormulaAuthored(
                     _worksheetPart,
@@ -608,13 +608,13 @@ namespace OfficeIMO.Excel {
                     }
                 }
                 var topLeft = GetCell(r1, c1);
-                bool retainsCachedValue = topLeft.CellValue != null;
+                bool retainsCachedValue = ExcelWorksheetScan.FindValue(topLeft) != null;
                 topLeft.CellFormula = new CellFormula(safeFormula) {
                     FormulaType = CellFormulaValues.Array,
                     Reference = a1Range
                 };
                 if (retainsCachedValue) {
-                    topLeft.CellFormula.CalculateCell = true;
+                    ExcelWorksheetScan.FindFormula(topLeft)!.CalculateCell = true;
                 }
                 _excelDocument.MarkFormulaAuthored(
                     _worksheetPart,
@@ -632,12 +632,12 @@ namespace OfficeIMO.Excel {
                 : CellAsRange(a1RangeOrCell);
 
             WriteLock(() => {
-                foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
-                    string? reference = cell.CellFormula?.Reference?.Value;
+                foreach (var cell in ExcelWorksheetScan.Cells(WorksheetRoot).Where(c => ExcelWorksheetScan.FindFormula(c)?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
+                    string? reference = ExcelWorksheetScan.FindFormula(cell)?.Reference?.Value;
                     if (!string.IsNullOrWhiteSpace(reference)
                         && TryFixedArrayBounds(reference!, out int existingR1, out int existingC1, out int existingR2, out int existingC2)
                         && RangesOverlapInclusive(bounds, (existingR1, existingC1, existingR2, existingC2))) {
-                        foreach (Cell spillCell in WorksheetRoot.Descendants<Cell>().ToList()) {
+                        foreach (Cell spillCell in ExcelWorksheetScan.Cells(WorksheetRoot).ToList()) {
                             if (!TryParseCellReference(spillCell.CellReference?.Value ?? "", out int row, out int column)
                                 || row < existingR1 || row > existingR2 || column < existingC1 || column > existingC2)
                                 continue;
