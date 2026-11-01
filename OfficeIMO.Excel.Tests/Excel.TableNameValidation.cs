@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "A");
                 sheet.AddTable("A1:A1", hasHeader: true, name: "Table", ExcelTableStyle.TableStyleMedium9);
                 sheet.CellValue(2, 1, "B");
-                sheet.AddTable("A2:A2", hasHeader: true, name: "Table", ExcelTableStyle.TableStyleMedium9);
+                sheet.AddTable("A3:A3", hasHeader: true, name: "Table", ExcelTableStyle.TableStyleMedium9);
                 document.Save();
             }
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {

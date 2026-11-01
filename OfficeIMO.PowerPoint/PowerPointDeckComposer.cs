@@ -220,14 +220,23 @@ namespace OfficeIMO.PowerPoint {
             }
 
             List<PowerPointSlide> slides = new();
-            for (int index = 0; index < plan.Slides.Count; index++) {
-                PowerPointDeckPlanSlide slide = plan.Slides[index];
-                _isLastPlannedSlide = index == plan.Slides.Count - 1;
-                int first = slide is PowerPointContentPlanSlide { MaterializedSlide: not null } content
-                    ? content.MaterializedSlide.Index : _presentation.Slides.Count;
-                slide.AddTo(this);
-                // One logical request can produce several physical continuation slides.
-                slides.AddRange(_presentation.Slides.Skip(first));
+            int originalCount = _presentation.Slides.Count;
+            Action rollback = _presentation.LayoutDeck.CaptureRollback();
+            try {
+                for (int index = 0; index < plan.Slides.Count; index++) {
+                    PowerPointDeckPlanSlide slide = plan.Slides[index];
+                    _isLastPlannedSlide = index == plan.Slides.Count - 1;
+                    int first = slide is PowerPointContentPlanSlide { MaterializedSlide: not null } content
+                        ? content.MaterializedSlide.Index : _presentation.Slides.Count;
+                    slide.AddTo(this);
+                    // One logical request can produce several physical continuation slides.
+                    slides.AddRange(_presentation.Slides.Skip(first));
+                }
+            } catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) {
+                // A plan is one request: a later slide failing takes the earlier ones with it.
+                while (_presentation.Slides.Count > originalCount) _presentation.RemoveSlide(_presentation.Slides.Count - 1);
+                rollback();
+                throw;
             }
 
             return slides.AsReadOnly();

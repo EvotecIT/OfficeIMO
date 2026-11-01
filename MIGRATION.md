@@ -7834,3 +7834,9 @@ Word character `Spacing` and `SetSpacing` now use nullable `OfficeLength`. Repla
 Batch output names replace the final source extension: `Sales.docx` becomes `Sales.pdf`. Sources such as `Sales.docx` and `Sales.xlsx` now select the same destination. Use distinct stems or an explicit `OfficePublicationPolicy.Rename`/`Replace` conflict policy.
 
 PDF paragraph font sizes, indents, spacing and tab positions/widths now use `OfficeLength`. Replace `PdfLineSpacing.Exactly(18)` with `PdfLineSpacing.Exact(OfficeLength.Points(18))`. Read `Height` for exact/minimum spacing and `MultipleValue` for proportional spacing; the mixed-unit `Value` property is removed.
+
+## Excel table totals, table names and empty streaming writers
+
+- `SetTableTotals` and `SetTableTotalsByName` reject `ExcelTableTotalsFunction.Custom`, because the mapping has no formula. Write the totals cell with `CellFormula` instead.
+- Table names that read as cell references, such as `Q1`, `R`, `C` or `R1C1`, now get a `_` prefix, and `ExcelTableNameValidationMode.Strict` rejects them. Use the name the API returns in structured references.
+- Disposing an `ExcelWorkbookWriter` before writing a table throws `InvalidOperationException` and leaves the destination untouched. Write at least one table, or don't create the writer.

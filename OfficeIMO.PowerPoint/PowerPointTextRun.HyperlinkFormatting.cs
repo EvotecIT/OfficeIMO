@@ -19,6 +19,7 @@ public partial class PowerPointTextRun {
             A.HyperlinkOnClick? hyperlink = RunProperties?.GetFirstChild<A.HyperlinkOnClick>();
             if (hyperlink == null) throw new InvalidOperationException("Set a click hyperlink before its color policy.");
             PowerPointTextHyperlinkColor.SetChoice(hyperlink, value);
+            SyncLineContinuation();
         }
     }
 }

@@ -498,5 +498,79 @@ namespace OfficeIMO.Tests {
 
             public bool Active { get; set; }
         }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void SaveOnDispose_PasswordLoadedWorkbook_PersistsEditsMadeAfterExplicitSave(bool useStream) {
+            string path = Path.Combine(_directoryWithFiles, "EncryptedSaveOnDispose" + useStream + ".xlsx");
+            using (var document = ExcelDocument.Create(path)) {
+                document.AddSheet("Data").CellValue(1, 1, "first");
+                document.Save(new ExcelSaveOptions { Password = "pw" });
+            }
+
+            var options = new ExcelLoadOptions { Password = "pw", PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose };
+            using var memory = new MemoryStream();
+            if (useStream) {
+                byte[] encrypted = File.ReadAllBytes(path);
+                memory.Write(encrypted, 0, encrypted.Length);
+                memory.Position = 0;
+            }
+
+            using (var document = useStream ? ExcelDocument.Load(memory, options) : ExcelDocument.Load(path, options)) {
+                document.Sheets[0].CellValue(2, 1, "saved");
+                document.Save();
+                document.Sheets[0].CellValue(3, 1, "after save");
+            }
+
+            byte[] output = useStream ? memory.ToArray() : File.ReadAllBytes(path);
+            Assert.Equal(new byte[] { 0xD0, 0xCF, 0x11, 0xE0 }, output.Take(4).ToArray());
+            using var reopened = new MemoryStream(output);
+            using var reloaded = ExcelDocument.Load(reopened, new ExcelLoadOptions { Password = "pw" });
+            using var reader = ExcelDocumentReader.Open(reloaded.ToBytes(new ExcelSaveOptions { Password = null }));
+            Assert.Equal("after save", reader.GetSheet("Data").ReadRange("A3:A3")[0, 0]);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Create_FromTemplate_WithoutDestinationExtensionUsesRequestedDocumentType(bool useStream) {
+            using var template = new MemoryStream();
+            using (var source = ExcelDocument.Create(template, new ExcelCreateOptions { DocumentType = ExcelDocumentType.Template })) {
+                source.AddSheet("Data").CellValue(1, 1, "template");
+                source.Save();
+            }
+
+            template.Position = 0;
+            var options = new ExcelCreateOptions { TemplateStream = template };
+            using var output = new MemoryStream();
+            if (useStream) {
+                using var document = ExcelDocument.Create(output, options);
+                document.Save();
+            } else {
+                using var document = ExcelDocument.Create(options);
+                byte[] bytes = document.ToBytes();
+                output.Write(bytes, 0, bytes.Length);
+            }
+
+            output.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(output, false);
+            Assert.Equal(DocumentFormat.OpenXml.SpreadsheetDocumentType.Workbook, spreadsheet.DocumentType);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Create_FromTemplate_SaveOnDisposePublishesUneditedWorkbook(bool useStream) {
+            using var template = new MemoryStream(CreateStreamSaveWorkbookBytes());
+            string path = Path.Combine(_directoryWithFiles, "TemplateSaveOnDispose.xlsx");
+            if (File.Exists(path)) File.Delete(path);
+            var options = new ExcelCreateOptions { TemplateStream = template, PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose };
+            using var output = new MemoryStream();
+            using (useStream ? ExcelDocument.Create(output, options) : ExcelDocument.Create(path, options)) { }
+
+            using var reader = ExcelDocumentReader.Open(useStream ? output.ToArray() : File.ReadAllBytes(path));
+            Assert.Equal("Hello Stream", reader.GetSheet("StreamData").ReadRange("A1:A1")[0, 0]);
+        }
     }
 }

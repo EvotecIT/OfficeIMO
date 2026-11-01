@@ -162,7 +162,7 @@ public sealed class ExcelNativeAuthoringContracts {
         ExcelTable empty = sheet.AddTable(Array.Empty<int>(),
             new (string Header, Func<int, object?> Selector)[] { ("Code", value => value) },
             new ExcelTableOptions { Name = "Empty" }, row: 20, column: 2);
-        Assert.Equal("B20:B20", empty.Range);
+        Assert.Equal("B20:B21", empty.Range);
         using var output = Save(workbook);
         using var package = SpreadsheetDocument.Open(output, false);
         S.Table[] tables = package.WorkbookPart!.WorksheetParts.SelectMany(part => part.TableDefinitionParts).Select(part => part.Table!).ToArray();

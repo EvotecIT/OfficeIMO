@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel {
                 DirectDataSetSheetModel sheet,
                 string? range = null) {
                 int columnCount = sheet.Table.ColumnCount;
+                string reference = ExcelSheet.BuildTableReference(range ?? sheet.Range, sheet.IncludeHeaders);
                 var builder = new StringBuilder(512 + (columnCount * 72));
                 string sheetIndexText = InvariantNumberText.Get(sheet.Index);
                 builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
@@ -22,13 +23,13 @@ namespace OfficeIMO.Excel {
                 builder.Append("\" displayName=\"");
                 AppendEscaped(builder, sheet.TableName!);
                 builder.Append("\" ref=\"");
-                AppendEscaped(builder, range ?? sheet.Range);
+                AppendEscaped(builder, reference);
                 builder.Append("\" headerRowCount=\"");
                 builder.Append(sheet.IncludeHeaders ? "1" : "0");
                 builder.Append("\" totalsRowShown=\"0\">");
                 if (sheet.IncludeAutoFilter && sheet.IncludeHeaders) {
                     builder.Append("<autoFilter ref=\"");
-                    AppendEscaped(builder, range ?? sheet.Range);
+                    AppendEscaped(builder, reference);
                     builder.Append("\"/>");
                 }
 

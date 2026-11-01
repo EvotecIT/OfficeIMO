@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Office2019.Drawing.SVG;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -87,11 +89,12 @@ namespace OfficeIMO.PowerPoint {
             imagePart.FeedData(newImage);
             string relId = slidePart.GetIdOfPart(imagePart);
             blip.Embed = relId;
+            string[] replacedVectorIds = RemoveVectorSources(blip);
 
-            if (previousRelationshipId != null &&
-                !IsRelationshipReferenced(previousRelationshipId, blip)) {
+            foreach (string relationshipId in replacedVectorIds.Prepend(previousRelationshipId).OfType<string>().Distinct(StringComparer.Ordinal)) {
+                if (IsRelationshipReferenced(relationshipId)) continue;
                 try {
-                    OpenXmlPart? oldPart = slidePart.GetPartById(previousRelationshipId);
+                    OpenXmlPart? oldPart = slidePart.GetPartById(relationshipId);
                     if (oldPart != null) {
                         slidePart.DeletePart(oldPart);
                     }
@@ -99,6 +102,24 @@ namespace OfficeIMO.PowerPoint {
                     // The previous relationship may already be absent on damaged input.
                 }
             }
+        }
+
+        /// <summary>
+        ///     An SVG source in the blip extension list is drawn in place of the embedded raster, so it would keep
+        ///     showing the old image after a replacement.
+        /// </summary>
+        private static string[] RemoveVectorSources(A.Blip blip) {
+            A.BlipExtensionList? extensions = blip.GetFirstChild<A.BlipExtensionList>();
+            if (extensions == null) return Array.Empty<string>();
+            var removed = new List<string>();
+            foreach (A.BlipExtension extension in extensions.Elements<A.BlipExtension>().ToArray()) {
+                SVGBlip? vector = extension.GetFirstChild<SVGBlip>();
+                if (vector == null) continue;
+                if (vector.Embed?.Value is string relationshipId) removed.Add(relationshipId);
+                extension.Remove();
+            }
+            if (!extensions.HasChildren) extensions.Remove();
+            return removed.ToArray();
         }
 
         /// <summary>
@@ -289,10 +310,9 @@ namespace OfficeIMO.PowerPoint {
             Picture.BlipFill.SourceRectangle = rect;
         }
 
-        private bool IsRelationshipReferenced(string relationshipId, A.Blip currentBlip) {
-            return SlideRoot
-                .Descendants<A.Blip>()
-                .Any(blip => !ReferenceEquals(blip, currentBlip) && blip.Embed?.Value == relationshipId);
+        private bool IsRelationshipReferenced(string relationshipId) {
+            return SlideRoot.Descendants().Any(element => element is A.Blip { } blip && blip.Embed?.Value == relationshipId
+                || element is SVGBlip { } vector && vector.Embed?.Value == relationshipId);
         }
     }
 }

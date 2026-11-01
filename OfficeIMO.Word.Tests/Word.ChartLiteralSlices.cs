@@ -9,6 +9,28 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class WordChartLiteralSliceTests {
+    [Fact]
+    public void AGroupAddedToAnAreaChartStaysBeforeTheSharedAxes() {
+        using WordDocument document = WordDocument.Create();
+        WordChart chart = document.AddChart();
+        chart.AddCategories(new System.Collections.Generic.List<string> { "a", "b" });
+        chart.AddArea("Area", new System.Collections.Generic.List<int> { 1, 2 }, OfficeColor.Red);
+        chart.AddBar("Bar", new System.Collections.Generic.List<int> { 3, 4 }, OfficeColor.Blue);
+        chart.AddLine("Line", new System.Collections.Generic.List<int> { 5, 6 }, OfficeColor.Green);
+
+        using var output = new MemoryStream();
+        document.Save(output);
+        output.Position = 0;
+        using var package = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(output, false);
+        Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(package));
+        PlotArea plotArea = package.MainDocumentPart!.ChartParts.Single().ChartSpace!.Descendants<PlotArea>().Single();
+        Assert.Single(plotArea.Elements<CategoryAxis>());
+        Assert.Single(plotArea.Elements<ValueAxis>());
+        uint categoryAxis = plotArea.GetFirstChild<CategoryAxis>()!.AxisId!.Val!.Value;
+        Assert.All(new DocumentFormat.OpenXml.OpenXmlCompositeElement[] { plotArea.GetFirstChild<AreaChart>()!, plotArea.GetFirstChild<BarChart>()!, plotArea.GetFirstChild<LineChart>()! },
+            group => Assert.Equal(categoryAxis, group.Elements<AxisId>().First().Val!.Value));
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]

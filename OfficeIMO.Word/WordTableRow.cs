@@ -230,8 +230,9 @@ namespace OfficeIMO.Word {
         /// Remove a row
         /// </summary>
         public void Remove() {
+            _wordTable.ReleaseVerticalMerges(_tableRow);
             _wordTable.TrackRemovedRow(_tableRow);
-            _tableRow.Remove();
+            WordDocument.RemoveWithOwnedParts(_tableRow);
         }
 
         /// <summary>

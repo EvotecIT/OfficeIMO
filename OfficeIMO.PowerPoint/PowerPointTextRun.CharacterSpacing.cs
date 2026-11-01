@@ -13,6 +13,7 @@ public partial class PowerPointTextRun {
                 throw new ArgumentOutOfRangeException(nameof(value), "Character spacing must be between -4000 and 4000 points.");
             EnsureRunProperties().Spacing = value.HasValue
                 ? (int)Math.Round(points!.Value * 100d, MidpointRounding.AwayFromZero) : null;
+            SyncLineContinuation();
         }
     }
 }

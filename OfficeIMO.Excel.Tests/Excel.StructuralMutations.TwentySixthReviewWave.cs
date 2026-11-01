@@ -157,7 +157,7 @@ namespace OfficeIMO.Tests {
                     new ExcelQueryExecutionPolicy { AllowExecution = true }));
             }
 
-            Assert.Equal("A1:A1", sheet.GetTableRange(query.TableName));
+            Assert.Equal("A1:A2", sheet.GetTableRange(query.TableName));
             Assert.Equal("Value", sheet.CellAt(1, 1).GetValue<string>());
             Assert.Empty(document.ValidateOpenXml());
         }

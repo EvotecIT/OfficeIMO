@@ -103,17 +103,14 @@ namespace OfficeIMO.Excel {
         }
 
         private static void CollectDrawingRelationshipIds(OpenXmlElement anchor, ISet<string> relationshipIds) {
-            foreach (var blip in anchor.Descendants<A.Blip>()) {
-                if (!string.IsNullOrWhiteSpace(blip.Embed?.Value)) {
-                    relationshipIds.Add(blip.Embed!.Value!);
-                }
-            }
-
-            foreach (var chartReference in anchor.Descendants<C.ChartReference>()) {
-                if (!string.IsNullOrWhiteSpace(chartReference.Id?.Value)) {
-                    relationshipIds.Add(chartReference.Id!.Value!);
+            // Besides r:embed on the blip and chart, extensions such as svgBlip keep their own references.
+            foreach (var attribute in anchor.Descendants().SelectMany(element => element.GetAttributes())) {
+                if (attribute.NamespaceUri == RelationshipsNamespace && !string.IsNullOrWhiteSpace(attribute.Value)) {
+                    relationshipIds.Add(attribute.Value!);
                 }
             }
         }
+
+        private const string RelationshipsNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
     }
 }

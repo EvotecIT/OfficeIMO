@@ -288,6 +288,17 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// A bookmark stays with the original, as it does when Word copies a table: its id and name must be
+        /// unique in the document.
+        /// </summary>
+        private void PrepareCopy(OpenXmlElement copy) {
+            _document.AssignNewSdtIds(copy);
+            foreach (OpenXmlElement bookmark in copy.Descendants().Where(element => element is BookmarkStart or BookmarkEnd).ToList()) {
+                bookmark.Remove();
+            }
+        }
+
+        /// <summary>
         /// Copy existing WordTableRow and inserts it as a last row in a Table
         /// </summary>
         /// <param name="row"></param>
@@ -306,7 +317,7 @@ namespace OfficeIMO.Word {
 
             // Clone the row to avoid the "part of a tree" error
             var clonedRow = (TableRow)row._tableRow.CloneNode(true);
-            _document.AssignNewSdtIds(clonedRow);
+            PrepareCopy(clonedRow);
 
             // Insert the new row after the last row
             WordTableContent.InsertRowAfter(_table, lastRow, clonedRow);
@@ -695,7 +706,7 @@ namespace OfficeIMO.Word {
         /// </example>
         public WordTable CloneAfterSelf() {
             var clonedTable = (Table)_table.CloneNode(true);
-            _document.AssignNewSdtIds(clonedTable);
+            PrepareCopy(clonedTable);
             _table.InsertAfterSelf(clonedTable);
             return new WordTable(_document, clonedTable);
         }
@@ -711,7 +722,7 @@ namespace OfficeIMO.Word {
         /// </example>
         public WordTable CloneBeforeSelf() {
             var clonedTable = (Table)_table.CloneNode(true);
-            _document.AssignNewSdtIds(clonedTable);
+            PrepareCopy(clonedTable);
             _table.InsertBeforeSelf(clonedTable);
             return new WordTable(_document, clonedTable);
         }
@@ -729,7 +740,7 @@ namespace OfficeIMO.Word {
         /// </example>
         public WordTable Clone(WordParagraph paragraph, bool after = true) {
             var clonedTable = (Table)_table.CloneNode(true);
-            _document.AssignNewSdtIds(clonedTable);
+            PrepareCopy(clonedTable);
             if (after) {
                 paragraph._paragraph.InsertAfterSelf(clonedTable);
             } else {
@@ -751,7 +762,7 @@ namespace OfficeIMO.Word {
         /// </example>
         public WordTable Clone(WordTable table, bool after = true) {
             var clonedTable = (Table)_table.CloneNode(true);
-            _document.AssignNewSdtIds(clonedTable);
+            PrepareCopy(clonedTable);
             if (after) {
                 table._table.InsertAfterSelf(clonedTable);
             } else {

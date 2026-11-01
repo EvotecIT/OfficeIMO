@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
-using PresentationDocument = DocumentFormat.OpenXml.Packaging.PresentationDocument;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using Xunit;
@@ -14,6 +14,28 @@ namespace OfficeIMO.Tests {
             new object[] { "example.gif", OfficeImageFormat.Gif, "image/gif" },
             new object[] { "snail.bmp", OfficeImageFormat.Bmp, "image/bmp" },
         };
+
+        [Fact]
+        public void UpdateImageDropsTheOldVectorSourceOfAnSvgPicture() {
+            string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
+            using PowerPointDocument presentation = PowerPointDocument.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointPicture picture = slide.AddImage(imagePath);
+            var blip = slide.SlidePart.Slide!.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().Single();
+            var vectorPart = slide.SlidePart.AddImagePart(DocumentFormat.OpenXml.Packaging.ImagePartType.Svg);
+            using (var svg = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg'/>"))) vectorPart.FeedData(svg);
+            blip.Append(new DocumentFormat.OpenXml.Drawing.BlipExtensionList(new DocumentFormat.OpenXml.Drawing.BlipExtension(
+                new DocumentFormat.OpenXml.Office2019.Drawing.SVG.SVGBlip { Embed = slide.SlidePart.GetIdOfPart(vectorPart) }) {
+                Uri = "{96DAC541-7B7A-43D3-8B79-37D633B846F1}"
+            }));
+
+            picture.UpdateImage(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "Kulek.jpg"));
+
+            using var reopened = PresentationDocument.Open(new MemoryStream(presentation.ToBytes()), false);
+            var part = reopened.PresentationPart!.SlideParts.Single();
+            Assert.Empty(part.Slide!.Descendants<DocumentFormat.OpenXml.Office2019.Drawing.SVG.SVGBlip>());
+            Assert.Equal("image/jpeg", Assert.Single(part.ImageParts).ContentType);
+        }
 
         [Theory]
         [MemberData(nameof(ImageData))]

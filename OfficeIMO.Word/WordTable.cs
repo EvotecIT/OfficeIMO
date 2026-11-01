@@ -515,7 +515,7 @@ namespace OfficeIMO.Word {
                 // declared grid width retained by an initially empty table.
                 List<WordTableRow> rows = Rows;
                 cellsCount = rows.Count > 1
-                    ? rows[rows.Count - 2].CellsCount
+                    ? WordTableContent.GridColumnCount(rows[rows.Count - 2]._tableRow)
                     : _table.GetFirstChild<TableGrid>()?.Elements<GridColumn>().Count() ?? 0;
             }
             for (int j = 0; j < cellsCount; j++) {
@@ -551,7 +551,7 @@ namespace OfficeIMO.Word {
         /// Remove table from document
         /// </summary>
         public void Remove() {
-            _table.Remove();
+            WordDocument.RemoveWithOwnedParts(_table);
         }
 
         /// <summary>

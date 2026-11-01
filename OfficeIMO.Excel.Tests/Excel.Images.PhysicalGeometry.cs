@@ -15,6 +15,54 @@ namespace OfficeIMO.Tests;
 
 public partial class Excel {
     [Fact]
+    public void ImageLengths_MovingATwoCellImageAcrossDifferentColumnWidthsKeepsItsSize() {
+        byte[] bytes = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
+        using var document = ExcelDocument.Create();
+        var sheet = document.AddSheet("Images");
+        sheet.SetColumnWidth(5, ExcelColumnWidth.Characters(40));
+        sheet.SetColumnWidth(6, ExcelColumnWidth.Characters(40));
+        ExcelImage image = sheet.AddImage("A1:C10", bytes, new OfficeIMO.Excel.ExcelImageOptions {
+            OffsetX = OfficeLength.Pixels(30), EndOffsetX = OfficeLength.Pixels(10)
+        });
+        OfficeLength width = image.Width, height = image.Height;
+
+        image.MoveTo(1, 5);
+
+        Assert.True(image.ToOffsetX >= OfficeLength.Zero);
+        Assert.Equal(width.ToEmus(), image.Width.ToEmus(), tolerance: 1D);
+        Assert.Equal(height.ToEmus(), image.Height.ToEmus(), tolerance: 1D);
+    }
+
+    [Fact]
+    public void ImageCleanup_KeepsThePartBehindAnSvgBlipExtension() {
+        byte[] bytes = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
+        var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create()) {
+            document.AddSheet("Images").AddImage(1, 1, bytes);
+            document.Save(stream);
+        }
+        stream.Position = 0;
+        using (var package = SpreadsheetDocument.Open(stream, true)) {
+            DrawingsPart drawing = package.WorkbookPart!.WorksheetParts.Single().DrawingsPart!;
+            ImagePart vector = drawing.AddImagePart(ImagePartType.Svg);
+            using (var svg = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg'/>"))) vector.FeedData(svg);
+            drawing.WorksheetDrawing!.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().Single().Append(
+                new DocumentFormat.OpenXml.Drawing.BlipExtensionList(new DocumentFormat.OpenXml.Drawing.BlipExtension(
+                    new DocumentFormat.OpenXml.Office2019.Drawing.SVG.SVGBlip { Embed = drawing.GetIdOfPart(vector) }) {
+                    Uri = "{96DAC541-7B7A-43D3-8B79-37D633B846F1}"
+                }));
+        }
+
+        stream.Position = 0;
+        using var loaded = ExcelDocument.Load(stream);
+        loaded.Sheets[0].CellValue(3, 3, "edited");
+        using var saved = SpreadsheetDocument.Open(new MemoryStream(loaded.ToBytes()), false);
+        DrawingsPart savedDrawing = saved.WorkbookPart!.WorksheetParts.Single().DrawingsPart!;
+        string vectorId = savedDrawing.WorksheetDrawing!.Descendants<DocumentFormat.OpenXml.Office2019.Drawing.SVG.SVGBlip>().Single().Embed!.Value!;
+        Assert.Equal("image/svg+xml", savedDrawing.GetPartById(vectorId).ContentType);
+    }
+
+    [Fact]
     public void ImageLengths_RetainNativeEmusAndAttachedReportHandleAfterSave() {
         byte[] bytes = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
         using var output = new MemoryStream();

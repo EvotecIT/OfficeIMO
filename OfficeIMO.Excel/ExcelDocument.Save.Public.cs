@@ -459,7 +459,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Saves the workbook as a password-encrypted Office Open XML package to a stream.
-        /// Use the format overload for native XLS or XLSB output. Encrypting the associated stream disables implicit persistence.
+        /// Use the format overload for native XLS or XLSB output. Encrypting the associated stream disables implicit persistence unless the workbook retains a password.
         /// </summary>
         /// <param name="destination">Writable stream that receives the encrypted workbook.</param>
         /// <param name="password">Password used to encrypt the workbook package.</param>

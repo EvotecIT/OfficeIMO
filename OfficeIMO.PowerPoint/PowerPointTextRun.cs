@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Globalization;
 using OfficeIMO.Drawing;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -17,11 +19,17 @@ namespace OfficeIMO.PowerPoint {
         private OpenXmlPartContainer? _ownerPart => (_field as DocumentFormat.OpenXml.OpenXmlElement ?? Run).Ancestors<DocumentFormat.OpenXml.Presentation.Slide>()
             .FirstOrDefault()?.SlidePart ?? _initialOwnerPart ?? _initialSlidePart;
         private readonly A.Field? _field;
+        private List<OpenXmlElement>? _lineContinuation;
 
         internal PowerPointTextRun(A.Run run, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
             Run = run;
             _initialSlidePart = slidePart ?? ownerPart as SlidePart;
             _initialOwnerPart = ownerPart ?? slidePart;
+        }
+
+        internal PowerPointTextRun(A.Run run, SlidePart? slidePart, OpenXmlPartContainer? ownerPart, List<OpenXmlElement> lineContinuation)
+            : this(run, slidePart, ownerPart) {
+            if (lineContinuation.Count > 0) _lineContinuation = lineContinuation;
         }
 
         internal PowerPointTextRun(A.Field field, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
@@ -32,22 +40,46 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal A.Run Run { get; }
+
+        /// <summary>The last run of the text this wrapper wrote, which is <see cref="Run"/> for a single line.</summary>
+        internal A.Run LastLine => _lineContinuation?.OfType<A.Run>().LastOrDefault() ?? Run;
         internal A.RunProperties? RunProperties => _field?.RunProperties ?? Run.RunProperties;
         internal OpenXmlPartContainer? OwnerPart => _ownerPart;
 
         /// <summary>
-        /// Text content of the run.
+        /// Text content of the run. A line break in the assigned text continues the run with
+        /// <c>a:br</c> and a further run per line; this instance keeps formatting all of those lines.
+        /// A dynamic field holds one line, so its breaks become spaces.
         /// </summary>
         public string Text {
-            get => (_field?.Text ?? Run.Text)?.Text ?? string.Empty;
+            get {
+                string text = (_field?.Text ?? Run.Text)?.Text ?? string.Empty;
+                return _lineContinuation == null
+                    ? text
+                    : string.Join(Environment.NewLine, new[] { text }.Concat(
+                        _lineContinuation.OfType<A.Run>().Select(line => line.Text?.Text ?? string.Empty)));
+            }
             set {
                 if (_field != null) {
                     _field.Text ??= new A.Text();
-                    _field.Text.Text = value ?? string.Empty;
+                    _field.Text.Text = PowerPointTextContent.ToSingleLine(value);
                     return;
                 }
+                _lineContinuation?.ForEach(node => node.Remove());
+                _lineContinuation = null;
                 Run.Text ??= new A.Text();
-                Run.Text.Text = value ?? string.Empty;
+                if (Run.Parent == null) {
+                    Run.Text.Text = PowerPointTextContent.ToSingleLine(value);
+                    return;
+                }
+                List<OpenXmlElement> lines = PowerPointTextContent.CreateInlineContent(value, Run.RunProperties);
+                Run.Text.Text = ((A.Run)lines[0]).Text!.Text;
+                if (lines.Count == 1) return;
+                _lineContinuation = lines.Skip(1).ToList();
+                OpenXmlElement previous = Run;
+                foreach (OpenXmlElement line in _lineContinuation) {
+                    previous = previous.InsertAfterSelf(line);
+                }
             }
         }
 
@@ -67,6 +99,7 @@ namespace OfficeIMO.PowerPoint {
             set {
                 A.RunProperties props = EnsureRunProperties();
                 props.Bold = value;
+                SyncLineContinuation();
             }
         }
 
@@ -78,6 +111,7 @@ namespace OfficeIMO.PowerPoint {
             set {
                 A.RunProperties props = EnsureRunProperties();
                 props.Italic = value;
+                SyncLineContinuation();
             }
         }
 
@@ -99,6 +133,7 @@ namespace OfficeIMO.PowerPoint {
             set {
                 A.RunProperties props = EnsureRunProperties();
                 props.Underline = value?.ToOpenXml();
+                SyncLineContinuation();
             }
         }
 
@@ -133,6 +168,7 @@ namespace OfficeIMO.PowerPoint {
                     PowerPointStrikeStyle.Double => A.TextStrikeValues.DoubleStrike,
                     _ => throw new ArgumentOutOfRangeException(nameof(value))
                 };
+                SyncLineContinuation();
             }
         }
 
@@ -157,6 +193,7 @@ namespace OfficeIMO.PowerPoint {
                     PowerPointCapitalization.AllCaps => A.TextCapsValues.All,
                     _ => throw new ArgumentOutOfRangeException(nameof(value))
                 };
+                SyncLineContinuation();
             }
         }
 
@@ -176,6 +213,7 @@ namespace OfficeIMO.PowerPoint {
                 props.Baseline = value.HasValue
                     ? checked((int)Math.Round(value.Value * 1000D, MidpointRounding.AwayFromZero))
                     : null;
+                SyncLineContinuation();
             }
         }
 
@@ -209,6 +247,7 @@ namespace OfficeIMO.PowerPoint {
             set {
                 int? drawingSize = PowerPointTextDefaults.ToDrawingFontSize(value?.ToPoints(), nameof(value));
                 EnsureRunProperties().FontSize = drawingSize;
+                SyncLineContinuation();
             }
         }
 
@@ -217,7 +256,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string? FontName {
             get => RunProperties?.GetFirstChild<A.LatinFont>()?.Typeface;
-            set => PowerPointTextPropertyFormatting.SetFontName(EnsureRunProperties(), value);
+            set {
+                PowerPointTextPropertyFormatting.SetFontName(EnsureRunProperties(), value);
+                SyncLineContinuation();
+            }
         }
 
         /// <summary>
@@ -226,7 +268,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string? Color {
             get => RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
-            set => PowerPointTextPropertyFormatting.SetColor(EnsureRunProperties(), value);
+            set {
+                PowerPointTextPropertyFormatting.SetColor(EnsureRunProperties(), value);
+                SyncLineContinuation();
+            }
         }
 
         /// <summary>
@@ -234,7 +279,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string? HighlightColor {
             get => RunProperties?.GetFirstChild<A.Highlight>()?.GetFirstChild<A.RgbColorModelHex>()?.Val;
-            set => PowerPointTextPropertyFormatting.SetHighlightColor(EnsureRunProperties(), value);
+            set {
+                PowerPointTextPropertyFormatting.SetHighlightColor(EnsureRunProperties(), value);
+                SyncLineContinuation();
+            }
         }
 
         /// <summary>
@@ -406,6 +454,7 @@ namespace OfficeIMO.PowerPoint {
                 hyperlink.Remove();
             }
             if (replacement != null) properties.AddChild(replacement, true);
+            SyncLineContinuation();
             OpenXmlPart? ownerPart = _ownerPart as OpenXmlPart ?? _slidePart;
             if (ownerPart == null) return;
             foreach (string relationshipId in relationshipIds) {
@@ -478,5 +527,8 @@ namespace OfficeIMO.PowerPoint {
             if (_field != null) return _field.RunProperties ??= new A.RunProperties();
             return Run.RunProperties ??= new A.RunProperties();
         }
+
+        private void SyncLineContinuation() =>
+            _lineContinuation?.ForEach(node => PowerPointTextContent.ApplyProperties(node, Run.RunProperties));
     }
 }

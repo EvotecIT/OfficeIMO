@@ -512,6 +512,7 @@ namespace OfficeIMO.Excel {
                 throw new NotSupportedException("Only images anchored to worksheet cells can be moved. Absolute image anchors do not have a cell marker.");
             }
 
+            OfficeLength width = Width, height = Height;
             int previousColumn = ParseMarkerIndex(marker.ColumnId?.Text);
             int previousRow = ParseMarkerIndex(marker.RowId?.Text);
             long previousColumnOffset = ParseMarkerOffset(marker.ColumnOffset?.Text);
@@ -531,6 +532,10 @@ namespace OfficeIMO.Excel {
             marker.ColumnOffset = new Xdr.ColumnOffset(targetColumnOffset.ToString(CultureInfo.InvariantCulture));
             marker.RowId = new Xdr.RowId((row - 1).ToString(CultureInfo.InvariantCulture));
             marker.RowOffset = new Xdr.RowOffset(targetRowOffset.ToString(CultureInfo.InvariantCulture));
+            // Columns and rows differ in size, so the end marker is placed from the image's size at the new origin.
+            if (_anchor is Xdr.TwoCellAnchor twoCellAnchor && width > OfficeLength.Zero && height > OfficeLength.Zero) {
+                ResizeTwoCellAnchor(twoCellAnchor, width, height);
+            }
             Save();
             return this;
         }

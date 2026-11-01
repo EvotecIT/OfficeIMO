@@ -64,9 +64,8 @@ namespace OfficeIMO.PowerPoint {
                     paragraph.Append(existingParagraphProperties);
                 }
 
-                paragraph.Append(
-                    new A.Run(runProperties, new A.Text(value ?? string.Empty)),
-                    endProperties);
+                paragraph.Append(PowerPointTextContent.CreateInlineContent(value, runProperties));
+                paragraph.Append(endProperties);
 
                 foreach (var previous in Cell.TextBody.Elements<A.Paragraph>().ToArray())
                     PowerPointTextRun.DiscardContent(previous, _ownerPart as OpenXmlPart ?? _slidePart);
@@ -158,29 +157,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException("Old value cannot be empty.", nameof(oldValue));
             }
 
-            string replacement = newValue ?? string.Empty;
-            int count = 0;
-
-            if (Cell.TextBody == null) {
-                return 0;
-            }
-
-            foreach (A.Paragraph paragraph in Cell.TextBody.Elements<A.Paragraph>()) {
-                foreach (A.Run run in paragraph.Elements<A.Run>()) {
-                    foreach (A.Text text in run.Elements<A.Text>()) {
-                        string current = text.Text ?? string.Empty;
-                        int occurrences = CountOccurrences(current, oldValue);
-                        if (occurrences == 0) {
-                            continue;
-                        }
-
-                        text.Text = current.Replace(oldValue, replacement);
-                        count += occurrences;
-                    }
-                }
-            }
-
-            return count;
+            return Cell.TextBody == null ? 0 : Paragraphs.Sum(paragraph => paragraph.ReplaceText(oldValue, newValue));
         }
 
         /// <summary>
@@ -198,21 +175,17 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a formatted run to the first cell paragraph.
         /// </summary>
         public PowerPointTextRun AddRun(string text, Action<PowerPointTextRun>? configure = null) {
-            A.Run run = InsertRun(text);
-            var wrapper = new PowerPointTextRun(run, _slidePart, _ownerPart);
+            PowerPointTextRun wrapper = new PowerPointParagraph(EnsureParagraph(), _slidePart, _ownerPart).InsertRun(text);
             configure?.Invoke(wrapper);
             return wrapper;
         }
 
         /// <summary>
-        ///     Gets or sets whether the cell text is bold.
+        ///     Gets or sets whether the cell text is bold. Setting applies to every run and line break in the cell.
         /// </summary>
         public bool Bold {
             get => GetRun()?.RunProperties?.Bold?.Value == true;
-            set {
-                var props = EnsureRunProperties();
-                props.Bold = value;
-            }
+            set => FormatRuns(props => props.Bold = value);
         }
 
         /// <summary>
@@ -221,8 +194,7 @@ namespace OfficeIMO.PowerPoint {
         public bool Italic {
             get => GetRun()?.RunProperties?.Italic?.Value == true;
             set {
-                var props = EnsureRunProperties();
-                props.Italic = value;
+                FormatRuns(props => props.Italic = value);
             }
         }
 
@@ -235,8 +207,8 @@ namespace OfficeIMO.PowerPoint {
                 return size.HasValue ? global::OfficeIMO.OfficeLength.Points(size.Value / 100D) : (global::OfficeIMO.OfficeLength?)null;
             }
             set {
-                var props = EnsureRunProperties();
-                props.FontSize = PowerPointTextDefaults.ToDrawingFontSize(value?.ToPoints(), nameof(value));
+                int? drawingSize = PowerPointTextDefaults.ToDrawingFontSize(value?.ToPoints(), nameof(value));
+                FormatRuns(props => props.FontSize = drawingSize);
             }
         }
 
@@ -245,7 +217,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string? FontName {
             get => GetRun()?.RunProperties?.GetFirstChild<A.LatinFont>()?.Typeface;
-            set => PowerPointTextPropertyFormatting.SetFontName(EnsureRunProperties(), value);
+            set => FormatRuns(props => PowerPointTextPropertyFormatting.SetFontName(props, value));
         }
 
         /// <summary>
@@ -253,7 +225,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string? Color {
             get => GetRun()?.RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
-            set => PowerPointTextPropertyFormatting.SetColor(EnsureRunProperties(), value);
+            set => FormatRuns(props => PowerPointTextPropertyFormatting.SetColor(props, value));
         }
 
         /// <summary>
@@ -489,20 +461,6 @@ namespace OfficeIMO.PowerPoint {
             return emus != null ? emus.Value / emusPerUnit : null;
         }
 
-        private static int CountOccurrences(string value, string oldValue) {
-            int count = 0;
-            int index = 0;
-            while (true) {
-                index = value.IndexOf(oldValue, index, StringComparison.Ordinal);
-                if (index < 0) {
-                    break;
-                }
-                count++;
-                index += oldValue.Length;
-            }
-            return count;
-        }
-
         private static void ApplyNormalAutoFitOptions(A.NormalAutoFit normal, PowerPointTextAutoFitOptions options) {
             normal.FontScale = options.FontScaleValue;
             normal.LineSpaceReduction = options.LineSpaceReductionValue;
@@ -544,32 +502,11 @@ namespace OfficeIMO.PowerPoint {
             return paragraph;
         }
 
-        private A.Run InsertRun(string text) {
-            A.Paragraph paragraph = EnsureParagraph();
-            A.Run run = new(new A.Text(text ?? string.Empty));
-            A.EndParagraphRunProperties? endProps = paragraph.GetFirstChild<A.EndParagraphRunProperties>();
-            if (endProps != null) {
-                paragraph.InsertBefore(run, endProps);
-            } else {
-                paragraph.Append(run);
+        private void FormatRuns(Action<A.RunProperties> change) {
+            if (GetRun() == null) {
+                new PowerPointParagraph(EnsureParagraph(), _slidePart, _ownerPart).InsertRun(string.Empty);
             }
-
-            return run;
-        }
-
-        private A.Run EnsureRun() {
-            A.Paragraph paragraph = EnsureParagraph();
-            A.Run run = paragraph.Elements<A.Run>().FirstOrDefault() ?? new A.Run(new A.Text(string.Empty));
-            if (run.Parent == null) {
-                paragraph.Append(run);
-            }
-
-            return run;
-        }
-
-        private A.RunProperties EnsureRunProperties() {
-            A.Run run = EnsureRun();
-            return run.RunProperties ??= new A.RunProperties();
+            PowerPointTextContent.FormatRuns(Cell.TextBody!, change);
         }
     }
 }

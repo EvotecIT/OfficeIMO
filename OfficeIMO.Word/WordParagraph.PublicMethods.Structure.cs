@@ -81,13 +81,13 @@ namespace OfficeIMO.Word {
 
                     var runs = this._paragraph.ChildElements.OfType<Run>().ToList();
                     if (runs.Count == 0) {
-                        this._paragraph.Remove();
+                        WordDocument.RemoveWithOwnedParts(this._paragraph);
                     } else if (runs.Count == 1) {
-                        this._paragraph.Remove();
+                        WordDocument.RemoveWithOwnedParts(this._paragraph);
                     } else {
                         foreach (var run in runs) {
                             if (run == _run) {
-                                run.Remove();
+                                WordDocument.RemoveWithOwnedParts(run);
                             }
                         }
                     }

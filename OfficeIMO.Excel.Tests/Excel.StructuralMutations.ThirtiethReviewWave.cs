@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(document.RemoveQueryBackedTable(source.TableName, preserveTable: true));
 
-            Assert.Equal("A1:B1", sheet.GetTableRange(source.TableName));
+            Assert.Equal("A1:B2", sheet.GetTableRange(source.TableName));
             Assert.Null(table.ConnectionId);
             Assert.All(table.TableColumns!.Elements<TableColumn>(), column => Assert.Null(column.QueryTableFieldId));
             Assert.Empty(sheet.WorksheetPart.TableDefinitionParts.Single().QueryTableParts);

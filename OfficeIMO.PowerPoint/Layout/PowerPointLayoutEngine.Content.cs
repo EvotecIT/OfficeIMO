@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Security;
 using System.Text;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Presentation;
@@ -343,11 +342,11 @@ namespace OfficeIMO.PowerPoint {
             var natural = new double[columns];
             metrics.Numeric = new bool[columns];
             for (int c = 0; c < columns; c++) {
-                double w = table.IncludeHeaders ? PowerPointTextMeasure.Width(table.Headers[c], metrics.HeaderSize, context.Theme.BodyFont, true) : 0D;
+                double w = table.IncludeHeaders ? WidestLine(table.Headers[c], metrics.HeaderSize, context.Theme.BodyFont, true) : 0D;
                 bool numeric = table.Rows.Count > 0;
                 foreach (IReadOnlyList<string> row in table.Rows) {
                     string value = c < row.Count ? row[c] ?? string.Empty : string.Empty;
-                    w = Math.Max(w, PowerPointTextMeasure.Width(value, metrics.BodySize, context.Theme.BodyFont));
+                    w = Math.Max(w, WidestLine(value, metrics.BodySize, context.Theme.BodyFont, false));
                     if (!IsNumeric(value) && !string.IsNullOrWhiteSpace(value)) numeric = false;
                 }
 
@@ -369,10 +368,22 @@ namespace OfficeIMO.PowerPoint {
                 metrics.Widths = metrics.Widths.Select(w => w * scale).ToArray();
             }
 
+            if (table.IncludeHeaders) {
+                int headerLines = 1;
+                for (int c = 0; c < columns; c++) {
+                    headerLines = Math.Max(headerLines, PowerPointTextMeasure.LineCount(table.Headers[c], metrics.HeaderSize,
+                        metrics.Widths[c] - 2D * (pad + 5D), context.Theme.BodyFont, true));
+                }
+                metrics.HeaderHeight += (headerLines - 1) * metrics.HeaderSize * header.LineHeight;
+            }
+
             return metrics;
         }
 
-        /// <summary>Rows a table row occupies toward the slide limit: one per line, wrapping at most two lines.</summary>
+        private static double WidestLine(string? text, double size, string family, bool bold) =>
+            PowerPointTextContent.NormalizeBreaks(text).Split('\n').Max(line => PowerPointTextMeasure.Width(line, size, family, bold));
+
+        /// <summary>Rows a table row occupies toward the slide limit: one per line.</summary>
         private static int RowUnits(PowerPointLayoutContext context, TableMetrics metrics, IReadOnlyList<string> row) {
             double pad = context.Theme.TableCellPadding;
             int lines = 1;
@@ -381,8 +392,12 @@ namespace OfficeIMO.PowerPoint {
                     metrics.Widths[c] - 2D * (pad + 5D), context.Theme.BodyFont));
             }
 
-            return Math.Min(2, lines);
+            return lines;
         }
+
+        /// <summary>A row grows to its text when opened, so its written height carries every line.</summary>
+        private static double RowHeight(TableMetrics metrics, int units) =>
+            metrics.RowHeight + (units - 1) * metrics.BodySize * 1.2D;
 
         private static int TableCapacity(PowerPointLayoutContext context, PowerPointLayoutSlide slide, TableMetrics metrics, bool lede) {
             double zone = ContentZone(context, MeasureHeader(context, slide)).Height - (lede ? LedeAllowance : 0D);
@@ -451,8 +466,14 @@ namespace OfficeIMO.PowerPoint {
             List<List<int>> chunks;
             while (true) {
                 chunks = Balance(Enumerable.Range(0, table.Rows.Count).ToList(), pages);
-                if (table.MaximumRows.HasValue || chunks.All(c => c.Sum(i => units[i]) <= limit)) break;
+                // A row taller than the limit takes a slide of its own, so this ends at one row per slide.
+                if (table.MaximumRows.HasValue || chunks.All(c => c.Sum(i => Math.Min(units[i], limit)) <= limit)) break;
                 pages++;
+            }
+
+            if (!table.MaximumRows.HasValue && units.Any(unit => RowHeight(metrics, unit) > limit * metrics.RowHeight)) {
+                context.Deck.Report(PowerPointLayoutDiagnosticCodes.TableOverflow, OfficeDiagnosticSeverity.Warning,
+                    "A table row is taller than one slide; shorten its text or choose fewer columns.", slide.Title);
             }
 
             for (int page = 0; page < pages; page++) {
@@ -514,9 +535,16 @@ namespace OfficeIMO.PowerPoint {
                 if (!header && (text == "Degraded" || text == "Warning")) color = theme.Warning;
                 string align = metrics.Numeric[column] ? "r" : "l";
                 var b = new StringBuilder("<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:pPr algn=\"").Append(align).Append("\"><a:lnSpc><a:spcPct val=\"100000\"/></a:lnSpc><a:buNone/></a:pPr>");
-                b.Append("<a:r><a:rPr lang=\"en-US\" sz=\"").Append(((int)Math.Round(size * 100D)).ToString(CultureInfo.InvariantCulture))
-                    .Append("\" b=\"").Append(header ? '1' : '0').Append("\" dirty=\"0\"><a:solidFill>").Append(writer.ColorXml(color))
-                    .Append("</a:solidFill><a:latin typeface=\"+mn-lt\"/></a:rPr><a:t>").Append(SecurityElement.Escape(text ?? string.Empty)).Append("</a:t></a:r></a:p></a:txBody>");
+                string properties = "<a:rPr lang=\"en-US\" sz=\"" + ((int)Math.Round(size * 100D)).ToString(CultureInfo.InvariantCulture) +
+                    "\" b=\"" + (header ? '1' : '0') + "\" dirty=\"0\"><a:solidFill>" + writer.ColorXml(color) +
+                    "</a:solidFill><a:latin typeface=\"+mn-lt\"/></a:rPr>";
+                string[] lines = PowerPointTextContent.NormalizeBreaks(text).Split('\n');
+                for (int i = 0; i < lines.Length; i++) {
+                    if (i > 0) b.Append("<a:br>").Append(properties).Append("</a:br>");
+                    b.Append("<a:r>").Append(properties).Append("<a:t>").Append(PowerPointLayoutWriter.X(lines[i])).Append("</a:t></a:r>");
+                }
+
+                b.Append("</a:p></a:txBody>");
                 b.Append("<a:tcPr marL=\"").Append(Emu(pad + 5D)).Append("\" marR=\"").Append(Emu(pad + 5D)).Append("\" marT=\"").Append(Emu(topPad))
                     .Append("\" marB=\"").Append(Emu(topPad)).Append("\" anchor=\"ctr\">");
                 b.Append(Line("lnL", null, "0")).Append(Line("lnR", null, "0")).Append(Line("lnT", null, "0")).Append(Line("lnB", bottomColor, bottomWidth));
@@ -541,7 +569,7 @@ namespace OfficeIMO.PowerPoint {
             }
             for (int r = 0; r < table.Rows.Count; r++) {
                 IReadOnlyList<string> row = table.Rows[r];
-                double height = metrics.RowHeight + (RowUnits(context, metrics, row) - 1) * metrics.BodySize * 1.2D;
+                double height = RowHeight(metrics, RowUnits(context, metrics, row));
                 heights.Add(height);
                 string? fill = theme.TableBanding && r % 2 == 1 ? theme.Surface : null;
                 xml.Append("<a:tr h=\"").Append(Emu(height)).Append("\">");
@@ -556,8 +584,8 @@ namespace OfficeIMO.PowerPoint {
             double total = heights.Sum();
             PowerPointTable result = writer.Slide.AddTable(Math.Max(1, table.Rows.Count + (table.IncludeHeaders ? 1 : 0)), Math.Max(1, table.Headers.Count),
                 OfficeLength.Points(box.X), OfficeLength.Points(box.Y), OfficeLength.Points(width), OfficeLength.Points(total));
-            result.Description = !string.IsNullOrWhiteSpace(table.Caption) ? table.Caption :
-                "Table with " + table.Rows.Count.ToString(CultureInfo.InvariantCulture) + " data rows. Columns: " + string.Join(", ", table.Headers) + ".";
+            result.Description = PowerPointLayoutRun.FlattenBreaks(!string.IsNullOrWhiteSpace(table.Caption) ? table.Caption :
+                "Table with " + table.Rows.Count.ToString(CultureInfo.InvariantCulture) + " data rows. Columns: " + string.Join(", ", table.Headers) + ".");
             A.Table element = result.TableElement;
             A.GraphicData data = (A.GraphicData)element.Parent!;
             element.Remove();
@@ -648,7 +676,7 @@ namespace OfficeIMO.PowerPoint {
                 Width = OfficeLength.Points(box.Width), Height = OfficeLength.Points(box.Height),
                 Accessibility = new PowerPointChartAccessibilityOptions {
                     Name = "Chart",
-                    AlternativeText = chart.AlternativeText ?? chart.Title ?? "Chart",
+                    AlternativeText = PowerPointLayoutRun.FlattenBreaks(chart.AlternativeText ?? chart.Title ?? "Chart"),
                     IncludeDataSummaryInAlternativeText = true
                 }});
             result.ClearTitle();
@@ -855,24 +883,43 @@ namespace OfficeIMO.PowerPoint {
             if (image.NativePicture != null) return RenderNativeImage(context, writer, image, box, cover);
             PowerPointPicture picture = writer.Slide.AddImage(image.Path, OfficeLength.Points(box.X), OfficeLength.Points(box.Y),
                 OfficeLength.Points(box.Width), OfficeLength.Points(box.Height));
-            if (!PowerPointImageSize.TryRead(image.Path, out int pw, out int ph)) return picture;
-            if (cover) {
-                picture.Left = OfficeLength.Points(box.X);
-                picture.Top = OfficeLength.Points(box.Y);
-                picture.Width = OfficeLength.Points(box.Width);
-                picture.Height = OfficeLength.Points(box.Height);
-                picture.CropToFill(pw, ph, image.FocalX, image.FocalY);
-            } else {
-                double scale = Math.Min(box.Width / pw, box.Height / ph);
-                picture.Left = OfficeLength.Points(box.X);
-                picture.Top = OfficeLength.Points(box.Y);
-                picture.Width = OfficeLength.Points(pw * scale);
-                picture.Height = OfficeLength.Points(ph * scale);
+            if (PowerPointImageSize.TryRead(image.Path, out int pw, out int ph)) {
+                if (cover) {
+                    picture.Left = OfficeLength.Points(box.X);
+                    picture.Top = OfficeLength.Points(box.Y);
+                    picture.Width = OfficeLength.Points(box.Width);
+                    picture.Height = OfficeLength.Points(box.Height);
+                    picture.CropToFill(pw, ph, image.FocalX, image.FocalY);
+                } else {
+                    double scale = Math.Min(box.Width / pw, box.Height / ph);
+                    picture.Left = OfficeLength.Points(box.X);
+                    picture.Top = OfficeLength.Points(box.Y);
+                    picture.Width = OfficeLength.Points(pw * scale);
+                    picture.Height = OfficeLength.Points(ph * scale);
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(image.AlternativeText)) picture.Description = image.AlternativeText;
             RenderAnnotations(context, writer, picture, image);
             return picture;
+        }
+
+        /// <summary>Puts a label on the marker's right, else on the wider side, wrapped to stay on the slide.</summary>
+        private static PowerPointLayoutRect PlaceAnnotationLabel(PowerPointLayoutContext context, PowerPointTextStyleSpec caption, string label,
+            double x, double y, double width, double height, double inset) {
+            PowerPointLayoutGrid grid = context.Grid;
+            const double markerClearance = 15D;
+            double rightRoom = grid.SlideWidth - grid.MarginRight - (x + markerClearance);
+            double leftRoom = x - markerClearance - grid.MarginLeft;
+            bool right = width <= rightRoom || rightRoom >= leftRoom;
+            double room = Math.Max(1D, right ? rightRoom : leftRoom);
+            if (width > room) {
+                width = room;
+                int lines = PowerPointTextMeasure.LineCount(label, caption.Size, width - 2D * inset, context.Theme.BodyFont);
+                height = Math.Max(height, lines * caption.Size * caption.LineHeight + 2D * inset);
+            }
+            double top = Math.Max(0D, Math.Min(y - height / 2D, grid.SlideHeight - height));
+            return new PowerPointLayoutRect(right ? x + markerClearance : x - markerClearance - width, top, width, height);
         }
 
         /// <summary>Numbered markers placed on the visible (cropped) picture, with their labels beside them.</summary>
@@ -900,7 +947,7 @@ namespace OfficeIMO.PowerPoint {
                     (text, size) => metrics.MeasureText(text, size, context.Theme.BodyFont, OfficeFontStyle.Regular), wrap: false);
                 double labelWidth = Math.Ceiling(layout.Width) + 2D * labelInset + 10D;
                 double labelHeight = Math.Max(18D, Math.Ceiling(Math.Max(layout.Height, OfficeDrawingTextLayout.PaintedHeight(layout))) + 2D * labelInset);
-                writer.Text("Screenshot Annotation Label " + (i + 1), new PowerPointLayoutRect(x + 15D, y - labelHeight / 2D, labelWidth, labelHeight),
+                writer.Text("Screenshot Annotation Label " + (i + 1), PlaceAnnotationLabel(context, caption, label, x, y, labelWidth, labelHeight, labelInset),
                     new[] { context.Paragraph(label, PowerPointTextRole.Caption, context.Theme.Text) }, anchor: "ctr", fill: context.Theme.Background, inset: labelInset);
             }
         }

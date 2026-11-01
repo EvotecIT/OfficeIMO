@@ -106,9 +106,11 @@ public partial class ExcelDocument {
                 throw new InvalidOperationException("Complete the current table before disposing the writer.");
             _disposed = true;
             try {
+                // Throwing here leaves the archive unfinished, so neither destination receives an empty package.
+                if (!_failed && _sheets.Count == 0)
+                    throw new InvalidOperationException("Write at least one table before disposing the writer; a workbook needs a worksheet.");
                 try {
                     if (!_failed) {
-                        if (_sheets.Count == 0) { _failed = true; return; }
                         var styles = ExcelTabularStylePlan.Create(_options, _sheets[0].Table.ColumnCount, CancellationToken.None);
                         var model = DirectDataSetWorkbookModel.CreateStreaming(_sheets, _options.DateSystem, styles);
                         DirectDataSetWorkbookWriter.CompleteStreamingWorkbook(_archive, model, _theme);

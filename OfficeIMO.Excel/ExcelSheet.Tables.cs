@@ -8,7 +8,8 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Enables a totals row for the table covering <paramref name="range"/> and assigns per-column functions by header name.
-        /// Supported functions are those in TotalsRowFunctionValues (Sum, Average, Count, Min, Max, etc.).
+        /// Supported functions are those in TotalsRowFunctionValues (Sum, Average, Count, Min, Max, etc.) except Custom, which needs a formula.
+        /// A later call rewrites generated cells; formulas and values written by the caller are kept.
         /// </summary>
         /// <param name="range">Address of the table range (for example, "A1:D10") whose totals row should be displayed.</param>
         /// <param name="byHeader">Mapping of table header names to the totals function that should be applied for each column.</param>
@@ -136,6 +137,10 @@ namespace OfficeIMO.Excel {
         private void SetTableTotalsCore(string tableOrRange, System.Collections.Generic.IDictionary<string, ExcelTableTotalsFunction> byHeader, bool throwIfMissing) {
             var totalsByHeader = new System.Collections.Generic.Dictionary<string, ExcelTableTotalsFunction>(System.StringComparer.OrdinalIgnoreCase);
             foreach (var entry in byHeader) {
+                if (entry.Value == ExcelTableTotalsFunction.Custom) {
+                    throw new ArgumentException($"Column '{entry.Key}' cannot use Custom here: this mapping has no formula. Write the totals cell with CellFormula.", nameof(byHeader));
+                }
+
                 totalsByHeader[entry.Key] = entry.Value;
             }
 
@@ -145,6 +150,7 @@ namespace OfficeIMO.Excel {
             int lastColumn = 0;
             var labels = new List<(int Column, string Text)>();
             var formulas = new List<(int Column, string Formula)>();
+            var cleared = new List<int>();
             WriteLock(() => {
                 var table = FindTableByRangeNameOrDisplayName(tableOrRange);
                 if (table == null) {
@@ -192,12 +198,15 @@ namespace OfficeIMO.Excel {
                 foreach (var tc in tableColumns.Elements<TableColumn>()) {
                     var name = tc.Name?.Value ?? string.Empty;
                     if (totalsByHeader.TryGetValue(name, out var fn)) {
+                        // Generated cells follow the column's function; anything else the caller wrote is kept.
+                        bool generated = HoldsGeneratedTotals(TryGetExistingCell(totalsRow, column), tc, tableName, name, fn);
+                        bool writable = generated || IsTableRowEmpty(totalsRow, column, column);
                         tc.TotalsRowFunction = fn.ToOpenXml();
-                        int? subtotal = GetSubtotalFunctionNumber(fn);
-                        // Values the caller already wrote in the totals row are kept.
-                        if (subtotal.HasValue && tableName.Length > 0 && IsTableRowEmpty(totalsRow, column, column)) {
-                            formulas.Add((column, "SUBTOTAL(" + subtotal.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + "," +
-                                tableName + "[" + EscapeStructuredReferenceColumnName(name) + "])"));
+                        string? formula = GeneratedTotalsFormula(fn, tableName, name);
+                        if (generated) cleared.Add(column);
+                        if (writable && formula != null) {
+                            tc.TotalsRowLabel = null;
+                            formulas.Add((column, formula));
                         }
                     } else if (firstTableColumn && tc.TotalsRowFunction == null && IsTableRowEmpty(totalsRow, column, column)) {
                         // Excel labels the first totals cell when it carries no function.
@@ -213,9 +222,33 @@ namespace OfficeIMO.Excel {
             });
 
             if (totalsRow <= 0) return;
+            foreach (int column in cleared) {
+                string cell = ExcelA1.CellReference(totalsRow, column);
+                ClearRange(cell + ":" + cell, ExcelClearOptions.Values | ExcelClearOptions.Formulas);
+            }
+
             foreach ((int labelColumn, string text) in labels) CellValue(totalsRow, labelColumn, text);
             foreach ((int formulaColumn, string formula) in formulas) CellFormula(totalsRow, formulaColumn, formula);
             if (formulas.Count > 0) CacheUncachedFormulaResults(totalsRow, firstColumn, totalsRow, lastColumn);
+        }
+
+        /// <summary>A generated totals cell holds the formula of the column's current function, or its label until a function replaces it.</summary>
+        private bool HoldsGeneratedTotals(Cell? cell, TableColumn column, string tableName, string columnName, ExcelTableTotalsFunction next) {
+            if (cell == null) return false;
+            if (cell.CellFormula == null) {
+                return next != ExcelTableTotalsFunction.None && column.TotalsRowLabel?.Value is string label && GetCellAutoFitText(cell) == label;
+            }
+
+            string? generated = column.TotalsRowFunction?.Value is { } current ? GeneratedTotalsFormula(current.ToOfficeEnum(), tableName, columnName) : null;
+            return generated != null && string.Equals(cell.CellFormula.Text?.TrimStart('=', ' '), generated, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string? GeneratedTotalsFormula(ExcelTableTotalsFunction function, string tableName, string columnName) {
+            int? subtotal = GetSubtotalFunctionNumber(function);
+            return subtotal.HasValue && tableName.Length > 0
+                ? "SUBTOTAL(" + subtotal.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + "," +
+                    tableName + "[" + EscapeStructuredReferenceColumnName(columnName) + "])"
+                : null;
         }
 
         private bool IsTableRowEmpty(int row, int firstColumn, int lastColumn) {
@@ -273,7 +306,7 @@ namespace OfficeIMO.Excel {
             return _worksheetPart.TableDefinitionParts
                 .Select(part => part.Table)
                 .FirstOrDefault(table => table != null && (
-                    string.Equals(table.Reference?.Value, tableOrRange, StringComparison.OrdinalIgnoreCase)
+                    string.Equals(table.Reference?.Value, BuildTableReference(tableOrRange, (table.HeaderRowCount?.Value ?? 1U) > 0U), StringComparison.OrdinalIgnoreCase)
                     || string.Equals(table.Name?.Value, tableOrRange, StringComparison.OrdinalIgnoreCase)
                     || string.Equals(table.DisplayName?.Value, tableOrRange, StringComparison.OrdinalIgnoreCase)));
         }
@@ -607,6 +640,8 @@ namespace OfficeIMO.Excel {
                     if (hasHeader) headerNames ??= directCandidateHeaders;
                 }
 
+                string tableRange = BuildTableReference(range, hasHeader);
+                int tableEndRowIndex = tableRange == range ? endRowIndex : endRowIndex + 1;
                 if (!skipExistingTableScan) {
                     foreach (var existingPart in _worksheetPart.TableDefinitionParts) {
                         var existingRange = existingPart.Table?.Reference?.Value;
@@ -616,7 +651,7 @@ namespace OfficeIMO.Excel {
                         bool overlaps = startColumnIndex <= existingEndColumn &&
                                         endColumnIndex >= existingStartColumn &&
                                         startRowIndex <= existingEndRow &&
-                                        endRowIndex >= existingStartRow;
+                                        tableEndRowIndex >= existingStartRow;
                         if (overlaps) {
                             throw new InvalidOperationException("The specified range overlaps with an existing table.");
                         }
@@ -668,7 +703,7 @@ namespace OfficeIMO.Excel {
                     Id = tableId,
                     Name = name,
                     DisplayName = name,
-                    Reference = range,
+                    Reference = tableRange,
                     HeaderRowCount = hasHeader ? (uint)1 : (uint)0,
                     TotalsRowShown = false
                 };
@@ -726,6 +761,7 @@ namespace OfficeIMO.Excel {
                     if (hasExistingFilter && existingWorksheetAutoFilter != null) {
                         // MIGRATE: Move the existing worksheet AutoFilter to the table (preserving filter criteria)
                         var tableAutoFilter = (AutoFilter)existingWorksheetAutoFilter.CloneNode(true);
+                        tableAutoFilter.Reference = tableRange;
 
                         // Remove from worksheet to avoid conflicts
                         WorksheetRoot.RemoveChild(existingWorksheetAutoFilter);
@@ -734,7 +770,7 @@ namespace OfficeIMO.Excel {
                         table.Append(tableAutoFilter);
                     } else {
                         // No existing filter, just add a new one to the table
-                        table.Append(new AutoFilter { Reference = range });
+                        table.Append(new AutoFilter { Reference = tableRange });
                     }
                 } else {
                     // User doesn't want AutoFilter on the table
@@ -803,6 +839,13 @@ namespace OfficeIMO.Excel {
             return resolvedName;
         }
 
+        /// <summary>A table needs a data row, so a header-only range spans a blank row, as Excel's own empty tables do.</summary>
+        internal static string BuildTableReference(string range, bool hasHeader) {
+            if (!hasHeader || !ExcelA1.TryParseStrictRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) ||
+                lastRow != firstRow || lastRow >= ExcelA1.MaxRows) return range;
+            return ExcelA1.CellReference(firstRow, firstColumn) + ":" + ExcelA1.CellReference(lastRow + 1, lastColumn);
+        }
+
         private static bool TryAppendProvidedTableColumns(TableColumns tableColumns, IReadOnlyList<string>? headerNames, uint columnsCount) {
             int count = checked((int)columnsCount);
             if (count > ProvidedHeaderTableColumnFastPathLimit || headerNames == null || headerNames.Count < count) {
@@ -834,12 +877,14 @@ namespace OfficeIMO.Excel {
         /// Rules:
         /// - Allowed characters: letters, digits, underscore; spaces become underscores.
         /// - Names cannot start with a digit; an underscore is prefixed if necessary.
+        /// - Names cannot read as a cell in A1 or R1C1 notation, including bare R and C; an underscore is prefixed.
         /// - Names are scoped per workbook and checked case-insensitively.
         /// - When <paramref name="mode"/> is <see cref="ExcelTableNameValidationMode.Strict"/>, throws for invalid input.
         /// Examples:
         /// - "My Table" ⇒ "My_Table"
         /// - "Sales#2025" ⇒ "Sales_2025"
         /// - "123Report" ⇒ "_123Report"
+        /// - "Q1" ⇒ "_Q1"
         /// - If "Table" already exists, next becomes "Table2" ("Table3", ...)
         /// </summary>
         private string EnsureValidUniqueTableName(string name, ExcelTableNameValidationMode mode) {
@@ -877,6 +922,12 @@ namespace OfficeIMO.Excel {
                 sanitized.Insert(0, '_');
                 changed = true;
             }
+            if (ExcelA1.IsCellReferenceName(sanitized.ToString())) {
+                if (mode == ExcelTableNameValidationMode.Strict)
+                    throw new ArgumentException("Table name cannot be a cell reference in A1 or R1C1 notation.", nameof(name));
+                sanitized.Insert(0, '_');
+                changed = true;
+            }
 
             // If any character required sanitation, and in strict mode, throw
             if (mode == ExcelTableNameValidationMode.Strict && changed)
@@ -903,6 +954,7 @@ namespace OfficeIMO.Excel {
                 int maxBase = Math.Max(1, MaxLen - suffix.Length);
                 string trimmedBase = baseName.Length > maxBase ? baseName.Substring(0, maxBase) : baseName;
                 string candidate = trimmedBase + suffix;
+                if (ExcelA1.IsCellReferenceName(candidate)) candidate = "_" + candidate;
                 if (!used.Contains(candidate)) return candidate;
                 i++;
             }

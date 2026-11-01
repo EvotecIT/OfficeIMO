@@ -445,6 +445,7 @@ namespace OfficeIMO.Excel {
                     string candidate = trimmed.Length > prefixLength
                         ? ExcelSheetNameText.Truncate(trimmed, prefixLength) + suffixText
                         : trimmed + suffixText;
+                    if (ExcelA1.IsCellReferenceName(candidate)) candidate = "_" + candidate;
                     if (used.Add(candidate)) {
                         return candidate;
                     }
@@ -481,7 +482,7 @@ namespace OfficeIMO.Excel {
                     value = "Table";
                 }
 
-                if (!char.IsLetter(value[0]) && value[0] != '_') {
+                if (!char.IsLetter(value[0]) && value[0] != '_' || ExcelA1.IsCellReferenceName(value)) {
                     value = "_" + value;
                 }
 

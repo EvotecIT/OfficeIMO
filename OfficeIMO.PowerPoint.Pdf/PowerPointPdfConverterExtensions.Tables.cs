@@ -132,8 +132,10 @@ public static partial class PowerPointPdfConverterExtensions {
                     }
 
                     break;
-                case A.Break:
-                    runs.Add(PdfCore.PdfTextRun.LineBreak());
+                case A.Break lineBreak:
+                    // The break takes part in the line's size, so it has to carry the authored one.
+                    runs.Add(CreatePdfTableCellTextRun(
+                        cell, paragraph, lineBreak.RunProperties, "\n", fallbackFontFamily, slideNumber, options, tableDefaults, fallbackFontSize));
                     break;
                 case A.Field field:
                     string fieldText = field.Text?.Text ?? field.InnerText ?? string.Empty;

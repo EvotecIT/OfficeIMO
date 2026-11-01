@@ -494,7 +494,7 @@ namespace OfficeIMO.Excel {
 
         private string CreateUniqueCopiedTableName(string? requestedName) {
             const int maxLength = 255;
-            string baseName = SanitizeCopiedTableName(requestedName, maxLength);
+            string baseName = DirectDataSetWorkbookModel.SanitizeTableName(string.IsNullOrWhiteSpace(requestedName) ? "Table" : requestedName!);
             HashSet<string> used = GetOrInitTableNameCache();
             if (!used.Contains(baseName)) {
                 return baseName;
@@ -506,34 +506,13 @@ namespace OfficeIMO.Excel {
                 int maxBaseLength = Math.Max(1, maxLength - suffixText.Length);
                 string trimmedBase = baseName.Length > maxBaseLength ? baseName.Substring(0, maxBaseLength) : baseName;
                 string candidate = trimmedBase + suffixText;
+                if (ExcelA1.IsCellReferenceName(candidate)) candidate = "_" + candidate;
                 if (!used.Contains(candidate)) {
                     return candidate;
                 }
 
                 suffix++;
             }
-        }
-
-        private static string SanitizeCopiedTableName(string? requestedName, int maxLength) {
-            string source = string.IsNullOrWhiteSpace(requestedName) ? "Table" : requestedName!;
-            var sanitized = new System.Text.StringBuilder(source.Length);
-            foreach (char ch in source) {
-                sanitized.Append(char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_');
-            }
-
-            if (sanitized.Length == 0) {
-                sanitized.Append("Table");
-            }
-
-            if (char.IsDigit(sanitized[0])) {
-                sanitized.Insert(0, '_');
-            }
-
-            if (sanitized.Length > maxLength) {
-                sanitized.Length = maxLength;
-            }
-
-            return sanitized.ToString();
         }
 
         private static TableParts EnsureTableParts(Worksheet worksheet) {

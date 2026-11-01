@@ -138,7 +138,7 @@ namespace OfficeIMO.Tests {
                 host,
                 new ExcelQueryExecutionPolicy { AllowExecution = true },
                 cancellation.Token));
-            Assert.Equal("A1:A1", sheet.GetTableRange(source.TableName));
+            Assert.Equal("A1:A2", sheet.GetTableRange(source.TableName));
             Assert.Equal("Value", sheet.CellAt(1, 1).GetValue<string>());
 
             var unsupported = new StubQueryHost(new ExcelQueryExecutionResult(
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests {
                 source.ConnectionName,
                 unsupported,
                 new ExcelQueryExecutionPolicy { AllowExecution = true }));
-            Assert.Equal("A1:A1", sheet.GetTableRange(source.TableName));
+            Assert.Equal("A1:A2", sheet.GetTableRange(source.TableName));
 
             var headerOnly = new StubQueryHost(new ExcelQueryExecutionResult(
                 new[] { "LongHeader" },
@@ -157,7 +157,7 @@ namespace OfficeIMO.Tests {
                 source.ConnectionName,
                 headerOnly,
                 new ExcelQueryExecutionPolicy { AllowExecution = true, MaximumCharacters = 5 }));
-            Assert.Equal("A1:A1", sheet.GetTableRange(source.TableName));
+            Assert.Equal("A1:A2", sheet.GetTableRange(source.TableName));
         }
 
         [Fact]
@@ -216,7 +216,7 @@ namespace OfficeIMO.Tests {
                 growing,
                 new ExcelQueryExecutionPolicy { AllowExecution = true }));
             Assert.Equal("protected", firstSheet.CellAt(2, 2).GetValue<string>());
-            Assert.Equal("A1:A1", firstSheet.GetTableRange(first.TableName));
+            Assert.Equal("A1:A2", firstSheet.GetTableRange(first.TableName));
 
             QueryTablePart firstQueryPart = firstSheet.WorksheetPart.TableDefinitionParts.Single().QueryTableParts.Single();
             QueryTablePart secondQueryPart = secondSheet.WorksheetPart.TableDefinitionParts.Single().QueryTableParts.Single();

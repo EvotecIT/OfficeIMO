@@ -23,7 +23,10 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutMasterWriter.Apply(_presentationPart, _layoutTheme);
         }
 
-        /// <summary>Restyles the theme, master placeholders and layouts of an existing presentation.</summary>
+        /// <summary>
+        ///     Restyles a presentation's theme and master text styles. Presentations created by OfficeIMO also get their
+        ///     master placeholders and layouts rewritten; a loaded presentation keeps its shapes, backgrounds and placeholders.
+        /// </summary>
         /// <param name="theme">Theme to apply. Explicit shape formatting is retained.</param>
         /// <param name="masterIndex">Zero-based master to restyle, or null for every master and the presentation defaults.</param>
         public void ApplyTheme(OfficeTheme theme, int? masterIndex = null) {
@@ -32,10 +35,10 @@ namespace OfficeIMO.PowerPoint {
             SlideMasterPart? selected = masterIndex.HasValue ? GetSlideMasterPart(masterIndex.Value) : null;
             bool allMasters = selected == null || _presentationPart.SlideMasterParts.Count() == 1;
             PowerPointLayoutTheme layout = PowerPointLayoutTheme.From(theme);
-            PowerPointLayoutMasterWriter.Apply(_presentationPart, layout, allMasters ? null : selected);
+            PowerPointLayoutMasterWriter.Apply(_presentationPart, layout, allMasters ? null : selected, keepMasterContent: !OwnsLayoutTheme);
             if (allMasters) SetThemeNameForAllMasters(theme.Name);
             else SetThemeName(theme.Name, masterIndex!.Value);
-            if (allMasters) _baseTheme = theme;
+            if (allMasters && OwnsLayoutTheme) _baseTheme = theme;
             if (allMasters || masterIndex == 0) _layoutTheme = layout;
         }
 

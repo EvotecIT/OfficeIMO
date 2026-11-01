@@ -7,6 +7,32 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void AddTable_HeaderOnlyTableSpansABlankDataRow(bool fromDataTable) {
+            string filePath = Path.Combine(_directoryWithFiles, "HeaderOnlyTable." + fromDataTable + ".xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddSheet("Empty");
+                if (fromDataTable) {
+                    var data = new DataTable("Empty");
+                    data.Columns.Add("Id", typeof(int));
+                    data.Columns.Add("Name", typeof(string));
+                    sheet.AddTable(data, new ExcelTableOptions { Name = "EmptyResults" });
+                } else {
+                    sheet.CellValue(1, 1, "Id");
+                    sheet.CellValue(1, 2, "Name");
+                    sheet.AddTable("A1:B1", name: "EmptyResults");
+                }
+                document.Save();
+            }
+
+            using var spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            var table = spreadsheet.WorkbookPart!.WorksheetParts.Single().TableDefinitionParts.Single().Table!;
+            Assert.Equal("A1:B2", table.Reference?.Value);
+            Assert.Equal("A1:B2", table.AutoFilter?.Reference?.Value);
+        }
+
         [Fact]
         public void WriteDataReader_CompactTableStreamsAndRoundTrips() {
             var table = new DataTable("ReaderData");
@@ -101,8 +127,8 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(output, false);
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
             var savedTable = worksheetPart.TableDefinitionParts.Single().Table!;
-            Assert.Equal("A1:B1", savedTable.Reference?.Value);
-            Assert.Equal("A1:B1", savedTable.AutoFilter?.Reference?.Value);
+            Assert.Equal("A1:B2", savedTable.Reference?.Value);
+            Assert.Equal("A1:B2", savedTable.AutoFilter?.Reference?.Value);
             Assert.Equal(2U, savedTable.TableColumns?.Count?.Value);
             Assert.Equal(2, worksheetPart.Worksheet.Descendants<Cell>().Count());
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));

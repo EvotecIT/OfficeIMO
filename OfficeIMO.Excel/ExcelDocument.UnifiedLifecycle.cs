@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using OfficeIMO.Core.Internal;
 using System.Threading;
 using System.Threading.Tasks;
@@ -58,6 +59,7 @@ public partial class ExcelDocument {
         } else {
             document = Load(options.TemplateStream ?? throw new ArgumentException("A template is required.", nameof(options)), loadOptions);
         }
+        document.ApplyCreateDocumentType(path, options.DocumentType);
         if (options.Theme != null) {
             document.SetWorkbookThemeXml(CreateWorkbookThemeXml(options.Theme));
             document._creationTheme = options.Theme;
@@ -65,8 +67,22 @@ public partial class ExcelDocument {
         document.FilePath = path;
         document._sourceStream = destination;
         document._persistenceMode = options.PersistenceMode;
+        bool saveOnDispose = options.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
+        document._copyPackageToSourceOnDispose = saveOnDispose && destination != null;
+        document._copyPackageToFilePathOnDispose = saveOnDispose && path != null;
         if (options.FirstSheetName != null && document.Sheets.Count == 0) document.AddSheet(options.FirstSheetName);
         return document;
+    }
+
+    /// <summary>A known destination extension decides the type on save; other output takes the requested type, kept macro-enabled while VBA is present.</summary>
+    private void ApplyCreateDocumentType(string? path, ExcelDocumentType documentType) {
+        if (ResolveSpreadsheetDocumentType(path).HasValue) return;
+        SpreadsheetDocumentType target = documentType.ToOpenXml();
+        if (HasMacros && target == SpreadsheetDocumentType.Workbook) target = SpreadsheetDocumentType.MacroEnabledWorkbook;
+        if (HasMacros && target == SpreadsheetDocumentType.Template) target = SpreadsheetDocumentType.MacroEnabledTemplate;
+        if (_spreadSheetDocument.DocumentType == target) return;
+        ChangeSpreadsheetDocumentType(target);
+        MarkPackageDirty();
     }
 
     private string? ResolveSavePassword(ExcelSaveOptions? options) =>
