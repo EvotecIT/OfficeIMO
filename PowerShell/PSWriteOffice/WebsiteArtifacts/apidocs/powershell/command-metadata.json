@@ -1521,16 +1521,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/ClearOfficeExcelDataValidationCommand.cs#L18"
     },
     {
-      "name": "Clear-OfficeExcelPageBreak",
-      "kind": "Cmdlet",
-      "aliases": [
-        "ExcelPageBreakClear"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/ClearOfficeExcelPageBreakCommand.cs",
-      "sourceLine": 18,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/ClearOfficeExcelPageBreakCommand.cs#L18"
-    },
-    {
       "name": "Clear-OfficeExcelRange",
       "kind": "Cmdlet",
       "aliases": [
@@ -2373,14 +2363,12 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelCommentAuditCommand.cs#L21"
     },
     {
-      "name": "Get-OfficeExcelConditionalFormatting",
+      "name": "Get-OfficeExcelConditionalFormat",
       "kind": "Cmdlet",
-      "aliases": [
-        "ExcelConditionalFormatting"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelConditionalFormattingCommand.cs",
-      "sourceLine": 18,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelConditionalFormattingCommand.cs#L18"
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelConditionalFormatCommand.cs",
+      "sourceLine": 14,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelConditionalFormatCommand.cs#L14"
     },
     {
       "name": "Get-OfficeExcelData",
@@ -2402,16 +2390,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelDataModelCommand.cs#L21"
     },
     {
-      "name": "Get-OfficeExcelDataValidation",
-      "kind": "Cmdlet",
-      "aliases": [
-        "ExcelDataValidation"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelDataValidationCommand.cs",
-      "sourceLine": 18,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelDataValidationCommand.cs#L18"
-    },
-    {
       "name": "Get-OfficeExcelDocumentProperty",
       "kind": "Cmdlet",
       "aliases": [],
@@ -2420,15 +2398,12 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelDocumentPropertyCommand.cs#L24"
     },
     {
-      "name": "Get-OfficeExcelFormulaAnalysis",
+      "name": "Get-OfficeExcelFormula",
       "kind": "Cmdlet",
-      "aliases": [
-        "ExcelFormulaAnalysis",
-        "ExcelFormulaAudit"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelFormulaAnalysisCommand.cs",
-      "sourceLine": 22,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelFormulaAnalysisCommand.cs#L22"
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelFormulaCommand.cs",
+      "sourceLine": 17,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelFormulaCommand.cs#L17"
     },
     {
       "name": "Get-OfficeExcelNamedRange",
@@ -2451,12 +2426,10 @@
     {
       "name": "Get-OfficeExcelPageBreak",
       "kind": "Cmdlet",
-      "aliases": [
-        "ExcelPageBreaks"
-      ],
+      "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelPageBreakCommand.cs",
-      "sourceLine": 19,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelPageBreakCommand.cs#L19"
+      "sourceLine": 15,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelPageBreakCommand.cs#L15"
     },
     {
       "name": "Get-OfficeExcelPivotTable",
@@ -2569,6 +2542,14 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelUsedRangeCommand.cs",
       "sourceLine": 25,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelUsedRangeCommand.cs#L25"
+    },
+    {
+      "name": "Get-OfficeExcelValidation",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelValidationCommand.cs",
+      "sourceLine": 14,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelValidationCommand.cs#L14"
     },
     {
       "name": "Get-OfficeExcelWriteReservation",
@@ -3516,6 +3497,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/NewOfficeExcelDashboardCommand.cs#L21"
     },
     {
+      "name": "New-OfficeExcelGoogleSheetsOptions",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/NewOfficeExcelGoogleSheetsOptionsCommand.cs",
+      "sourceLine": 16,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/NewOfficeExcelGoogleSheetsOptionsCommand.cs#L16"
+    },
+    {
       "name": "New-OfficeExcelImageOptions",
       "kind": "Cmdlet",
       "aliases": [],
@@ -4070,6 +4059,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/RemoveOfficeExcelNamedRangeCommand.cs#L20"
     },
     {
+      "name": "Remove-OfficeExcelPageBreak",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/RemoveOfficeExcelPageBreakCommand.cs",
+      "sourceLine": 15,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/RemoveOfficeExcelPageBreakCommand.cs#L15"
+    },
+    {
       "name": "Remove-OfficePdfAnnotation",
       "kind": "Cmdlet",
       "aliases": [],
@@ -4446,6 +4443,16 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelExecutionPolicyCommand.cs#L18"
     },
     {
+      "name": "Set-OfficeExcelFooter",
+      "kind": "Cmdlet",
+      "aliases": [
+        "ExcelFooter"
+      ],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelFooterCommand.cs",
+      "sourceLine": 13,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelFooterCommand.cs#L13"
+    },
+    {
       "name": "Set-OfficeExcelFormula",
       "kind": "Cmdlet",
       "aliases": [
@@ -4456,14 +4463,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelFormulaCommand.cs#L17"
     },
     {
-      "name": "Set-OfficeExcelHeaderFooter",
+      "name": "Set-OfficeExcelHeader",
       "kind": "Cmdlet",
       "aliases": [
-        "ExcelHeaderFooter"
+        "ExcelHeader"
       ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelHeaderFooterCommand.cs",
-      "sourceLine": 21,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelHeaderFooterCommand.cs#L21"
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelHeaderCommand.cs",
+      "sourceLine": 13,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelHeaderCommand.cs#L13"
     },
     {
       "name": "Set-OfficeExcelHostHyperlink",

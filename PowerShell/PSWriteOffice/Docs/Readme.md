@@ -59,7 +59,7 @@ Embeds a file, HTTP image or reusable visual at a worksheet cell or range.
 Adds explicit workbook package metadata such as connection or query-table XML.
 
 ### [Add-OfficeExcelPageBreak](Add-OfficeExcelPageBreak.md)
-Adds manual row or column page breaks to an Excel worksheet.
+Adds manual print page breaks to an open worksheet.
 
 ### [Add-OfficeExcelPivotTable](Add-OfficeExcelPivotTable.md)
 Adds a pivot table to a worksheet.
@@ -472,9 +472,6 @@ Clears conditional formatting rules from one or more Excel worksheets.
 ### [Clear-OfficeExcelDataValidation](Clear-OfficeExcelDataValidation.md)
 Clears data validation rules from one or more Excel worksheets.
 
-### [Clear-OfficeExcelPageBreak](Clear-OfficeExcelPageBreak.md)
-Clears manual row or column page breaks from an Excel worksheet.
-
 ### [Clear-OfficeExcelRange](Clear-OfficeExcelRange.md)
 Clears values, formulas, styles, and range metadata from an Excel worksheet range.
 
@@ -769,8 +766,8 @@ Gets legacy worksheet comments (notes) from one or more worksheets.
 ### [Get-OfficeExcelCommentAudit](Get-OfficeExcelCommentAudit.md)
 Audits legacy notes and threaded comments preserved in an Excel workbook.
 
-### [Get-OfficeExcelConditionalFormatting](Get-OfficeExcelConditionalFormatting.md)
-Gets conditional formatting rules from one or more Excel worksheets.
+### [Get-OfficeExcelConditionalFormat](Get-OfficeExcelConditionalFormat.md)
+Gets native conditional formatting snapshots, with worksheet and source-path metadata.
 
 ### [Get-OfficeExcelData](Get-OfficeExcelData.md)
 Reads worksheet data as dictionaries or PSCustomObjects.
@@ -778,14 +775,11 @@ Reads worksheet data as dictionaries or PSCustomObjects.
 ### [Get-OfficeExcelDataModel](Get-OfficeExcelDataModel.md)
 Inspects workbook data model, query, connection, and external-link package parts.
 
-### [Get-OfficeExcelDataValidation](Get-OfficeExcelDataValidation.md)
-Gets data validation rules from one or more Excel worksheets.
-
 ### [Get-OfficeExcelDocumentProperty](Get-OfficeExcelDocumentProperty.md)
 Gets built-in and application document properties from an Excel workbook.
 
-### [Get-OfficeExcelFormulaAnalysis](Get-OfficeExcelFormulaAnalysis.md)
-Gets workbook formula references, functions, volatile formulas, and external links.
+### [Get-OfficeExcelFormula](Get-OfficeExcelFormula.md)
+Lists native formula records, optionally filtered by worksheet, volatile functions or external references.
 
 ### [Get-OfficeExcelNamedRange](Get-OfficeExcelNamedRange.md)
 Gets defined names (named ranges) from an Excel workbook.
@@ -794,7 +788,7 @@ Gets defined names (named ranges) from an Excel workbook.
 Lists OfficeIMO Excel number format presets and their format codes.
 
 ### [Get-OfficeExcelPageBreak](Get-OfficeExcelPageBreak.md)
-Gets manual row and column page breaks from Excel worksheets.
+Lists manual print page breaks without changing a workbook.
 
 ### [Get-OfficeExcelPivotTable](Get-OfficeExcelPivotTable.md)
 Gets pivot tables defined in a workbook.
@@ -831,6 +825,9 @@ Lists Excel template markers such as {{Name}} and optionally shows whether suppl
 
 ### [Get-OfficeExcelUsedRange](Get-OfficeExcelUsedRange.md)
 Reads the used range from an Excel workbook.
+
+### [Get-OfficeExcelValidation](Get-OfficeExcelValidation.md)
+Gets native data validation snapshots, with worksheet and source-path metadata.
 
 ### [Get-OfficeExcelWriteReservation](Get-OfficeExcelWriteReservation.md)
 Gets workbook write-reservation metadata.
@@ -1162,6 +1159,9 @@ Creates a themed Excel workbook, returning a live workbook or saving a completed
 ### [New-OfficeExcelDashboard](New-OfficeExcelDashboard.md)
 Builds a worksheet dashboard from tabular data using OfficeIMO dashboard defaults.
 
+### [New-OfficeExcelGoogleSheetsOptions](New-OfficeExcelGoogleSheetsOptions.md)
+Creates native Excel-to-Google-Sheets planning and export settings without contacting Google.
+
 ### [New-OfficeExcelImageOptions](New-OfficeExcelImageOptions.md)
 Creates discoverable rendering settings for Excel range and chart image export.
 
@@ -1357,6 +1357,9 @@ Removes a comment (note) from a worksheet cell.
 ### [Remove-OfficeExcelNamedRange](Remove-OfficeExcelNamedRange.md)
 Removes a workbook or sheet-scoped Excel named range.
 
+### [Remove-OfficeExcelPageBreak](Remove-OfficeExcelPageBreak.md)
+Removes manual print page breaks from selected open worksheets.
+
 ### [Remove-OfficePdfAnnotation](Remove-OfficePdfAnnotation.md)
 Removes PDF annotations matching friendly filters.
 
@@ -1486,11 +1489,14 @@ Sets a built-in or application document property on an Excel workbook.
 ### [Set-OfficeExcelExecutionPolicy](Set-OfficeExcelExecutionPolicy.md)
 Configures OfficeIMO Excel execution and validation behavior for a workbook.
 
+### [Set-OfficeExcelFooter](Set-OfficeExcelFooter.md)
+Updates worksheet footer text, print flags or an image while retaining the header.
+
 ### [Set-OfficeExcelFormula](Set-OfficeExcelFormula.md)
 Sets a formula in a worksheet cell.
 
-### [Set-OfficeExcelHeaderFooter](Set-OfficeExcelHeaderFooter.md)
-Sets worksheet header and footer text and optional images.
+### [Set-OfficeExcelHeader](Set-OfficeExcelHeader.md)
+Updates worksheet header text, print flags or an image while retaining the footer.
 
 ### [Set-OfficeExcelHostHyperlink](Set-OfficeExcelHostHyperlink.md)
 Sets an external hyperlink that displays only the URL host.
