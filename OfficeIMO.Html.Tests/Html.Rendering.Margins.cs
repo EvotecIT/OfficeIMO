@@ -118,6 +118,25 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGeneratedContent_AutoSizedAbsoluteMarkerSitsInItsRelativeParentsPadding() {
+        const string html = "<style>li{position:relative;padding-left:20px;list-style:none}"
+            + "li::before{content:'#';position:absolute;left:0}</style><ul style='margin:0;padding:0'><li>Text</li></ul>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous, ViewportWidth = 200D, ViewportHeight = 60D, Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        OfficeDrawingText[] texts = DrawingTestTraversal.Elements(rendered.Pages[0].CreateDrawing()).OfType<OfficeDrawingText>().ToArray();
+        OfficeDrawingText marker = Assert.Single(texts, item => item.Text == "#");
+        OfficeDrawingText body = Assert.Single(texts, item => item.Text == "Text");
+        Assert.Equal(0D, marker.X, 2);
+        Assert.Equal(20D, body.X, 2);
+        Assert.Equal(body.Y, marker.Y, 2);
+        Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
+    }
+
+    [Fact]
     public void HtmlMargins_PdfKeepsBrowserBodyInsetUnlessAuthorResetsIt() {
         static double FirstWordX(string html) {
             var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D), HonorCssPageRules = false };
