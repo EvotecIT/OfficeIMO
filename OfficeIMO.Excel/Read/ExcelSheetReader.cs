@@ -32,6 +32,7 @@ namespace OfficeIMO.Excel {
         private string? _usedRangeA1;
         private char[]? _xmlValueTextBuffer;
         private static readonly XmlReaderSettings WorksheetXmlReaderSettings = CreateWorksheetXmlReaderSettings();
+        private static readonly XmlReaderSettings CellEnumerationXmlReaderSettings = CreateCellEnumerationXmlReaderSettings();
         private static readonly object BoxedTrue = true;
         private static readonly object BoxedFalse = false;
 
@@ -156,10 +157,12 @@ namespace OfficeIMO.Excel {
         private IEnumerable<ExcelCellValueInfo> EnumerateCellsXmlFast(CancellationToken ct) {
             using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
             RewindWorksheetStream(stream);
-            using var reader = OpenWorksheetXmlReader(stream);
+            using var reader = OpenCellEnumerationXmlReader(stream);
             var worksheetRows = new WorksheetXmlRowSelector();
             bool canCancel = ct.CanBeCanceled;
-            bool hasCustomConverter = _opt.CellValueConverter != null;
+            // A culture also changes how text parses as a number, which only the raw conversion honours.
+            bool hasCustomConverter = _opt.CellValueConverter != null
+                || !ReferenceEquals(_opt.Culture, System.Globalization.CultureInfo.InvariantCulture);
             int nextRowIndex = 1;
 
             while (reader.Read()) {
@@ -212,11 +215,12 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    if (reader.IsEmptyElement) {
+                    string? cellType = ReadValidatedXmlCellType(reader);
+                    if (reader.IsEmptyElement && cellType != "e") {
                         continue;
                     }
 
-                    object? cellValue = ReadXmlCellValue(reader);
+                    object? cellValue = ReadXmlCellValue(reader, cellType);
                     if (cellValue != null) {
                         yield return new ExcelCellValueInfo(rowIndex, columnIndex, cellValue);
                     }
@@ -224,24 +228,29 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>Rejects a cell type the SDK model rejects, which the tolerant XML projection would read as a number.</summary>
+        private static string? ReadValidatedXmlCellType(XmlReader cellReader) {
+            string? cellType = ReadXmlCellTypeAttribute(cellReader);
+            return IsKnownXmlCellType(cellType)
+                ? cellType
+                : throw new FormatException($"The cell type '{cellType}' is not valid.");
+        }
+
+        private static bool IsKnownXmlCellType(string? cellType) =>
+            cellType is null or "n" or "s" or "str" or "b" or "e" or "d" or "inlineStr";
+
         private bool TryReadXmlCellValueForCellEnumeration(XmlReader cellReader, int rowIndex, int columnIndex, out object? value, out bool explicitBlank) {
-            XmlCellKind cellKind = ParseXmlCellKind(ReadXmlCellTypeAttribute(cellReader));
+            XmlCellKind cellKind = ParseXmlCellKind(ReadValidatedXmlCellType(cellReader));
             bool readStyleIndex = true;
 
             CellRaw raw = ReadXmlCellRaw(cellReader, rowIndex, columnIndex, cellKind, readStyleIndex);
             explicitBlank = raw.RawText != null && raw.RawText.Length == 0 && raw.InlineText == null && raw.FormulaText == null;
-            if (raw.RawText == null && raw.InlineText == null && raw.FormulaText == null) {
-                value = null;
-                return false;
-            }
-
             value = ConvertRaw(raw).TypedValue;
             return true;
         }
 
         private bool CanUseEnumerateCellsXmlReader() {
-            return (_opt.CellValueConverter != null || _opt.Culture == CultureInfo.InvariantCulture)
-                && CanStreamWorksheetPart();
+            return CanStreamWorksheetPart();
         }
 
         // ---------- Internals ----------
@@ -345,6 +354,17 @@ namespace OfficeIMO.Excel {
             return XmlReader.Create(stream, OpenXmlReadNameTable.WithSchemaNames(WorksheetXmlReaderSettings));
         }
 
+        // A value such as <v>   </v> is cell text, so cell enumeration keeps whitespace nodes.
+        private static XmlReader OpenCellEnumerationXmlReader(Stream stream) {
+            return XmlReader.Create(stream, OpenXmlReadNameTable.WithSchemaNames(CellEnumerationXmlReaderSettings));
+        }
+
+        private static XmlReaderSettings CreateCellEnumerationXmlReaderSettings() {
+            XmlReaderSettings settings = CreateWorksheetXmlReaderSettings();
+            settings.IgnoreWhitespace = false;
+            return settings;
+        }
+
         private static XmlReaderSettings CreateWorksheetXmlReaderSettings() {
             return new XmlReaderSettings {
                 DtdProcessing = DtdProcessing.Prohibit,
@@ -388,7 +408,9 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            string? rawText = ExtractRawText(cell);
+            string? rawText = typeHint == CellValues.Error && cell.ValueMetaIndex != null
+                ? _richValueErrors.Value.Resolve(cell.ValueMetaIndex.Value, ExtractRawText(cell))
+                : ExtractRawText(cell);
             string? inlineText = ExtractInlineString(cell, typeHint);
             if (hasFormula && _opt.UseCachedFormulaResult && rawText == null && formulaText != null) {
                 value = formulaText;

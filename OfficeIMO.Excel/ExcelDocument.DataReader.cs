@@ -112,7 +112,7 @@ namespace OfficeIMO.Excel {
             }
             MaterializeDeferredDataSetImport(effectiveOptions.CancellationToken);
             return ExcelWorkbookDataReader.WrapOpenXml(
-                ExcelDocumentReader.Wrap(_spreadSheetDocument, effectiveOptions),
+                CreateTabularReader(effectiveOptions),
                 effectiveOptions);
         }
 

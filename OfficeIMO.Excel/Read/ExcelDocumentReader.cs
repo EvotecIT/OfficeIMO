@@ -5,6 +5,7 @@ using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel.Utilities;
 using System.IO;
 using System.IO.Packaging;
+using System.Threading;
 using System.Xml;
 
 namespace OfficeIMO.Excel {
@@ -29,6 +30,10 @@ namespace OfficeIMO.Excel {
         private readonly Stream? _ownedStream;
         private readonly IDisposable? _ownedResource;
         private readonly OpenXmlPackagePartBufferReader? _partBufferReader;
+        private readonly ExcelPackageReadSnapshot? _snapshot;
+        private int _snapshotReleased;
+        private Func<ExcelDocumentReader>? _createSdkReader;
+        private ExcelDocumentReader? _sdkReader;
 
         private ExcelDocumentReader(
             SpreadsheetDocument doc,
@@ -37,7 +42,8 @@ namespace OfficeIMO.Excel {
             Package? ownedPackage = null,
             Stream? ownedStream = null,
             OpenXmlPackagePartBufferReader? partBufferReader = null,
-            IDisposable? ownedResource = null) {
+            IDisposable? ownedResource = null,
+            ExcelPackageReadSnapshot? snapshot = null) {
             _doc = doc;
             _owns = owns;
             _canStreamWorksheetParts = owns || doc.FileOpenAccess == FileAccess.Read;
@@ -49,8 +55,9 @@ namespace OfficeIMO.Excel {
             _partBufferReader = partBufferReader;
             ValidateSdkMetadataLimits();
             _dateSystem = GetWorkbookDateSystem(doc);
-            _sst = SharedStringCache.Build(doc, _opt);
-            _styles = new StylesCacheProvider(doc);
+            _sst = snapshot?.RentSharedStrings(_opt) ?? SharedStringCache.Build(doc, _opt);
+            _styles = snapshot?.Styles ?? new StylesCacheProvider(doc);
+            _snapshot = snapshot;
             _opt.CancellationToken.ThrowIfCancellationRequested();
         }
 
@@ -173,6 +180,43 @@ namespace OfficeIMO.Excel {
             return new ExcelDocumentReader(document, options ?? new ExcelReaderOptions(), owns: false);
         }
 
+        private ExcelSheetReader CreateSheetReader(string sheetName, WorksheetPart worksheetPart) {
+            if (_createSdkReader != null && !_snapshot!.QualifiesForTabularReaders(worksheetPart, _opt)) {
+                _sdkReader ??= _createSdkReader();
+                return _sdkReader.GetSheet(sheetName);
+            }
+
+            return new ExcelSheetReader(sheetName, worksheetPart, _sst, _styles, _opt, _dateSystem, _canStreamWorksheetParts, _partBufferReader);
+        }
+
+        /// <summary>
+        /// Reads qualifying worksheets through a snapshot, taking over the caller's reference to it.
+        /// Each other worksheet reads through the reader <paramref name="createSdkReader"/> creates.
+        /// </summary>
+        internal static ExcelDocumentReader WrapTabular(
+            ExcelPackageReadSnapshot snapshot,
+            ExcelReaderOptions options,
+            Func<ExcelDocumentReader> createSdkReader) {
+            ExcelDocumentReader reader = Wrap(snapshot, options);
+            reader._createSdkReader = createSdkReader;
+            return reader;
+        }
+
+        /// <summary>Reads through a snapshot, taking over the caller's reference to it.</summary>
+        internal static ExcelDocumentReader Wrap(ExcelPackageReadSnapshot snapshot, ExcelReaderOptions options) {
+            try {
+                return new ExcelDocumentReader(
+                    snapshot.Document,
+                    options,
+                    owns: false,
+                    partBufferReader: snapshot.PartBufferReader,
+                    snapshot: snapshot);
+            } catch {
+                snapshot.Release();
+                throw;
+            }
+        }
+
         /// <summary>
         /// Returns the list of sheet names in workbook order.
         /// </summary>
@@ -199,7 +243,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelSheetReader GetSheet(string name) {
             if (TryGetSheetByNameXmlFast(name, out string? fastSheetName, out WorksheetPart? fastWorksheetPart)) {
-                return new ExcelSheetReader(fastSheetName, fastWorksheetPart, _sst, _styles, _opt, _dateSystem, _canStreamWorksheetParts, _partBufferReader);
+                return CreateSheetReader(fastSheetName, fastWorksheetPart);
             }
 
             var wb = WorkbookRoot;
@@ -217,7 +261,7 @@ namespace OfficeIMO.Excel {
                 throw new KeyNotFoundException($"Sheet '{name}' is not a worksheet.");
             }
 
-            return new ExcelSheetReader(sheet.Name!, wsPart!, _sst, _styles, _opt, _dateSystem, _canStreamWorksheetParts, _partBufferReader);
+            return CreateSheetReader(sheet.Name!, wsPart!);
         }
 
         private bool TryGetWorksheetPart(Sheet sheet, out WorksheetPart? worksheetPart) {
@@ -550,6 +594,15 @@ namespace OfficeIMO.Excel {
         /// Disposes the underlying OpenXML document.
         /// </summary>
         public void Dispose() {
+            if (_snapshot != null) {
+                if (Interlocked.Exchange(ref _snapshotReleased, 1) == 0) {
+                    _sdkReader?.Dispose();
+                    _snapshot.ReturnSharedStrings(_sst);
+                    _snapshot.Release();
+                }
+                return;
+            }
+
             _sst.Dispose();
             if (_owns) {
                 try {

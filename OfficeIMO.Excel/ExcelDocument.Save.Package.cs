@@ -297,6 +297,7 @@ namespace OfficeIMO.Excel {
             _packageDirty = false;
             _packagePropertiesDirty = false;
             _unchangedPackageBytes = packageBytes;
+            _fileBackedPackageVersion = new object();
             _packageContentTypesKnownNormalized = true;
             _simplePackageContentKnown = simplePackageContentKnown;
             _requiresSavePreflight = false;

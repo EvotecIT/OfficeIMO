@@ -13,14 +13,16 @@ namespace OfficeIMO.Excel {
         internal const int MaximumIndexedPartBytes = 64 * 1024 * 1024;
         private const int MaximumRetainedRunTextCapacity = 64 * 1024;
         private static readonly XmlReaderSettings SharedStringXmlReaderSettings = CreateSharedStringXmlReaderSettings();
+        private static readonly XmlReaderSettings SharedStringWhitespaceXmlReaderSettings = CreateSharedStringWhitespaceXmlReaderSettings();
 
         private readonly Lazy<SharedStringTablePart?> _part;
         private readonly Func<Stream>? _openPartStream;
         private readonly bool _preferDom;
+        private readonly bool _keepUnmarkedWhitespace;
         private readonly int _maxSharedStringItems;
         private readonly int _maxSharedStringItemCharacters;
         private readonly long _maxSharedStringCharacters;
-        private readonly CancellationToken _cancellationToken;
+        private CancellationToken _cancellationToken;
         private readonly Lazy<bool> _initialized;
         private readonly object _lifetimeLock = new object();
         private List<string>? _loadedItems;
@@ -30,7 +32,8 @@ namespace OfficeIMO.Excel {
         private Dictionary<(string Text, StringComparison Comparison), HashSet<int>?>? _containsCache;
         private ExcelUtf8TextCache? _utf8Cache;
 
-        private SharedStringCache(WorkbookPart? workbookPart, bool preferDom, ExcelReaderOptions options) {
+        private SharedStringCache(WorkbookPart? workbookPart, bool preferDom, ExcelReaderOptions options, bool keepUnmarkedWhitespace = false) {
+            _keepUnmarkedWhitespace = keepUnmarkedWhitespace;
             _part = new Lazy<SharedStringTablePart?>(() => workbookPart?.SharedStringTablePart, LazyThreadSafetyMode.ExecutionAndPublication);
             _openPartStream = null;
             _preferDom = preferDom;
@@ -68,11 +71,35 @@ namespace OfficeIMO.Excel {
             return new SharedStringCache(doc.WorkbookPart, doc.FileOpenAccess != FileAccess.Read, options ?? new ExcelReaderOptions());
         }
 
+        /// <summary>
+        /// Builds a table with the text the SDK model gives an editable document, where &lt;t&gt;   &lt;/t&gt;
+        /// keeps its spaces without xml:space, for cell enumeration that must match that route.
+        /// </summary>
+        internal static SharedStringCache BuildKeepingUnmarkedWhitespace(SpreadsheetDocument doc, ExcelReaderOptions options) =>
+            new(doc.WorkbookPart, preferDom: false, options, keepUnmarkedWhitespace: true);
+
         internal static SharedStringCache Build(Func<Stream> openPartStream, ExcelReaderOptions options) =>
             new(openPartStream, options);
 
         internal static SharedStringCache Empty(ExcelReaderOptions options) =>
             new(new List<string>(), options);
+
+        internal bool HasSameLimits(ExcelReaderOptions options) =>
+            _maxSharedStringItems == options.MaxSharedStringItems
+            && _maxSharedStringItemCharacters == options.MaxSharedStringItemCharacters
+            && _maxSharedStringCharacters == options.MaxSharedStringCharacters;
+
+        /// <summary>
+        /// Parks a completed parse for another reader. An unread table is not worth keeping, and the
+        /// finished reader's token must not reach its successor.
+        /// </summary>
+        internal bool TryDetachCancellationAfterLoad() {
+            lock (_lifetimeLock) {
+                if (_disposed || (_loadedItems == null && _indexedItems == null)) return false;
+                _cancellationToken = CancellationToken.None;
+                return true;
+            }
+        }
 
         private bool Initialize() {
             // Disposal and initial loading share a gate so a late load cannot retain
@@ -160,7 +187,8 @@ namespace OfficeIMO.Excel {
             StringBuilder? runTextBuffer = null;
 
             try {
-                using var reader = XmlReader.Create(stream, OpenXmlReadNameTable.WithSchemaNames(SharedStringXmlReaderSettings));
+                using var reader = XmlReader.Create(stream, OpenXmlReadNameTable.WithSchemaNames(
+                    _keepUnmarkedWhitespace ? SharedStringWhitespaceXmlReaderSettings : SharedStringXmlReaderSettings));
                 int nodesRead = 0;
                 int tableDepth = -1;
                 while (reader.Read()) {
@@ -216,6 +244,12 @@ namespace OfficeIMO.Excel {
                 items = null!;
                 return false;
             }
+        }
+
+        private static XmlReaderSettings CreateSharedStringWhitespaceXmlReaderSettings() {
+            XmlReaderSettings settings = CreateSharedStringXmlReaderSettings();
+            settings.IgnoreWhitespace = false;
+            return settings;
         }
 
         private static XmlReaderSettings CreateSharedStringXmlReaderSettings() {

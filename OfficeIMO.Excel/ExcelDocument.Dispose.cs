@@ -29,6 +29,7 @@ namespace OfficeIMO.Excel {
             Exception? persistenceFailure = null;
 
             try {
+                ReleaseReadSnapshot();
                 if (this._spreadSheetDocument != null) {
                     try {
                         if (_persistenceMode == DocumentPersistenceMode.SaveOnDispose) {

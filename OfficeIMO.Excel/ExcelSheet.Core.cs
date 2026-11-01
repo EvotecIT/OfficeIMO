@@ -95,7 +95,7 @@ namespace OfficeIMO.Excel {
                 return pendingRange;
             }
 
-            using var reader = _excelDocument.CreateReader();
+            using var reader = _excelDocument.CreateUsedRangeReader(this);
             var sh = reader.GetSheet(this.Name);
             return sh.GetUsedRangeA1();
         }
