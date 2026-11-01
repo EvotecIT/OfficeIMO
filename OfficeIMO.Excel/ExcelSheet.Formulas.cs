@@ -987,7 +987,8 @@ namespace OfficeIMO.Excel {
 
 
                     bool numericReferencesOnly = function is "SUM" or "AVERAGE" or "MIN" or "MAX" or "COUNT" or "PRODUCT" or "MEDIAN" or "SUMSQ";
-                    var numbers = values.Where(v => v.Number.HasValue && (!numericReferencesOnly || v.IsNumericAggregateValue))
+                    var numericValues = numericReferencesOnly ? values : values.Select(NormalizeLookupResult);
+                    var numbers = numericValues.Where(v => v.Number.HasValue && (!numericReferencesOnly || v.IsNumericAggregateValue))
                         .Select(v => v.Number!.Value).ToList();
                     if (function == "COUNT") {
                         result = numbers.Count;

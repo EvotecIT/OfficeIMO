@@ -283,7 +283,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryEvaluateFormulaOrNumeric(string token, out double result) {
-            if (TryResolveFormulaArgument(token, out FormulaArgumentValue value) && value.Number.HasValue) {
+            if (TryResolveFormulaValueArgument(token, out FormulaArgumentValue value) && value.Number.HasValue) {
                 result = value.Number.Value;
                 return true;
             }

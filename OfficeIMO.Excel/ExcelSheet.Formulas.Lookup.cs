@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel {
             }
             FormulaArgumentValue modeValue = FormulaArgumentValue.Boolean(tokens.Count != 4 || tokens[3].Length > 0);
             if (tokens.Count == 4 && tokens[3].Length > 0
-                && (!TryResolveFormulaArgument(tokens[3], out modeValue) || modeValue.IsUnresolvedFormula)) return false;
+                && !TryResolveFormulaValueArgument(tokens[3], out modeValue)) return false;
             if (!modeValue.IsError && !modeValue.Number.HasValue) return false;
             int budget = MaxResolvedFormulaRangeCells;
             if (!TryResolveLookupSource(tokens[1], ref budget, out FormulaLookupSource source)) return false;
@@ -124,7 +124,7 @@ namespace OfficeIMO.Excel {
         private bool TryGetLookupIntegerArgument(string token, out int number, out FormulaArgumentValue error) {
             number = 0;
             error = default;
-            if (!TryResolveFormulaArgument(token, out FormulaArgumentValue value) || value.IsUnresolvedFormula) return false;
+            if (!TryResolveFormulaValueArgument(token, out FormulaArgumentValue value)) return false;
             if (value.IsError) { error = value; return true; }
             return value.Number.HasValue && TryGetWholeNumber(value.Number.Value, out number);
         }
@@ -147,10 +147,11 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        // Excel returns zero for a selected blank cell, while an unresolved formula
-        // must keep its state so an error handler cannot invent a fallback.
+        // Scalar value contexts and published cell caches coerce an empty reference
+        // to zero. Reference-sensitive consumers retain the raw blank instead.
         private static FormulaArgumentValue NormalizeLookupResult(FormulaArgumentValue value) =>
-            !value.HasValue && !value.IsUnresolvedFormula ? new FormulaArgumentValue(0d, "0") : value;
+            !value.HasValue && !value.IsUnresolvedFormula
+                ? new FormulaArgumentValue(0d, "0", isUnevaluatedFormulaCache: value.IsUnevaluatedFormulaCache) : value;
 
         private bool TryEvaluateSumProduct(string args, out double result) {
             result = 0;

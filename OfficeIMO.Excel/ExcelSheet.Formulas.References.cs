@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            var argument = ResolveFormulaDependency(sheet, row, column);
+            var argument = NormalizeLookupResult(ResolveFormulaDependency(sheet, row, column));
             if (argument.Number.HasValue) {
                 value = argument.Number.Value;
                 return true;

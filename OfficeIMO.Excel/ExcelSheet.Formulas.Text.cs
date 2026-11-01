@@ -33,8 +33,7 @@ namespace OfficeIMO.Excel {
                     || !TryResolveFormulaArgument(tokens[0], out FormulaArgumentValue delimiterValue)
                     || delimiterValue.IsUnresolvedFormula) return false;
                 if (delimiterValue.IsError) { result = delimiterValue; return true; }
-                if (!TryResolveFormulaArgument(tokens[1], out FormulaArgumentValue emptyPolicy)
-                    || emptyPolicy.IsUnresolvedFormula) return false;
+                if (!TryResolveFormulaValueArgument(tokens[1], out FormulaArgumentValue emptyPolicy)) return false;
                 if (emptyPolicy.IsError) {
                     result = emptyPolicy;
                     return true;

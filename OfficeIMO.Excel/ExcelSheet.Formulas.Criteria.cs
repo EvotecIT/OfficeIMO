@@ -192,9 +192,7 @@ namespace OfficeIMO.Excel {
                 criteria = new FormulaCriteria("=", string.Empty, null, criteriaValue.ErrorCode);
                 return true;
             }
-            if (criteriaValue.HasValue) {
-                value = FormulaValueToText(criteriaValue);
-            }
+            value = FormulaValueToText(NormalizeLookupResult(criteriaValue));
 
             string op = "=";
             foreach (string candidate in new[] { ">=", "<=", "<>", ">", "<", "=" }) {

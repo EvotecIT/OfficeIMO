@@ -134,6 +134,10 @@ namespace OfficeIMO.Excel {
             if (_formulaEvaluationDepthFrames?.Count > 0
                 && _formulaEvaluationDepthFrames.Peek().UsedUnevaluatedFormulaCache)
                 array = array.WithUnevaluatedFormulaCache();
+            // These are formula-cell outputs, not source references. Publish zero
+            // for every blank member so dependencies and serialized caches agree.
+            for (int index = 0; index < array.Values.Length; index++)
+                array.Values[index] = NormalizeLookupResult(array.Values[index]);
             if (_formulaEvaluationCache != null
                 && GetFixedArraySheetIndex().DynamicByCell.TryGetValue(cell, out FixedArrayOwner? dynamicOwner))
                 return TryPlanDynamicArray(dynamicOwner, array, out result);
@@ -270,8 +274,7 @@ namespace OfficeIMO.Excel {
         private bool TryArrayNumber(IReadOnlyList<string> args, int index, double fallback, out double number) {
             number = fallback;
             if (index >= args.Count || string.IsNullOrWhiteSpace(args[index])) return true;
-            if (!TryResolveFormulaArgument(args[index], out FormulaArgumentValue value)
-                || value.IsUnresolvedFormula || value.IsError) return false;
+            if (!TryResolveFormulaValueArgument(args[index], out FormulaArgumentValue value) || value.IsError) return false;
             if (value.Number.HasValue) number = value.Number.Value;
             else if (!double.TryParse(value.Text, System.Globalization.NumberStyles.Float,
                 System.Globalization.CultureInfo.InvariantCulture, out number)) return false;
