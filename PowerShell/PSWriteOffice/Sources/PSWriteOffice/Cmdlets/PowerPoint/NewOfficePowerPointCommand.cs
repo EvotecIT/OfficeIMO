@@ -1,4 +1,6 @@
+using System;
 using System.IO;
+using System.Globalization;
 using System.Management.Automation;
 using System.Security;
 using OfficeIMO;
@@ -12,7 +14,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <para>Without a content block no file is written, including on disposal. With a block, publication is atomic and an existing file requires Force. A block failure leaves the destination unchanged.</para>
 /// <example>
 ///   <summary>Create a deck and return its saved file.</summary>
-///   <code>New-OfficePowerPoint -Path ./Status.pptx -Theme Modern -PassThru {
+///   <code>New-OfficePowerPoint -Path ./Status.pptx -Theme Modern -Author 'Operations team' -PassThru {
 ///     PowerPointSlide -Title 'Status update'
 /// }</code>
 /// </example>
@@ -40,6 +42,38 @@ public sealed class NewOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPoin
     [OfficeThemeTransformation]
     public OfficeThemeInput? Theme { get; set; }
 
+    /// <summary>Author shown on title slides and written to the package's creator property.</summary>
+    [Parameter]
+    public string? Author { get; set; }
+
+    /// <summary>Date shown on title slides using the current culture's short date format.</summary>
+    [Parameter]
+    public DateTime? Date { get; set; }
+
+    /// <summary>Brand accent used to derive the theme's accent palette while retaining its fonts and surfaces.</summary>
+    [Parameter, OfficeColorTransformation]
+    public OfficeColor Accent { get; set; }
+
+    /// <summary>Stable deck seed; an individual slide can supply its own seed.</summary>
+    [Parameter, ValidateNotNullOrEmpty]
+    public string? Seed { get; set; }
+
+    /// <summary>Slide dimensions; copied templates retain their dimensions unless this parameter is supplied.</summary>
+    [Parameter]
+    public PowerPointSlideSizePreset SlideSize { get; set; } = PowerPointSlideSizePreset.Screen16x9;
+
+    /// <summary>Suppress footer text on every designed slide.</summary>
+    [Parameter]
+    public SwitchParameter NoFooter { get; set; }
+
+    /// <summary>Suppress slide numbers on every designed slide.</summary>
+    [Parameter]
+    public SwitchParameter NoSlideNumber { get; set; }
+
+    /// <summary>Continuation title format, with title, part and total supplied as {0}, {1} and {2}.</summary>
+    [Parameter, ValidateNotNullOrEmpty]
+    public string? ContinuationFormat { get; set; }
+
     /// <summary>Existing presentation/template copied as starting content. Theme applies visual styling separately.</summary>
     [Parameter, ValidateNotNullOrEmpty]
     public string? Template { get; set; }
@@ -55,18 +89,54 @@ public sealed class NewOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPoin
             InvalidArgument(new PSArgumentException("Password requires a content block. Supply it to Save-OfficePowerPoint when saving a live document."), Password);
             return;
         }
+        if (!Enum.IsDefined(typeof(PowerPointSlideSizePreset), SlideSize)) {
+            InvalidArgument(new PSArgumentException("Choose a supported slide size.", nameof(SlideSize)), SlideSize);
+            return;
+        }
+        if (ContinuationFormat != null) {
+            try { _ = string.Format(CultureInfo.CurrentCulture, ContinuationFormat, "Title", 2, 3); }
+            catch (FormatException error) { InvalidArgument(error, ContinuationFormat); return; }
+        }
         var options = new PowerPointCreateOptions {
             PersistenceMode = DocumentPersistenceMode.Explicit,
             Theme = Theme?.Resolve(OfficeTheme.FromDocument),
             Template = Template == null ? null : ResolveOutputPath(Template)
         };
         RunDocument(Path, isNew: true, force: Force.IsPresent,
-            path => path == null ? PowerPointDocument.Create(options) : PowerPointDocument.Create(path, options),
+            path => CreateDocument(path, options),
             (document, path, allowLoss) => {
                 document.Save(path, PowerPointDocumentService.NativeSaveOptions(allowLoss, Password,
                     MyInvocation.BoundParameters.ContainsKey(nameof(Password))));
                 return null;
             });
+    }
+
+    /// <summary>Transfers the configured native document to the lifecycle only after initialization succeeds.</summary>
+    private PowerPointDocument CreateDocument(string? path, PowerPointCreateOptions options) {
+        var document = path == null ? PowerPointDocument.Create(options) : PowerPointDocument.Create(path, options);
+        try {
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(SlideSize))) document.SlideSize.SetPreset(SlideSize);
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(Accent))) {
+                OfficeTheme theme = document.GetTheme();
+                OfficeColor color = Accent.Resolve(theme);
+                var brand = PowerPointDesignTheme.FromBrand(color.ToRgbHex());
+                document.ApplyTheme(theme.WithPalette(theme.Palette.With(accent1: color,
+                    accent2: OfficeColor.ParseHex(brand.Accent2Color), accent3: OfficeColor.ParseHex(brand.Accent3Color))));
+            }
+            if (Author != null) {
+                document.BuiltinDocumentProperties.Creator = Author;
+                if (!string.IsNullOrWhiteSpace(Author)) document.LayoutDeck.TitleMetadata.Add(Author);
+            }
+            if (Date.HasValue) document.LayoutDeck.TitleMetadata.Add(Date.Value.ToString("d", CultureInfo.CurrentCulture));
+            document.LayoutDeck.Seed = Seed;
+            document.LayoutDeck.NoFooter = NoFooter;
+            document.LayoutDeck.ShowSlideNumber = !NoSlideNumber;
+            document.LayoutDeck.ContinuationFormat = ContinuationFormat;
+            return document;
+        } catch {
+            document.Dispose();
+            throw;
+        }
     }
 
     /// <inheritdoc />

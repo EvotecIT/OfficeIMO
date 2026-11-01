@@ -37,6 +37,15 @@ namespace OfficeIMO.PowerPoint {
 
         internal bool ShowSlideNumber { get; set; } = true;
 
+        /// <summary>Suppress footer text throughout a composed deck.</summary>
+        internal bool NoFooter { get; set; }
+
+        /// <summary>Default deterministic variation seed; a content slide may override it.</summary>
+        internal string? Seed { get; set; }
+
+        /// <summary>Author and date lines used when a title slide supplies no explicit metadata.</summary>
+        internal List<string> TitleMetadata { get; } = new();
+
         internal string? CurrentSection { get; set; }
 
         internal int SectionCount { get; set; }

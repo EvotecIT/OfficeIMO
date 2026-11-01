@@ -25,7 +25,8 @@ namespace OfficeIMO.PowerPoint {
                 page.Subtitle = i == 0 ? source.Subtitle : null;
                 page.Notes = i == 0 ? source.Notes : null;
                 page.Takeaway = i == 0 ? source.Takeaway : null;
-                page.ContinuedSuffix = i == 0 ? source.ContinuedSuffix : Continued(context, i + 1, pages.Count);
+                if (i == 0) page.ContinuedSuffix = source.ContinuedSuffix;
+                else ContinueTitle(context, page, source.Title, i + 1, pages.Count);
                 // Final continuation titles can change the live area's height. Reject
                 // an impossible header instead of enlarging a text frame past its panel.
                 var cards = page.Items<PowerPointLayoutCard>().ToList();

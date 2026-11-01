@@ -279,7 +279,7 @@ namespace OfficeIMO.PowerPoint {
                     break;
             }
 
-            if (slide.NoFooter) text = false;
+            if (slide.NoFooter || context.Deck.NoFooter) text = false;
             if (slide.NoSlideNumber || !context.Deck.ShowSlideNumber) number = false;
             PowerPointLayoutGrid grid = context.Grid;
             PowerPointTextStyleSpec footer = context.Style(PowerPointTextRole.Footer);

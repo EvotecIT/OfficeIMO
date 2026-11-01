@@ -39,7 +39,7 @@
               "type": "datetime",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Shown on the Title slide, formatted for -Culture of the theme; defaults to no date."
+              "notes": "Shown on the Title slide using the current culture's short date format; defaults to no date."
             },
             {
               "name": "Theme",
@@ -95,7 +95,7 @@
               "type": "PowerPointSlideSizePreset",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Screen16x9 by default."
+              "notes": "Screen16x9 by default. A copied template retains its dimensions unless SlideSize is supplied."
             },
             {
               "name": "NoFooter",
@@ -175,7 +175,7 @@
               "type": "datetime",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Shown on the Title slide, formatted for -Culture of the theme; defaults to no date."
+              "notes": "Shown on the Title slide using the current culture's short date format; defaults to no date."
             },
             {
               "name": "Theme",
@@ -231,7 +231,7 @@
               "type": "PowerPointSlideSizePreset",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Screen16x9 by default."
+              "notes": "Screen16x9 by default. A copied template retains its dimensions unless SlideSize is supplied."
             },
             {
               "name": "NoFooter",
