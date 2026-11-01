@@ -413,7 +413,8 @@ public static partial class HtmlComputedStyleEngine {
                 options.CssMediaWidth,
                 options.CssMediaHeight,
                 options.MediaFeatures,
-                HtmlRenderingFontDefaults.ForRendering(options, document.CompatMode == "BackCompat")),
+                HtmlRenderingFontDefaults.ForRendering(options, document.CompatMode == "BackCompat"),
+                options.ContainerInlineSizes),
             true,
             false,
             limits);
@@ -612,6 +613,9 @@ public static partial class HtmlComputedStyleEngine {
         (double elementWidth, double? elementHeight) = rules.ContainerGeometryReuse.Resolve(style,
             containingWidth, containingHeight, elementFontSize, rootFontSize, environment,
             containerUnitWidth, containerUnitHeight);
+        if (environment.ContainerInlineSizes != null
+            && environment.ContainerInlineSizes.TryGetValue(element, out double measuredWidth)) elementWidth = measuredWidth;
+        if (ResolveContainerType(style) is not "normal") style.ContainerInlineSize = elementWidth;
         IReadOnlyList<ContainerQueryContext> childContainerContexts = AddContainerContext(style, elementWidth, elementHeight, elementFontSize, inheritedFontSize, rootFontSize, containerContexts);
         if (includePseudoElements) ComputePseudoElementStyles(element, style, rules, pseudoElements, budget,
             childContainerContexts, environment, rules.CustomPropertyRegistrations, includeCascadeTraces);

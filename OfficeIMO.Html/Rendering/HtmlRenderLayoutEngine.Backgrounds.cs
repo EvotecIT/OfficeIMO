@@ -14,6 +14,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         IElement source,
         bool paintBorders = true) {
+        RecordContainerWidth(source, style, width);
         // Record the finalized border box even when it has no background or border paint.
         // Descendant geometry then follows the normal overflow/effect/fragmentation path.
         if (CapturePrintLayoutBoxes && width > 0.0001D && height > 0.0001D) {
@@ -34,6 +35,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         foreach (HtmlRenderVisual visual in visuals.Skip(backgroundStart)) visual.PaintPhase = HtmlRenderPaintPhase.BlockBackground;
     }
+
+    internal Dictionary<IElement, double> MeasuredContainerWidths { get; } = new();
+
+    // Style resolution sizes ordinary blocks correctly, so only flex and grid items need measuring.
+    // Painting sees their final width, and the last pass over a box is the one that stays.
+    private void RecordContainerWidth(IElement source, HtmlRenderBoxStyle style, double borderBoxWidth) {
+        if (_computedStyles.Elements.TryGetValue(source, out HtmlComputedStyle? computed) && computed.ContainerInlineSize.HasValue
+            && source.ParentElement != null && _computedStyles.Elements.TryGetValue(source.ParentElement, out HtmlComputedStyle? parent)
+            && parent.GetValue("display").Trim().ToLowerInvariant() is "flex" or "inline-flex" or "grid" or "inline-grid") {
+            MeasuredContainerWidths[source] = Math.Max(0D, borderBoxWidth - style.HorizontalInsets);
+        }
+    }
+
+    internal bool ContainerEstimatesDiffer(HtmlComputedStyleSet styles) =>
+        MeasuredContainerWidths.Any(pair => styles.Elements.TryGetValue(pair.Key, out HtmlComputedStyle? computed)
+            && Math.Abs(computed.ContainerInlineSize.GetValueOrDefault() - pair.Value) > 0.5D);
 
     private void AddBorderImagePaint(
         ICollection<HtmlRenderVisual> visuals,

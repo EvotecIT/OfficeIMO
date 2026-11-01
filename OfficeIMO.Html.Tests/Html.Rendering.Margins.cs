@@ -118,6 +118,23 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlContainerQueries_FlexItemQueriesItsLaidOutWidthNotItsParents() {
+        const string html = "<style>.c{container-type:inline-size}.t{height:10px;background:#ff0000}"
+            + "@container (min-width:150px){.t{background:#0000ff}}.u{height:10px;width:25cqw;background:#00ff00}</style>"
+            + "<div style='display:flex;width:300px'><div class='c' style='flex:0 0 100px'><div id='narrow' class='t'></div><div id='unit' class='u'></div></div>"
+            + "<div class='c' style='flex:1'><div id='wide' class='t'></div></div></div>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous, ViewportWidth = 320D, ViewportHeight = 60D, Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#narrow").Shape.FillColor);
+        Assert.Equal(OfficeColor.Blue, FindShape(rendered, "div#wide").Shape.FillColor);
+        Assert.Equal(25D, FindShape(rendered, "div#unit").Shape.Width, 2);
+    }
+
+    [Fact]
     public void HtmlGeneratedContent_AutoSizedAbsoluteMarkerSitsInItsRelativeParentsPadding() {
         const string html = "<style>li{position:relative;padding-left:20px;list-style:none}"
             + "li::before{content:'#';position:absolute;left:0}</style><ul style='margin:0;padding:0'><li>Text</li></ul>";

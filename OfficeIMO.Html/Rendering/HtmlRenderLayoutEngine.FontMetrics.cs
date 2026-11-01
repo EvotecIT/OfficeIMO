@@ -21,9 +21,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 EnumerateMarginFontRequirements(margins), _fonts, pdfOptions, _resources, _diagnostics, _cancellationToken)) return false;
         CheckCancellation();
         _fontLayoutRebuilt = true;
-        rendered = new HtmlRenderLayoutEngine(_document, _computedStyles, _options,
+        var rebuilt = new HtmlRenderLayoutEngine(_document, _computedStyles, _options,
             _diagnostics, _resources, _pageRules, _fonts, _limits,
-            _initialLogicalTextOrder, _initialSemanticNodeId, _operationBudget, _cancellationToken, _fontUsage).Render();
+            _initialLogicalTextOrder, _initialSemanticNodeId, _operationBudget, _cancellationToken, _fontUsage);
+        rendered = rebuilt.Render();
+        foreach (KeyValuePair<IElement, double> measured in rebuilt.MeasuredContainerWidths) MeasuredContainerWidths[measured.Key] = measured.Value;
         return true;
     }
 
