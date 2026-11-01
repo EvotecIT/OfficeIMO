@@ -18,11 +18,11 @@ string html = """
 """;
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-byte[] pdf = source.ToPdfBytes();
+byte[] pdf = source.ToPdf().ToBytes();
 source.SaveAsPdf("quarterly-update.pdf");
 ```
 
-`ToPdfBytes()` preserves the established print-paged behavior. Use an explicit
+`ToPdf()` uses the print-paged layout. Use an explicit
 render request when the PDF should follow another layout contract:
 
 ```csharp
@@ -85,7 +85,7 @@ var fitted = new HtmlToPdfOptions {
     HonorCssPageRules = false,
     PrintLayoutWidthCssPixels = 1200
 };
-byte[] fittedPdf = source.ToPdfBytes(fitted);
+byte[] fittedPdf = source.ToPdf(fitted).ToBytes();
 ```
 
 Fitting applies to print-paged reflow. When `HonorCssPageRules` is `true`, the
@@ -458,7 +458,7 @@ Install `OfficeIMO.Mhtml.Pdf` when the source is an MHT/MHTML archive. That brid
 
 Naming is consistent across the direct output APIs:
 
-- `ToPdfBytes()` returns encoded bytes.
+- `ToPdf().ToBytes()` returns encoded bytes.
 - `ToPdfDocument()` returns the first-party PDF model.
 - `ToPdfDocumentResult()` returns the PDF model plus diagnostics.
 - `ExportImage()` and `ExportImages()` return image output, dimensions, and diagnostics.
@@ -486,7 +486,7 @@ var options = new HtmlToPdfOptions {
 options.AdditionalStylesheets.Add("@page { margin: 18mm }");
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-byte[] pdf = source.ToPdfBytes(options);
+byte[] pdf = source.ToPdf(options).ToBytes();
 byte[] png = source.ToPng(options);
 byte[] jpeg = source.ToJpeg(options);
 byte[] tiff = source.ToTiff(options);
@@ -494,7 +494,7 @@ string svg = source.ToSvg(options);
 byte[] webp = source.ToWebp(options);
 ```
 
-`ToPdfBytes()` and default image export use paged print layout. Image export serializes that layout through the PDF owner and renders its page scenes, including multilingual font fallback and margin boxes. Select `Mode = HtmlRenderMode.Continuous`, `.Continuous()`, or `ScreenFullPage` explicitly for an unpaginated screenshot. Image scale uses 96 CSS pixels per inch; `TargetDpi` sets the requested raster resolution.
+`ToPdf()` and default image export use paged print layout. Image export serializes that layout through the PDF owner and renders its page scenes, including multilingual font fallback and margin boxes. Select `Mode = HtmlRenderMode.Continuous`, `.Continuous()`, or `ScreenFullPage` explicitly for an unpaginated screenshot. Image scale uses 96 CSS pixels per inch; `TargetDpi` sets the requested raster resolution.
 
 ## Diagnostics and external resources
 
