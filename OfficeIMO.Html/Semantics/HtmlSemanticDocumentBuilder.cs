@@ -191,8 +191,9 @@ internal static class HtmlSemanticDocumentBuilder {
         string title) {
         var rows = new List<HtmlSemanticTableRow>();
         int sourceRowIndex = 0;
-        IReadOnlyDictionary<IElement, int> rowSpans = HtmlAccessibilitySemantics.ResolveTableRowSpans(DirectRows(table));
-        foreach (IElement rowElement in DirectRows(table)) {
+        IReadOnlyList<IElement> tableRows = HtmlAccessibilitySemantics.EnumerateTableRows(table);
+        IReadOnlyDictionary<IElement, int> rowSpans = HtmlAccessibilitySemantics.ResolveTableRowSpans(tableRows);
+        foreach (IElement rowElement in tableRows) {
             var cells = new List<HtmlSemanticTableCell>();
             foreach (IElement cell in rowElement.Children.Where(IsTableCell)) {
                 styles.TryGetValue(cell, out HtmlComputedStyle? style);
@@ -536,19 +537,6 @@ internal static class HtmlSemanticDocumentBuilder {
         HtmlIntegerSemantics.TryParsePositiveInteger(element.GetAttribute(attribute), out int value)
             ? value
             : 1;
-
-    private static IEnumerable<IElement> DirectRows(IElement table) {
-        foreach (IElement child in table.Children) {
-            if (IsTableRow(child)) yield return child;
-            else if (Is(child, "thead") || Is(child, "tbody") || Is(child, "tfoot")
-                || HtmlAccessibilitySemantics.HasRole(child, "rowgroup")) {
-                foreach (IElement row in child.Children.Where(IsTableRow)) yield return row;
-            }
-        }
-    }
-
-    private static bool IsTableRow(IElement element) =>
-        Is(element, "tr") || HtmlAccessibilitySemantics.HasRole(element, "row");
 
     private static bool IsTableCell(IElement element) =>
         Is(element, "th") || Is(element, "td")
