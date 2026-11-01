@@ -15,6 +15,7 @@ internal static partial class PdfFormFiller {
         string? inheritedName,
         PdfArray? inheritedChoiceOptions,
         PdfFormFillerOptions? options,
+        bool regenerateAppearances,
         Dictionary<int, FlattenWidgetState> widgets,
         HashSet<int> removableObjects,
         HashSet<int> visited,
@@ -59,6 +60,11 @@ internal static partial class PdfFormFiller {
             : value;
 
         if (IsWidget(field)) {
+            if (fieldObjectNumber.HasValue && IsNeverDisplayedWidget(objects, field)) {
+                widgets[fieldObjectNumber.Value] = FlattenWidgetState.NotPainted(fieldObjectNumber.Value);
+                return;
+            }
+
             if (!fieldObjectNumber.HasValue ||
                 !TryReadRectCoordinates(field, out double x, out double y, out double width, out double height)) {
                 throw new NotSupportedException(UnsupportedFlattenWidgetMessage);
@@ -75,18 +81,25 @@ internal static partial class PdfFormFiller {
                 }
 
                 appearanceObjectNumber = appearanceReference!.ObjectNumber;
-            } else if (TryGetNormalAppearanceReference(objects, field, out PdfReference? appearanceReference)) {
+            } else if (!(regenerateAppearances && appearanceValue is not null) && TryGetNormalAppearanceReference(objects, field, out PdfReference? appearanceReference)) {
                 appearanceObjectNumber = appearanceReference!.ObjectNumber;
             } else {
                 PdfDictionary? widgetAppearanceResources = TryReadNormalAppearanceResources(objects, field);
                 PdfDictionary? widgetPageResources = TryReadWidgetPageResources(objects, field);
                 PdfFormFieldStyle widgetStyle = ReadWidgetAppearanceStyle(objects, field, fieldFlags, fieldQuadding, fieldMaxLength, defaultAppearance);
+                double layoutWidth = width, layoutHeight = height;
+                int turn = ReadWidgetRotation(objects, field, ref layoutWidth, ref layoutHeight);
                 if (isMultiSelectChoice) {
                     widgetStyle.IsMultiline = true;
                 }
 
                 appearanceObjectNumber = nextObjectNumber++;
-                objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, appearanceValue ?? string.Empty, width, height, widgetStyle, defaultAppearance, ReadWidgetAppearanceFontSize(defaultAppearance, height), options, fullName, ref nextObjectNumber, richAppearanceRuns, maximumMeasurementCharacters: maximumMeasurementCharacters, cancellationToken: cancellationToken));
+                objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, ApplyWidgetRotation(CreateTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, appearanceValue ?? string.Empty, layoutWidth, layoutHeight, widgetStyle, defaultAppearance, ReadWidgetAppearanceFontSize(defaultAppearance, layoutHeight), options, fullName, ref nextObjectNumber, richAppearanceRuns, maximumMeasurementCharacters: maximumMeasurementCharacters, cancellationToken: cancellationToken), turn, layoutWidth, layoutHeight));
+            }
+
+            // The widget's layer keeps deciding visibility once its appearance is page content.
+            if (field.Items.TryGetValue("OC", out PdfObject? optionalContent) && objects.TryGetValue(appearanceObjectNumber, out PdfIndirectObject? painted) && painted.Value is PdfStream paintedAppearance) {
+                paintedAppearance.Dictionary.Items["OC"] = optionalContent;
             }
 
             widgets[fieldObjectNumber.Value] = new FlattenWidgetState(fieldObjectNumber.Value, x, y, width, height, appearanceObjectNumber);
@@ -100,7 +113,7 @@ internal static partial class PdfFormFiller {
 
         for (int i = 0; i < kids.Items.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
-            CollectFlattenWidgets(objects, kids.Items[i], fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, appearanceValue, richAppearanceRuns, fullName, choiceOptions, options, widgets, removableObjects, visited, ref nextObjectNumber, maximumMeasurementCharacters, cancellationToken);
+            CollectFlattenWidgets(objects, kids.Items[i], fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, appearanceValue, richAppearanceRuns, fullName, choiceOptions, options, regenerateAppearances, widgets, removableObjects, visited, ref nextObjectNumber, maximumMeasurementCharacters, cancellationToken);
         }
     }
 
@@ -159,6 +172,7 @@ internal static partial class PdfFormFiller {
         for (int i = 0; i < widgets.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             FlattenWidgetState widget = widgets[i];
+            if (widget.IsNotPainted) continue;
             if (!objects.TryGetValue(widget.AppearanceObjectNumber, out var appearanceObject) ||
                 appearanceObject.Value is not PdfStream appearanceStream)
                 throw new InvalidOperationException("The form appearance stream is missing.");
@@ -177,6 +191,10 @@ internal static partial class PdfFormFiller {
 
         return builder.ToString();
     }
+
+    // Painting a hidden widget would turn a value no viewer shows into page text. Its annotation still goes with the form.
+    private static bool IsNeverDisplayedWidget(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget) =>
+        widget.Items.TryGetValue("F", out PdfObject? flags) && ResolveObject(objects, flags) is PdfNumber number && ((int)number.Value & (HiddenAnnotationFlag | NoViewAnnotationFlag)) != 0;
 
     private static PdfDictionary EnsurePageXObjects(Dictionary<int, PdfIndirectObject> objects, PdfDictionary page) {
         return PdfPageResourceHelper.EnsurePageXObjects(objects, page, "form flattening");

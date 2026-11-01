@@ -73,6 +73,7 @@ internal static partial class PdfRedactionPlanner {
                 PdfRedactionPlan.ComputeSourceSha256(pdf));
         }
 
+        options = PdfLoadOptions.WithArtifactText(options);
         PdfReadDocument readDocument = PdfReadDocument.Open(pdf, options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>> reviewedTextObjectScopes = PdfRedactionPlan.CaptureReviewedTextObjectScopes(readDocument, areaArray);
@@ -99,7 +100,7 @@ internal static partial class PdfRedactionPlanner {
                     // A selection can name glyphs in hidden layers and artifacts, so resolve it against all of them.
                     glyphDocument ??= PdfReadDocument.Open(pdf, PdfLoadOptions.WithArtifactText(options), cancellationToken);
                     glyphSpans = glyphDocument.Pages[area.PageNumber - 1].GetGlyphTextSpans(
-                        includeHiddenOptionalContent: true, cancellationToken);
+                        includeHiddenOptionalContent: true, cancellationToken: cancellationToken);
                     glyphTextSpansByPage.Add(area.PageNumber, glyphSpans);
                 }
                 bool resolved = AddSelectedGlyphMatches(area, selection, glyphSpans, matches, cancellationToken);
@@ -161,7 +162,7 @@ internal static partial class PdfRedactionPlanner {
             }
         }
 
-        PdfRedactionFormAnalysis forms = PdfRedactionApplier.AnalyzeFormFields(readDocument, areaArray);
+        PdfRedactionFormAnalysis forms = PdfRedactionApplier.AnalyzeFormFields(readDocument, areaArray, readDocument.ReadOptions.Limits);
         foreach (PdfRedactionAffectedField field in forms.Fields) {
             int pageNumber = field.Pages.Count > 0 ? field.Pages.Min() : areaArray[0].PageNumber;
             double x = 0D, y = 0D, width = 0D, height = 0D;
@@ -202,6 +203,7 @@ internal static partial class PdfRedactionPlanner {
             "This plan reports intersections with the exact reviewed geometry. It does not remove or rewrite PDF content."));
         cancellationToken.ThrowIfCancellationRequested();
 
+        HashSet<string> alternateTextSections = PdfRedactionApplier.CaptureAlternateTextSections(readDocument, cancellationToken);
         return new PdfRedactionPlan(
             preflight,
             areaArray,
@@ -210,7 +212,9 @@ internal static partial class PdfRedactionPlanner {
             searchCriteria: null,
             PdfRedactionPlan.ComputeSourceSha256(pdf),
             pageIdentities,
-            reviewedTextObjectScopes);
+            reviewedTextObjectScopes,
+            alternateTextSections: alternateTextSections,
+            alternateTextPlacements: PdfRedactionApplier.CaptureAlternateTextPlacements(readDocument, alternateTextSections, cancellationToken));
     }
 
     /// <summary>Plans redaction impact for a PDF file.</summary>
@@ -340,7 +344,7 @@ internal static partial class PdfRedactionPlanner {
 
             foreach (PdfAnnotation annotation in page.Annotations) {
                 if (!area.IntersectsUnderlay(annotation.X1, annotation.Y1, annotation.Width, annotation.Height) &&
-                    !PdfRedactionApplier.CarriesSearchedText(document.Objects, document.Pages[page.PageNumber - 1].ObjectNumber, annotation, new[] { area })) {
+                    !PdfRedactionApplier.CarriesSearchedText(document.Objects, document.Pages[page.PageNumber - 1].ObjectNumber, annotation, new[] { area }, document.ReadOptions.Limits)) {
                     continue;
                 }
 

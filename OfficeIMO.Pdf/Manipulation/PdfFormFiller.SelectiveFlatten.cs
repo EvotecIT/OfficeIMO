@@ -24,6 +24,7 @@ internal static partial class PdfFormFiller {
         string? inheritedName,
         PdfArray? inheritedChoiceOptions,
         PdfFormFillerOptions? options,
+        bool regenerateAppearances,
         Dictionary<int, FlattenWidgetState> widgets,
         HashSet<int> removableObjects,
         ref int nextObjectNumber, int maximumMeasurementCharacters, System.Threading.CancellationToken cancellationToken = default) {
@@ -49,14 +50,14 @@ internal static partial class PdfFormFiller {
             string? displayValue = values is { Count: > 0 } ? values[0] : richPlainText ?? inheritedDisplayValue;
 
             if (fullName is not null && fullName.Length > 0 && requested.Contains(fullName)) {
-                CollectFlattenWidgets(objects, fieldObject, inheritedFieldType, inheritedFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, inheritedDisplayValue, inheritedRichAppearanceRuns, inheritedName, inheritedChoiceOptions, options, widgets, removableObjects, new HashSet<int>(), ref nextObjectNumber, maximumMeasurementCharacters, cancellationToken);
+                CollectFlattenWidgets(objects, fieldObject, inheritedFieldType, inheritedFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, inheritedDisplayValue, inheritedRichAppearanceRuns, inheritedName, inheritedChoiceOptions, options, regenerateAppearances, widgets, removableObjects, new HashSet<int>(), ref nextObjectNumber, maximumMeasurementCharacters, cancellationToken);
                 owner.Items.RemoveAt(i);
                 matched.Add(fullName!);
                 continue;
             }
 
             if (!field.Items.TryGetValue("Kids", out PdfObject? kidsObject) || ResolveObject(objects, kidsObject) is not PdfArray kids) continue;
-            CollectSelectedFlattenFields(objects, kids, requested, matched, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, displayValue, richRuns, fullName, choiceOptions, options, widgets, removableObjects, ref nextObjectNumber, maximumMeasurementCharacters, cancellationToken);
+            CollectSelectedFlattenFields(objects, kids, requested, matched, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, displayValue, richRuns, fullName, choiceOptions, options, regenerateAppearances, widgets, removableObjects, ref nextObjectNumber, maximumMeasurementCharacters, cancellationToken);
             if (kids.Items.Count == 0 && !IsWidget(field)) {
                 owner.Items.RemoveAt(i);
                 if (fieldObject is PdfReference reference) removableObjects.Add(reference.ObjectNumber);

@@ -60,6 +60,7 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         field.Items["V"] = new PdfStringObj(value.FirstStoredValue, useTextStringEncoding: true);
+        field.Items.Remove("RV");
     }
 
     private static IncrementalPreparedFieldValue PrepareIncrementalFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, PdfArray? inheritedOptions, string? fieldType, int fieldFlags, PdfFormFieldValue value) {

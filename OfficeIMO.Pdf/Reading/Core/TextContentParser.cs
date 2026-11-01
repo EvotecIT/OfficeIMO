@@ -358,6 +358,7 @@ internal static partial class TextContentParser {
         MarkedContentState? inheritedActualTextState = null,
         Action<int, MarkedContentState>? onActualTextForm = null,
         bool preserveGlyphText = false,
+        bool ignoreActualText = false,
         bool requireMappedText = false,
         Func<string, byte[], PdfTextDecodingEvidence>? decodingEvidenceForResource = null,
         bool mergeKernedTextArrays = true,
@@ -981,7 +982,7 @@ internal static partial class TextContentParser {
         void ShowTextRun(byte[] bytes, double paintOrder, bool forceCannotRestamp, double[]? kerningAfterByte = null) {
             if (!inText || bytes == null || bytes.Length == 0) return;
             MaybeInsertSpaceBeforeRun();
-            var actualTextState = useLogicalTextFilters ? GetActiveActualTextState() : null;
+            var actualTextState = useLogicalTextFilters && !ignoreActualText ? GetActiveActualTextState() : null;
             bool hasActiveArtifact = initialArtifactContent || HasActiveArtifact();
             bool isArtifact = useLogicalTextFilters && !includeArtifactText && hasActiveArtifact;
             bool isHidden = HasActiveHiddenContent();
@@ -1328,6 +1329,10 @@ internal static partial class TextContentParser {
                     : decodingEvidenceForResource?.Invoke(font, bytes) ?? PdfTextDecodingEvidence.Unknown;
                 span.SetDecodingEvidence(actualTextState is not null ? decodingEvidence.WithActualText() : decodingEvidence);
                 if (actualTextState is not null) span.SetSourceActualText(rawText);
+                else if (ignoreActualText && GetActiveActualTextState() is { ActualTextEmitted: false } unread) {
+                    span.SetSourceActualText(unread.ReadAndChargeActualText(textOutputBudget));
+                    unread.ActualTextEmitted = true;
+                }
                 if (usesVisibleFill && !fillColorResolved || usesVisibleStroke &&
                     (!strokeColorResolved || !IsSolidTextDash(strokeDashIdentity))) {
                     span.MarkUnresolvedPaint();

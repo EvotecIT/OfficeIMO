@@ -46,6 +46,12 @@ internal sealed class PdfExternalValidator {
         return new PdfExternalValidator("veraPDF", path, args, explicitPath == null && path != null, flavor);
     }
 
+    internal static PdfExternalValidator QpdfCheck() {
+        string? explicitPath = Environment.GetEnvironmentVariable("OFFICEIMO_QPDF");
+        string? path = FirstNonEmpty(explicitPath) ?? FindOnPath("qpdf", "qpdf.exe");
+        return new PdfExternalValidator("qpdf", path, new[] { "--check", "{pdf}" }, explicitPath == null && path != null);
+    }
+
     internal static PdfExternalValidator QpdfDecoded() {
         string? explicitPath = Environment.GetEnvironmentVariable("OFFICEIMO_QPDF");
         string? path = FirstNonEmpty(explicitPath) ?? FindOnPath("qpdf", "qpdf.exe");

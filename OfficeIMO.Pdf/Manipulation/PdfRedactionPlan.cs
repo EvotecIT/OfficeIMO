@@ -14,7 +14,9 @@ public sealed class PdfRedactionPlan {
         bool searchMatchCase = true,
         System.Text.RegularExpressions.RegexOptions searchRegexOptions = System.Text.RegularExpressions.RegexOptions.CultureInvariant,
         TimeSpan? searchRegexTimeout = null,
-        IReadOnlyCollection<int>? searchPageNumbers = null) {
+        IReadOnlyCollection<int>? searchPageNumbers = null,
+        IReadOnlyCollection<string>? alternateTextSections = null,
+        IReadOnlyDictionary<int, Dictionary<string, int>>? alternateTextPlacements = null) {
         Preflight = preflight;
         Areas = Array.AsReadOnly(areas.ToArray());
         PdfRedactionSearchCriteria[] textCriteria = areas.Select(static area => area.SearchCriteria).OfType<PdfRedactionSearchCriteria>().Distinct().ToArray();
@@ -28,6 +30,8 @@ public sealed class PdfRedactionPlan {
         SourceSha256 = sourceSha256;
         PageIdentities = pageIdentities ?? Array.Empty<string>();
         ReviewedTextObjectScopes = reviewedTextObjectScopes ?? Array.Empty<IReadOnlyList<PdfRedactionTextObjectScope>>();
+        AlternateTextSections = new HashSet<string>(alternateTextSections ?? Array.Empty<string>(), StringComparer.Ordinal);
+        AlternateTextPlacements = alternateTextPlacements ?? new Dictionary<int, Dictionary<string, int>>();
         SearchMatchCase = searchMatchCase;
         SearchRegexOptions = searchRegexOptions;
         SearchRegexTimeout = searchRegexTimeout ?? TimeSpan.FromSeconds(2);
@@ -57,6 +61,11 @@ public sealed class PdfRedactionPlan {
     internal IReadOnlyList<string> PageIdentities { get; }
 
     internal IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>> ReviewedTextObjectScopes { get; }
+
+    internal HashSet<string> AlternateTextSections { get; }
+
+    /// <summary>Per page, how many painted sections each alternate-text value describes, keyed by value fingerprint.</summary>
+    internal IReadOnlyDictionary<int, Dictionary<string, int>> AlternateTextPlacements { get; }
 
     internal bool SearchMatchCase { get; }
 
@@ -166,8 +175,7 @@ public sealed class PdfRedactionPlan {
             int pageNumber = pageIndex + 1;
             PdfRedactionArea[] pageAreas = reviewedAreas.Where(area => area.PageNumber == pageNumber).ToArray();
             PdfReadPage page = document.Pages[pageIndex];
-            IReadOnlyList<PdfTextSpan> spans = pageAreas.Any(static area => area.RequiresGlyphRewrite)
-                ? page.GetGlyphTextSpans(includeHiddenOptionalContent: true) : page.GetTextSpansIncludingHiddenOptionalContent(requireMappedText: true);
+            IReadOnlyList<PdfTextSpan> spans = GetIdentityTextSpans(page, pageAreas);
             result[pageIndex] = CreateTextObjectScopes(page, spans, pageAreas)
                 .Where(static scope => scope.HasReviewedIntersection)
                 .ToArray();
@@ -184,6 +192,12 @@ public sealed class PdfRedactionPlan {
         return labels;
     }
 
+    // Clearing a section's ActualText changes what a reader reports for the text left in it, not what the page paints.
+    private static IReadOnlyList<PdfTextSpan> GetIdentityTextSpans(PdfReadPage page, IReadOnlyList<PdfRedactionArea> pageAreas) =>
+        pageAreas.Any(static area => area.RequiresGlyphRewrite)
+            ? page.GetGlyphTextSpans(includeHiddenOptionalContent: true, ignoreActualText: true)
+            : page.GetTextSpansIncludingHiddenOptionalContent(requireMappedText: true, ignoreActualText: true);
+
     private static void AppendUnredactedTextIdentity(
         System.Text.StringBuilder identity,
         PdfReadDocument document,
@@ -191,8 +205,7 @@ public sealed class PdfRedactionPlan {
         IReadOnlyList<PdfRedactionArea> pageAreas,
         IReadOnlyList<PdfRedactionTextObjectScope> reviewedTextObjectScopes,
         IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects) {
-        IReadOnlyList<PdfTextSpan> spans = pageAreas.Any(static area => area.RequiresGlyphRewrite)
-            ? page.GetGlyphTextSpans(includeHiddenOptionalContent: true) : page.GetTextSpansIncludingHiddenOptionalContent(requireMappedText: true);
+        IReadOnlyList<PdfTextSpan> spans = GetIdentityTextSpans(page, pageAreas);
         var ignoredTextObjectKeys = new HashSet<PdfContentOrderKey>();
         PdfRedactionTextObjectScope[] currentTextObjectScopes = CreateTextObjectScopes(page, spans, pageAreas);
         int[] matchedScopeIndices = MatchReviewedTextObjectScopes(reviewedTextObjectScopes, currentTextObjectScopes);
@@ -426,9 +439,9 @@ public sealed class PdfRedactionPlan {
                 identity.Append("|R:ExtGState:");
                 PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("ExtGState", out PdfObject? states) ? states : null, document.Objects);
                 identity.Append("|R:Properties:");
-                PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("Properties", out PdfObject? properties) ? properties : null, document.Objects);
+                PdfRedactionImageIdentity.AppendObjectGraph(identity, FindOptionalContentProperties(document.Objects, resources), document.Objects);
                 AppendFormRenderingResourceIdentity(identity, document.Objects, resources,
-                    PdfRedactionApplier.FindUnpaintedFormsHoldingSearch(document.Objects, page.PageDictionary, reviewedAreas));
+                    PdfRedactionApplier.FindUnpaintedFormsHoldingSearch(document.Objects, page.PageDictionary, reviewedAreas, document.ReadOptions.Limits));
                 break;
             }
             if (!current.Items.TryGetValue("Parent", out PdfObject? parentObject) ||
@@ -438,6 +451,16 @@ public sealed class PdfRedactionPlan {
                 parentIndirect.Value is not PdfDictionary parentDictionary) return;
             current = parentDictionary;
         }
+    }
+
+    // Only optional-content lists affect what a page paints. Others describe it, and redaction clears those.
+    private static PdfDictionary FindOptionalContentProperties(Dictionary<int, PdfIndirectObject> objects, PdfDictionary resources) {
+        var rendering = new PdfDictionary();
+        if (PdfObjectLookup.Resolve(objects, resources.Items.TryGetValue("Properties", out PdfObject? properties) ? properties : null) is not PdfDictionary lists) return rendering;
+        foreach (KeyValuePair<string, PdfObject> entry in lists.Items) {
+            if (PdfObjectLookup.Resolve(objects, entry.Value) is PdfDictionary list && list.Get<PdfName>("Type")?.Name is "OCG" or "OCMD") rendering.Items[entry.Key] = entry.Value;
+        }
+        return rendering;
     }
 
     private static void AppendFormRenderingResourceIdentity(
@@ -479,7 +502,7 @@ public sealed class PdfRedactionPlan {
                 formIdentity.Append(":Properties:");
                 PdfRedactionImageIdentity.AppendObjectGraph(
                     formIdentity,
-                    effectiveResources.Items.TryGetValue("Properties", out PdfObject? properties) ? properties : null,
+                    FindOptionalContentProperties(objects, effectiveResources),
                     objects);
                 if (declaredResources != null) {
                     formIdentity.Append(":Font:");
@@ -763,7 +786,7 @@ public sealed class PdfRedactionPlan {
             if (affectedFields.Count > 0 && annotation.SourceDictionary is PdfDictionary widget &&
                 affectedFields.Contains(PdfRedactionApplier.GetFieldName(document.Objects, widget))) continue;
             // Carrying the searched text takes it out of the kept set wherever it sits.
-            if (PdfRedactionApplier.CarriesSearchedText(document.Objects, page.ObjectNumber, annotation, pageAreas)) continue;
+            if (PdfRedactionApplier.CarriesSearchedText(document.Objects, page.ObjectNumber, annotation, pageAreas, document.ReadOptions.Limits)) continue;
 
             identity.Append("|A:");
             AppendIdentityString(identity, annotation.Subtype);

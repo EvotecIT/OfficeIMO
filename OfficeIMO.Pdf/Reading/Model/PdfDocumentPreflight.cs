@@ -7,6 +7,15 @@ public sealed partial class PdfDocumentPreflight {
     private readonly PdfDocumentInfo? _documentInfo;
     private readonly Exception? _readFailure;
 
+    /// <summary>Redaction can trust the classic graph or the independently checked compressed-object selection.</summary>
+    internal bool CanNormalizeRedactionObjectGraph => RedactionObjectGraphProof?.Value == true;
+
+    /// <summary>Expensive ownership proof is evaluated once, only by a redaction caller.</summary>
+    internal Lazy<bool>? RedactionObjectGraphProof { get; set; }
+
+    /// <summary>Actual typed streams, including escaped type names, rather than raw marker spellings.</summary>
+    internal bool HasCompressedRedactionStructures { get; set; }
+
     internal PdfDocumentPreflight(
         PdfDocumentProbe probe,
         PdfDocumentInfo? documentInfo,

@@ -61,6 +61,8 @@ internal static partial class PdfIncrementalUpdater {
         PdfIncrementalFormFieldUpdateOptions? options, PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfIncrementalFormFieldUpdateOptions effectiveOptions = options ?? new PdfIncrementalFormFieldUpdateOptions();
+        // Without NeedAppearances no viewer repaints the field, so the old appearance would go on showing the replaced value.
+        bool generateAppearanceStreams = effectiveOptions.GenerateAppearanceStreams || !effectiveOptions.KeepNeedAppearances;
         CancellationToken optionToken = effectiveOptions.CancellationToken;
         using var linkedCancellation = optionToken.CanBeCanceled && cancellationToken.CanBeCanceled && optionToken != cancellationToken
             ? CancellationTokenSource.CreateLinkedTokenSource(optionToken, cancellationToken) : null;
@@ -116,7 +118,7 @@ internal static partial class PdfIncrementalUpdater {
                 fieldValues,
                 remaining,
                 changedObjectNumbers,
-                effectiveOptions,
+                generateAppearanceStreams,
                 new HashSet<int>(),
                 ref nextObjectNumber,
                 ref helveticaFontObjectNumber,
@@ -289,7 +291,7 @@ internal static partial class PdfIncrementalUpdater {
         IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues,
         HashSet<string> remaining,
         HashSet<int> changedObjectNumbers,
-        PdfIncrementalFormFieldUpdateOptions options,
+        bool generateAppearanceStreams,
         HashSet<int> visited,
         ref int nextObjectNumber,
         ref int helveticaFontObjectNumber,
@@ -333,9 +335,9 @@ internal static partial class PdfIncrementalUpdater {
             if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
                 bool isRadioButtonGroup = (fieldFlags & IncrementalRadioButtonFlag) != 0;
                 string name = preparedValue.FirstStoredValue;
-                SetIncrementalWidgetAppearanceStates(objects, field, name, isRadioButtonGroup, options.GenerateAppearanceStreams,
+                SetIncrementalWidgetAppearanceStates(objects, field, name, isRadioButtonGroup, generateAppearanceStreams,
                     changedObjectNumbers, new HashSet<int>(), ref nextObjectNumber, cancellationToken);
-            } else if (options.GenerateAppearanceStreams) {
+            } else if (generateAppearanceStreams) {
                 PdfFormFiller.ChoiceAppearanceData? choiceAppearance = null;
                 if (fieldType == "Ch" && (fieldFlags & IncrementalComboChoiceFlag) == 0 && fieldOptions != null) {
                     field.Items.TryGetValue("V", out PdfObject? selectedValue);
@@ -363,7 +365,7 @@ internal static partial class PdfIncrementalUpdater {
         for (int i = 0; i < kids.Items.Count; i++) {
 
             UpdateFormField(objects, kids.Items[i], kidsContainerObjectNumber, fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength,
-                defaultResources, defaultAppearance, fieldOptions, fieldValues, remaining, changedObjectNumbers, options, visited,
+                defaultResources, defaultAppearance, fieldOptions, fieldValues, remaining, changedObjectNumbers, generateAppearanceStreams, visited,
                 ref nextObjectNumber, ref helveticaFontObjectNumber, maximumDecodedBytes, maximumVisibleTextCharacters, cancellationToken);
         }
     }
@@ -394,6 +396,7 @@ internal static partial class PdfIncrementalUpdater {
         PdfDictionary? defaultResources = TryReadDefaultResources(objects, field) ?? inheritedDefaultResources;
         string? defaultAppearance = TryReadText(objects, field, "DA") ?? inheritedDefaultAppearance;
         if (IsWidget(field) && TryReadRect(field, out double width, out double height)) {
+            int turn = PdfFormFiller.ReadWidgetRotation(objects, field, ref width, ref height);
             PdfDictionary? widgetAppearanceResources = TryReadIncrementalNormalAppearanceResources(objects, field);
             PdfDictionary? widgetPageResources = TryReadIncrementalWidgetPageResources(objects, field);
             int appearanceObjectNumber = nextObjectNumber++;
@@ -406,7 +409,7 @@ internal static partial class PdfIncrementalUpdater {
             objects[appearanceObjectNumber] = new PdfIndirectObject(
                 appearanceObjectNumber,
                 0,
-                CreateIncrementalTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, defaultAppearance, value, width, height, style, fontSize, ref nextObjectNumber, ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, maximumMeasurementCharacters, cancellationToken));
+                PdfFormFiller.ApplyWidgetRotation(CreateIncrementalTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, defaultAppearance, value, width, height, style, fontSize, ref nextObjectNumber, ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, maximumMeasurementCharacters, cancellationToken), turn, width, height));
 
             var appearance = new PdfDictionary();
             appearance.Items["N"] = new PdfReference(appearanceObjectNumber, 0);

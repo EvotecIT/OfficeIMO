@@ -126,6 +126,7 @@ internal static partial class PdfFormFiller {
         PdfDictionary? defaultResources = TryReadDefaultResources(objects, field) ?? inheritedDefaultResources;
         string? defaultAppearance = TryReadText(objects, field, "DA") ?? inheritedDefaultAppearance;
         if (IsWidget(field) && TryReadRect(field, out double width, out double height)) {
+            int turn = ReadWidgetRotation(objects, field, ref width, ref height);
             PdfDictionary? widgetAppearanceResources = TryReadNormalAppearanceResources(objects, field);
             PdfDictionary? widgetPageResources = TryReadWidgetPageResources(objects, field);
             PdfFormFieldStyle widgetStyle = ReadWidgetAppearanceStyle(objects, field, fieldFlags, fieldQuadding, fieldMaxLength, defaultAppearance);
@@ -134,7 +135,7 @@ internal static partial class PdfFormFiller {
             }
 
             int appearanceObjectNumber = nextObjectNumber++;
-            objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, value, width, height, widgetStyle, defaultAppearance, ReadWidgetAppearanceFontSize(defaultAppearance, height), options, fieldName, ref nextObjectNumber, choiceAppearance: choiceAppearance, maximumMeasurementCharacters: maximumMeasurementCharacters, cancellationToken: cancellationToken));
+            objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, ApplyWidgetRotation(CreateTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, value, width, height, widgetStyle, defaultAppearance, ReadWidgetAppearanceFontSize(defaultAppearance, height), options, fieldName, ref nextObjectNumber, choiceAppearance: choiceAppearance, maximumMeasurementCharacters: maximumMeasurementCharacters, cancellationToken: cancellationToken), turn, width, height));
             cancellationToken.ThrowIfCancellationRequested();
 
             var appearance = new PdfDictionary();
@@ -158,6 +159,27 @@ internal static partial class PdfFormFiller {
                 SetTextWidgetAppearances(objects, kid, value, fieldName, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, forceMultilineAppearance, options, visited, ref nextObjectNumber, maximumMeasurementCharacters, choiceAppearance, cancellationToken);
             }
         }
+    }
+
+    // /MK /R turns a widget's contents counterclockwise. Text is laid out at the turned size and /Matrix maps it onto /Rect.
+    internal static int ReadWidgetRotation(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, ref double width, ref double height) {
+        if (ResolveDictionary(objects, widget.Items.TryGetValue("MK", out PdfObject? characteristics) ? characteristics : null) is not PdfDictionary mk ||
+            !mk.Items.TryGetValue("R", out PdfObject? rotation) || ResolveObject(objects, rotation) is not PdfNumber number) return 0;
+        int turn = ((int)number.Value % 360 + 360) % 360;
+        if (turn != 90 && turn != 180 && turn != 270) return 0;
+        if (turn != 180) (width, height) = (height, width);
+        return turn;
+    }
+
+    internal static PdfStream ApplyWidgetRotation(PdfStream appearance, int turn, double width, double height) {
+        if (turn != 0) {
+            appearance.Dictionary.Items["Matrix"] = turn switch {
+                90 => CreateNumberArray(0D, 1D, -1D, 0D, height, 0D),
+                180 => CreateNumberArray(-1D, 0D, 0D, -1D, width, height),
+                _ => CreateNumberArray(0D, -1D, 1D, 0D, 0D, width)
+            };
+        }
+        return appearance;
     }
 
     private static PdfStream CreateTextAppearanceStream(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? inheritedDefaultResources, PdfDictionary? widgetAppearanceResources, PdfDictionary? widgetPageResources, string value, double width, double height, PdfFormFieldStyle? style, string? defaultAppearance, double fontSize, PdfFormFillerOptions? options, string? fieldName, ref int nextObjectNumber, IReadOnlyList<PdfFreeTextRichTextRun>? richAppearanceRuns = null, TextAppearanceFontPlan? preparedFontPlan = null, ChoiceAppearanceData? choiceAppearance = null, bool addsObjects = true, int maximumDecodedBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes, int maximumMeasurementCharacters = PdfReadLimits.DefaultMaxDecodedTextCharacters, CancellationToken cancellationToken = default) {

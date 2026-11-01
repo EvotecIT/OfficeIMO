@@ -9,7 +9,6 @@ internal static partial class PdfRedactionVerification {
 
     /// <summary>Checks literal and hex string tokens in otherwise unclassified data, reusing the verifier's escape-aware readers.</summary>
     internal static bool ContainsSearchedPdfString(byte[] data, PdfRedactionSearchCriteria[] criteria, CancellationToken cancellationToken) {
-        string? raw = null;
         for (int index = 0; index < data.Length; index++) {
             if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (data[index] == (byte)'(' && TryReadLiteralStringBytes(data, index, cancellationToken, out byte[] literal, out int literalEnd)) {
@@ -18,8 +17,7 @@ internal static partial class PdfRedactionVerification {
             } else if (data[index] == (byte)'<' && (index + 1 >= data.Length || data[index + 1] != (byte)'<')) {
                 int end = FindHexStringEnd(data, index + 1, cancellationToken);
                 if (end < 0) continue;
-                raw ??= PdfEncoding.Latin1GetString(data);
-                string decoded = PdfTextString.Decode(PdfTextString.DecodeHexBytes(raw, index + 1, end - index - 1, cancellationToken), cancellationToken);
+                string decoded = PdfTextString.Decode(ReadHexStringBytes(data, index + 1, end, cancellationToken), cancellationToken);
                 if (criteria.Any(criterion => criterion.Matches(decoded))) return true;
                 index = end;
             }
@@ -407,18 +405,18 @@ internal static partial class PdfRedactionVerification {
     }
 
     private static bool HexStringContains(byte[] pdf, int start, int end, byte[] markerBytes, bool matchCase, CancellationToken cancellationToken) {
+        return ContainsBytes(ReadHexStringBytes(pdf, start, end, cancellationToken), markerBytes, matchCase, cancellationToken);
+    }
+
+    // FindHexStringEnd validates the token. Strip PDF whitespace (including NUL), not
+    // Unicode whitespace, before using the strict semantic hex decoder.
+    private static byte[] ReadHexStringBytes(byte[] data, int start, int end, CancellationToken cancellationToken) {
         var builder = new System.Text.StringBuilder(end - start);
         for (int i = start; i < end; i++) {
             if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            byte value = pdf[i];
-            if (IsHexDigit(value)) {
-                builder.Append((char)ToUpperAscii(value));
-            }
+            if (IsHexDigit(data[i])) builder.Append((char)data[i]);
         }
-
-        if ((builder.Length & 1) != 0) builder.Append('0');
-        byte[] decoded = PdfTextString.DecodeHexBytes(builder.ToString());
-        return ContainsBytes(decoded, markerBytes, matchCase, cancellationToken);
+        return PdfTextString.DecodeHexBytes(builder.ToString(), 0, builder.Length, cancellationToken);
     }
 
     private static bool BytesEqual(byte[] left, byte[] right) {

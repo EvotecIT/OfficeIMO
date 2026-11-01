@@ -124,6 +124,7 @@ internal static partial class PdfFormFiller {
         }
 
         field.Items["V"] = new PdfStringObj(firstValue, useTextStringEncoding: true);
+        field.Items.Remove("RV");
         SetTextWidgetAppearances(objects, field, firstValue, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, false, options, new HashSet<int>(), ref nextObjectNumber, maximumVisibleTextCharacters, cancellationToken: cancellationToken);
     }
 

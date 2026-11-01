@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfRedactionInteroperabilityCorpusTests {
     [Theory]
-    [InlineData("openpreserve-text-subset.pdf", CorpusOutcome.MutationBlocked)]
+    [InlineData("openpreserve-text-subset.pdf", CorpusOutcome.Verified)]
     [InlineData("openpreserve-pdfa1b-text.pdf", CorpusOutcome.Verified)]
     [InlineData("verapdf-tounicode-pass-a.pdf", CorpusOutcome.Verified)]
     [InlineData("verapdf-optional-content.pdf", CorpusOutcome.MutationBlocked)]
