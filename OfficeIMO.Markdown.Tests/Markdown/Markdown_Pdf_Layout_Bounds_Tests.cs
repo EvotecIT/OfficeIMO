@@ -8,6 +8,45 @@ using Xunit;
 namespace OfficeIMO.Tests.MarkdownSuite;
 
 public sealed class Markdown_Pdf_Layout_Bounds_Tests {
+    [Theory]
+    [InlineData("```\n```\n")]
+    [InlineData("```\n\n```\n")]
+    public void BlankCodeFenceExports(string markdown) {
+        Assert.NotEmpty(MarkdownDocument.Parse(markdown).ToPdf().ToBytes());
+    }
+
+    [Theory]
+    [InlineData("x", 4_000)]
+    [InlineData("x", 20_000)]
+    [InlineData("q ", 10_000)]
+    public void ShortCodeFenceTallerThanAPageContinuesOnTheNextPage(string text, int repeats) {
+        string line = string.Concat(Enumerable.Repeat(text, repeats));
+
+        byte[] pdf = MarkdownDocument.Parse("```\n" + line + "\n```\n").ToPdf().ToBytes();
+
+        Assert.True(PdfTextExtractor.ExtractTextByPage(pdf).Count > 1);
+        Assert.Equal(repeats, PdfTextExtractor.ExtractAllText(pdf).Count(ch => ch == text[0]));
+    }
+
+    [Fact]
+    public void ShortCodeFenceMovesWholeToTheNextPage() {
+        var markdown = new StringBuilder();
+        for (int index = 0; index < 34; index++) {
+            markdown.Append("Filler ").Append(index).Append("\n\n");
+        }
+        markdown.Append("```\n");
+        for (int index = 0; index < 15; index++) {
+            markdown.Append("listing-").Append(index).Append('\n');
+        }
+        markdown.Append("```\n");
+
+        IReadOnlyList<string> pages = PdfTextExtractor.ExtractTextByPage(MarkdownDocument.Parse(markdown.ToString()).ToPdf().ToBytes());
+
+        Assert.True(pages.Count > 1);
+        string page = Assert.Single(pages, text => text.Contains("listing-0", StringComparison.Ordinal));
+        Assert.Contains("listing-14", page, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void ListNestedTenLevelsKeepsFullIndentationOnTheLeftOnly() {
         (byte[] pdf, OfficeConversionReport report) = Export(BuildNestedList(10));

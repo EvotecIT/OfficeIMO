@@ -442,7 +442,7 @@ public static partial class MarkdownPdfConverterExtensions {
         string content = code.Content ?? string.Empty;
         string language = code.Language?.Trim() ?? string.Empty;
 
-        RenderPanel(pdf, ShortCodePanelStyle(visualTheme.CodeBlockPanelStyleSnapshot, content), options, contentBuilder => contentBuilder.Paragraph(builder => {
+        RenderPanel(pdf, visualTheme.CodeBlockPanelStyleSnapshot, options, contentBuilder => contentBuilder.Paragraph(builder => {
             if (language.Length > 0) {
                 builder.FontSize(visualTheme.CodeBlockLabelFontSizeSnapshot)
                     .Bold(language, visualTheme.CodeBlockLabelColorSnapshot)
@@ -458,7 +458,9 @@ public static partial class MarkdownPdfConverterExtensions {
             // Code reads as a block at a tighter leading than prose, with the panel padding equal on both sides.
             LineHeight = 1.25D,
             SpacingBefore = OfficeLength.Zero,
-            SpacingAfter = OfficeLength.Zero
+            SpacingAfter = OfficeLength.Zero,
+            KeepTogether = IsShortCodeListing(content),
+            KeepTogetherOverflow = PdfCore.PdfKeepTogetherOverflowBehavior.SplitAcrossPages
         }));
 
         if (!string.IsNullOrWhiteSpace(code.Caption)) {
@@ -466,14 +468,16 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    // Short listings stay on one page; long ones may continue on the next.
+    // Short listings stay on one page; long ones may continue on the next. The constraint sits on the
+    // paragraph because only the layout pass knows whether wrapped lines fit a page, and its overflow
+    // policy splits the listing when they do not. An empty listing has no height to keep.
     private const int KeepTogetherCodeLineLimit = 15;
 
-    private static PdfCore.PdfPanelStyle ShortCodePanelStyle(PdfCore.PdfPanelStyle style, string content) {
+    private static bool IsShortCodeListing(string content) {
+        if (string.IsNullOrWhiteSpace(content)) return false;
         int lines = 1;
         foreach (char ch in content) if (ch == '\n') lines++;
-        if (lines <= KeepTogetherCodeLineLimit) style.KeepTogether = true;
-        return style;
+        return lines <= KeepTogetherCodeLineLimit;
     }
 
     private static void RenderSemanticFencedBlock(PdfCore.PdfDocument pdf, SemanticFencedBlock semantic, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
