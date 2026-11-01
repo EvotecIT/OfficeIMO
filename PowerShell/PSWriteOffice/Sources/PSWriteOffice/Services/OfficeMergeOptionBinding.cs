@@ -2,10 +2,12 @@ using System;
 using System.Collections;
 using System.Management.Automation;
 using System.Reflection;
+using System.Linq;
 using OfficeIMO.Excel;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using PSWriteOffice.Foundation;
+using PSWriteOffice.Models.Excel;
 
 namespace PSWriteOffice.Services;
 
@@ -19,9 +21,17 @@ internal static class OfficeMergeOptionBinding {
         };
         object result = Activator.CreateInstance(type)!;
         bool typed = false;
+        OfficeSheetSelector[]? sheets = null;
         foreach (object item in values ?? Array.Empty<object>()) {
             object? value = Unwrap(item);
             if (value is IDictionary) continue;
+            if (family == OfficeMergeFamily.Excel && value is ExcelMergeOptions selection) {
+                if (typed) throw new PSArgumentException("Provide at most one typed merge options object.");
+                typed = true;
+                result = selection.NativeOptions.Clone();
+                sheets = selection.Sheet?.ToArray();
+                continue;
+            }
             if (value == null || !type.IsInstanceOfType(value))
                 throw new PSArgumentException("The selected merge accepts only " + type.Name + " or property hashtables.");
             if (typed) throw new PSArgumentException("Provide at most one typed merge options object.");
@@ -50,6 +60,12 @@ internal static class OfficeMergeOptionBinding {
                     throw new PSArgumentException("PDF resize settings require finite positive dimensions and a margin leaving positive content area.");
             }
         }
+        if (family == OfficeMergeFamily.Excel) {
+            var native = (ExcelWorkbookMergeOptions)result;
+            if (sheets != null && native.SheetNames != null)
+                throw new PSArgumentException("Choose the factory Sheet selection or native SheetNames, not both.");
+            return new ExcelMergeOptions(native, sheets);
+        }
         return result;
     }
 
@@ -59,6 +75,7 @@ internal static class OfficeMergeOptionBinding {
     }
 
     private static object CopyOptions(object source) {
+        if (source is ExcelWorkbookMergeOptions excel) return excel.Clone();
         object copy = CopyProperties(source);
         if (copy is PdfMergeOptions pdf) {
             if (pdf.Policy != null) pdf.Policy = (PdfMergePolicy)CopyProperties(pdf.Policy);

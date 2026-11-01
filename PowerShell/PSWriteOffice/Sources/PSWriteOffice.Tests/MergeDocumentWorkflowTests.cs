@@ -11,7 +11,7 @@ using PSWriteOffice.Cmdlets.Conversion;
 namespace PSWriteOffice.Tests;
 
 [Collection(PowerShellRunspaceCollection.Name)]
-public sealed class MergeDocumentWorkflowTests {
+public sealed partial class MergeDocumentWorkflowTests {
     [Fact]
     public void DirectoryAliasesCannotTurnMergePublicationIntoSourceReplacement() {
         using var files = new MergeFiles();

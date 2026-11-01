@@ -15302,7 +15302,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates workbook merge settings for Merge-OfficeDocument.",
-      "outputType": "OfficeIMO.Excel.ExcelWorkbookMergeOptions",
+      "outputType": "PSWriteOffice.Models.Excel.ExcelMergeOptions",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -15337,7 +15337,7 @@
           ]
         }
       ],
-      "notes": "Carries the settings of Join-OfficeExcelWorkbook. -Sheet takes names (wildcards allowed), 1-based positions or sheet objects, like -Sheet on every Excel command.",
+      "notes": "Carries native import settings and typed -Sheet selectors for appended source files: names/wildcards, 1-based positions or sheet objects from saved sources. The first input or live Document remains the base. No wildcard matches imports no sheets; sheet objects identify their own source. Native SheetNames and the factory Sheet selection cannot be combined.",
       "examples": [
         {
           "title": "Merge workbooks into one",

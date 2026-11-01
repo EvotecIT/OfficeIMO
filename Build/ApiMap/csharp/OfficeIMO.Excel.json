@@ -11814,6 +11814,14 @@
       "reason": "Edit one odd-page running-text half without replacing the other half, omitted sections, print flags or authored first/even-page variants. Empty text clears a section; null preserves it. An explicit disabled-to-enabled transition initializes missing variant content; disabling its flag retains authored text.",
       "file": "OfficeIMO.Excel/ExcelSheet.HeaderFooterSections.cs",
       "applied": "implemented"
+    },
+    {
+      "phase": "M5",
+      "action": "add",
+      "new": "ExcelWorkbookMergeOptions.Clone()",
+      "reason": "Captures native import policies, resource limits and an independent worksheet-name list for reusable merge settings.",
+      "file": "OfficeIMO.Excel/ExcelWorkbookMergeOptions.cs",
+      "applied": "implemented"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

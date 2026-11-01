@@ -62,7 +62,7 @@ public sealed class MergeOfficeDocumentCommand : PSCmdlet {
     [AllowEmptyCollection]
     public SecureString[]? Password { get; set; }
 
-    /// <summary>Native Word, PDF or Excel merge options objects or property hashtables for the selected format.</summary>
+    /// <summary>Native merge settings, New-OfficeExcelMergeOptions results, or property hashtables for the selected format.</summary>
     [Parameter]
     [ValidateNotNullOrEmpty]
     public object[]? Options { get; set; }
