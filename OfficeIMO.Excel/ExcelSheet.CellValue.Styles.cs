@@ -430,7 +430,7 @@ namespace OfficeIMO.Excel {
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            ApplyDerivedCellFormat(stylesheet, cell, wrapText ? "wrap" : "no-wrap", () => {
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, wrapText ? "wrap" : "no-wrap", null, () => {
                 ApplyCellFormatOverride(stylesheet, cell, format => {
                     var alignment = format.Alignment ?? new Alignment();
                     alignment.WrapText = wrapText ? true : null;
@@ -438,7 +438,6 @@ namespace OfficeIMO.Excel {
                     format.ApplyAlignment = true;
                 });
             });
-            SaveStylesheet(stylesPart);
         }
 
         /// <summary>
@@ -673,7 +672,7 @@ namespace OfficeIMO.Excel {
 
                 string argb = NormalizeHexColor(hexColor);
 
-                ApplyDerivedCellFormat(stylesheet, cell, "font-color " + argb, () => {
+                ApplyDerivedCellFormat(stylesPart, stylesheet, cell, "font-color", argb, () => {
                     uint baseIndex = cell.StyleIndex?.Value ?? 0U;
                     var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
                     var fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetFontColor(font, argb));
@@ -682,8 +681,6 @@ namespace OfficeIMO.Excel {
                         format.ApplyFont = true;
                     });
                 });
-
-                SaveStylesheet(stylesPart);
             });
         }
 
@@ -696,7 +693,7 @@ namespace OfficeIMO.Excel {
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            ApplyDerivedCellFormat(stylesheet, cell, bold ? "bold" : "not-bold", () => {
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, bold ? "bold" : "not-bold", null, () => {
                 uint baseIndex = cell.StyleIndex?.Value ?? 0U;
                 var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
                 var boldFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetBold(font, bold));
@@ -705,7 +702,6 @@ namespace OfficeIMO.Excel {
                     format.ApplyFont = true;
                 });
             });
-            SaveStylesheet(stylesPart);
         }
 
         private void ApplyFontItalic(Cell cell, bool italic) {
@@ -717,7 +713,7 @@ namespace OfficeIMO.Excel {
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            ApplyDerivedCellFormat(stylesheet, cell, italic ? "italic" : "not-italic", () => {
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, italic ? "italic" : "not-italic", null, () => {
                 uint baseIndex = cell.StyleIndex?.Value ?? 0U;
                 var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
                 var italicFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetItalic(font, italic));
@@ -726,7 +722,6 @@ namespace OfficeIMO.Excel {
                     format.ApplyFont = true;
                 });
             });
-            SaveStylesheet(stylesPart);
         }
 
         private void ApplyFontUnderline(Cell cell, bool underline) {
@@ -738,7 +733,7 @@ namespace OfficeIMO.Excel {
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            ApplyDerivedCellFormat(stylesheet, cell, underline ? "underline" : "not-underline", () => {
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, underline ? "underline" : "not-underline", null, () => {
                 uint baseIndex = cell.StyleIndex?.Value ?? 0U;
                 var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
                 var underlineFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetUnderline(font, underline));
@@ -747,7 +742,6 @@ namespace OfficeIMO.Excel {
                     format.ApplyFont = true;
                 });
             });
-            SaveStylesheet(stylesPart);
         }
 
         private void ApplyFontUnderline(Cell cell, ExcelUnderlineStyle underlineStyle) {
@@ -862,7 +856,7 @@ namespace OfficeIMO.Excel {
             EnsureDefaultStylePrimitives(stylesheet);
 
             // Create a fill with a literal color or a native theme slot.
-            ApplyDerivedCellFormat(stylesheet, cell, "fill " + (color.Rgb?.Value ?? color.OuterXml), () => {
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, "fill", color.Rgb?.Value ?? color.OuterXml, () => {
                 var fill = new Fill(new PatternFill {
                     PatternType = PatternValues.Solid,
                     ForegroundColor = new ForegroundColor { Rgb = color.Rgb, Theme = color.Theme },
@@ -874,7 +868,6 @@ namespace OfficeIMO.Excel {
                     format.ApplyFill = true;
                 });
             });
-            SaveStylesheet(stylesPart);
         }
 
         private void FillRangeCore(int firstRow, int firstColumn, int lastRow, int lastColumn, string hexColor) {
@@ -943,13 +936,13 @@ namespace OfficeIMO.Excel {
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            uint numberFormatId = GetOrCreateNumberFormatId(stylesheet, numberFormat);
-
-            ApplyCellFormatOverride(stylesheet, cell, format => {
-                format.NumberFormatId = numberFormatId;
-                format.ApplyNumberFormat = true;
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, "number-format", numberFormat, () => {
+                uint numberFormatId = GetOrCreateNumberFormatId(stylesheet, numberFormat);
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    format.NumberFormatId = numberFormatId;
+                    format.ApplyNumberFormat = true;
+                });
             });
-            SaveStylesheet(stylesPart);
             ClearHeaderCacheForCellMutation(row, column);
         }
 
