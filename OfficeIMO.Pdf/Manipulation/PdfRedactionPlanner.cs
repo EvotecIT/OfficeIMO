@@ -162,7 +162,7 @@ internal static partial class PdfRedactionPlanner {
             }
         }
 
-        PdfRedactionFormAnalysis forms = PdfRedactionApplier.AnalyzeFormFields(readDocument, areaArray);
+        PdfRedactionFormAnalysis forms = PdfRedactionApplier.AnalyzeFormFields(readDocument, areaArray, readDocument.ReadOptions.Limits);
         foreach (PdfRedactionAffectedField field in forms.Fields) {
             int pageNumber = field.Pages.Count > 0 ? field.Pages.Min() : areaArray[0].PageNumber;
             double x = 0D, y = 0D, width = 0D, height = 0D;
@@ -341,7 +341,7 @@ internal static partial class PdfRedactionPlanner {
 
             foreach (PdfAnnotation annotation in page.Annotations) {
                 if (!area.IntersectsUnderlay(annotation.X1, annotation.Y1, annotation.Width, annotation.Height) &&
-                    !PdfRedactionApplier.CarriesSearchedText(document.Objects, document.Pages[page.PageNumber - 1].ObjectNumber, annotation, new[] { area })) {
+                    !PdfRedactionApplier.CarriesSearchedText(document.Objects, document.Pages[page.PageNumber - 1].ObjectNumber, annotation, new[] { area }, document.ReadOptions.Limits)) {
                     continue;
                 }
 

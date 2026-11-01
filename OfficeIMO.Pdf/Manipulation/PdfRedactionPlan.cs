@@ -428,7 +428,7 @@ public sealed class PdfRedactionPlan {
                 identity.Append("|R:Properties:");
                 PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("Properties", out PdfObject? properties) ? properties : null, document.Objects);
                 AppendFormRenderingResourceIdentity(identity, document.Objects, resources,
-                    PdfRedactionApplier.FindUnpaintedFormsHoldingSearch(document.Objects, page.PageDictionary, reviewedAreas));
+                    PdfRedactionApplier.FindUnpaintedFormsHoldingSearch(document.Objects, page.PageDictionary, reviewedAreas, document.ReadOptions.Limits));
                 break;
             }
             if (!current.Items.TryGetValue("Parent", out PdfObject? parentObject) ||
@@ -763,7 +763,7 @@ public sealed class PdfRedactionPlan {
             if (affectedFields.Count > 0 && annotation.SourceDictionary is PdfDictionary widget &&
                 affectedFields.Contains(PdfRedactionApplier.GetFieldName(document.Objects, widget))) continue;
             // Carrying the searched text takes it out of the kept set wherever it sits.
-            if (PdfRedactionApplier.CarriesSearchedText(document.Objects, page.ObjectNumber, annotation, pageAreas)) continue;
+            if (PdfRedactionApplier.CarriesSearchedText(document.Objects, page.ObjectNumber, annotation, pageAreas, document.ReadOptions.Limits)) continue;
 
             identity.Append("|A:");
             AppendIdentityString(identity, annotation.Subtype);

@@ -59,4 +59,24 @@ public partial class PdfRedactionApplierTests {
 
         Assert.Contains(plan.Findings, static finding => finding.Code == "redaction-search-unplanned-residue");
     }
+
+    [Fact]
+    public void FormStreamOverDecodedLimitBlocksSearchRedaction() {
+        byte[] form = Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 700 Td (" + new string('x', 4096) + ") Tj ET");
+        byte[] input = BuildPdf(new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Resources << /Font << /F1 4 0 R >> /XObject << /Fm0 6 0 R >> >> >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (TOPSECRET) Tj ET")),
+            BuildStreamObject(6, form, "/Type /XObject /Subtype /Form /BBox [0 0 612 792]")
+        }, rootObjectNumber: 1);
+        var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 1024 } };
+        PdfDocument source = PdfDocument.Load(input, options);
+        PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral(ResidueHolderQuery));
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => source.Redactions.ApplyWithEvidence(plan));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+    }
 }
