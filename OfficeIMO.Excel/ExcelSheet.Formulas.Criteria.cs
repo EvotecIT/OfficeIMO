@@ -125,103 +125,17 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryEvaluateCondition(string condition, out bool result) {
-            result = false;
-            if (TrySplitFormulaComparison(condition, out string leftToken, out string comparisonOperator, out string rightToken)) {
-                if (!TryResolveFormulaArgument(leftToken, out FormulaArgumentValue leftValue)
-                    || !TryResolveFormulaArgument(rightToken, out FormulaArgumentValue rightValue)
-                    || leftValue.IsUnresolvedFormula || rightValue.IsUnresolvedFormula
-                    || !leftValue.HasValue || !rightValue.HasValue) return false;
-                return TryCompareFormulaValues(leftValue, comparisonOperator, rightValue, out result);
-            }
-
-            if (TryResolveBooleanArgument(condition, out bool booleanResult)) {
-                result = booleanResult;
-                return true;
-            }
-
-            return false;
+            return TryEvaluateCondition(condition, out result, out FormulaArgumentValue error) && !error.IsError;
         }
 
-        private static bool TrySplitFormulaComparison(string condition, out string left, out string comparisonOperator, out string right) {
-            left = string.Empty;
-            comparisonOperator = string.Empty;
-            right = string.Empty;
-            string value = condition.Trim();
-            int depth = 0;
-            int bracketDepth = 0;
-            bool inString = false;
-
-            for (int index = 0; index < value.Length; index++) {
-                char ch = value[index];
-                if (ch == '"') {
-                    if (inString && index + 1 < value.Length && value[index + 1] == '"') {
-                        index++;
-                        continue;
-                    }
-
-                    inString = !inString;
-                    continue;
-                }
-
-                if (inString) {
-                    continue;
-                }
-
-                if (ch == '(') {
-                    depth++;
-                    continue;
-                }
-
-                if (ch == ')') {
-                    depth--;
-                    if (depth < 0) {
-                        return false;
-                    }
-
-                    continue;
-                }
-
-                if (ch == '[') {
-                    bracketDepth++;
-                    continue;
-                }
-
-                if (ch == ']') {
-                    bracketDepth--;
-                    if (bracketDepth < 0) {
-                        return false;
-                    }
-
-                    continue;
-                }
-
-                if (depth != 0 || bracketDepth != 0) {
-                    continue;
-                }
-
-                string? op = null;
-                if (index + 1 < value.Length) {
-                    string pair = value.Substring(index, 2);
-                    if (pair == ">=" || pair == "<=" || pair == "<>") {
-                        op = pair;
-                    }
-                }
-
-                if (op == null && (ch == '=' || ch == '>' || ch == '<')) {
-                    op = ch.ToString();
-                }
-
-                if (op == null) {
-                    continue;
-                }
-
-                left = value.Substring(0, index).Trim();
-                comparisonOperator = op;
-                right = value.Substring(index + op.Length).Trim();
-                return left.Length > 0 && right.Length > 0;
-            }
-
-            return false;
+        private bool TryEvaluateCondition(string condition, out bool result, out FormulaArgumentValue error) {
+            result = false;
+            error = default;
+            if (!TryResolveFormulaArgument(condition, out FormulaArgumentValue value) || value.IsUnresolvedFormula) return false;
+            if (value.IsError) { error = value; return true; }
+            if (!value.Number.HasValue) return false;
+            result = Math.Abs(value.Number.Value) >= double.Epsilon;
+            return true;
         }
 
         private static bool TryCompareFormulaValues(FormulaArgumentValue left, string comparisonOperator, FormulaArgumentValue right, out bool result) {

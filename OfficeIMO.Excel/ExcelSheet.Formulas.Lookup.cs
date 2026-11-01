@@ -156,31 +156,47 @@ namespace OfficeIMO.Excel {
 
         private bool TryEvaluateSumProduct(string args, out double result) {
             result = 0;
+            if (!TryEvaluateSumProductValue(args, out FormulaArgumentValue value) || !value.Number.HasValue) return false;
+            result = value.Number.Value;
+            return true;
+        }
+
+        private bool TryEvaluateSumProductValue(string args, out FormulaArgumentValue result) {
+            result = default;
             var tokens = SplitFormulaArguments(args);
             if (tokens.Count == 0) {
                 return false;
             }
 
-            var argumentSets = new List<List<double>>();
+            var argumentSets = new List<List<FormulaArgumentValue>>();
+            FormulaArgumentValue firstError = default;
             int remainingCellBudget = MaxResolvedFormulaRangeCells;
             foreach (string token in tokens) {
-                if (!TryResolveFormulaArgumentNumbers(token, out var values, ref remainingCellBudget)) {
-                    return false;
+                if (!TryResolveFormulaRange(token, out var values, ref remainingCellBudget, out bool isReference)) {
+                    if (isReference || !TryResolveFormulaArgument(token, out FormulaArgumentValue scalar)) return false;
+                    values = new List<FormulaArgumentValue> { scalar };
+                }
+                foreach (FormulaArgumentValue value in values) {
+                    if (value.IsUnresolvedFormula) return false;
+                    if (value.IsError) { if (!firstError.IsError) firstError = value; }
+                    else if (!value.IsNumericAggregateValue || !IsFinite(value.Number!.Value)) return false;
                 }
                 argumentSets.Add(values);
             }
             if (_formulaReferenceError.IsError) return true;
             if (argumentSets.Any(values => values.Count == 0 || values.Count != argumentSets[0].Count)) return false;
+            if (firstError.IsError) { result = firstError; return true; }
 
+            double sum = 0;
             for (int index = 0; index < argumentSets[0].Count; index++) {
                 double product = 1d;
                 foreach (var values in argumentSets) {
-                    product *= values[index];
+                    product *= values[index].Number!.Value;
                 }
 
-                result += product;
+                sum += product;
             }
-
+            result = IsFinite(sum) ? new FormulaArgumentValue(sum, InvariantNumberText.Get(sum)) : FormulaArgumentValue.Error("#NUM!");
             return true;
         }
 

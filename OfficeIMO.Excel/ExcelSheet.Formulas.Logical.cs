@@ -63,9 +63,9 @@ namespace OfficeIMO.Excel {
         private bool TryEvaluateIfValue(string args, out FormulaArgumentValue result) {
             result = default;
             var tokens = SplitFormulaArguments(args);
-            if (tokens.Count != 3
-                || !TryEvaluateCondition(tokens[0], out bool condition)
-                || !TryResolveFormulaArgument(tokens[condition ? 1 : 2], out result)
+            if (tokens.Count != 3 || !TryEvaluateCondition(tokens[0], out bool condition, out FormulaArgumentValue error)) return false;
+            if (error.IsError) { result = error; return true; }
+            if (!TryResolveFormulaArgument(tokens[condition ? 1 : 2], out result)
                 || result.IsUnresolvedFormula
                 || !result.HasValue) {
                 return false;
@@ -82,9 +82,10 @@ namespace OfficeIMO.Excel {
             }
 
             for (int index = 0; index < tokens.Count; index += 2) {
-                if (!TryEvaluateCondition(tokens[index], out bool condition)) {
+                if (!TryEvaluateCondition(tokens[index], out bool condition, out FormulaArgumentValue error)) {
                     return false;
                 }
+                if (error.IsError) { result = error; return true; }
 
                 if (!condition) {
                     continue;
@@ -112,6 +113,7 @@ namespace OfficeIMO.Excel {
             }
 
             int pairEnd = tokens.Count;
+            if (expression.IsError) { result = expression; return true; }
             bool hasDefault = tokens.Count % 2 == 0;
             if (hasDefault) {
                 pairEnd--;
@@ -124,6 +126,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
+                if (candidate.IsError) { result = candidate; return true; }
                 if (!FormulaValuesEqual(expression, candidate)) {
                     continue;
                 }
@@ -142,9 +145,10 @@ namespace OfficeIMO.Excel {
         private bool TryEvaluateChooseValue(string args, out FormulaArgumentValue result) {
             result = default;
             var tokens = SplitFormulaArguments(args);
-            if (tokens.Count < 2 || !TryGetWholeNumberArgument(tokens[0], out int index)) {
+            if (tokens.Count < 2 || !TryGetLookupIntegerArgument(tokens[0], out int index, out FormulaArgumentValue error)) {
                 return false;
             }
+            if (error.IsError) { result = error; return true; }
 
             if (index < 1 || index >= tokens.Count) {
                 return false;

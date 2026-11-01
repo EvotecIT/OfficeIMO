@@ -52,11 +52,13 @@ namespace OfficeIMO.Excel {
                 if (tokens.Count != 2
                     || !TryResolveFormulaArgument(tokens[0], out FormulaArgumentValue value)
                     || value.IsUnresolvedFormula
-                    || !value.HasValue
-                    || !TryResolveTextArgument(tokens[1], out string format)
-                    || !TryFormatTextFunctionValue(value, format, out string formatted)) {
+                    || !value.HasValue) {
                     return false;
                 }
+                if (value.IsError && !_formulaReferenceError.IsError) _formulaReferenceError = value;
+                if (!TryResolveTextArgument(tokens[1], out string format)) return false;
+                if (_formulaReferenceError.IsError) return true;
+                if (!TryFormatTextFunctionValue(value, format, out string formatted)) return false;
 
                 result = new FormulaArgumentValue(null, formatted);
                 return true;
@@ -74,7 +76,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 int count = 1;
-                if (tokens.Count == 2 && !TryGetWholeNumberArgument(tokens[1], out count)) {
+                if (tokens.Count == 2 && !TryGetTextWholeNumberArgument(tokens[1], out count)) {
                     return false;
                 }
 
@@ -92,8 +94,8 @@ namespace OfficeIMO.Excel {
             if (function == "MID") {
                 if (tokens.Count != 3
                     || !TryResolveTextArgument(tokens[0], out string text)
-                    || !TryGetWholeNumberArgument(tokens[1], out int start)
-                    || !TryGetWholeNumberArgument(tokens[2], out int count)
+                    || !TryGetTextWholeNumberArgument(tokens[1], out int start)
+                    || !TryGetTextWholeNumberArgument(tokens[2], out int count)
                     || start < 1
                     || count < 0) {
                     return false;
@@ -152,7 +154,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (tokens.Count == 4) {
-                    if (!TryGetWholeNumberArgument(tokens[3], out int occurrence) || occurrence < 1) {
+                    if (!TryGetTextWholeNumberArgument(tokens[3], out int occurrence) || occurrence < 1) {
                         return false;
                     }
 
@@ -173,7 +175,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 int start = 1;
-                if (tokens.Count == 3 && !TryGetWholeNumberArgument(tokens[2], out start)) {
+                if (tokens.Count == 3 && !TryGetTextWholeNumberArgument(tokens[2], out start)) {
                     return false;
                 }
 
@@ -199,10 +201,11 @@ namespace OfficeIMO.Excel {
 
             if (function == "VALUE") {
                 if (tokens.Count != 1
-                    || !TryResolveTextArgument(tokens[0], out string text)
-                    || !TryParseValueFunctionNumber(text, out double number)) {
+                    || !TryResolveTextArgument(tokens[0], out string text)) {
                     return false;
                 }
+                if (_formulaReferenceError.IsError) return true;
+                if (!TryParseValueFunctionNumber(text, out double number)) return false;
 
                 result = new FormulaArgumentValue(number, InvariantNumberText.Get(number));
                 return true;
@@ -223,7 +226,7 @@ namespace OfficeIMO.Excel {
             if (function == "REPT") {
                 if (tokens.Count != 2
                     || !TryResolveTextArgument(tokens[0], out string text)
-                    || !TryGetWholeNumberArgument(tokens[1], out int count)
+                    || !TryGetTextWholeNumberArgument(tokens[1], out int count)
                     || count < 0) {
                     return false;
                 }
@@ -259,7 +262,7 @@ namespace OfficeIMO.Excel {
             }
 
             int instance = 1;
-            if (tokens.Count >= 3 && !TryGetWholeNumberArgument(tokens[2], out instance)) {
+            if (tokens.Count >= 3 && !TryGetTextWholeNumberArgument(tokens[2], out instance)) {
                 return false;
             }
 
@@ -268,7 +271,7 @@ namespace OfficeIMO.Excel {
             }
 
             int matchMode = 0;
-            if (tokens.Count >= 4 && (!TryGetWholeNumberArgument(tokens[3], out matchMode) || (matchMode != 0 && matchMode != 1))) {
+            if (tokens.Count >= 4 && (!TryGetTextWholeNumberArgument(tokens[3], out matchMode) || (matchMode != 0 && matchMode != 1))) {
                 return false;
             }
 
@@ -277,10 +280,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            string? ifNotFound = null;
-            if (tokens.Count >= 6 && !TryResolveTextArgument(tokens[5], out ifNotFound)) {
-                return false;
-            }
+            if (_formulaReferenceError.IsError) return true;
 
             StringComparison comparison = matchMode == 1 ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
             if (!TryFindTextDelimiterOccurrence(text, delimiter, instance, comparison, out int index)) {
@@ -289,7 +289,8 @@ namespace OfficeIMO.Excel {
                     return true;
                 }
 
-                if (ifNotFound != null) {
+                if (tokens.Count >= 6) {
+                    if (!TryResolveTextArgument(tokens[5], out string ifNotFound)) return false;
                     result = new FormulaArgumentValue(null, ifNotFound);
                     return true;
                 }

@@ -1405,6 +1405,11 @@ integral numeric subset; array-returning `INDEX` zero selectors, approximate
 `VLOOKUP`/`HLOOKUP`, wildcard/binary lookup modes and unsupported operands
 remain unevaluated, including inside error handlers.
 
+Error-valued conditions and selectors also propagate through `IF`, `IFS`,
+`SWITCH` and `CHOOSE`. Text helpers preserve operand errors instead of treating
+their codes as text, and `SUMPRODUCT` preserves errors in its supported numeric
+vectors. `TEXTBEFORE`/`TEXTAFTER` evaluate an explicit fallback only when needed.
+
 `XLOOKUP` retains empty optional argument positions: an empty fallback uses
 `#N/A`, an empty match mode uses exact matching, and an empty search mode scans
 from the first item. The [fresh Excel reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-xlookup-optional-v16.113.3.json)

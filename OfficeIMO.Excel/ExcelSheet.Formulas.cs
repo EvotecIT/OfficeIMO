@@ -689,6 +689,7 @@ namespace OfficeIMO.Excel {
                     if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10" or "CEILING" or "FLOOR" or "EVEN" or "ODD" or "FACT" or "COMBIN") return TryEvaluateScalarMathValue(function, args, out result);
                     if (function is "GCD" or "LCM") return TryEvaluateIntegerAggregateValue(function, args, out result);
                     if (function == "PROB") return TryEvaluateProbabilityValue(args, out result);
+                    if (function == "SUMPRODUCT") return TryEvaluateSumProductValue(args, out result);
                     if (function is "IPMT" or "PPMT") return TryEvaluatePaymentSplitValue(function, args, out result);
                     if (function is "RATE" or "IRR" or "XIRR" or "XNPV") return TryEvaluateCashFlowValue(function, args, out result);
                     if (function == "RANDBETWEEN") return TryEvaluateRandomBetweenValue(args, out result);

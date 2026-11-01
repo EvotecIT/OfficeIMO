@@ -36,8 +36,22 @@ namespace OfficeIMO.Excel {
             if (value.IsUnresolvedFormula) {
                 return false;
             }
+            // Keep the typed error in this expression's scope while the caller
+            // qualifies its remaining arguments. It must never become ordinary text.
+            if (value.IsError && !_formulaReferenceError.IsError) _formulaReferenceError = value;
 
             text = FormulaValueToText(value);
+            return true;
+        }
+
+        private bool TryGetTextWholeNumberArgument(string token, out int number) {
+            if (!TryGetLookupIntegerArgument(token, out number, out FormulaArgumentValue error)) return false;
+            if (error.IsError) {
+                if (!_formulaReferenceError.IsError) _formulaReferenceError = error;
+                // A harmless positive selector lets the owner qualify the other
+                // operands before the expression publishes the pending error.
+                number = 1;
+            }
             return true;
         }
 
