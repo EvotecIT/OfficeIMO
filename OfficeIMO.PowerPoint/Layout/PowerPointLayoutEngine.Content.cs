@@ -342,11 +342,11 @@ namespace OfficeIMO.PowerPoint {
             var natural = new double[columns];
             metrics.Numeric = new bool[columns];
             for (int c = 0; c < columns; c++) {
-                double w = table.IncludeHeaders ? PowerPointTextMeasure.Width(table.Headers[c], metrics.HeaderSize, context.Theme.BodyFont, true) : 0D;
+                double w = table.IncludeHeaders ? WidestLine(table.Headers[c], metrics.HeaderSize, context.Theme.BodyFont, true) : 0D;
                 bool numeric = table.Rows.Count > 0;
                 foreach (IReadOnlyList<string> row in table.Rows) {
                     string value = c < row.Count ? row[c] ?? string.Empty : string.Empty;
-                    w = Math.Max(w, PowerPointTextMeasure.Width(value, metrics.BodySize, context.Theme.BodyFont));
+                    w = Math.Max(w, WidestLine(value, metrics.BodySize, context.Theme.BodyFont, false));
                     if (!IsNumeric(value) && !string.IsNullOrWhiteSpace(value)) numeric = false;
                 }
 
@@ -370,6 +370,9 @@ namespace OfficeIMO.PowerPoint {
 
             return metrics;
         }
+
+        private static double WidestLine(string? text, double size, string family, bool bold) =>
+            PowerPointLayoutRun.NormalizeBreaks(text).Split('\n').Max(line => PowerPointTextMeasure.Width(line, size, family, bold));
 
         /// <summary>Rows a table row occupies toward the slide limit: one per line, wrapping at most two lines.</summary>
         private static int RowUnits(PowerPointLayoutContext context, TableMetrics metrics, IReadOnlyList<string> row) {
@@ -516,7 +519,7 @@ namespace OfficeIMO.PowerPoint {
                 string properties = "<a:rPr lang=\"en-US\" sz=\"" + ((int)Math.Round(size * 100D)).ToString(CultureInfo.InvariantCulture) +
                     "\" b=\"" + (header ? '1' : '0') + "\" dirty=\"0\"><a:solidFill>" + writer.ColorXml(color) +
                     "</a:solidFill><a:latin typeface=\"+mn-lt\"/></a:rPr>";
-                string[] lines = (text ?? string.Empty).Split('\v');
+                string[] lines = PowerPointLayoutRun.NormalizeBreaks(text).Split('\n');
                 for (int i = 0; i < lines.Length; i++) {
                     if (i > 0) b.Append("<a:br>").Append(properties).Append("</a:br>");
                     b.Append("<a:r>").Append(properties).Append("<a:t>").Append(PowerPointLayoutWriter.X(lines[i])).Append("</a:t></a:r>");
@@ -562,8 +565,8 @@ namespace OfficeIMO.PowerPoint {
             double total = heights.Sum();
             PowerPointTable result = writer.Slide.AddTable(Math.Max(1, table.Rows.Count + (table.IncludeHeaders ? 1 : 0)), Math.Max(1, table.Headers.Count),
                 OfficeLength.Points(box.X), OfficeLength.Points(box.Y), OfficeLength.Points(width), OfficeLength.Points(total));
-            result.Description = !string.IsNullOrWhiteSpace(table.Caption) ? table.Caption :
-                "Table with " + table.Rows.Count.ToString(CultureInfo.InvariantCulture) + " data rows. Columns: " + string.Join(", ", table.Headers) + ".";
+            result.Description = PowerPointLayoutRun.FlattenBreaks(!string.IsNullOrWhiteSpace(table.Caption) ? table.Caption :
+                "Table with " + table.Rows.Count.ToString(CultureInfo.InvariantCulture) + " data rows. Columns: " + string.Join(", ", table.Headers) + ".");
             A.Table element = result.TableElement;
             A.GraphicData data = (A.GraphicData)element.Parent!;
             element.Remove();
@@ -654,7 +657,7 @@ namespace OfficeIMO.PowerPoint {
                 Width = OfficeLength.Points(box.Width), Height = OfficeLength.Points(box.Height),
                 Accessibility = new PowerPointChartAccessibilityOptions {
                     Name = "Chart",
-                    AlternativeText = chart.AlternativeText ?? chart.Title ?? "Chart",
+                    AlternativeText = PowerPointLayoutRun.FlattenBreaks(chart.AlternativeText ?? chart.Title ?? "Chart"),
                     IncludeDataSummaryInAlternativeText = true
                 }});
             result.ClearTitle();

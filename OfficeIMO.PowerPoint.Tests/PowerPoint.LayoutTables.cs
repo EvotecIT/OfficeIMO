@@ -39,6 +39,29 @@ public sealed class PowerPointLayoutTableTests {
     }
 
     [Fact]
+    public void EveryAuthoredLineBreakInACellIsWrittenAsADrawingMlBreak() {
+        using var document = PowerPointDocument.Create();
+        var table = new PowerPointLayoutTable(new[] { "Service\vOwner", "Detail" }, new IReadOnlyList<string>[] {
+            new[] { "one\ntwo", "unix" }, new[] { "one\r\ntwo", "windows" }, new[] { "one\vtwo", "soft" }
+        });
+        var options = PowerPointCompositionOptions.FromDesign(PowerPointDeckDesign.FromBrand("#2563EB", "table-breaks"));
+        options.ApplyTheme = false;
+        document.Compose(new PowerPointDeckPlan().AddContent("Services", new[] { table }), options);
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
+        Assert.Empty(saved.ValidateDocument());
+        var native = saved.Slides.SelectMany(slide => slide.Tables).Single();
+        Assert.Equal(new[] { "Service", "Owner" }, native.GetCell(0, 0).Paragraphs[0].InlineNodes
+            .Where(node => node.Kind == PowerPointParagraphInlineKind.Run).Select(node => node.Text));
+        for (int row = 1; row <= 3; row++) {
+            var inline = native.GetCell(row, 0).Paragraphs[0].InlineNodes;
+            Assert.Equal(new[] { PowerPointParagraphInlineKind.Run, PowerPointParagraphInlineKind.LineBreak, PowerPointParagraphInlineKind.Run },
+                inline.Select(node => node.Kind));
+            Assert.Equal("one", inline[0].Text);
+            Assert.Equal("two", inline[2].Text);
+        }
+    }
+
+    [Fact]
     public void SavedTableUsesItsAuthoredCaptionAsAlternativeText() {
         const string caption = "Service & owners <review>";
         using var document = PowerPointDocument.Create();

@@ -22,6 +22,13 @@ namespace OfficeIMO.PowerPoint {
             Tracking = style.Tracking;
         }
 
+        /// <summary>Reduces every authored line break to <c>\n</c>, which runs and table cells write as <c>a:br</c>.</summary>
+        internal static string NormalizeBreaks(string? text) =>
+            (text ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n').Replace('\v', '\n');
+
+        /// <summary>Single-line form for attribute text, where a vertical tab cannot be saved.</summary>
+        internal static string FlattenBreaks(string? text) => NormalizeBreaks(text).Replace('\n', ' ');
+
         internal string Text { get; }
         internal bool Heading { get; set; }
         internal double Size { get; }
