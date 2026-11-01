@@ -16,7 +16,8 @@ internal static class PublisherQuillParagraphStyleWriter {
         }
         OfficeTextTabStops? tabs = after.TabStops;
         bool aligned = after.Alignment is OfficeTextAlignment.Center or OfficeTextAlignment.Right;
-        if (tabs == null || tabs.DefaultInterval != 36 || tabs.Origin != -after.Margins.Left || tabs.AlignWithParagraph != aligned
+        if (tabs == null || before.TabStops == null || tabs.DefaultInterval != before.TabStops.DefaultInterval
+            || tabs.Origin != -after.Margins.Left || tabs.AlignWithParagraph != aligned
             || tabs.Stops.Any(stop => stop.Alignment != OfficeTextTabAlignment.Left || stop.Character != "."
                 || stop.LeaderText != null || stop.LineLeader != null || stop.LeaderStyle != null)) return null;
         var blocks = new PublisherBlockReader(source, context);

@@ -1,0 +1,103 @@
+{
+  "schema": "officeimo.publisher.native-fitting-fixture.v1",
+  "source": "../Text/native-text.pub",
+  "sourceSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+  "derivation": "Source-derived PublisherDocument edits followed by native read-only open, PDF export, SaveAs, reopen and second PDF export. PUB files are native-resaved outputs. Independent initial/resaved native page pixels agree at 144 dpi. This qualifies native observations, not the managed fitting algorithm, independent native creation or repair-free opening.",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "automationSecurity": 3
+  },
+  "arialSha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a",
+  "reproduction": "Retain the source paragraph/tab metadata. Replace the story with red A at threshold8 followed by the remaining blue letters at threshold0, Arial12, language1033. Set frame(54,54,14.5,90), one column, zero gap/insets and top alignment. Validate exact saved PUB with Invoke-NativePublisherOperation -Operation Validate -Stage Full.",
+  "interpretation": "Native AVAV/AVAA admit AV while AV/AVV do not. Consistent with lookahead pair adjustment during fitting followed by visible-line paint reshaping; continuation and clipping remain unimplemented.",
+  "files": [
+    {
+      "name": "native-av-14-5.pub",
+      "sha256": "172421ab877c50d6780a364459ba9cd88cf796092c224927b758ed36249e2747",
+      "word": "AV",
+      "nativeLines": [
+        "A",
+        "V"
+      ],
+      "sourceSha256": "8105150a163ff2cb6dcf62269e2a940db30fdb264eec5a4c02f4b4f78992e180"
+    },
+    {
+      "name": "native-av-14-5.pdf",
+      "sha256": "82bf3c169f32d6ac87c54abbd0353a71a3014dbae2bb0f1b78fbc54ddbd8e662",
+      "word": "AV",
+      "nativeLines": [
+        "A",
+        "V"
+      ],
+      "sourceSha256": "8105150a163ff2cb6dcf62269e2a940db30fdb264eec5a4c02f4b4f78992e180"
+    },
+    {
+      "name": "native-avv-14-5.pub",
+      "sha256": "310a7fe868d4dc509aa943c1e3c3a2e82efa1f16d2d302d00cb6514843e57b22",
+      "word": "AVV",
+      "nativeLines": [
+        "A",
+        "V",
+        "V"
+      ],
+      "sourceSha256": "7dcd013326c3d3a00d27dafe729afaf272da0a0a87f4a9d04c3ec59e1e97af0d"
+    },
+    {
+      "name": "native-avv-14-5.pdf",
+      "sha256": "33a64a05526e8a248893fbf755a829ce9a1a0f80f86a3e7636882fb691c95bbb",
+      "word": "AVV",
+      "nativeLines": [
+        "A",
+        "V",
+        "V"
+      ],
+      "sourceSha256": "7dcd013326c3d3a00d27dafe729afaf272da0a0a87f4a9d04c3ec59e1e97af0d"
+    },
+    {
+      "name": "native-avaa-14-5.pub",
+      "sha256": "463bb898867944063706d714522389fa6d912e9554f1cb4471d79a04d16ffa95",
+      "word": "AVAA",
+      "nativeLines": [
+        "AV",
+        "A",
+        "A"
+      ],
+      "sourceSha256": "a9970fd7c80b9c3af852018ce05730667b2f135200b2e33ace999bd0d6e2de82"
+    },
+    {
+      "name": "native-avaa-14-5.pdf",
+      "sha256": "4e4bf9bae09a5fd96409c4c3de7caf553396dfc002dbf53146072a58e50cc4b3",
+      "word": "AVAA",
+      "nativeLines": [
+        "AV",
+        "A",
+        "A"
+      ],
+      "sourceSha256": "a9970fd7c80b9c3af852018ce05730667b2f135200b2e33ace999bd0d6e2de82"
+    },
+    {
+      "name": "native-avav-14-5.pub",
+      "sha256": "113161a5622658e8f70c9b071e84e7723c5023e3b5f8db8378c6b4868afdb017",
+      "word": "AVAV",
+      "nativeLines": [
+        "AV",
+        "A",
+        "V"
+      ],
+      "sourceSha256": "17c77178e186baa67c2766648b8fa3d9a33b921044b4188444324e47ddf5b03c"
+    },
+    {
+      "name": "native-avav-14-5.pdf",
+      "sha256": "16dc3f93cd167c1bde0a24fc11b3af4baa83ed689cb8227e8b0cc0f6e851d073",
+      "word": "AVAV",
+      "nativeLines": [
+        "AV",
+        "A",
+        "V"
+      ],
+      "sourceSha256": "17c77178e186baa67c2766648b8fa3d9a33b921044b4188444324e47ddf5b03c"
+    }
+  ]
+}

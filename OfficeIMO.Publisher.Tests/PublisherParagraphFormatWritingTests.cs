@@ -68,7 +68,7 @@ public sealed class PublisherParagraphFormatWritingTests {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/Text/native-text.pub"));
         var source = document.TextStories[0].Paragraphs[0];
         var stops = new OfficeTextTabStops(new[] { variant == "tab-leader" ? new OfficeTextTabStop(72).WithLeader(".") : new OfficeTextTabStop(72) },
-            origin: variant == "tab-origin" ? 10 : 0);
+            source.TabStops!.DefaultInterval, origin: variant == "tab-origin" ? 10 : 0);
         var runs = variant == "tab-paragraph-alignment" ? new[] { new OfficeRichTextRun("Left\tMiddle\tRight", 12, OfficeColor.Black, fontFamily: "Arial") } : source.Runs;
         var paragraph = new OfficeRichTextParagraph(runs, variant == "tab-paragraph-alignment" ? OfficeTextAlignment.Center : source.Alignment, source.LineHeight,
             variant == "non-native-unit" ? new OfficeTextPadding(0, 1D / 3, 0, 0) : source.Margins,
@@ -93,7 +93,8 @@ public sealed class PublisherParagraphFormatWritingTests {
         double? height = variant == "exact" ? 18 : variant is "factor" or "single" or "combined" or "linked" or "chained-reset" ? null : source.LineHeight;
         double? factor = variant is "factor" or "combined" or "linked" ? 1.5 : variant is "single" or "chained-reset" ? 1 : variant == "exact" ? null : source.LineHeightFactor;
         var tabs = new OfficeTextTabStops(variant is "tabs" or "combined" ? new[] { new OfficeTextTabStop(72), new OfficeTextTabStop(144) }
-            : variant is "clear-tabs" or "chained-reset" ? Array.Empty<OfficeTextTabStop>() : source.TabStops!.Stops, origin: -margins.Left);
+            : variant is "clear-tabs" or "chained-reset" ? Array.Empty<OfficeTextTabStop>() : source.TabStops!.Stops,
+            source.TabStops!.DefaultInterval, origin: -margins.Left);
         if (variant == "chained-reset") alignment = OfficeTextAlignment.Left;
         return new OfficeRichTextParagraph(source.Runs, alignment, height, margins, indent, factor)
             .WithTabStops(tabs.WithParagraphAlignment(alignment is OfficeTextAlignment.Center or OfficeTextAlignment.Right));

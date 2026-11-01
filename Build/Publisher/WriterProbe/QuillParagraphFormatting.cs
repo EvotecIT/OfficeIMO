@@ -11,7 +11,7 @@ internal static class QuillParagraphFormatting {
         if (paragraph == null) return empty;
         var defaults = new OfficeRichTextParagraph(Array.Empty<OfficeRichTextRun>());
         var tabs = new OfficeTextTabStops(Array.Empty<OfficeTextTabStop>());
-        if (paragraph.TabStops != null) defaults = defaults.WithTabStops(tabs);
+        defaults = defaults.WithTabStops(tabs);
         if (!PublisherQuillParagraphStyleWriter.HasChanges(defaults, paragraph)) return empty;
         if (paragraph.TabStops == null) paragraph = paragraph.WithTabStops(tabs);
         return PublisherQuillParagraphStyleWriter.Rewrite(new PublisherBinaryData(empty, "authored paragraph"),

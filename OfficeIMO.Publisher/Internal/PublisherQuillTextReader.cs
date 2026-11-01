@@ -5,7 +5,10 @@ namespace OfficeIMO.Publisher.Internal;
 internal sealed class PublisherQuillTextReader {
     private readonly PublisherBinaryData _data;
     private readonly PublisherParseContext _context;
-    internal PublisherQuillTextReader(PublisherBinaryData data, PublisherParseContext context) { _data = data; _context = context; }
+    private readonly double? _documentTabInterval;
+    internal PublisherQuillTextReader(PublisherBinaryData data, PublisherParseContext context, double? documentTabInterval = null) {
+        _data = data; _context = context; _documentTabInterval = documentTabInterval;
+    }
     internal PublisherQuillText Read(IReadOnlyList<OfficeColor?> palette) {
         IReadOnlyList<PublisherQuillChunk> chunks = PublisherQuillDirectory.Read(_data, _context);
         PublisherQuillChunk? text = PublisherQuillDirectory.Single(chunks, "TEXT");
@@ -14,6 +17,7 @@ internal sealed class PublisherQuillTextReader {
         var styles = new PublisherQuillStyleReader(_data, _context, chunks, palette, text).Read();
         var result = new PublisherQuillText { StyleCatalog = styles.Catalog };
         if (text == null || text.Length == 0) return result;
+        double tabInterval = PublisherDefaultTabInterval.ReadText(_data, chunks, _documentTabInterval, _context);
         var idsChunk = PublisherQuillDirectory.Single(chunks, "SYID") ?? throw new InvalidDataException("Publisher text story identifiers are missing.");
         var lengthsChunk = PublisherQuillDirectory.Single(chunks, "STRS") ?? throw new InvalidDataException("Publisher text story lengths are missing.");
         _data.Range(idsChunk.Offset, 8, idsChunk.End);
@@ -34,7 +38,7 @@ internal sealed class PublisherQuillTextReader {
             if (characters > 100000) throw new InvalidDataException("Publisher story exceeds the shared drawing text limit of 100,000 characters.");
             if (characters > text.Length / 2 - position) throw new InvalidDataException("Publisher story extends past its text section.");
             string value = _data.Utf16(text.Offset + position * 2, characters * 2);
-            IReadOnlyList<OfficeRichTextParagraph> paragraphs = ReadParagraphs(value, position, styles);
+            IReadOnlyList<OfficeRichTextParagraph> paragraphs = ReadParagraphs(value, position, styles, tabInterval);
             if (result.Stories.ContainsKey(id)) throw new InvalidDataException("Duplicate Publisher text story identifier.");
             result.Stories.Add(id, new PublisherTextStory(id, Normalize(value), paragraphs));
             sourceStyles.Add(styles.BindStory(id, i, position, value, text.Offset));
@@ -61,7 +65,7 @@ internal sealed class PublisherQuillTextReader {
                 int end = checked(_data.Offset(_data.U32(chunk.Offset + 12 + i * 4)) + (i < cells - 1 ? 1 : 0));
                 if (end < start || end > story.Text.Length) throw new InvalidDataException("Publisher cell text endpoints are outside their story.");
                 string segment = story.Text.Substring(start, end - start);
-                IReadOnlyList<OfficeRichTextParagraph> paragraphs = ReadParagraphs(segment, story.Offset + start, styles);
+                IReadOnlyList<OfficeRichTextParagraph> paragraphs = ReadParagraphs(segment, story.Offset + start, styles, tabInterval);
                 segments.Add(new PublisherTextStory(story.Id, Normalize(segment), paragraphs));
                 start = end;
             }
@@ -72,7 +76,7 @@ internal sealed class PublisherQuillTextReader {
         result.StyleCatalog = styles.Catalog.WithStories(sourceStyles);
         return result;
     }
-    private IReadOnlyList<OfficeRichTextParagraph> ReadParagraphs(string text, int storyOffset, PublisherQuillStyles styles) {
+    private IReadOnlyList<OfficeRichTextParagraph> ReadParagraphs(string text, int storyOffset, PublisherQuillStyles styles, double tabInterval) {
         var paragraphs = new List<OfficeRichTextParagraph>();
         int start = 0, runCount = 0, projectedCharacters = 0;
         // A trailing native paragraph terminator belongs to its paragraph, not an additional empty paragraph.
@@ -101,7 +105,7 @@ internal sealed class PublisherQuillTextReader {
                 runCount++;
             }
             if (paragraph.Tabs == null && runs.Any(run => run.Text.IndexOf('\t') >= 0))
-                _context.Add("PUB_TAB_LAYOUT_APPROXIMATED", "Native tabs without an explicit array use the shared measured 36-point interval.",
+                _context.Add("PUB_TAB_LAYOUT_APPROXIMATED", "Undeclared native stops use the effective default interval and shared measured text advances.",
                     OfficeConversionLossKind.Approximation, "Quill/FDPP");
             OfficeTextParagraphLabel? label = ListLabel(paragraph, runs[0], styles);
             projectedCharacters = checked(projectedCharacters + runs.Sum(run => run.Text.Length)
@@ -113,7 +117,7 @@ internal sealed class PublisherQuillTextReader {
                 : new OfficeRichTextParagraph(runs, label, paragraph.Alignment ?? OfficeTextAlignment.Left, paragraph.LineHeight,
                     paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor);
             if (label != null && ++runCount > 4096) throw new InvalidDataException("Publisher story exceeds the shared rich text run limit, including list labels.");
-            paragraphs.Add(projected.WithTabStops(paragraph.TabStops));
+            paragraphs.Add(projected.WithTabStops(paragraph.CreateTabStops(tabInterval)));
             if (runCount + paragraphs.Count - 1 > 4096) throw new InvalidDataException("Publisher story exceeds the shared rich text run limit, including paragraph separators.");
             if (paragraphs.Count > 4096) throw new InvalidDataException("Publisher paragraph limit exceeded.");
             start = newline < 0 ? text.Length : end + 1;

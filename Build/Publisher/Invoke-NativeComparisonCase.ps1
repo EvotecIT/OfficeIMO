@@ -362,6 +362,7 @@ function Get-NativeInventory {
         widthPoints = [double]$Publication.PageSetup.PageWidth
         heightPoints = [double]$Publication.PageSetup.PageHeight
         readOnly = [bool]$Publication.ReadOnly
+        defaultTabStopPoints = [double]$Publication.DefaultTabStop
         pages = $nativePages.ToArray()
         masterPages = $nativeMasters.ToArray()
     }

@@ -65,7 +65,7 @@ internal sealed partial class PublisherQuillStyleReader {
             }
         }
         if (count.HasValue && count.Value != result.Count) throw new InvalidDataException("Publisher tab-stop count disagrees with its native array.");
-        _context.Add("PUB_TAB_LAYOUT_APPROXIMATED", "Native tab positions use the shared measured left-tab grid. Undeclared stops use the shared 36-point interval.",
+        _context.Add("PUB_TAB_LAYOUT_APPROXIMATED", "Native tab positions use the shared measured left-tab grid and effective default interval.",
             OfficeConversionLossKind.Approximation, "Quill/FDPP");
         return result;
     }

@@ -41,7 +41,9 @@ internal sealed partial class PublisherContentsReader {
         uint width = (Field(dimensions, 1) ?? throw new InvalidDataException("Publisher page width is missing.")).Value;
         uint height = (Field(dimensions, 2) ?? throw new InvalidDataException("Publisher page height is missing.")).Value;
         if (width == 0 || height == 0 || width > int.MaxValue || height > int.MaxValue) throw new InvalidDataException("Invalid Publisher page dimensions.");
-        var result = new PublisherContents(width / 12700D, height / 12700D, chunks);
+        var result = new PublisherContents(width / 12700D, height / 12700D, chunks) {
+            DefaultTabInterval = PublisherDefaultTabInterval.ReadDocument(document, _context)
+        };
         PublisherBlock pageList = Field(document, 2) ?? throw new InvalidDataException("Publisher page order is missing.");
         PublisherBlock[] pageReferences = _blocks.Children(pageList).ToArray();
         uint total = (Field(document, 1) ?? throw new InvalidDataException("Publisher page-reference count is missing.")).Value;
@@ -148,6 +150,7 @@ internal sealed partial class PublisherContents {
     internal PublisherContents(double width, double height, Dictionary<uint, PublisherContentChunk> chunks) { Width = width; Height = height; Chunks = chunks; }
     internal double Width { get; }
     internal double Height { get; }
+    internal double? DefaultTabInterval { get; init; }
     internal Dictionary<uint, PublisherContentChunk> Chunks { get; }
     internal List<PublisherSourcePage> Pages { get; } = new();
     internal Dictionary<uint, PublisherSourceShape> Shapes { get; } = new();

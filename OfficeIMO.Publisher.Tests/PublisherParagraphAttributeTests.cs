@@ -43,7 +43,7 @@ public sealed class PublisherParagraphAttributeTests {
                 Assert.NotNull(paragraph.TabStops); Assert.Equal(-paragraph.Margins.Left, paragraph.TabStops!.Origin);
                 Assert.Equal(name is "Tabs" or "Combined" ? new[] { 72D, 144D } : Array.Empty<double>(), paragraph.TabStops.Stops.Select(stop => stop.Position));
                 Assert.All(paragraph.TabStops.Stops, stop => Assert.Equal(OfficeTextTabAlignment.Left, stop.Alignment));
-                Assert.Equal(36, paragraph.TabStops.DefaultInterval);
+                Assert.Equal(28.3, paragraph.TabStops.DefaultInterval, 8);
             });
         }
     }

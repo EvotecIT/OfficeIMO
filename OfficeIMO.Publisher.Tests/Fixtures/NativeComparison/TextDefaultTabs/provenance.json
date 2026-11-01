@@ -1,0 +1,80 @@
+{
+  "schema": "officeimo.publisher.native-default-tab-fixture.v1",
+  "derivation": "Controlled source edits through the shared compound writer, cold native read-only opening and independent Publisher PDF export, native SaveAs and reopen. Source files retain the exact controlled carriers; native files are resaved publications. Macro security3. All3 initial/resaved native PDF page pairs agree at144dpi. Not template-free native creation or repair-free proof.",
+  "source": "../Text/native-text.pub",
+  "contract": "QuillSGP field0/type0x22 overrides the document Contents kind0x44 field0x15/type0x20. EmptySGP inherits the document value. Positive values use12700 native units per point.",
+  "cases": [
+    {
+      "name": "sgp72",
+      "documentPoints": 28.3,
+      "sgpPoints": 72,
+      "effectivePoints": 72
+    },
+    {
+      "name": "both36",
+      "documentPoints": 36,
+      "sgpPoints": 36,
+      "effectivePoints": 36
+    },
+    {
+      "name": "doc72-empty-sgp",
+      "documentPoints": 72,
+      "sgpPoints": null,
+      "effectivePoints": 72
+    }
+  ],
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "source-sgp72.pub",
+      "sha256": "0169ef930e3d4adba9b67c4fc7d0383f51dcf712dc638e2da1871bfb30bfa53c",
+      "effectiveDefaultTabStopPoints": 72
+    },
+    {
+      "name": "native-sgp72.pub",
+      "sha256": "3d29defa494af781b748019f17cde2cf54053488d2818bdd9d47bdefe020a444",
+      "effectiveDefaultTabStopPoints": 72
+    },
+    {
+      "name": "native-sgp72.pdf",
+      "sha256": "f6e2adb1f85809a5741ff31bdadad58d59c1a2760daa5cc69149caf7521df0bd",
+      "effectiveDefaultTabStopPoints": 72
+    },
+    {
+      "name": "source-both36.pub",
+      "sha256": "42e5eef018845a43a9575aedae6b97dbd5fa3ce1f35b9d17cdd27ed799401e7e",
+      "effectiveDefaultTabStopPoints": 36
+    },
+    {
+      "name": "native-both36.pub",
+      "sha256": "e5c35841fe6314259e6341782397e2c427cf42ada2f0831286180cd956d812d4",
+      "effectiveDefaultTabStopPoints": 36
+    },
+    {
+      "name": "native-both36.pdf",
+      "sha256": "fdce087564263ef8d76ff3ef02be9c9f889fd94e6510680c32d65867b52ddbe4",
+      "effectiveDefaultTabStopPoints": 36
+    },
+    {
+      "name": "source-doc72-empty-sgp.pub",
+      "sha256": "76c7efe4de22c5b3747f90cf4ed1d6ccc7ac2bee098b134b9e354ff6227875aa",
+      "effectiveDefaultTabStopPoints": 72
+    },
+    {
+      "name": "native-doc72-empty-sgp.pub",
+      "sha256": "38520a995c6f1d5068caa9c8123f5d01c1569520d2648d5d62e9d7a81eda0497",
+      "effectiveDefaultTabStopPoints": 72
+    },
+    {
+      "name": "native-doc72-empty-sgp.pdf",
+      "sha256": "f28e2fdee42fb647f41cb19f4983717309cccefe05a308471ed0f77832f8a364",
+      "effectiveDefaultTabStopPoints": 72
+    }
+  ],
+  "limits": "This qualifies these modern source carriers and their precedence. Both missing, unknown/invalid carriers, broad producer profiles and exact device glyph coordinates remain outside the native comparison scope."
+}
