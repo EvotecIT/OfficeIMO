@@ -95,10 +95,12 @@ public sealed class WorkflowCommandTests {
         Assert.Equal(3, PdfReadDocument.Open(File.ReadAllBytes(output)).Pages.Count);
 
         ToolResult refused = await RunAsync(["workflow", "assemble", second, "--output", output]);
-        ToolResult replaced = await RunAsync(["workflow", "assemble", second, "--output", output, "--force"]);
-
         Assert.Equal((int)OfficeImoToolExitCode.OutputFailed, refused.ExitCode);
-        Assert.Contains("exists", refused.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("PdfAssemblyFailed", refused.Error, StringComparison.Ordinal);
+        Assert.Contains(output, refused.Error, StringComparison.Ordinal);
+        Assert.Equal(3, PdfReadDocument.Open(File.ReadAllBytes(output)).Pages.Count);
+
+        ToolResult replaced = await RunAsync(["workflow", "assemble", second, "--output", output, "--force"]);
         Assert.Equal((int)OfficeImoToolExitCode.Success, replaced.ExitCode);
         Assert.Equal(2, PdfReadDocument.Open(File.ReadAllBytes(output)).Pages.Count);
     }
