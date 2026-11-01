@@ -12,8 +12,7 @@ namespace OfficeIMO.PowerPoint {
     internal sealed class PowerPointLayoutRun {
         internal PowerPointLayoutRun(string text, PowerPointTextStyleSpec style, double? size = null, string? color = null,
             bool? bold = null) {
-            // A vertical tab is PowerPoint's soft line break, which runs write as <a:br/>.
-            string value = (text ?? string.Empty).Replace('\v', '\n');
+            string value = NormalizeBreaks(text);
             Text = style.Upper ? value.ToUpperInvariant() : value;
             Heading = style.HeadingFont;
             Size = size ?? style.Size;

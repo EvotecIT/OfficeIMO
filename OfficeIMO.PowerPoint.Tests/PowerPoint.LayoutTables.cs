@@ -61,6 +61,22 @@ public sealed class PowerPointLayoutTableTests {
         }
     }
 
+    [Theory]
+    [InlineData("One\r\nTwo")]
+    [InlineData("One\rTwo")]
+    public void WindowsLineEndingsInLayoutTextBreakOnce(string text) {
+        using var document = PowerPointDocument.Create();
+        var options = PowerPointCompositionOptions.FromDesign(PowerPointDeckDesign.FromBrand("#2563EB", "text-breaks"));
+        options.ApplyTheme = false;
+        document.Compose(new PowerPointDeckPlan().AddContent("Text", new[] { new PowerPointLayoutText(text) }), options);
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
+        var inline = saved.Slides[0].TextBoxes.SelectMany(box => box.Paragraphs).Single(paragraph => paragraph.Text.StartsWith("One")).InlineNodes;
+        Assert.Equal(new[] { PowerPointParagraphInlineKind.Run, PowerPointParagraphInlineKind.LineBreak, PowerPointParagraphInlineKind.Run },
+            inline.Select(node => node.Kind));
+        Assert.Equal("One", inline[0].Text);
+        Assert.Equal("Two", inline[2].Text);
+    }
+
     [Fact]
     public void SavedTableUsesItsAuthoredCaptionAsAlternativeText() {
         const string caption = "Service & owners <review>";
