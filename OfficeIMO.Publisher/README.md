@@ -164,24 +164,28 @@ Qualified embedded pictures remain replaceable after Publisher removes their
 local filename reference during a native save. Saving creates a fresh owned
 filename resource and preserves the older resources and other placements.
 Existing qualified tables can save cell text and supported run formatting while
-retaining the grid, cell ownership and each cell's paragraph count. Cell text
+retaining the grid and cell ownership, including qualified paragraph-count changes. Cell text
 endpoints are remapped with the complete story; preceding ordinary stories can
 also change length without detaching table cells.
 Retained empty paragraphs can save source typing or an explicit empty styled
 run. A paragraph with no runs retains its native CR style; native reload exposes
 one styled empty run. Uniform-source paragraph growth can end in an empty
-paragraph. Removing every paragraph from a native story remains unsupported.
+paragraph. Clearing an eligible imported ordinary story with an empty paragraph
+collection prepares one native empty CR paragraph using the source final
+paragraph definition and CR typing. The public model keeps zero paragraphs;
+reloading the native file exposes one styled empty paragraph. The save report
+includes `PUB_NATIVE_EMPTY_STORY_PARAGRAPH` as `Approximation`, requiring explicit
+`Allow` even when an already-empty source can be copied exactly.
 Paragraph edits include alignment, before/after spacing, margins, first-line or
 hanging indents, explicit absolute/multiple line spacing, and ordinary left tabs.
 For native center/right paragraphs, use tab settings with
 `WithParagraphAlignment()`; the tab origin must remain `-paragraph.Margins.Left`
-and the default interval 36 points. Use `lineHeightFactor: 1` for explicit single
+and the source default interval must be retained. Use `lineHeightFactor: 1` for explicit single
 spacing. The support contract defines native units and representability limits.
-Ambiguous source definitions, unsupported directory layouts and zero-paragraph
-native story states are refused. The [support contract](SUPPORT.md)
-defines the precise restrictions. Other in-memory edits, including new objects,
-table bounds/grid changes and new page/master topology, cannot be saved
-as native PUB through this profile. Source-free native creation is unavailable.
+Ambiguous source definitions and unsupported directory layouts are refused. The
+[support contract](SUPPORT.md) defines the precise restrictions and qualified
+editing/authoring profiles. Edits outside those profiles refuse native output.
+Source-free native creation is unavailable.
 
 Existing physical pages can save `SetPageMaster(pageId, existingMasterId)` and
 `SetPageMaster(pageId, null)` through the same native source-save API. Clearing
@@ -387,7 +391,10 @@ the final line's unused advance is excluded from vertical alignment. The
 from the supplied paragraphs, normalizes carriage returns to newlines, and
 retains the source's final paragraph-terminator convention, including after
 clearing and repopulating the story. An empty paragraph collection clears the
-story. Styled runs, paragraph layout, list labels and tab settings use the
+story. Saving that zero-paragraph public state uses the reported native empty-CR
+representation described above; saving does not change the public model or frame
+snapshots. Labelled and unsupported native source profiles still refuse this
+mapping. Styled runs, paragraph layout, list labels and tab settings use the
 shared drawing types. Complete text remains available when it overflows.
 Body runs and labels require well-formed UTF-16 and positive finite font sizes;
 labels also reject control characters. Labels count toward the story run and

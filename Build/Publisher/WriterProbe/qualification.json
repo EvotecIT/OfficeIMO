@@ -18975,6 +18975,357 @@
         }
       ]
     },
+    "zeroParagraphClearing": {
+      "sourceCommit": "524f898714a72f709f59b8f64c962ca90a53ed71",
+      "contract": "A zero-paragraph cleared public imported ordinary story is prepared as one native empty CR paragraph using source final PP and CR definitions. A save-only snapshot preserves public zero text/paragraphs, frame snapshots and original baseline.",
+      "policy": "PUB_NATIVE_EMPTY_STORY_PARAGRAPH is an operation-level Approximation requiring existing explicit Allow, including exact source copying when the native source already has the empty paragraph. Block fails before publication. Native reload exposes one styled empty paragraph; refill has no stale clearing diagnostic.",
+      "ownership": "Existing immutable native preparation/publication snapshot, Quill paragraph planner and save report/loss-policy path. No new public API/options/production dependency or runtime application requirement.",
+      "nativeProducer": {
+        "name": "Microsoft Publisher",
+        "version": "16.0",
+        "executableVersion": "16.0.20527.20088",
+        "automationSecurity": 3
+      },
+      "nativeOracles": [
+        {
+          "name": "native-clear",
+          "inputSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+          "nativeResavedSha256": "02dc708050ec63d4539a4158fc5ea80e6580576088ffb097a08cd007d00947c5",
+          "qualifiedOperations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeTextMutation",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "nativeTextMutation": {
+            "shapeName": "MinimalText",
+            "before": "Publisher text\r",
+            "requested": "",
+            "observed": ""
+          },
+          "nativeRepairStatus": "Unassessed: COM Open success does not expose whether native repair occurred."
+        },
+        {
+          "name": "native-nonuniform-clear",
+          "inputSha256": "50ea79f879d287f8b77119081ae63c29a26cc321af59a0dc3cbcded3efaf30a5",
+          "nativeResavedSha256": "3aec8592dc7febac153067b029936a2736f33f6ff04f0da6e2b1c80307609eca",
+          "qualifiedOperations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeTextMutation",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "nativeTextMutation": {
+            "shapeName": "MinimalText",
+            "before": "Native paragraph 0\rNative paragraph 1\rNative paragraph 2\r",
+            "requested": "",
+            "observed": ""
+          },
+          "nativeRepairStatus": "Unassessed: COM Open success does not expose whether native repair occurred."
+        }
+      ],
+      "oracleInvariant": "Actual whole-frame native clear stores one CR. Left/Center/Right three-paragraph control retains last Right PP and exact final CR; this does not prove universal native zero-length impossibility.",
+      "fixture": {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/native-cleared-text.pub",
+        "sha256": "02dc708050ec63d4539a4158fc5ea80e6580576088ffb097a08cd007d00947c5",
+        "provenance": "OfficeIMO.Publisher.Tests/Fixtures/native-cleared-text.provenance.json",
+        "origin": "Native text mutation/save/reopen of independently authored CC0 Text fixture, not a self-roundtrip."
+      },
+      "nativeSavedCases": [
+        {
+          "name": "single-clear",
+          "kind": "clear",
+          "inputSha256": "da1b4d7ee9533af0b70339f3b10163e80dc6c735e3c7a70547d005fc5c56528c",
+          "nativeResavedSha256": "e74477018d7ec1f91b5126ea2fadce21045069fef5839b4036cee9f8bf65f7a4",
+          "sourceSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+          "pages": 1,
+          "storyIds": [
+            2
+          ],
+          "normalizationDiagnostics": 1
+        },
+        {
+          "name": "single-refill",
+          "kind": "refill",
+          "inputSha256": "31c87bcaa767e1b0df7d4d3e184567591e02d01278b69610c122cb6a117ca384",
+          "nativeResavedSha256": "06118d5aa38e0a348d2016f23e2c16143d9e00fb89cf3f93d885aa348bc1979e",
+          "sourceSha256": "da1b4d7ee9533af0b70339f3b10163e80dc6c735e3c7a70547d005fc5c56528c",
+          "pages": 1,
+          "storyIds": [
+            2
+          ],
+          "normalizationDiagnostics": 0
+        },
+        {
+          "name": "mixed-clear",
+          "kind": "clear",
+          "inputSha256": "cc252f6cf5b859b5fcc2678d0c302b44ab8cb5bc9a04fec5be219439970db312",
+          "nativeResavedSha256": "765ff75e90b023aa88001e46079bdf4340d067e0ca24f6576dd996b0ad550b19",
+          "sourceSha256": "f557637ebdca16e8efc37da659ff1571b044bd8ff5c5a7c134ea5f6d95394fe0",
+          "pages": 20,
+          "storyIds": [
+            2
+          ],
+          "normalizationDiagnostics": 1
+        },
+        {
+          "name": "mixed-refill",
+          "kind": "refill",
+          "inputSha256": "131cb8fba0a20491d00670fc65bc8089a4d3269ddf0139d8fcc5e24eeb6ae8de",
+          "nativeResavedSha256": "aa5ab98cbb0a08c97594a98a45ae9b0c7274be2274d4450ad2a9a9c2d33d2aff",
+          "sourceSha256": "cc252f6cf5b859b5fcc2678d0c302b44ab8cb5bc9a04fec5be219439970db312",
+          "pages": 20,
+          "storyIds": [
+            2
+          ],
+          "normalizationDiagnostics": 0
+        },
+        {
+          "name": "several-clear",
+          "kind": "clear",
+          "inputSha256": "d22d7ef757abb6f8d6039b1b86261333cf0f51ed49ef35c2ffc4f541333846cc",
+          "nativeResavedSha256": "fcbbe44a5d79039b0054a89ef4adb6c01b15680c1381bb499242992a655e8d73",
+          "sourceSha256": "87860ab8ca0d6052cb8978257c713c516893d19cae79c3df263b79d13bdf43a7",
+          "pages": 1,
+          "storyIds": [
+            2,
+            3,
+            4
+          ],
+          "normalizationDiagnostics": 3
+        },
+        {
+          "name": "several-refill",
+          "kind": "refill",
+          "inputSha256": "d3908c930c4a50dbe70d851f267fcb58eeb04a58b972d7dc0d00ad094b4300b7",
+          "nativeResavedSha256": "a1774b9e52c432dc3200378350de7de3bcd134a17afa2fa2add98f14a960cdf1",
+          "sourceSha256": "d22d7ef757abb6f8d6039b1b86261333cf0f51ed49ef35c2ffc4f541333846cc",
+          "pages": 1,
+          "storyIds": [
+            2,
+            3,
+            4
+          ],
+          "normalizationDiagnostics": 0
+        },
+        {
+          "name": "linked-clear",
+          "kind": "clear",
+          "inputSha256": "09bc5e88cad77b5c5a06044c00118cbf6961ad58890283161ce97370e2d70a92",
+          "nativeResavedSha256": "d664c61c1f0188656c7bcc96426b736aa7efc5a36103203098be7926202bc34d",
+          "sourceSha256": "ec10e028c6fea8b4ebee31200c7c9e14e18d6cc20ebcf9096aa26b5a62364000",
+          "pages": 3,
+          "storyIds": [
+            2
+          ],
+          "normalizationDiagnostics": 1
+        },
+        {
+          "name": "linked-refill",
+          "kind": "refill",
+          "inputSha256": "42c144993ed473ac5110ace61ffa3d02711fca0b20bc4917ff24a2e2a54f1a54",
+          "nativeResavedSha256": "3541366cb105a4c79a08eca2406fe402f16fb151443dcfa13d957789fddfa560",
+          "sourceSha256": "09bc5e88cad77b5c5a06044c00118cbf6961ad58890283161ce97370e2d70a92",
+          "pages": 3,
+          "storyIds": [
+            2
+          ],
+          "normalizationDiagnostics": 0
+        },
+        {
+          "name": "already-empty-clear",
+          "kind": "clear",
+          "inputSha256": "02dc708050ec63d4539a4158fc5ea80e6580576088ffb097a08cd007d00947c5",
+          "nativeResavedSha256": "be1714ad022c279d4e0c2f484edff399b17879be6c99b6792c4868695ce46061",
+          "sourceSha256": "02dc708050ec63d4539a4158fc5ea80e6580576088ffb097a08cd007d00947c5",
+          "pages": 1,
+          "storyIds": [
+            2
+          ],
+          "normalizationDiagnostics": 1
+        },
+        {
+          "name": "already-empty-refill",
+          "kind": "refill",
+          "inputSha256": "28fd07a649eb28a70b4534951a0453864ca48d43023937f077d7e1406f27a7fe",
+          "nativeResavedSha256": "d2d70793d1c5c5749766353c51896a37df433658ffe1bb7b4a46750b33c4e130",
+          "sourceSha256": "02dc708050ec63d4539a4158fc5ea80e6580576088ffb097a08cd007d00947c5",
+          "pages": 1,
+          "storyIds": [
+            2
+          ],
+          "normalizationDiagnostics": 0
+        },
+        {
+          "name": "nonuniform-oracle-clear",
+          "kind": "clear",
+          "inputSha256": "9ff53d76fc6876836ab189f78d8484c3c8a4c9d487f8bf7a7d70e65a6451e617",
+          "nativeResavedSha256": "9228a4d4f0cb08365cbbf9a41ae4f8caf2a823516a8bf368f6eed22c0ff7e011",
+          "sourceSha256": "50ea79f879d287f8b77119081ae63c29a26cc321af59a0dc3cbcded3efaf30a5",
+          "pages": 1,
+          "storyIds": [
+            2
+          ],
+          "normalizationDiagnostics": 1
+        },
+        {
+          "name": "nonuniform-oracle-refill",
+          "kind": "refill",
+          "inputSha256": "00164bae278f5bb7fce7341c2a93c50d64b6551c599f82ae12cbe9261b2540b0",
+          "nativeResavedSha256": "a90e659cfeebf61dd5222ccbfa1293e45472f29bcd5bd05e484eb3ac6d88742d",
+          "sourceSha256": "9ff53d76fc6876836ab189f78d8484c3c8a4c9d487f8bf7a7d70e65a6451e617",
+          "pages": 1,
+          "storyIds": [
+            2
+          ],
+          "normalizationDiagnostics": 0
+        },
+        {
+          "name": "table-clear",
+          "kind": "clear",
+          "inputSha256": "a6b59f78889700ff77f5daa2a2b4369e2de4998ab207c1b6fca0b05d478026b9",
+          "nativeResavedSha256": "ed1258acaa52a1c3b6238d62f79c315e0a616df7489493dc9ae364243656c485",
+          "sourceSha256": "baa93ef30010626dd04d09b0752fb70c53ec2c566d2fa48f20c35040a5b345f3",
+          "pages": 20,
+          "cells": [
+            0,
+            3
+          ],
+          "normalizationDiagnostics": 0
+        },
+        {
+          "name": "table-refill",
+          "kind": "refill",
+          "inputSha256": "79d4f502d24826226d8fc9f5bd3c6579e92f25491d53860f330c72dab4721297",
+          "nativeResavedSha256": "995f9d69f2cab5a0b818740190471150a910de9000b8cb27edab7f9024bdd62b",
+          "sourceSha256": "a6b59f78889700ff77f5daa2a2b4369e2de4998ab207c1b6fca0b05d478026b9",
+          "pages": 20,
+          "cells": [
+            0,
+            3
+          ],
+          "normalizationDiagnostics": 0
+        }
+      ],
+      "nativeSavedOperations": 98,
+      "nativeOracleOperations": 16,
+      "sourceUnchanged": true,
+      "comparison": {
+        "dpi": 144,
+        "nativeInitialResavedPixelPairs": 94,
+        "managedPublicModelNativeReloadPixelPairs": 94,
+        "unchangedNeighborPages": 76,
+        "independentNativeClearPixelControls": 2,
+        "sourcePPCRTypingChecks": 40,
+        "typing": "Clear retains full source final PP/CR bytes before/after native resave; refill retains PP and verifies last body/CR agreement. First and final nonuniform table cells included.",
+        "linkedLabel": "Cleared linked chain shares page0 with an independent story. Its text remains; independent-label crop pixels match the native source before/after refill. Target native shape inventories and typed story are empty; whole-page blankness is not assumed.",
+        "nativeInventoriesEqual": true,
+        "nativeRefillFontSizeRGB": "Actual native PDF spans use Arial12 and blue255 for Refills.",
+        "managedFont": "Scoped Arial regular SHA256 b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a; target clear/refill profile only, no whole native/managed geometry parity claim."
+      },
+      "tests": [
+        {
+          "report": "final-broad",
+          "passed": 1048,
+          "failed": 0
+        },
+        {
+          "report": "publisher-net8.0",
+          "passed": 1048,
+          "failed": 0
+        },
+        {
+          "report": "publisher-net472",
+          "passed": 1048,
+          "failed": 0
+        },
+        {
+          "report": "reader",
+          "passed": 93,
+          "failed": 0
+        }
+      ],
+      "regressions": {
+        "newCases": 7,
+        "initialBeforeFailures": 4,
+        "coverage": "Single/mixed/linked/multistory-first/native-already-empty clear/model/report/refill; exact-copy policy/stream guard; labelled-source refusal.",
+        "reportMutant": "Omitting only the specific normalization diagnostic yields4fail/1pass on the original5-case packet, including Block unexpectedly publishing native exact-copy bytes; source restored/hash-verified. Later linked/multistory positives use the unchanged owner.",
+        "retiredObsoleteRefusalRows": 1,
+        "retiredScope": "Empty-story unsupported-mutation row only; observed admission then replaced by stronger report/model/native proof.",
+        "preserved": "Public zero model and frame snapshots, source final PP/CR, unrelated compound streams, other stories, exact saved no-op, repeated preparation and refill."
+      },
+      "consumers": {
+        "readerPublisherTests": 93,
+        "readerNetstandard20Build": true,
+        "sourcePSNet80Build": true,
+        "psRuntime": "7.6.9",
+        "workflowConversions": 14,
+        "actualPSClears": 6,
+        "PSClearInvariant": "Specific Approximation count, exact copying of already native-empty inputs and unchanged public zero model.",
+        "publicConsumerOrdinaryClearRefillCycles": 6,
+        "publicConsumerFirstFinalCellCycles": 1
+      },
+      "review": {
+        "mode": "Fresh independent read-only local review",
+        "baseCommit": "9d7ceee4154f6dcfdc107ee7cc17cb7a82287804",
+        "headCommit": "524f898714a72f709f59b8f64c962ca90a53ed71",
+        "result": "No actionable P0-P2 runtime finding. One P3 current-contract documentation correction now applied in README/SUPPORT/XML remarks. Native candidate, otherTF/consumer and shared table-route gaps now qualified.",
+        "boundary": "current",
+        "targetedConfirmationUsed": false
+      },
+      "limits": [
+        "Labelled and unsupported source carriers refuse mapping. Public model zero paragraphs differs explicitly from native reload one paragraph; Allow is required.",
+        "Native placeholder characters are included in the text-character limit. Specific threshold test could not reach preparation because projection-work limits failed earlier; guard has static review but no independent threshold control.",
+        "Genuinely zero-length native story carriers, broader producers/generations, repair-free opening, native template-free product creation and PowerShell5.1 remain unqualified.",
+        "No general table reflow, native/managed font/layout/decoration parity or full lifecycle acceptance inferred."
+      ],
+      "sourceBindings": [
+        {
+          "path": "OfficeIMO.Publisher.Tests/Fixtures/native-cleared-text.provenance.json",
+          "sha256": "a3b32a49661298d3fcc55231232ee1dd074f65e42dc6ce0af705d8eb60a40f7f"
+        },
+        {
+          "path": "OfficeIMO.Publisher.Tests/Fixtures/native-cleared-text.pub",
+          "sha256": "02dc708050ec63d4539a4158fc5ea80e6580576088ffb097a08cd007d00947c5"
+        },
+        {
+          "path": "OfficeIMO.Publisher.Tests/PublisherNativeWritingTests.cs",
+          "sha256": "2df11e3ce1ecfd706505fa2bd9646c1fe0022c0642ccc9b4378ccb18cbe23e75"
+        },
+        {
+          "path": "OfficeIMO.Publisher.Tests/PublisherZeroParagraphWritingTests.cs",
+          "sha256": "efaa84ed3e67724af5effd59c34ea241838f5a84cab2d68931a70adc2c9e32ca"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.EmptyStories.cs",
+          "sha256": "46138d21521803e9d3bd04802838f21f60533711d592e46bf3e516cac32be96f"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.cs",
+          "sha256": "2fa80a91aab8f6361f4935b9c795cb44e76b05ee775210067866228c2b65680c"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Clear.cs",
+          "sha256": "507f7546c69a6deaa13672df64afe8950ee2a4c6a1724cf3bfa14bd10c8094d4"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Eligibility.cs",
+          "sha256": "ad08b6d4a9726653784256731ecf990a26c5a8bc465792ce6081a134f9d2f501"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.cs",
+          "sha256": "dca751937a256fde89c94dc3d428583ad84ffa0846bdc96a41b8225f0454a4a1"
+        }
+      ]
+    },
     "implicitFrameColumnGap": {
       "schema": "officeimo.publisher.implicit-frame-column-gap.v1",
       "sourceCommit": "1d233dcb4fd45c9c2a23994c231e0fba1afe0695",

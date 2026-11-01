@@ -243,8 +243,8 @@ edits preserving neither complete paragraph text nor complete formatting remain
 outside this profile; the [complete nonempty replacement profile](#complete-nonempty-replacement-during-paragraph-count-changes)
 provides the separate agreement-based path.
 A newly authored empty final paragraph is refused when its requested typing
-cannot be represented safely. A zero-paragraph story remains unsupported
-for native saving; in-memory clearing and rendering remain available.
+cannot be represented safely. A zero-paragraph public story uses the separately
+qualified [reported native empty-CR representation](#cleared-ordinary-stories-and-native-empty-paragraphs).
 
 The `sourceEditing.paragraphRetention` qualification record covers eight public
 saves from the seven-page `TextNonuniformParagraphs` native control. Six outputs
@@ -1147,8 +1147,8 @@ input paragraph supplied no runs.
 Clearing a cell with an empty paragraph collection keeps one empty paragraph and
 the final paragraph's alignment, spacing, margins, indents and tabs. Other cells
 and the final terminator convention remain retained. Supported uniform-source
-paragraph-count changes can also end in an empty paragraph. Removing every
-paragraph from a native story remains unsupported, and table grid changes still
+paragraph-count changes can also end in an empty paragraph. Cleared ordinary
+stories use the [reported native empty-CR representation](#cleared-ordinary-stories-and-native-empty-paragraphs), while table grid changes still
 have no native save profile. Unsupported CR encodings remain
 refused when an explicit typing change would require rewriting them.
 
@@ -1188,8 +1188,47 @@ unqualified.
 
 Clearing a native whole-frame `TextRange.Text` to an empty string saves one CR,
 with the story and frame retained. This control does not establish a zero-length
-or zero-paragraph native story encoding; removing all semantic paragraphs still
-refuses native output.
+or zero-paragraph native story encoding. Zero-paragraph public clearing uses the
+explicitly reported mapping below.
+
+### Cleared ordinary stories and native empty paragraphs
+
+The `sourceEditing.zeroParagraphClearing` record qualifies clearing eligible
+imported ordinary stories through an empty public paragraph collection. Native
+Publisher clear controls save one empty CR paragraph. A Left/Center/Right source
+control retains the final Right paragraph definition and complete final CR
+typing, rather than taking formatting from the removed first body.
+
+Preparation creates that native representation in a save-only publication
+snapshot. The edited document keeps zero paragraphs and empty text, with the same
+public frame snapshots and original source baseline. Native reload exposes one
+styled empty paragraph. The operation report adds
+`PUB_NATIVE_EMPTY_STORY_PARAGRAPH` as `Approximation`; explicit `Allow` is required,
+including when the source is already natively empty and output bytes are an exact
+source copy. `Block` refuses before destination publication. Refilling the
+reloaded paragraph uses the existing native character/paragraph codecs without a
+stale clearing diagnostic.
+
+Six ordinary clear/refill cycles cover single and multiple nonuniform paragraphs,
+all three stories in one publication, a three-page linked chain, an already-empty
+native source and the independent paragraph-format control. An additional table
+cycle clears and refills both first and final nonuniform cells. Table clearing
+already retains one empty paragraph in its public model and has no zero-to-one
+mapping diagnostic. Forty PP/CR checks cover input and native-resaved definitions;
+clear operations copy final source definitions, and refill operations retain PP
+and verify final body/CR typing. All 94 initial/resaved native page pairs and 94
+managed model/reload pairs match at 144 dpi. Seventy-six neighboring pages and an
+independent label on the linked-story page remain unchanged. Both one-page native
+clear controls match the saved candidates' rendered output. Fourteen source-built
+PSWriteOffice workflows preserve the native typed output; six ordinary PowerShell
+clear operations also verify exact copying, the specific report and model state.
+
+Labelled stories and unsupported native source carriers remain outside this
+mapping. Native placeholder characters count toward the configured text limit;
+the added threshold guard has static review but no separate threshold control.
+These producer controls do not establish a genuinely zero-length native story,
+universal producer/generation coverage, repair-free opening or native template-free
+product creation.
 
 Two independent reading controls cover 17 whole-frame profiles over five pages,
 including indexed arrays with two tabs and left/center/right tabbed lines. The
