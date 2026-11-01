@@ -883,19 +883,20 @@ namespace OfficeIMO.PowerPoint {
             if (image.NativePicture != null) return RenderNativeImage(context, writer, image, box, cover);
             PowerPointPicture picture = writer.Slide.AddImage(image.Path, OfficeLength.Points(box.X), OfficeLength.Points(box.Y),
                 OfficeLength.Points(box.Width), OfficeLength.Points(box.Height));
-            if (!PowerPointImageSize.TryRead(image.Path, out int pw, out int ph)) return picture;
-            if (cover) {
-                picture.Left = OfficeLength.Points(box.X);
-                picture.Top = OfficeLength.Points(box.Y);
-                picture.Width = OfficeLength.Points(box.Width);
-                picture.Height = OfficeLength.Points(box.Height);
-                picture.CropToFill(pw, ph, image.FocalX, image.FocalY);
-            } else {
-                double scale = Math.Min(box.Width / pw, box.Height / ph);
-                picture.Left = OfficeLength.Points(box.X);
-                picture.Top = OfficeLength.Points(box.Y);
-                picture.Width = OfficeLength.Points(pw * scale);
-                picture.Height = OfficeLength.Points(ph * scale);
+            if (PowerPointImageSize.TryRead(image.Path, out int pw, out int ph)) {
+                if (cover) {
+                    picture.Left = OfficeLength.Points(box.X);
+                    picture.Top = OfficeLength.Points(box.Y);
+                    picture.Width = OfficeLength.Points(box.Width);
+                    picture.Height = OfficeLength.Points(box.Height);
+                    picture.CropToFill(pw, ph, image.FocalX, image.FocalY);
+                } else {
+                    double scale = Math.Min(box.Width / pw, box.Height / ph);
+                    picture.Left = OfficeLength.Points(box.X);
+                    picture.Top = OfficeLength.Points(box.Y);
+                    picture.Width = OfficeLength.Points(pw * scale);
+                    picture.Height = OfficeLength.Points(ph * scale);
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(image.AlternativeText)) picture.Description = image.AlternativeText;
