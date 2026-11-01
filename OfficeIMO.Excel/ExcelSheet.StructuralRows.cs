@@ -46,7 +46,10 @@ namespace OfficeIMO.Excel {
         /// </exception>
         public void DeleteRows(int firstRow, int count = 1) {
             ValidateStructuralRowArguments(firstRow, count);
-            WriteLockConditional(() => RemoveRowsAndShiftUp(firstRow, count));
+            using ExcelDocument.PendingRowDeleteScope scope = _excelDocument.EnterPendingRowDeletes(this);
+            WriteLockConditional(() => {
+                if (!TryDeferRowDeletion(firstRow, count)) RemoveRowsAndShiftUp(firstRow, count);
+            });
         }
 
         /// <summary>Plans and transactionally inserts rows with bounded rollback and post-edit diagnostics.</summary>

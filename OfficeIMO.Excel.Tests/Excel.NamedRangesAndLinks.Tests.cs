@@ -147,7 +147,7 @@ namespace OfficeIMO.Tests {
                 main.SetInternalLink(1, 1, target, "A1", display: "Go");
 
                 // Inspect hyperlinks
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
                 var wsPart = (WorksheetPart)wsPartField!.GetValue(main)!;
                 var links = wsPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
 
                 main.SetInternalLink(1, 1, "Summary??!A1", style: false);
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
                 var wsPart = (WorksheetPart)wsPartField!.GetValue(main)!;
                 var links = wsPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
@@ -187,7 +187,7 @@ namespace OfficeIMO.Tests {
 
                 main.SetInternalLink(1, 1, "'[Other.xlsx]Summary'!A1", style: false);
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
                 var wsPart = (WorksheetPart)wsPartField!.GetValue(main)!;
                 var links = wsPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
@@ -212,7 +212,7 @@ namespace OfficeIMO.Tests {
 
                 main.LinkCellsToInternalSheets("A2:A3", text => text, targetA1: "B2", display: null, styled: false);
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
                 var wsPart = (WorksheetPart)wsPartField!.GetValue(main)!;
                 var links = wsPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
@@ -237,7 +237,7 @@ namespace OfficeIMO.Tests {
 
                 main.LinkCellsToInternalSheets("A2:A2", text => text, targetA1: "B2", display: null, styled: false);
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
                 var wsPart = (WorksheetPart)wsPartField!.GetValue(main)!;
                 var links = wsPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
@@ -271,7 +271,7 @@ namespace OfficeIMO.Tests {
                 doc.PreflightWorkbook();
 
                 // Assert drawing exists
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
                 var wsPart = (WorksheetPart)wsPartField!.GetValue(s)!;
                 var drawing = wsPart.Worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
                 Assert.NotNull(drawing);

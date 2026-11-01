@@ -15,7 +15,11 @@ namespace OfficeIMO.Excel {
             RewriteWorkbookCellFormulaReferences(firstDeletedRow, rowDelta, lastDeletedRow);
         }
 
-        private void RewriteWorkbookCellFormulaReferences(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
+        private void RewriteWorkbookCellFormulaReferences(
+            int firstAffectedRow,
+            int rowDelta,
+            int? lastDeletedRow,
+            bool includeCellFormulas = true) {
             var rewrittenExternalChartParts = new HashSet<ChartPart>();
             foreach (Sheet sheetElement in WorkbookRoot.Sheets?.Elements<Sheet>() ?? Enumerable.Empty<Sheet>()) {
                 if (sheetElement.Id?.Value is not string relationshipId
@@ -27,7 +31,9 @@ namespace OfficeIMO.Excel {
                 bool isMutatedSheet = ReferenceEquals(worksheetPart, _worksheetPart)
                     || string.Equals(sheetElement.Name?.Value, Name, StringComparison.OrdinalIgnoreCase);
                 bool changed = false;
-                foreach (CellFormula formula in ExcelWorksheetScan.CellFormulas(worksheetPart.Worksheet)) {
+                foreach (CellFormula formula in includeCellFormulas
+                    ? ExcelWorksheetScan.CellFormulas(worksheetPart.Worksheet)
+                    : Enumerable.Empty<CellFormula>()) {
                     if (formula.Text is string formulaText && formulaText.Length > 0) {
                         string rewritten = lastDeletedRow.HasValue
                             ? RewriteDeletedFormulaReferences(
