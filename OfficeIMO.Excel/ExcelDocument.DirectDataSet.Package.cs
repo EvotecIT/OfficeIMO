@@ -428,6 +428,7 @@ namespace OfficeIMO.Excel {
             string? mergeCellsXml = null;
             string? hyperlinksXml = null;
             string? legacyDrawingXml = null;
+            IReadOnlyDictionary<int, string>? rowAttributes = null;
             IReadOnlyList<DirectOverlayCell> overlayCells = Array.Empty<DirectOverlayCell>();
             List<string>? conditionalFormattingXml = null;
             List<string>? postDataValidationXml = null;
@@ -439,6 +440,7 @@ namespace OfficeIMO.Excel {
                     case SheetDimension:
                         break;
                     case SheetData sheetData:
+                        rowAttributes = bufferedSheet ? CaptureDirectRowAttributes(sheetData) : null;
                         if (!TryCaptureDirectWorksheetOverlayCells(sheet, sheetModel, sheetData, _spreadSheetDocument.WorkbookPart?.WorkbookStylesPart?.Stylesheet, allowUnsupportedOverlayStyles, out overlayCells, out skipReason)) {
                             return false;
                         }
@@ -472,7 +474,7 @@ namespace OfficeIMO.Excel {
                     case AutoFilter autoFilter when autoFilterXml == null:
                         autoFilterXml = autoFilter.OuterXml;
                         break;
-                    case DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatting conditionalFormatting when !bufferedSheet:
+                    case DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatting conditionalFormatting when !bufferedSheet || allowWorksheetParts:
                         conditionalFormattingXml ??= new List<string>();
                         conditionalFormattingXml.Add(conditionalFormatting.OuterXml);
                         break;
@@ -512,6 +514,7 @@ namespace OfficeIMO.Excel {
                 && mergeCellsXml == null
                 && hyperlinksXml == null
                 && legacyDrawingXml == null
+                && rowAttributes == null
                 && overlayCells.Count == 0
                 && (conditionalFormattingXml == null || conditionalFormattingXml.Count == 0)
                 && (postDataValidationXml == null || postDataValidationXml.Count == 0)) {
@@ -529,10 +532,28 @@ namespace OfficeIMO.Excel {
                 drawingXml,
                 postDataValidationXml?.ToArray() ?? Array.Empty<string>(),
                 overlayCells,
-                columnsXml == null && mergeCellsXml == null && hyperlinksXml == null && legacyDrawingXml == null
+                columnsXml == null && mergeCellsXml == null && hyperlinksXml == null && legacyDrawingXml == null && rowAttributes == null
                     ? null
-                    : new DirectWorksheetStructure(columnsXml, mergeCellsXml, hyperlinksXml, legacyDrawingXml));
+                    : new DirectWorksheetStructure(columnsXml, mergeCellsXml, hyperlinksXml, legacyDrawingXml, rowAttributes));
             return true;
+        }
+
+        private static IReadOnlyDictionary<int, string>? CaptureDirectRowAttributes(SheetData sheetData) {
+            Dictionary<int, string>? rows = null;
+            foreach (Row row in sheetData.Elements<Row>()) {
+                string? text = null;
+                foreach (OpenXmlAttribute attribute in row.GetAttributes()) {
+                    if (attribute.LocalName != "r" && attribute.LocalName != "spans") {
+                        text += " " + attribute.LocalName + "=\"" + EscapeXmlAttribute(attribute.Value ?? string.Empty) + "\"";
+                    }
+                }
+
+                if (text != null && row.RowIndex?.Value is uint rowIndex) {
+                    (rows ??= new Dictionary<int, string>())[(int)rowIndex] = text;
+                }
+            }
+
+            return rows;
         }
 
         private static bool TryCaptureDirectWorksheetOverlayCells(

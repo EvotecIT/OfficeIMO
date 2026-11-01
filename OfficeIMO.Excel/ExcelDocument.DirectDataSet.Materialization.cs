@@ -232,9 +232,16 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
+                if (sheetModel.Table.CellValueBuffer is { } cellValueBuffer) {
+                    // The worksheet already holds these cells' settings and its first cells.
+                    using var bufferNoLock = sheet.BeginNoLock();
+                    sheet.ApplyCellValueBufferToWorksheet(cellValueBuffer, sheet.MirroredCellCount, cancellationToken);
+                    continue;
+                }
+
                 DirectWorksheetMetadata? preservedMetadata = sheetModel.Metadata;
                 bool hasExistingTablePart = preserveExistingWorksheetStructure && sheet.WorksheetPart.TableDefinitionParts.Any();
-                bool preserveWorksheet = preserveExistingWorksheetStructure || sheetModel.Table.CellValueBuffer != null;
+                bool preserveWorksheet = preserveExistingWorksheetStructure;
                 if (!preserveWorksheet) {
                     if (TryCaptureDirectWorksheetMetadata(sheetModel, out DirectWorksheetMetadata? sheetMetadata, out _, allowDrawings: true, allowUnsupportedOverlayStyles: true)) {
                         preservedMetadata = MergeDirectWorksheetMetadata(sheetModel.Metadata, sheetMetadata, replaceOverlayCells: true);
@@ -266,9 +273,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 using var noLock = sheet.BeginNoLock();
-                if (sheetModel.Table.CellValueBuffer is { } cellValueBuffer) {
-                    sheet.ApplyCellValueBufferToWorksheet(cellValueBuffer, 0, cancellationToken);
-                } else if (sheetModel.HasTable) {
+                if (sheetModel.HasTable) {
                     string tableRange;
                     if (hasExistingTablePart) {
                         tableRange = sheet.TryInsertTabularRowSourceForDeferredMaterialization(

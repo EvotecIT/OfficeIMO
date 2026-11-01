@@ -9,6 +9,7 @@ namespace OfficeIMO.Excel {
                 string[] cellReferencePrefixes,
                 string?[]? styleAttributes,
                 DirectStylePlan stylePlan,
+                IReadOnlyDictionary<int, string>? rowAttributes,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
                 ExcelDateSystem dateSystem,
                 DirectSharedStringTable? sharedStrings,
@@ -21,12 +22,29 @@ namespace OfficeIMO.Excel {
                     styleAttributes = null;
                 }
 
+                int[]? attributedRows = rowAttributes?.Keys.OrderBy(static row => row).ToArray();
+                int attributedRow = 0;
                 for (int rowIndex = 0; rowIndex < buffer.WrittenRowCount; rowIndex++) {
                     if (canCancel) ct.ThrowIfCancellationRequested();
-                    string rowReference = InvariantNumberText.Get(buffer.GetRowNumber(rowIndex));
+                    int rowNumber = buffer.GetRowNumber(rowIndex);
+                    string? attributes = null;
+                    if (attributedRows != null) {
+                        for (; attributedRow < attributedRows.Length && attributedRows[attributedRow] < rowNumber; attributedRow++) {
+                            WriteEmptyAttributedRow(writer, attributedRows[attributedRow], rowAttributes!);
+                        }
+
+                        if (attributedRow < attributedRows.Length && attributedRows[attributedRow] == rowNumber) {
+                            attributes = rowAttributes![rowNumber];
+                            attributedRow++;
+                        }
+                    }
+
+                    string rowReference = InvariantNumberText.Get(rowNumber);
                     writer.Write("<row r=\"");
                     writer.Write(rowReference);
-                    writer.Write("\">");
+                    writer.Write('"');
+                    if (attributes != null) writer.Write(attributes);
+                    writer.Write('>');
                     int endCellIndex = buffer.GetEndCellIndex(rowIndex);
                     for (int cellIndex = buffer.GetFirstCellIndex(rowIndex); cellIndex < endCellIndex; cellIndex++) {
                         int columnIndex = buffer.GetColumn(cellIndex) - 1;
@@ -73,6 +91,18 @@ namespace OfficeIMO.Excel {
 
                     writer.Write("</row>");
                 }
+
+                for (; attributedRows != null && attributedRow < attributedRows.Length; attributedRow++) {
+                    WriteEmptyAttributedRow(writer, attributedRows[attributedRow], rowAttributes!);
+                }
+            }
+
+            private static void WriteEmptyAttributedRow(TextWriter writer, int row, IReadOnlyDictionary<int, string> rowAttributes) {
+                writer.Write("<row r=\"");
+                writer.Write(InvariantNumberText.Get(row));
+                writer.Write('"');
+                writer.Write(rowAttributes[row]);
+                writer.Write("/>");
             }
 
             private static string? GetBufferedValueStyle(object? value, string dateStyle, string timeStyle) {

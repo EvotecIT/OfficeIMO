@@ -37,6 +37,8 @@ namespace OfficeIMO.Excel {
 
                         break;
                     case SheetViews:
+                    case SheetFormatProperties:
+                    case DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatting:
                     case SheetDimension:
                     case MergeCells:
                     case Hyperlinks:
@@ -188,7 +190,9 @@ namespace OfficeIMO.Excel {
             SetBufferedAutomaticStyle(buffer, cellIndex, baseStyle, cell);
         }
 
-        private static bool IsMirroredBufferedCell(int cellIndex) => cellIndex < PendingDirectCellValueMinimumCellCount - 1;
+        internal int MirroredCellCount => PendingDirectCellValueMinimumCellCount - 1;
+
+        private bool IsMirroredBufferedCell(int cellIndex) => cellIndex < MirroredCellCount;
 
         // Date and time cells without a format take the automatic one when written.
         private uint GetEffectiveBufferedStyle(ExcelCellValueBuffer buffer, int cellIndex) {
@@ -380,7 +384,7 @@ namespace OfficeIMO.Excel {
             _materializingPendingCellValueDirectSaveBuffer = true;
             try {
                 // The first cells were mirrored as they arrived and may since have been edited in place.
-                ApplyCellValueBufferToWorksheet(buffer, PendingDirectCellValueMinimumCellCount - 1, cancellationToken);
+                ApplyCellValueBufferToWorksheet(buffer, MirroredCellCount, cancellationToken);
                 if (ReferenceEquals(_pendingCellValueDirectSaveBuffer, buffer)) {
                     _pendingCellValueDirectSaveBuffer = null;
                     _excelDocument.ClearPendingDirectCellValueSheet(this);

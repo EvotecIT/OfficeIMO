@@ -710,7 +710,8 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Worksheet elements a buffered sheet carries as XML around its direct rows.</summary>
         private sealed class DirectWorksheetStructure {
-            internal DirectWorksheetStructure(string? columnsXml, string? mergeCellsXml, string? hyperlinksXml, string? legacyDrawingXml) {
+            internal DirectWorksheetStructure(string? columnsXml, string? mergeCellsXml, string? hyperlinksXml, string? legacyDrawingXml, IReadOnlyDictionary<int, string>? rowAttributes) {
+                RowAttributes = rowAttributes;
                 ColumnsXml = columnsXml;
                 MergeCellsXml = mergeCellsXml;
                 HyperlinksXml = hyperlinksXml;
@@ -724,6 +725,8 @@ namespace OfficeIMO.Excel {
             internal string? HyperlinksXml { get; }
 
             internal string? LegacyDrawingXml { get; }
+
+            internal IReadOnlyDictionary<int, string>? RowAttributes { get; }
         }
 
         private sealed class DirectWorksheetMetadata {

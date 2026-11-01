@@ -350,7 +350,10 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            _excelDocument.MaterializeDeferredDataSetImport();
+            if (_excelDocument.HasUnmaterializedDirectDataSetRows) {
+                _excelDocument.MaterializeDeferredDataSetImport();
+            }
+
             WriteLock(() => {
                 SheetData sheetData = GetOrCreateSheetData();
                 Row row = GetOrCreateRowElement(sheetData, rowIndex);
@@ -390,7 +393,10 @@ namespace OfficeIMO.Excel {
             }
 
             height = NormalizeRowHeight(height);
-            _excelDocument.MaterializeDeferredDataSetImport();
+            if (_excelDocument.HasUnmaterializedDirectDataSetRows) {
+                _excelDocument.MaterializeDeferredDataSetImport();
+            }
+
             WriteLock(() => {
                 SheetData sheetData = GetOrCreateSheetData();
                 Row row = GetOrCreateRowElement(sheetData, rowIndex);

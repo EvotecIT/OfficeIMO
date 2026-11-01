@@ -72,7 +72,7 @@ namespace OfficeIMO.Excel {
                         stylePlan.TabularStyles, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
                     rowIndex += rowCount;
                 } else if (sheet.Table.CellValueBuffer is { } cellValueBuffer && !hasInlineOverlayCells) {
-                    WriteCellValueBuffer(writer, cellValueBuffer, cellReferencePrefixes, styleAttributes, stylePlan, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
+                    WriteCellValueBuffer(writer, cellValueBuffer, cellReferencePrefixes, styleAttributes, stylePlan, metadata?.Structure?.RowAttributes, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
                     rowIndex += rowCount;
                 } else if (hasObjectRows && !hasInlineOverlayCells && !sheet.OmitBlankCells) {
                     WriteObjectRows(writer, objectRows, rowIndex, sheet.IncludeCellReferences, cellReferencePrefixes, styleAttributes, valueStyleColumns, sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);

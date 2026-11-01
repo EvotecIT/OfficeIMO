@@ -101,7 +101,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (_packagePropertiesDirty) {
+            if (_packagePropertiesDirty && _materializedDirectDataSetFastSaveModel?.WorkbookStyles == null) {
                 skipReason = "Package properties changed.";
                 return false;
             }

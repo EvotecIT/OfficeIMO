@@ -502,7 +502,8 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, [columnIndex])) {
+            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, [columnIndex])
+                || TryAutoFitPendingCells([columnIndex], null, CancellationToken.None)) {
                 return;
             }
 
