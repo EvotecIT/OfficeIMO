@@ -201,7 +201,8 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
         if (ParameterSetName == "Job") return;
         if (ParameterSetName == "Text") { await ConvertTextAsync(); return; }
         if (ParameterSetName == "Document") {
-            if (OfficeArgumentValue.Unwrap(Document) is FileInfo file) AddInput(file.FullName, literal: true);
+            if (OfficePath.GetPipelineLiteralPaths(Document) is { } paths)
+                foreach (string path in paths) AddInput(path, literal: true);
             else await ConvertLiveDocumentAsync();
             return;
         }

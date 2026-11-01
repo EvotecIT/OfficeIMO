@@ -25,9 +25,14 @@ public abstract class OfficeInputCmdlet : AsyncPSCmdlet {
 
     /// <summary>Resolves each input before any await, reporting missing items independently.</summary>
     protected IReadOnlyList<string> ResolveInputs(bool allowDirectory = false) {
-        var result = new List<string>();
         bool literal = ParameterSetName == "LiteralPath";
-        foreach (string input in literal ? LiteralPath : Path) {
+        return ResolveInputs(literal ? LiteralPath : Path, literal, allowDirectory);
+    }
+
+    /// <summary>Resolves captured pipeline path properties with the same per-item errors as named path parameters.</summary>
+    internal IReadOnlyList<string> ResolveInputs(IEnumerable<string> inputs, bool literal, bool allowDirectory = false) {
+        var result = new List<string>();
+        foreach (string input in inputs) {
             try { result.AddRange(OfficePath.ResolveInput(SessionState, input, literal, allowDirectory,
                 (error, item) => WriteError(OfficeError.Create(error, "input-unreadable", item)))); }
             catch (ArgumentException error) { ThrowTerminatingError(OfficeError.Create(error, "invalid-argument", input, ErrorCategory.InvalidArgument)); }

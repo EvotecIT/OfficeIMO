@@ -205,8 +205,12 @@ public sealed partial class ConversionCmdletWorkflowTests {
         } finally { Directory.Delete(root, true); }
     }
 
-    [Fact]
-    public void FileTextExportStreamsConvertedStringsAndAssignsItsSummaryBeforeAFailingItemStopsThePipeline() {
+    [Theory]
+    [InlineData("FileInfo")]
+    [InlineData("LiteralPath")]
+    [InlineData("FullName")]
+    [InlineData("PSPath")]
+    public void FileTextExportStreamsConvertedStringsAndAssignsItsSummaryBeforeAFailingItemStopsThePipeline(string inputShape) {
         string root = Directory.CreateTempSubdirectory("officeimo-conversion-file-text-").FullName;
         try {
             string source = Path.Combine(root, "review[1].docx"), invalid = Path.Combine(root, "broken.docx");
@@ -217,18 +221,31 @@ public sealed partial class ConversionCmdletWorkflowTests {
             runspace.SessionStateProxy.SetVariable("invalid", invalid);
             using var shell = PowerShell.Create();
             shell.Runspace = runspace;
-            shell.AddScript("""
-                Get-Item -LiteralPath $source | Convert-OfficeDocument -To Markdown -AsString -SummaryVariable success -ErrorAction Stop
+            string select = inputShape == "FileInfo" ? "Get-Item -LiteralPath $source" : "[pscustomobject]@{ " + inputShape + " = $source }";
+            shell.AddScript("$inputObject = " + select + "; " + """
+                $inputObject | Convert-OfficeDocument -To Markdown -AsString -SummaryVariable success -ErrorAction Stop
                 $success
                 $stopped = $false
                 try { Convert-OfficeDocument -LiteralPath $source, $invalid -To Markdown -AsString -SummaryVariable mixed -ThrottleLimit 1 -ErrorAction Stop }
                 catch { $stopped = $true }
                 if (-not $stopped) { throw 'A failed input did not honor ErrorAction Stop' }
                 $mixed
+                $inputObject | Get-OfficeDocumentInfo -ErrorAction Stop
+                """);
+            if (inputShape == "LiteralPath") shell.AddStatement().AddScript("""
+                $inspectionErrors = @()
+                [pscustomobject]@{ LiteralPath = @("${source}.missing", $source) } | Get-OfficeDocumentInfo -ErrorAction SilentlyContinue -ErrorVariable inspectionErrors
+                if ($inspectionErrors.Count -ne 1) { throw 'Inspection must continue after one missing literal input' }
                 """);
             var output = shell.Invoke();
             Assert.Empty(shell.Streams.Error);
-            Assert.Equal(4, output.Count);
+            if (inputShape == "LiteralPath") {
+                var errors = Assert.IsAssignableFrom<System.Collections.IEnumerable>(runspace.SessionStateProxy.GetVariable("inspectionErrors"));
+                var error = Assert.IsType<ErrorRecord>(PSObject.AsPSObject(Assert.Single(errors.Cast<object>())).BaseObject);
+                Assert.Equal(ErrorCategory.ObjectNotFound, error.CategoryInfo.Category);
+                Assert.Equal(source + ".missing", error.TargetObject);
+            }
+            Assert.Equal(inputShape == "LiteralPath" ? 6 : 5, output.Count);
             Assert.Contains("Text pipeline evidence", Assert.IsType<string>(output[0].BaseObject));
             Assert.Equal(1, Assert.IsType<OfficeBatchSummary>(output[1].BaseObject).Completed);
             Assert.Contains("Text pipeline evidence", Assert.IsType<string>(output[2].BaseObject));
@@ -236,6 +253,8 @@ public sealed partial class ConversionCmdletWorkflowTests {
             Assert.Equal(2, summary.Selected);
             Assert.Equal(1, summary.Completed);
             Assert.Equal(1, summary.Failed);
+            Assert.Equal(source, Assert.IsType<OfficeDocumentInfo>(output[4].BaseObject).Path);
+            if (inputShape == "LiteralPath") Assert.Equal(source, Assert.IsType<OfficeDocumentInfo>(output[5].BaseObject).Path);
             Assert.Single(Directory.GetFiles(root, "*.docx"), path => path == source);
             Assert.Empty(Directory.GetFiles(root, "*.md"));
         } finally { Directory.Delete(root, true); }

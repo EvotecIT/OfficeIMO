@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
@@ -75,11 +74,8 @@ public sealed class GetOfficeDocumentInfoCommand : OfficeInputCmdlet {
     protected override async Task ProcessRecordAsync() {
         if (ParameterSetName == "Document") {
             object value = OfficeArgumentValue.Unwrap(Document)!;
-            // An object parameter can bind a FileInfo before property-name binding selects LiteralPath.
-            // Resolve that filesystem input on the pipeline thread, just like the inherited path sets.
-            if (value is FileInfo file) {
-                IReadOnlyList<string> paths = OfficePath.ResolveInput(SessionState, file.FullName, true, false,
-                    (error, input) => WriteError(OfficeError.Create(error, "input-unreadable", input)));
+            if (OfficePath.GetPipelineLiteralPaths(Document) is { } literalInputs) {
+                IReadOnlyList<string> paths = ResolveInputs(literalInputs, literal: true);
                 await RunBatchAsync(paths, (path, token) => Task.FromResult<object?>(OfficeDocument.Inspect(path, _options, token)), "Inspecting documents");
             } else {
                 try { WriteObject(OfficeDocument.Inspect(value, _options, CancelToken)); }
