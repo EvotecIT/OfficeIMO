@@ -31,13 +31,41 @@ internal sealed partial class HtmlRenderLayoutEngine {
             carrier.StrokeColor = null;
             carrier.StrokeWidth = 0D;
             carrier.Shadow = shadow.Clone();
-            visuals.Add(new HtmlRenderShape(
-                carrier,
-                x - layer.SpreadRadius,
-                y - layer.SpreadRadius,
+            string layerSource = BoxShadowSource(sourceDescription, index, style.BoxShadowLayerCount, inset: false);
+            if (style.BackgroundColor?.A == 255) {
+                visuals.Add(new HtmlRenderShape(carrier, x - layer.SpreadRadius, y - layer.SpreadRadius, visuals.Count, source: layerSource));
+                continue;
+            }
+            // An outer shadow is never drawn inside the border box, which only an opaque background hides.
+            double reach = Math.Abs(layer.SpreadRadius) + shadow.BlurRadius * 3D + Math.Max(Math.Abs(shadow.OffsetX), Math.Abs(shadow.OffsetY)) + 1D;
+            double clipX = x - reach;
+            double clipY = y - reach;
+            var shadowPaint = new HtmlRenderShape(carrier, x - layer.SpreadRadius, y - layer.SpreadRadius, 0, source: layerSource);
+            visuals.Add(new HtmlRenderPathClipGroup(
+                clipX,
+                clipY,
+                CreateOutsideBoxClipPath(width, height, reach, radii),
+                new HtmlRenderVisual[] { shadowPaint },
                 visuals.Count,
-                source: BoxShadowSource(sourceDescription, index, style.BoxShadowLayerCount, inset: false)));
+                source: layerSource));
         }
+    }
+
+    /// <summary>Even-odd clip covering a margin of <paramref name="reach"/> around a box, leaving the box itself out.</summary>
+    private static OfficeClipPath CreateOutsideBoxClipPath(double width, double height, double reach, HtmlResolvedBorderRadii radii) {
+        double outerWidth = width + reach * 2D;
+        double outerHeight = height + reach * 2D;
+        var commands = new List<OfficePathCommand> {
+            OfficePathCommand.MoveTo(0D, 0D),
+            OfficePathCommand.LineTo(outerWidth, 0D),
+            OfficePathCommand.LineTo(outerWidth, outerHeight),
+            OfficePathCommand.LineTo(0D, outerHeight),
+            OfficePathCommand.Close()
+        };
+        foreach (OfficePathCommand command in radii.CreatePathCommands(width, height)) {
+            commands.Add(command.Translate(-reach, -reach));
+        }
+        return OfficeClipPath.Path(outerWidth, outerHeight, commands, OfficeFillRule.EvenOdd);
     }
 
     private void AddInsetBoxShadows(

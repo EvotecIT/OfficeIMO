@@ -22,6 +22,22 @@ public sealed partial class HtmlRenderingTests {
             shape => shape.Source == "div#tail").Y, 6);
     }
 
+    [Theory]
+    [InlineData("transparent", 255)]
+    [InlineData("rgba(0,0,255,0.25)", 191)]
+    public void HtmlShadows_OuterShadowStaysOutsideTransparentBorderBox(string background, int centerRed) {
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous, ViewportWidth = 160D, ViewportHeight = 120D, Margins = HtmlRenderMargins.All(0D)
+        };
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(
+            "<div style='margin:20px;width:80px;height:60px;box-shadow:0 0 0 6px #000;background:" + background + "'></div>"), options);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+
+        Assert.InRange(raster.GetPixel(60, 50).R, centerRed - 2, centerRed + 2);
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(17, 50));
+    }
+
     [Fact]
     public void HtmlShadows_SmallEllipticalSpreadAdjustsEachAxis() {
         HtmlRenderPage page = RenderShadowSpread("2px 12px 0 2px / 12px 2px 12px 2px", 8);
@@ -246,7 +262,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlShadows_LayerLimitIsBoundedAndCataloged() {
-        const string html = "<div id='limited' style='width:20px;height:20px;box-shadow:0 1px red,0 2px green,0 3px blue'></div>";
+        const string html = "<div id='limited' style='width:20px;height:20px;background:white;box-shadow:0 1px red,0 2px green,0 3px blue'></div>";
         var options = new HtmlRenderOptions {
             ViewportWidth = 40D,
             ViewportHeight = 40D,
