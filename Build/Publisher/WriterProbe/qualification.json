@@ -24280,5 +24280,341 @@
         "sha256": "fed67eadb070e5ea1c05c8678cd34b232c87a969e849f7b3106edd1f1f7c1155"
       }
     ]
+  },
+  "pairKerningMetadata": {
+    "schema": "officeimo.publisher.pair-kerning-metadata.v1",
+    "sourceCommit": "8754a0f3ef0d163b47e7d51471a31761ded0c204",
+    "profile": "Native direct FDPC threshold metadata and qualified existing-source paragraph/typing edits; shared threshold-aware rendering remains open.",
+    "field": {
+      "id": "0x18",
+      "type": "0x22",
+      "unitsPerPoint": 12700,
+      "nativeSchemaName": "FpsKern",
+      "publicProperty": "OfficeRichTextRun.AutomaticPairKerningThreshold",
+      "copyMethod": "WithAutomaticPairKerningThreshold(double?)",
+      "rangePoints": [
+        0,
+        999.5
+      ],
+      "null": "Unspecified; source save retains selected native definition.",
+      "zero": "Explicitly disables native pair kerning.",
+      "unqualifiedEncodingDiagnostic": "PUB_TEXT_KERNING_UNASSESSED"
+    },
+    "nativeControls": {
+      "source": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextHyphenation/native-texthyphenation.pub",
+      "thresholdPoints": [
+        0,
+        8,
+        12,
+        14
+      ],
+      "font": "Arial12",
+      "sourceDerived": true,
+      "retainedOutput": "Native-resaved PUB/PDF controls with exact source/payload provenance",
+      "inclusiveActivationObserved": true,
+      "default14CanonicalizesToOmission": true,
+      "otherDefaultProfilesQualified": false,
+      "applicationOptionsChanged": false
+    },
+    "nativeValidation": {
+      "inputs": 11,
+      "runs": 12,
+      "operations": 84,
+      "initialResaved144DpiPairs": 68,
+      "allPixelsEqual": true,
+      "publicThresholdEdits": [
+        0,
+        8,
+        8.2,
+        12.5,
+        14,
+        999.5
+      ],
+      "nativeGetters": "Native Single-precision values verified at initial/resaved observations; font8.2 also verified.",
+      "stroke": {
+        "requestedPoints": 8.2,
+        "encodedUnits": 104140,
+        "nativeSaveReopened": true,
+        "nativePdfStrokeWidths": [
+          8.199999809265137
+        ],
+        "managedReloadAfterNativeSavePoints": 8.2
+      },
+      "repairFreeQualified": false
+    },
+    "exactPointRegression": {
+      "cause": "Binary floating products may lie just below the native integer for8.2 points.",
+      "resolution": "Round the candidate integer; require its decoded point value to equal the requested double. Keep range and off-grid refusal.",
+      "boundaries": [
+        "pair-kerning threshold",
+        "Western font size",
+        "existing stroke-width scalar"
+      ],
+      "preFixFailuresReproduced": true,
+      "postFixPublicAndNativeAccepted": true
+    },
+    "tests": [
+      {
+        "file": "publisher-closure-net10.0.trx",
+        "outcomes": {
+          "Passed": 983
+        },
+        "skips": []
+      },
+      {
+        "file": "publisher-closure-net472.trx",
+        "outcomes": {
+          "Passed": 983
+        },
+        "skips": []
+      },
+      {
+        "file": "publisher-closure-net8.0.trx",
+        "outcomes": {
+          "Passed": 983
+        },
+        "skips": []
+      },
+      {
+        "file": "drawing-net10.0.trx",
+        "outcomes": {
+          "Passed": 6271,
+          "NotExecuted": 5
+        },
+        "skips": [
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowTiffDecodeObservesCancellationInsidePixelLoops",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.PngUnfilterObservesCancellationAfterPixelsChange",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngIdentificationObservesCancellationDuringChunkValidation"
+        ]
+      },
+      {
+        "file": "drawing-net472.trx",
+        "outcomes": {
+          "Passed": 6243,
+          "NotExecuted": 5
+        },
+        "skips": [
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.PngUnfilterObservesCancellationAfterPixelsChange",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngIdentificationObservesCancellationDuringChunkValidation",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowTiffDecodeObservesCancellationInsidePixelLoops"
+        ]
+      },
+      {
+        "file": "drawing-net8.0.trx",
+        "outcomes": {
+          "Passed": 6271,
+          "NotExecuted": 5
+        },
+        "skips": [
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowTiffDecodeObservesCancellationInsidePixelLoops",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngIdentificationObservesCancellationDuringChunkValidation",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.PngUnfilterObservesCancellationAfterPixelsChange",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops"
+        ]
+      }
+    ],
+    "powershell": {
+      "runtime": "7.6.9",
+      "sourceBuildTarget": "net8.0",
+      "route": "publisher-pdf",
+      "pages": 1,
+      "thresholdAndFontSizePoints": 8.2,
+      "sourceByteExact": true,
+      "owners": [
+        {
+          "sha256": "614ab9b6197fcef9d78d38971c0d8dae507414200608c1140c8e87b40e773eaf",
+          "name": "OfficeIMO.Core"
+        },
+        {
+          "sha256": "0a02f45d42ddf05153bb57b463b0ba64e491d5a7dff29f131f516c87fef161ef",
+          "name": "OfficeIMO.Publisher"
+        }
+      ]
+    },
+    "scriptParsing": [
+      {
+        "runtime": "7.6.9",
+        "scripts": 4,
+        "nativeComInvoked": false
+      },
+      {
+        "runtime": "5.1.26100.9711",
+        "scripts": 4,
+        "nativeComInvoked": false
+      }
+    ],
+    "checkout": {
+      "rawPayloads": 8,
+      "coreAutoCrlf": true,
+      "stagedAndCheckoutMatchProvenance": true
+    },
+    "sourceFiles": [
+      {
+        "path": ".gitattributes",
+        "sha256": "85535ce20151301708caec3044486dfa6107691a25ec7f1c09a1b788b9799567"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "sha256": "3e475a33270ce0644c4e2b1c77e534ca918deee41f4dd31683f0312b38a0a7a4"
+      },
+      {
+        "path": "Docs/ROADMAP.md",
+        "sha256": "197b8a990da8d0e2a105578fef14f38b2ee241f5c8015d4fd78aeac09ae47ac2"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawing.ColorTint.cs",
+        "sha256": "55e6c6e7b368b89f840cfd2ab29fd137c51479fcb5cdce50cb201cc79961a10c"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawing.Paragraphs.cs",
+        "sha256": "cbc49d63d8bc866574f44637ec01e09dcd4694c3f663dee25b51818f16e383f1"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingRichText.cs",
+        "sha256": "164a9355bf769a16b690bcb31fe085a0d017930123253e76b74fda553e58fbcc"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextFlow.cs",
+        "sha256": "ea6cc7d0412fa63aa84b65a634819945f0016917d1ab2fb68fa9ff0a2c658991"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextParagraph.cs",
+        "sha256": "b625780e084ef3ff8625b05d2059368eb7efa661633a5eb212febbd053537802"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextRun.cs",
+        "sha256": "c90bffc178d0ba74664c999341bd6b267b8803b468e8ad42ade2f0f77d72c5d7"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextPairKerning/native-threshold-0.pdf",
+        "sha256": "7acffbc8d7e4d1aaeb7940e941579588edc04ebb42480f57592cce156b146a20"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextPairKerning/native-threshold-0.pub",
+        "sha256": "c7271ed31a313a19bf63c2bb2cb246e0c9410d6e4d20ff4906da268621613cb5"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextPairKerning/native-threshold-12.pdf",
+        "sha256": "8c360bc75d5b9781b713311b173c87a027918ec10bc9cd9542dc02b3cb343977"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextPairKerning/native-threshold-12.pub",
+        "sha256": "a43f640c82f796663517c788183e51d484a23a65ef204bd77603235d67ef6ad8"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextPairKerning/native-threshold-14.pdf",
+        "sha256": "1d148a2d436309e947c66a0a4e8fa93139ffb8c60a690cd987cf8ab4304d058a"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextPairKerning/native-threshold-14.pub",
+        "sha256": "523fff91025c262033c6f73c027152ac0aad543165e14eccd4e4a97c1964b620"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextPairKerning/native-threshold-8.pdf",
+        "sha256": "33fabb88fb88a20df8e83928f76dcbcdd41672107be4a02ce4e5fa91e8031050"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextPairKerning/native-threshold-8.pub",
+        "sha256": "0861ce0f7028af10330a2fe83fc28b35040ed6785c25abb4b53794de5a970688"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextPairKerning/provenance.json",
+        "sha256": "ef52121ebf1f97744ae7c45d8edb6b704fc6cf59f8975d5a2f0d0b19853af5e8"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/README.md",
+        "sha256": "73755a7cb857700a23990a779575d7b78c4a2e2c1b309d19191fc194951a3bde"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherKerningWritingTests.cs",
+        "sha256": "ae57fb58f3070002294f58f63a76b5dc340f7e4757ae6b1b0e21f6e5ac4c7262"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherNativeWritingTests.cs",
+        "sha256": "2d21fa22ed45c7a9362b19901fee9f0b1f0eda186c028c4587ad8d94ba449831"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.Compare.cs",
+        "sha256": "1bfbf4bc5663e6a8f72d48f234034efcb7ade9676005c24125c95fba391b6180"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.cs",
+        "sha256": "10777a60a302b587ae42245ef959bde5767f8196c5325704d32d76d0b0da014a"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillCharacterStyleWriter.Extended.cs",
+        "sha256": "e1e4b030da86c30b3ada8f065e2156a3b4329581530a087938015dec5e4df856"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillCharacterStyleWriter.Kerning.cs",
+        "sha256": "62b9c2a882d34594c186374f644d40a3a6a51ee91c258c94d575d22613d9f95d"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillCharacterStyleWriter.Language.cs",
+        "sha256": "fbf820f0ad61b7856a005ba4b612a477c9e2dd3dca7f6f6cda1f44be2353a890"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillCharacterStyleWriter.cs",
+        "sha256": "55a97747bb9831b618792cbb942d8e899c9658cdc878024953afcdeeff6e92fc"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Retention.cs",
+        "sha256": "705769d02a9ab379d0093be28e1483bcfa98398d9718bf29c925366f0c1c9e33"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Topology.cs",
+        "sha256": "d057a816a09e213b6045f7f9324c1ac8002fba6a132c42f4a358579e0d50b38a"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillStyleReader.cs",
+        "sha256": "4adacca84576f1a00ac9b290b1d8be2711a11451058e4877879764777314cb2f"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillStyles.cs",
+        "sha256": "ee2d7cc9468d57c0f746ce7e2d3e12272bf92ef8efac53dc16f6defad8b3a81f"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillTextReader.cs",
+        "sha256": "f459f251ab16827fd3778440b845f9dbe2a9f264ebb2f1d2370093d8f51be8fb"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherStoryEditor.cs",
+        "sha256": "5943824f95fd6b3a7ab7a0ecef64ec85a3a776df8d8d27cbf5a83e7a8f865856"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherTextComparison.cs",
+        "sha256": "40294ed23bdb31b3649ab450b56048e6fa5c37459cc82a0c3025e338f94adcd9"
+      },
+      {
+        "path": "OfficeIMO.Publisher/README.md",
+        "sha256": "126c9a49696df82c8ce74d5d59f62a8d9ad3b6e7aaffd69f08c2795fb534fd39"
+      },
+      {
+        "path": "OfficeIMO.Publisher/SUPPORT.md",
+        "sha256": "899982b285fb72c2ff63ecdbc1e5ee50dfdb727760802fac4d031f9fc2c910f3"
+      }
+    ],
+    "limits": [
+      "Metadata preservation/editing does not apply the setting to shared width measurement, glyph output or managed frame breaks.",
+      "The retained controls are source-derived native interoperability evidence, not independent native creation or repair-free proof.",
+      "Native defaults outside the observed profile, mixed baselines, inherited-default activation and complex scripts need separate qualification.",
+      "Automatic hyphenation, dictionary differences and generated-display/source UTF-16 continuation remain open."
+    ],
+    "portableBuilds": [
+      {
+        "project": "OfficeIMO.Reader.Publisher",
+        "target": "netstandard2.0",
+        "result": "PASS",
+        "transitiveOwners": [
+          "OfficeIMO.Core",
+          "OfficeIMO.Publisher"
+        ]
+      }
+    ]
   }
 }
