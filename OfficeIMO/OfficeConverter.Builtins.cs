@@ -133,7 +133,7 @@ public static partial class OfficeConverter {
                 } else if (id == "markdown-docx") {
                     WordMarkdownImportOptions options = ConfigureMarkdownHtml(settings.MarkdownWord, token); options.FailOnLoss |= settings.FailOnLoss;
                     result = await SaveConvertedAsync(await document.ToWordAsync(options, token).ConfigureAwait(false),
-                        model => model.SaveAsync(output, settings.WordSave, token)).ConfigureAwait(false);
+                        model => model.SaveAsync(output, settings.WordSave, token), options.Template).ConfigureAwait(false);
                 } else {
                     MarkdownHtmlExportOptions options = settings.MarkdownHtml ?? new(); options.FailOnLoss |= settings.FailOnLoss;
                     result = await document.SaveAsHtmlAsync(output, options, token).ConfigureAwait(false);
