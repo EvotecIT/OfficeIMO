@@ -90,7 +90,11 @@ namespace OfficeIMO.Excel {
             }
 
             bool pendingWritesRequireSavePreflight = _pendingDirectCellValueRequiresSavePreflight;
-            PromotePendingDirectCellValueSheetIfPossible();
+            if (HasPendingDirectCellValues && !TryPromotePendingDirectCellValueSheet()) {
+                skipReason = "Pending cells need the extended package writer.";
+                return false;
+            }
+
             _requiresSavePreflight |= pendingWritesRequireSavePreflight;
 
             if (_requiresSavePreflight) {
@@ -237,7 +241,8 @@ namespace OfficeIMO.Excel {
                         existing.DataValidationsXml,
                         existing.DrawingXml,
                         existing.PostDataValidationXml,
-                        Array.Empty<DirectOverlayCell>()));
+                        Array.Empty<DirectOverlayCell>(),
+                        existing.Structure));
                 }
 
                 return NormalizeDirectWorksheetMetadata(existing);
@@ -256,7 +261,8 @@ namespace OfficeIMO.Excel {
                 existing.DataValidationsXml ?? captured.DataValidationsXml,
                 existing.DrawingXml ?? captured.DrawingXml,
                 CombineMetadataXmlLists(existing.PostDataValidationXml, captured.PostDataValidationXml),
-                overlayCells));
+                overlayCells,
+                captured.Structure ?? existing.Structure));
         }
 
         private static DirectWorksheetMetadata? NormalizeDirectWorksheetMetadata(DirectWorksheetMetadata? metadata) {
@@ -291,7 +297,8 @@ namespace OfficeIMO.Excel {
                         metadata.DataValidationsXml,
                         metadata.DrawingXml,
                         metadata.PostDataValidationXml,
-                        retainedOverlayCells.Count == 0 ? Array.Empty<DirectOverlayCell>() : retainedOverlayCells.ToArray());
+                        retainedOverlayCells.Count == 0 ? Array.Empty<DirectOverlayCell>() : retainedOverlayCells.ToArray(),
+                        metadata.Structure);
                 }
             }
 
@@ -375,7 +382,9 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (worksheetPart.WorksheetCommentsPart != null) {
+            bool bufferedSheet = sheetModel.Table.CellValueBuffer != null;
+            bool allowWorksheetParts = bufferedSheet && allowDrawings;
+            if (worksheetPart.WorksheetCommentsPart != null && !allowWorksheetParts) {
                 skipReason = "Worksheet contains comments.";
                 return false;
             }
@@ -385,7 +394,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (worksheetPart.HyperlinkRelationships.Any()) {
+            if (worksheetPart.HyperlinkRelationships.Any() && !allowWorksheetParts) {
                 skipReason = "Worksheet contains hyperlink relationships.";
                 return false;
             }
@@ -415,6 +424,10 @@ namespace OfficeIMO.Excel {
             string? autoFilterXml = null;
             string? dataValidationsXml = null;
             string? drawingXml = null;
+            string? columnsXml = null;
+            string? mergeCellsXml = null;
+            string? hyperlinksXml = null;
+            string? legacyDrawingXml = null;
             IReadOnlyList<DirectOverlayCell> overlayCells = Array.Empty<DirectOverlayCell>();
             List<string>? conditionalFormattingXml = null;
             List<string>? postDataValidationXml = null;
@@ -441,13 +454,25 @@ namespace OfficeIMO.Excel {
                         break;
                     case Columns when sheetModel.ColumnWidths is { Length: > 0 }:
                         break;
+                    case Columns columns when bufferedSheet && !columns.Elements<Column>().Any(static column => column.Style != null):
+                        columnsXml = columns.OuterXml;
+                        break;
+                    case MergeCells mergeCells when bufferedSheet:
+                        mergeCellsXml = mergeCells.OuterXml;
+                        break;
+                    case Hyperlinks hyperlinks when allowWorksheetParts:
+                        hyperlinksXml = hyperlinks.OuterXml;
+                        break;
+                    case LegacyDrawing legacyDrawing when allowWorksheetParts:
+                        legacyDrawingXml = legacyDrawing.OuterXml;
+                        break;
                     case Columns:
                         skipReason = "Worksheet contains column metadata outside the direct DataSet column width model.";
                         return false;
                     case AutoFilter autoFilter when autoFilterXml == null:
                         autoFilterXml = autoFilter.OuterXml;
                         break;
-                    case DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatting conditionalFormatting:
+                    case DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatting conditionalFormatting when !bufferedSheet:
                         conditionalFormattingXml ??= new List<string>();
                         conditionalFormattingXml.Add(conditionalFormatting.OuterXml);
                         break;
@@ -483,6 +508,10 @@ namespace OfficeIMO.Excel {
                 && autoFilterXml == null
                 && dataValidationsXml == null
                 && drawingXml == null
+                && columnsXml == null
+                && mergeCellsXml == null
+                && hyperlinksXml == null
+                && legacyDrawingXml == null
                 && overlayCells.Count == 0
                 && (conditionalFormattingXml == null || conditionalFormattingXml.Count == 0)
                 && (postDataValidationXml == null || postDataValidationXml.Count == 0)) {
@@ -499,7 +528,10 @@ namespace OfficeIMO.Excel {
                 dataValidationsXml,
                 drawingXml,
                 postDataValidationXml?.ToArray() ?? Array.Empty<string>(),
-                overlayCells);
+                overlayCells,
+                columnsXml == null && mergeCellsXml == null && hyperlinksXml == null && legacyDrawingXml == null
+                    ? null
+                    : new DirectWorksheetStructure(columnsXml, mergeCellsXml, hyperlinksXml, legacyDrawingXml));
             return true;
         }
 

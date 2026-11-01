@@ -68,10 +68,131 @@ namespace OfficeIMO.Tests {
         }
 
         private static List<string> ReadCells(ExcelDocument document) {
-            ExcelSheet sheet = document.Sheets[0];
-            return sheet.EnumerateCells()
-                .Select(cell => $"{cell.Row}:{cell.Column}:{cell.Value}:{sheet.GetFormulaText(cell.Row, cell.Column)}")
+            return document.Sheets.SelectMany(sheet => sheet.EnumerateCells()
+                .Select(cell => $"{sheet.Name}:{cell.Row}:{cell.Column}:{cell.Value}:{sheet.GetFormulaText(cell.Row, cell.Column)}"))
                 .ToList();
+        }
+
+        private static Action<ExcelDocument> SeveralBufferedSheets => document => {
+            ExcelSheet summary = document.AddSheet("Summary");
+            ExcelSheet data = document.AddSheet("Data");
+            document.AddSheet("Empty");
+            summary.CellValue(1, 1, "Total");
+            summary.CellFormula(1, 2, "SUM(Data!B1:B100)");
+            WriteBufferedRows(data, firstRow: 1, rows: 100);
+            data.CellValue(101, 1, "line one\nline two");
+            Assert.True(document.HasPendingDirectCellValues);
+        };
+
+        private static MemoryStream SaveWorkbook(Action<ExcelDocument> write, ExcelSaveOptions? options) {
+            using ExcelDocument document = ExcelDocument.Create();
+            write(document);
+            var output = new MemoryStream();
+            document.Save(output, options);
+            output.Position = 0;
+            return output;
+        }
+
+        [Fact]
+        public void CellValueBuffer_SeveralSheetsKeepTheContentOfTheDomRoute() {
+            using MemoryStream direct = SaveWorkbook(SeveralBufferedSheets, options: null);
+            using MemoryStream dom = SaveWorkbook(SeveralBufferedSheets, new ExcelSaveOptions { DisableFastPackageWriter = true });
+
+            using ExcelDocument reopened = ExcelDocument.Load(direct);
+            using ExcelDocument expected = ExcelDocument.Load(dom);
+            Assert.Empty(reopened.ValidateOpenXml());
+            Assert.Equal(new[] { "Summary", "Data", "Empty" }, reopened.Sheets.Select(sheet => sheet.Name));
+            Assert.Equal(ReadCells(expected), ReadCells(reopened));
+        }
+
+        [Fact]
+        public void CellValueBuffer_StyledSiblingSheetKeepsItsFormats() {
+            using MemoryStream output = SaveWorkbook(document => {
+                ExcelSheet plain = document.AddSheet("Plain");
+                ExcelSheet styled = document.AddSheet("Styled");
+                WriteBufferedRows(plain, firstRow: 1, rows: 100);
+                styled.CellValue(1, 1, "Header");
+                styled.CellBold(1, 1);
+            }, options: null);
+
+            using ExcelDocument reopened = ExcelDocument.Load(output);
+            var stylesheet = reopened.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+            Assert.Contains(stylesheet.Fonts!.Elements<Font>(), font => font.Bold != null);
+            Assert.Empty(reopened.ValidateOpenXml());
+        }
+
+        [Fact]
+        public void CellValueBuffer_WorksheetSettingsLeaveCellsBuffered() {
+            using MemoryStream output = SaveWorkbook(document => {
+                ExcelSheet sheet = document.AddSheet("Data");
+                WriteBufferedRows(sheet, firstRow: 1, rows: 100);
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(30));
+                sheet.MergeRange("E1:F2");
+                sheet.SetComment(1, 1, "note");
+                sheet.SetHyperlink(90, 1, "https://example.org", "Home");
+                Assert.True(document.HasPendingDirectCellValues);
+            }, options: null);
+
+            using ExcelDocument reopened = ExcelDocument.Load(output);
+            Assert.Empty(reopened.ValidateOpenXml());
+            ExcelSheet saved = reopened.Sheets[0];
+            Assert.Single(saved.GetMergedRanges());
+            Assert.Single(saved.GetComments());
+            var part = reopened.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single();
+            Assert.Equal("https://example.org", part.HyperlinkRelationships.Single().Uri.OriginalString);
+            Assert.Equal(30D, part.Worksheet!.Descendants<Column>().Single().Width!.Value);
+            Cell link = part.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A90");
+            var styles = reopened.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+            uint fontId = styles.CellFormats!.Elements<CellFormat>().ElementAt((int)link.StyleIndex!.Value).FontId!.Value;
+            Assert.Equal("FF0563C1", styles.Fonts!.Elements<Font>().ElementAt((int)fontId).Color!.Rgb!.Value);
+        }
+
+        [Fact]
+        public void CellValueBuffer_LineBreakKeepsWrappedTextOnTheDirectWriter() {
+            using MemoryStream output = SaveCells(
+                sheet => {
+                    WriteBufferedRows(sheet, firstRow: 1, rows: 100);
+                    sheet.CellValue(101, 1, "line one\nline two");
+                },
+                options: null,
+                ExcelSavePackageWriter.DirectDataSetPackage);
+
+            using ExcelDocument reopened = ExcelDocument.Load(output);
+            Assert.Empty(reopened.ValidateOpenXml());
+            Cell text = reopened.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet!.Descendants<Cell>()
+                .Single(cell => cell.CellReference?.Value == "A101");
+            CellFormat format = reopened.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.CellFormats!
+                .Elements<CellFormat>().ElementAt((int)text.StyleIndex!.Value);
+            Assert.True(format.Alignment!.WrapText!.Value);
+        }
+
+        [Fact]
+        public void CellValueBuffer_AutoFitMatchesTheMeasuredDomWidths() {
+            static double[] Widths(bool materializeFirst) {
+                using ExcelDocument document = ExcelDocument.Create();
+                ExcelSheet sheet = document.AddSheet("Data");
+                for (int row = 1; row <= 5000; row++) {
+                    sheet.CellValue(row, 1, "item number " + row + (row % 97 == 0 ? " WWWWWWWW" : string.Empty));
+                    sheet.CellValue(row, 2, row * 1.25);
+                    sheet.CellValue(row, 3, new DateTime(2024, 1, 1).AddDays(row));
+                }
+
+                if (materializeFirst) {
+                    sheet.MaterializePendingDirectCellValues();
+                }
+
+                sheet.AutoFitColumns();
+                Assert.Equal(!materializeFirst, document.HasPendingDirectCellValues);
+                using var output = new MemoryStream();
+                document.Save(output);
+                output.Position = 0;
+                using ExcelDocument reopened = ExcelDocument.Load(output);
+                return reopened.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet!.Descendants<Column>()
+                    .Select(column => column.Width!.Value)
+                    .ToArray();
+            }
+
+            Assert.Equal(Widths(materializeFirst: true), Widths(materializeFirst: false));
         }
 
         [Fact]

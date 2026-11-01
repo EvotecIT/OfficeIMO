@@ -1,0 +1,160 @@
+using DocumentFormat.OpenXml.Spreadsheet;
+using System.Threading;
+using XCellValues = DocumentFormat.OpenXml.Spreadsheet.CellValues;
+
+namespace OfficeIMO.Excel {
+    public partial class ExcelSheet {
+        // Measures buffered cells through the same paths as worksheet cells, so the widths match
+        // the DOM route and the cells can still reach a direct writer. Formats the buffer does
+        // not reproduce are left to that route.
+        private bool TryAutoFitPendingCells(IReadOnlyList<int>? columns, ExcelExecutionMode? mode, CancellationToken ct) {
+            AutoFitMeasurementPlan? plan = null;
+            Locking.ExecuteWrite(_excelDocument.EnsureLock(), () => plan = TryBuildPendingCellAutoFitPlan(columns, ct));
+            if (plan == null) {
+                return false;
+            }
+
+            if (plan.Columns.Count > 0) {
+                AutoFitColumnsInternal(plan, mode, ct);
+            }
+
+            return true;
+        }
+
+        private AutoFitMeasurementPlan? TryBuildPendingCellAutoFitPlan(IReadOnlyList<int>? columns, CancellationToken ct) {
+            ExcelCellValueBuffer? buffer = _pendingCellValueDirectSaveBuffer;
+            if (buffer == null || HasStyledPendingCells || buffer.CellCount < PendingDirectCellValueMinimumCellCount) {
+                return null;
+            }
+
+            var targets = new Dictionary<int, int>();
+            var columnsList = new List<int>();
+            if (columns != null) {
+                columnsList.AddRange(columns);
+                for (int i = 0; i < columnsList.Count; i++) {
+                    targets[columnsList[i]] = i;
+                }
+            }
+
+            HashSet<string> sharedTexts = CollectPendingTextsThatFitSharedStrings();
+            var measurements = new List<AutoFitMeasurement>();
+            var uniqueMeasurements = new HashSet<AutoFitMeasurementKey>();
+            var sharedStringMeasurements = new HashSet<(int TargetIndex, uint StyleIndex, int SharedStringId)>();
+            var simpleTextMaxLengths = new Dictionary<(int TargetIndex, uint StyleIndex), int>();
+            var textContext = CreateAutoFitTextContext();
+            var scratch = new Cell();
+            for (int rowIndex = 0; rowIndex < buffer.WrittenRowCount; rowIndex++) {
+                ct.ThrowIfCancellationRequested();
+                int end = buffer.GetEndCellIndex(rowIndex);
+                for (int cellIndex = buffer.GetFirstCellIndex(rowIndex); cellIndex < end; cellIndex++) {
+                    int column = buffer.GetColumn(cellIndex);
+                    if (!targets.TryGetValue(column, out int targetIndex)) {
+                        if (columns != null) {
+                            continue;
+                        }
+
+                        targetIndex = columnsList.Count;
+                        targets[column] = targetIndex;
+                        columnsList.Add(column);
+                    }
+
+                    ExcelBufferedCell cell = buffer.GetCell(cellIndex);
+                    if (cell.Kind == ExcelBufferedCellKind.Blank || cell.Reference is DirectFormulaCellValue) {
+                        continue;
+                    }
+
+                    if (cell.Reference is string text && (sharedTexts.Contains(text) || _excelDocument.TryGetExistingSharedStringIndex(text, out _, out _, out _))) {
+                        if (!string.IsNullOrWhiteSpace(text) && uniqueMeasurements.Add(new AutoFitMeasurementKey(targetIndex, 0U, text, null))) {
+                            measurements.Add(new AutoFitMeasurement(targetIndex, 0U, text, null));
+                        }
+
+                        continue;
+                    }
+
+                    if (!TryLoadAutoFitScratchCell(scratch, cell)) {
+                        return null;
+                    }
+
+                    AddAutoFitMeasurement(scratch, targetIndex, textContext, uniqueMeasurements, sharedStringMeasurements, simpleTextMaxLengths, measurements);
+                }
+            }
+
+            if (columns == null) {
+                AddDeclaredColumns(targets, columnsList);
+            }
+
+            return new AutoFitMeasurementPlan(columnsList, measurements);
+        }
+
+        private void AddDeclaredColumns(Dictionary<int, int> targets, List<int> columnsList) {
+            Columns? declared = WorksheetRoot.GetFirstChild<Columns>();
+            if (declared == null) {
+                return;
+            }
+
+            foreach (Column column in declared.Elements<Column>()) {
+                uint max = column.Max?.Value ?? 0;
+                for (uint index = column.Min?.Value ?? 0; index <= max; index++) {
+                    if (!targets.ContainsKey((int)index)) {
+                        targets[(int)index] = columnsList.Count;
+                        columnsList.Add((int)index);
+                    }
+                }
+            }
+        }
+
+        // Follows the DOM route, where text joins the shared table until it holds
+        // CellValuePlainStringPromotionSharedStringCount entries and later text stays plain.
+        private HashSet<string> CollectPendingTextsThatFitSharedStrings() {
+            var texts = new HashSet<string>(StringComparer.Ordinal);
+            int capacity = CellValuePlainStringPromotionSharedStringCount - _excelDocument.SharedStringCount;
+            foreach (ExcelSheet sheet in _excelDocument.PendingDirectCellValueSheets) {
+                foreach (string text in sheet._pendingCellValueDirectSaveBuffer!.EnumerateText()) {
+                    if (texts.Count >= capacity) {
+                        return texts;
+                    }
+
+                    texts.Add(text);
+                }
+            }
+
+            return texts;
+        }
+
+        private bool TryLoadAutoFitScratchCell(Cell scratch, in ExcelBufferedCell cell) {
+            string raw;
+            XCellValues type = XCellValues.Number;
+            uint? style = null;
+            switch (cell.Kind) {
+                case ExcelBufferedCellKind.Text:
+                    raw = (string)cell.Reference!;
+                    type = XCellValues.String;
+                    break;
+                case ExcelBufferedCellKind.Number:
+                    raw = InvariantNumberText.Get(cell.NumberValue);
+                    break;
+                case ExcelBufferedCellKind.Int32:
+                    raw = InvariantNumberText.Get((int)cell.Bits);
+                    break;
+                case ExcelBufferedCellKind.Int64:
+                    raw = InvariantNumberText.Get(cell.Bits);
+                    break;
+                case ExcelBufferedCellKind.Boolean:
+                    raw = cell.Bits != 0L ? "1" : "0";
+                    type = XCellValues.Boolean;
+                    break;
+                case ExcelBufferedCellKind.DateTime:
+                    raw = InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(cell.DateTimeValue, _excelDocument.DateSystem));
+                    style = GetAutomaticNumberFormatStyleIndex(0U, duration: false);
+                    break;
+                default:
+                    return false;
+            }
+
+            scratch.CellValue = new CellValue(raw);
+            scratch.DataType = type;
+            scratch.StyleIndex = style;
+            return true;
+        }
+    }
+}

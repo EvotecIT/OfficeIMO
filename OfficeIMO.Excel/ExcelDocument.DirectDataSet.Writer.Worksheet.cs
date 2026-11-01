@@ -35,6 +35,10 @@ namespace OfficeIMO.Excel {
                 }
 
                 WriteDeclaredColumns(writer, sheet.ColumnWidths, stylePlan.TabularStyles);
+                if (!string.IsNullOrEmpty(metadata?.Structure?.ColumnsXml)) {
+                    writer.Write(metadata!.Structure!.ColumnsXml);
+                }
+
                 writer.Write("<sheetData>");
                 int columnCount = sheet.Table.ColumnCount;
                 int rowCount = sheet.Table.RowCount;
@@ -68,7 +72,7 @@ namespace OfficeIMO.Excel {
                         stylePlan.TabularStyles, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
                     rowIndex += rowCount;
                 } else if (sheet.Table.CellValueBuffer is { } cellValueBuffer && !hasInlineOverlayCells) {
-                    WriteCellValueBuffer(writer, cellValueBuffer, cellReferencePrefixes, styleAttributes, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
+                    WriteCellValueBuffer(writer, cellValueBuffer, cellReferencePrefixes, styleAttributes, stylePlan, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
                     rowIndex += rowCount;
                 } else if (hasObjectRows && !hasInlineOverlayCells && !sheet.OmitBlankCells) {
                     WriteObjectRows(writer, objectRows, rowIndex, sheet.IncludeCellReferences, cellReferencePrefixes, styleAttributes, valueStyleColumns, sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
@@ -316,6 +320,10 @@ namespace OfficeIMO.Excel {
                     writer.Write(metadata!.AutoFilterXml);
                 }
 
+                if (!string.IsNullOrEmpty(metadata?.Structure?.MergeCellsXml)) {
+                    writer.Write(metadata!.Structure!.MergeCellsXml);
+                }
+
                 if (metadata != null) {
                     for (int i = 0; i < metadata.ConditionalFormattingXml.Count; i++) {
                         writer.Write(metadata.ConditionalFormattingXml[i]);
@@ -326,6 +334,10 @@ namespace OfficeIMO.Excel {
                     writer.Write(metadata!.DataValidationsXml);
                 }
 
+                if (!string.IsNullOrEmpty(metadata?.Structure?.HyperlinksXml)) {
+                    writer.Write(metadata!.Structure!.HyperlinksXml);
+                }
+
                 if (metadata != null) {
                     for (int i = 0; i < metadata.PostDataValidationXml.Count; i++) {
                         writer.Write(metadata.PostDataValidationXml[i]);
@@ -334,6 +346,10 @@ namespace OfficeIMO.Excel {
 
                 if (!string.IsNullOrEmpty(metadata?.DrawingXml)) {
                     writer.Write(metadata!.DrawingXml);
+                }
+
+                if (!string.IsNullOrEmpty(metadata?.Structure?.LegacyDrawingXml)) {
+                    writer.Write(metadata!.Structure!.LegacyDrawingXml);
                 }
 
                 if (sheet.HasTable) {

@@ -350,6 +350,25 @@ namespace OfficeIMO.Excel {
                 return new DirectDataSetWorkbookModel(sheets, results, dateTimeOffsetWriteStrategy ?? DefaultDateTimeOffsetWriteStrategy, dateSystem);
             }
 
+            internal static DirectDataSetWorkbookModel CreateFromCellValueBuffers(
+                IReadOnlyList<(ExcelSheet Sheet, ExcelCellValueBuffer Buffer)> buffers,
+                Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
+                ExcelDateSystem dateSystem) {
+                var sheets = new DirectDataSetSheetModel[buffers.Count];
+                var results = new ExcelDataSetImportResult[buffers.Count];
+                for (int i = 0; i < buffers.Count; i++) {
+                    ExcelCellValueBuffer buffer = buffers[i].Buffer;
+                    string name = buffers[i].Sheet.Name;
+                    string range = buffer.TabularRange;
+                    sheets[i] = new DirectDataSetSheetModel(i + 1, name, null, range, DirectDataSetTableModel.FromCellValueBuffer(buffer),
+                        ExcelTableStyle.TableStyleMedium2, includeHeaders: false, includeAutoFilter: false, hasTable: false, autoFitColumns: false,
+                        omitBlankCells: true, columnWidths: null, useCellValueNumberFormats: true);
+                    results[i] = new ExcelDataSetImportResult(name, null, range, buffer.RowCount, buffer.ColumnCount);
+                }
+
+                return new DirectDataSetWorkbookModel(sheets, results, dateTimeOffsetWriteStrategy ?? DefaultDateTimeOffsetWriteStrategy, dateSystem);
+            }
+
             internal static DirectDataSetWorkbookModel CreateSingle(
                 string sheetName,
                 string requestedName,
@@ -671,6 +690,24 @@ namespace OfficeIMO.Excel {
             internal bool IncludeCellReferences { get; }
         }
 
+        /// <summary>Worksheet elements a buffered sheet carries as XML around its direct rows.</summary>
+        private sealed class DirectWorksheetStructure {
+            internal DirectWorksheetStructure(string? columnsXml, string? mergeCellsXml, string? hyperlinksXml, string? legacyDrawingXml) {
+                ColumnsXml = columnsXml;
+                MergeCellsXml = mergeCellsXml;
+                HyperlinksXml = hyperlinksXml;
+                LegacyDrawingXml = legacyDrawingXml;
+            }
+
+            internal string? ColumnsXml { get; }
+
+            internal string? MergeCellsXml { get; }
+
+            internal string? HyperlinksXml { get; }
+
+            internal string? LegacyDrawingXml { get; }
+        }
+
         private sealed class DirectWorksheetMetadata {
             internal static readonly DirectWorksheetMetadata Empty = new(
                 null,
@@ -694,7 +731,8 @@ namespace OfficeIMO.Excel {
                 string? dataValidationsXml,
                 string? drawingXml,
                 IReadOnlyList<string> postDataValidationXml,
-                IReadOnlyList<DirectOverlayCell> overlayCells) {
+                IReadOnlyList<DirectOverlayCell> overlayCells,
+                DirectWorksheetStructure? structure = null) {
                 SheetPropertiesXml = sheetPropertiesXml;
                 SheetViewsXml = sheetViewsXml;
                 SheetFormatPropertiesXml = sheetFormatPropertiesXml;
@@ -705,7 +743,10 @@ namespace OfficeIMO.Excel {
                 DrawingXml = drawingXml;
                 PostDataValidationXml = postDataValidationXml ?? Array.Empty<string>();
                 OverlayCells = overlayCells ?? Array.Empty<DirectOverlayCell>();
+                Structure = structure;
             }
+
+            internal DirectWorksheetStructure? Structure { get; }
 
             internal DirectWorksheetMetadata WithSheetViewsXml(string? sheetViewsXml) {
                 if (string.Equals(SheetViewsXml, sheetViewsXml, StringComparison.Ordinal)) {
@@ -722,7 +763,8 @@ namespace OfficeIMO.Excel {
                     DataValidationsXml,
                     DrawingXml,
                     PostDataValidationXml,
-                    OverlayCells);
+                    OverlayCells,
+                    Structure);
             }
 
             internal DirectWorksheetMetadata WithAutoFilterXml(string? autoFilterXml) {
@@ -740,7 +782,8 @@ namespace OfficeIMO.Excel {
                     DataValidationsXml,
                     DrawingXml,
                     PostDataValidationXml,
-                    OverlayCells);
+                    OverlayCells,
+                    Structure);
             }
 
             internal string? SheetPropertiesXml { get; }
@@ -773,7 +816,8 @@ namespace OfficeIMO.Excel {
                 && DataValidationsXml == null
                 && DrawingXml == null
                 && PostDataValidationXml.Count == 0
-                && OverlayCells.Count == 0;
+                && OverlayCells.Count == 0
+                && Structure == null;
         }
 
         private readonly struct DirectOverlayCell {

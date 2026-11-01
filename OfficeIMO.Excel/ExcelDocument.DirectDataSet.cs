@@ -302,7 +302,7 @@ namespace OfficeIMO.Excel {
                     sheet.Name,
                     "Cells",
                     tableName: null,
-                    ExcelA1.CellReference(1, 1) + ":" + ExcelA1.CellReference(buffer.RowCount, buffer.ColumnCount),
+                    buffer.TabularRange,
                     DirectDataSetTableModel.FromCellValueBuffer(buffer),
                     createTable: false,
                     ExcelTableStyle.TableStyleMedium2,

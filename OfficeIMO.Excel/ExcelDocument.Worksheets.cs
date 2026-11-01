@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
         /// <exception cref="OperationCanceledException">The operation was canceled.</exception>
         public ExcelSheet AddSheet(string worksheetName, ExcelSheetNameValidationMode validationMode, CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!_materializingDeferredDataSetImport) {
+            if (!_materializingDeferredDataSetImport && HasUnmaterializedDirectDataSetRows) {
                 MaterializeDeferredDataSetImport(cancellationToken);
             }
 

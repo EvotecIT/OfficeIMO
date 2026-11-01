@@ -88,20 +88,25 @@ namespace OfficeIMO.Excel {
             var externalValidationImpacts = new HashSet<OpenXmlElement>();
             var externalConditionalFormattingImpacts = new HashSet<OpenXmlElement>();
             var externalSparklineImpacts = new HashSet<OpenXmlElement>();
-            var pendingOwnerCells = new Dictionary<long, object?>();
+            var pendingCellsByOwner = new Dictionary<WorksheetPart, Dictionary<long, object?>>();
             var pendingDirectCells = new List<(ExcelSheet Owner, int Row, int Column, object? Value)>();
-            ExcelSheet? pendingOwner = _excelDocument.PendingDirectCellValueSheet;
             var inspectedDrawingRoots = new HashSet<OpenXmlPartRootElement>();
             var drawingOwners = new List<(DrawingsPart Part, bool RewriteUnqualifiedReferences)>();
             int mutatedSheetIndex = -1;
             int sheetIndex = 0;
 
-            if (pendingOwner?._pendingCellValueDirectSaveBuffer != null) {
+            foreach (ExcelSheet pendingOwner in _excelDocument.PendingDirectCellValueSheets) {
+                if (pendingOwner._pendingCellValueDirectSaveBuffer == null) {
+                    continue;
+                }
+
+                var ownerCells = new Dictionary<long, object?>();
+                pendingCellsByOwner[pendingOwner._worksheetPart] = ownerCells;
                 foreach ((int Row, int Column, object? Value) pending in
                     pendingOwner._pendingCellValueDirectSaveBuffer.EnumerateWrittenCells()) {
                     budget.Consume();
                     long coordinate = ((long)pending.Row << 32) | (uint)pending.Column;
-                    pendingOwnerCells[coordinate] = pending.Value;
+                    ownerCells[coordinate] = pending.Value;
                     pendingDirectCells.Add((pendingOwner, pending.Row, pending.Column, pending.Value));
                 }
             }
@@ -147,8 +152,7 @@ namespace OfficeIMO.Excel {
                     inspectedSheet.BuildSharedFormulaDefinitions(
                         effectiveCoordinates,
                         worksheetElements.OfType<Cell>());
-                bool isPendingOwner = pendingOwner != null
-                    && ReferenceEquals(worksheetPart, pendingOwner._worksheetPart);
+                bool isPendingOwner = pendingCellsByOwner.TryGetValue(worksheetPart, out Dictionary<long, object?>? pendingOwnerCells);
                 if (rewriteUnqualified) {
                     rows += CountAffectedRowRecords(worksheetElements, firstRow);
                 }
@@ -161,7 +165,7 @@ namespace OfficeIMO.Excel {
                         long coordinate = ((long)effectiveCoordinate.Row << 32) | (uint)effectiveCoordinate.Column;
                         object? pendingValue = null;
                         bool pendingValueIsAuthoritative = isPendingOwner
-                            && pendingOwnerCells.TryGetValue(coordinate, out pendingValue);
+                            && pendingOwnerCells!.TryGetValue(coordinate, out pendingValue);
                         if (rewriteUnqualified
                             && targetCellCoordinates.Add(coordinate)
                             && effectiveCoordinate.Row >= firstRow) {
@@ -758,26 +762,27 @@ namespace OfficeIMO.Excel {
         }
 
         private void PreflightPendingDirectCellsForRowInsertion(int firstRow, int count) {
-            ExcelSheet? pendingOwner = _excelDocument.PendingDirectCellValueSheet;
-            if (pendingOwner?._pendingCellValueDirectSaveBuffer == null) {
-                return;
-            }
-
-            bool ownerIsTarget = ReferenceEquals(pendingOwner._worksheetPart, _worksheetPart);
-            foreach ((int Row, int Column, object? Value) pending in
-                pendingOwner._pendingCellValueDirectSaveBuffer.EnumerateWrittenCells()) {
-                if (ownerIsTarget
-                    && pending.Row >= firstRow
-                    && (long)pending.Row + count > ExcelA1.MaxRows) {
-                    throw new InvalidOperationException(
-                        "Inserting rows would move a pending worksheet cell beyond Excel's row limit.");
+            foreach (ExcelSheet pendingOwner in _excelDocument.PendingDirectCellValueSheets) {
+                if (pendingOwner._pendingCellValueDirectSaveBuffer == null) {
+                    continue;
                 }
-                if (pending.Value is DirectFormulaCellValue formula) {
-                    ThrowIfFormulaReferenceOverflows(
-                        formula.Formula,
-                        firstRow,
-                        count,
-                        rewriteUnqualifiedReferences: ownerIsTarget);
+
+                bool ownerIsTarget = ReferenceEquals(pendingOwner._worksheetPart, _worksheetPart);
+                foreach ((int Row, int Column, object? Value) pending in
+                    pendingOwner._pendingCellValueDirectSaveBuffer.EnumerateWrittenCells()) {
+                    if (ownerIsTarget
+                        && pending.Row >= firstRow
+                        && (long)pending.Row + count > ExcelA1.MaxRows) {
+                        throw new InvalidOperationException(
+                            "Inserting rows would move a pending worksheet cell beyond Excel's row limit.");
+                    }
+                    if (pending.Value is DirectFormulaCellValue formula) {
+                        ThrowIfFormulaReferenceOverflows(
+                            formula.Formula,
+                            firstRow,
+                            count,
+                            rewriteUnqualifiedReferences: ownerIsTarget);
+                    }
                 }
             }
         }

@@ -31,10 +31,13 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(url)) throw new ArgumentNullException(nameof(url));
 
             WriteLock(() => {
-                var cell = GetCell(row, column);
                 string text = string.IsNullOrEmpty(display) ? url : display!;
-                // Avoid nested locks: write value using core method
-                CellValueCore(row, column, text);
+                Cell? cell = null;
+                if (!TrySetPendingHyperlinkCell(row, column, text, style)) {
+                    cell = GetCell(row, column);
+                    // Avoid nested locks: write value using core method
+                    CellValueCore(row, column, text);
+                }
 
                 var reference = ExcelA1.CellReference(row, column);
                 // Ensure Hyperlinks container exists
@@ -57,7 +60,7 @@ namespace OfficeIMO.Excel {
                     Tooltip = string.IsNullOrWhiteSpace(tooltip) ? null : tooltip
                 };
                 hyperlinks.Append(hl);
-                if (style) ApplyHyperlinkStyle(cell);
+                if (style && cell != null) ApplyHyperlinkStyle(cell);
             });
         }
         /// <example>

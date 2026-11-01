@@ -8,11 +8,14 @@ namespace OfficeIMO.Excel {
                 ExcelCellValueBuffer buffer,
                 string[] cellReferencePrefixes,
                 string?[]? styleAttributes,
+                DirectStylePlan stylePlan,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
                 ExcelDateSystem dateSystem,
                 DirectSharedStringTable? sharedStrings,
                 CancellationToken ct) {
                 bool canCancel = ct.CanBeCanceled;
+                string? wrapTextStyle = stylePlan.GetBufferedCellStyleAttribute(ExcelBufferedCellStyle.WrapText);
+                string? hyperlinkStyle = stylePlan.GetBufferedCellStyleAttribute(ExcelBufferedCellStyle.Hyperlink);
                 for (int rowIndex = 0; rowIndex < buffer.WrittenRowCount; rowIndex++) {
                     if (canCancel) ct.ThrowIfCancellationRequested();
                     string rowReference = InvariantNumberText.Get(buffer.GetRowNumber(rowIndex));
@@ -29,6 +32,8 @@ namespace OfficeIMO.Excel {
                         string? styleAttribute = styleAttributes?[columnIndex];
                         switch (cell.Kind) {
                             case ExcelBufferedCellKind.Text:
+                                styleAttribute ??= cell.Style == ExcelBufferedCellStyle.None ? null
+                                    : cell.Style == ExcelBufferedCellStyle.WrapText ? wrapTextStyle : hyperlinkStyle;
                                 if (styleAttribute != null) writer.Write(styleAttribute);
                                 WriteStringCellValue(writer, (string)cell.Reference!, sharedStrings);
                                 break;

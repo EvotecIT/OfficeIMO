@@ -10,16 +10,28 @@ namespace OfficeIMO.Excel {
         Value
     }
 
+    /// <summary>
+    /// Selects a cell format held by the direct stylesheet. The buffer reserves twelve bits for it.
+    /// </summary>
+    internal enum ExcelBufferedCellStyle {
+        None,
+        WrapText,
+        Hyperlink
+    }
+
     /// <summary>A cell value carried without boxing the common primitive types.</summary>
     internal readonly struct ExcelBufferedCell {
         private const long TicksMask = 0x3FFF_FFFF_FFFF_FFFFL;
         private const int KindShift = 62;
 
-        private ExcelBufferedCell(ExcelBufferedCellKind kind, long bits, object? reference) {
+        private ExcelBufferedCell(ExcelBufferedCellKind kind, long bits, object? reference, ExcelBufferedCellStyle style = ExcelBufferedCellStyle.None) {
             Kind = kind;
             Bits = bits;
             Reference = reference;
+            Style = style;
         }
+
+        internal ExcelBufferedCellStyle Style { get; }
 
         internal ExcelBufferedCellKind Kind { get; }
 
@@ -33,7 +45,14 @@ namespace OfficeIMO.Excel {
 
         internal static ExcelBufferedCell Text(string? value) => value == null
             ? default
-            : new ExcelBufferedCell(ExcelBufferedCellKind.Text, 0L, value);
+            : new ExcelBufferedCell(
+                ExcelBufferedCellKind.Text,
+                0L,
+                value,
+                value.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0 ? ExcelBufferedCellStyle.WrapText : ExcelBufferedCellStyle.None);
+
+        internal static ExcelBufferedCell HyperlinkText(string value)
+            => new ExcelBufferedCell(ExcelBufferedCellKind.Text, 0L, value, ExcelBufferedCellStyle.Hyperlink);
 
         internal static ExcelBufferedCell Number(double value)
             => new ExcelBufferedCell(ExcelBufferedCellKind.Number, BitConverter.DoubleToInt64Bits(value), null);
@@ -72,8 +91,8 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal static ExcelBufferedCell Restore(ExcelBufferedCellKind kind, long bits, object? reference)
-            => new ExcelBufferedCell(kind, bits, reference);
+        internal static ExcelBufferedCell Restore(ExcelBufferedCellKind kind, long bits, object? reference, ExcelBufferedCellStyle style)
+            => new ExcelBufferedCell(kind, bits, reference, style);
 
         internal object? ToValue() {
             switch (Kind) {
@@ -105,6 +124,8 @@ namespace OfficeIMO.Excel {
         private const int RectangleCellRatioLimit = 8;
         private const int MinimumRectangleCellLimit = 1 << 20;
         private const int KindShift = 16;
+        private const int KindMask = 0xF;
+        private const int StyleShift = 20;
         private const int ColumnMask = 0xFFFF;
         private const byte MixedColumn = byte.MaxValue;
 
@@ -127,7 +148,10 @@ namespace OfficeIMO.Excel {
 
             internal int Count { get; private set; }
 
-            internal T this[int index] => _chunks[index >> ChunkBits][index & ChunkMask];
+            internal T this[int index] {
+                get => _chunks[index >> ChunkBits][index & ChunkMask];
+                set => _chunks[index >> ChunkBits][index & ChunkMask] = value;
+            }
 
             internal void Add(T value) {
                 int chunkIndex = Count >> ChunkBits;
@@ -144,6 +168,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private readonly bool[] _usedStyles = new bool[3];
         private readonly ChunkedList<long> _payloads = new ChunkedList<long>();
         private readonly ChunkedList<int> _headers = new ChunkedList<int>();
         private readonly ChunkedList<object> _references = new ChunkedList<object>();
@@ -170,6 +195,8 @@ namespace OfficeIMO.Excel {
         internal bool HasCompactRectangle
             => (long)RowCount * _maximumColumn <= Math.Max(MinimumRectangleCellLimit, (long)CellCount * RectangleCellRatioLimit);
 
+        internal string TabularRange => "A1:" + ExcelA1.CellReference(RowCount, _maximumColumn);
+
         internal string Dimension
             => ExcelA1.CellReference(_rows[0].RowNumber, _firstColumn) + ":" + ExcelA1.CellReference(RowCount, _maximumColumn);
 
@@ -187,14 +214,8 @@ namespace OfficeIMO.Excel {
                 RowCount = row;
             }
 
-            long payload = cell.Bits;
-            if (cell.Reference != null) {
-                payload = _references.Count;
-                _references.Add(cell.Reference);
-            }
-
-            _payloads.Add(payload);
-            _headers.Add(((int)cell.Kind << KindShift) | column);
+            _payloads.Add(StorePayload(cell));
+            _headers.Add(CreateHeader(column, cell));
             _lastColumn = column;
             if (column > _maximumColumn) {
                 _maximumColumn = column;
@@ -206,6 +227,30 @@ namespace OfficeIMO.Excel {
 
             NoteColumnShape(column, cell.Kind);
         }
+
+        /// <summary>Replaces an existing cell, keeping its position.</summary>
+        internal void Replace(int cellIndex, in ExcelBufferedCell cell) {
+            int column = GetColumn(cellIndex);
+            _payloads[cellIndex] = StorePayload(cell);
+            _headers[cellIndex] = CreateHeader(column, cell);
+            NoteColumnShape(column, cell.Kind);
+        }
+
+        private long StorePayload(in ExcelBufferedCell cell) {
+            if (cell.Reference == null) {
+                return cell.Bits;
+            }
+
+            _references.Add(cell.Reference);
+            return _references.Count - 1;
+        }
+
+        private int CreateHeader(int column, in ExcelBufferedCell cell) {
+            _usedStyles[(int)cell.Style] = true;
+            return ((int)cell.Style << StyleShift) | ((int)cell.Kind << KindShift) | column;
+        }
+
+        internal bool UsesStyle(ExcelBufferedCellStyle style) => _usedStyles[(int)style];
 
         private void NoteColumnShape(int column, ExcelBufferedCellKind kind) {
             if (kind == ExcelBufferedCellKind.Blank) {
@@ -252,11 +297,13 @@ namespace OfficeIMO.Excel {
         internal int GetColumn(int cellIndex) => _headers[cellIndex] & ColumnMask;
 
         internal ExcelBufferedCell GetCell(int cellIndex) {
-            var kind = (ExcelBufferedCellKind)(_headers[cellIndex] >> KindShift);
+            int header = _headers[cellIndex];
+            var kind = (ExcelBufferedCellKind)((header >> KindShift) & KindMask);
+            var style = (ExcelBufferedCellStyle)(header >> StyleShift);
             long payload = _payloads[cellIndex];
             return kind == ExcelBufferedCellKind.Text || kind == ExcelBufferedCellKind.Value
-                ? ExcelBufferedCell.Restore(kind, 0L, _references[(int)payload])
-                : ExcelBufferedCell.Restore(kind, payload, null);
+                ? ExcelBufferedCell.Restore(kind, 0L, _references[(int)payload], style)
+                : ExcelBufferedCell.Restore(kind, payload, null, style);
         }
 
         /// <summary>
@@ -275,7 +322,7 @@ namespace OfficeIMO.Excel {
 
         internal bool Contains(int row, int column) => FindCell(row, column) >= 0;
 
-        private int FindCell(int row, int column) {
+        internal int FindCell(int row, int column) {
             int writtenRow = FindWrittenRow(row);
             if (writtenRow < 0) {
                 return -1;
@@ -334,11 +381,29 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal IEnumerable<(int Row, int Column)> EnumerateHyperlinkCells() {
+            if (!UsesStyle(ExcelBufferedCellStyle.Hyperlink)) {
+                yield break;
+            }
+
+            for (int rowIndex = 0; rowIndex < _rows.Count; rowIndex++) {
+                int end = GetEndCellIndex(rowIndex);
+                for (int cellIndex = GetFirstCellIndex(rowIndex); cellIndex < end; cellIndex++) {
+                    if (GetCell(cellIndex).Style == ExcelBufferedCellStyle.Hyperlink) {
+                        yield return (GetRowNumber(rowIndex), GetColumn(cellIndex));
+                    }
+                }
+            }
+        }
+
         /// <summary>Gets the text values in write order.</summary>
         internal IEnumerable<string> EnumerateText() {
-            for (int i = 0; i < _references.Count; i++) {
-                if (_references[i] is string text) {
-                    yield return text;
+            for (int rowIndex = 0; rowIndex < _rows.Count; rowIndex++) {
+                int end = GetEndCellIndex(rowIndex);
+                for (int cellIndex = GetFirstCellIndex(rowIndex); cellIndex < end; cellIndex++) {
+                    if (GetCell(cellIndex).Reference is string text) {
+                        yield return text;
+                    }
                 }
             }
         }

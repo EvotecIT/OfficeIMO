@@ -392,7 +392,7 @@ namespace OfficeIMO.Excel {
         private DirectDataSetWorkbookModel? _materializedDirectDataSetFastSaveModel;
         private bool _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet;
         private ExcelSheet? _directDataSetMetadataSourceSheet;
-        private ExcelSheet? _pendingDirectCellValueSheet;
+        private readonly List<ExcelSheet> _pendingDirectCellValueSheets = new List<ExcelSheet>();
         private bool _pendingDirectCellValueRequiresSavePreflight;
         private bool _materializingDeferredDataSetImport;
         private bool _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark;
@@ -407,7 +407,7 @@ namespace OfficeIMO.Excel {
 
         internal void MarkRequiresSavePreflight() {
             _requiresSavePreflight = true;
-            if (_pendingDirectCellValueSheet != null) {
+            if (_pendingDirectCellValueSheets.Count > 0) {
                 _pendingDirectCellValueRequiresSavePreflight = true;
             }
             MarkPackageDirty();

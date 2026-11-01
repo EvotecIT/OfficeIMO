@@ -77,7 +77,7 @@ namespace OfficeIMO.Excel {
                         var hyperlinkRelationships = worksheetPart.HyperlinkRelationships
                             .Select(static relationship => new FastHyperlinkRelationshipModel(
                                 relationship.Id,
-                                relationship.Uri.ToString(),
+                                relationship.Uri.OriginalString,
                                 relationship.IsExternal))
                             .ToList();
                         var worksheetModel = new FastWorksheetPackageModel(
@@ -176,7 +176,7 @@ namespace OfficeIMO.Excel {
                     relationships.Add(new ExtendedRelationshipModel(
                         hyperlink.Id,
                         "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
-                        hyperlink.Uri.ToString(),
+                        hyperlink.Uri.OriginalString,
                         hyperlink.IsExternal));
                 }
 
@@ -184,7 +184,7 @@ namespace OfficeIMO.Excel {
                     relationships.Add(new ExtendedRelationshipModel(
                         external.Id,
                         external.RelationshipType,
-                        external.Uri.ToString(),
+                        external.Uri.OriginalString,
                         isExternal: true));
                 }
 

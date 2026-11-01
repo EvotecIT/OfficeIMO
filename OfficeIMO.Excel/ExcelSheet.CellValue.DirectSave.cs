@@ -15,6 +15,43 @@ namespace OfficeIMO.Excel {
         private bool TrySetPendingDirectCellValue(int row, int column, object? value)
             => TrySetPendingDirectCell(row, column, ExcelBufferedCell.FromValue(value));
 
+        // Only worksheet settings whose XML the direct writers carry unchanged may precede
+        // the first buffered cell; the rest depend on styles or parts those writers replace.
+        private bool CanStartCellValueBuffer() {
+            if (_worksheetPart.DrawingsPart != null || _worksheetPart.TableDefinitionParts.Any()) {
+                return false;
+            }
+
+            foreach (var child in WorksheetRoot.ChildElements) {
+                switch (child) {
+                    case SheetData sheetData:
+                        if (sheetData.Elements<Row>().Any(row => row.Elements<Cell>().Any())) {
+                            return false;
+                        }
+
+                        break;
+                    case Columns columns:
+                        if (columns.Elements<Column>().Any(column => column.Style != null)) {
+                            return false;
+                        }
+
+                        break;
+                    case SheetViews:
+                    case SheetDimension:
+                    case MergeCells:
+                    case Hyperlinks:
+                    case LegacyDrawing:
+                    case AutoFilter:
+                    case PageMargins:
+                        break;
+                    default:
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
         private bool TrySetPendingDirectCell(int row, int column, in ExcelBufferedCell cell) {
             if (HasCellValueWriteAccess) {
                 return TrySetPendingDirectCellLocked(row, column, cell);
@@ -29,16 +66,50 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private bool CanAcceptPendingDirectCell()
+            => EnablePendingDirectCellValueBuffer
+               && !_materializingPendingCellValueDirectSaveBuffer
+               && !_disablePendingCellValueDirectSaveBuffer
+               && !_excelDocument.HasDeferredDirectDataSetImport
+               && !_excelDocument.HasDirectDataSetFastSaveState
+               && (_pendingCellValueDirectSaveBuffer != null || (!_hasCellValueDomWrites && CanStartCellValueBuffer()));
+
+        // A link cell is text plus a direct format; its relationship stays on the worksheet part.
+        private bool TrySetPendingHyperlinkCell(int row, int column, string text, bool style) {
+            ExcelBufferedCell cell = style ? ExcelBufferedCell.HyperlinkText(text) : ExcelBufferedCell.Text(text);
+            if ((style && ExcelBufferedCell.Text(text).Style != ExcelBufferedCellStyle.None) || !CanAcceptPendingDirectCell()) {
+                return false;
+            }
+
+            CoerceValueHelper.ValidateSharedStringLength(text, "value");
+            var buffer = _pendingCellValueDirectSaveBuffer;
+            if (buffer == null || buffer.CanAdd(row, column)) {
+                return TrySetPendingDirectCellCore(row, column, cell);
+            }
+
+            int cellIndex = buffer.FindCell(row, column);
+            if (cellIndex < 0 || !HasDefaultCellFormat(buffer.GetCell(cellIndex))) {
+                return false;
+            }
+
+            buffer.Replace(cellIndex, cell);
+            if (cellIndex < PendingDirectCellValueMinimumCellCount - 1) {
+                CellValueCoreNoMaterialize(row, column, text);
+            }
+
+            return true;
+        }
+
+        // Linking keeps a cell's format, which only the DOM can combine with the link's font.
+        private static bool HasDefaultCellFormat(in ExcelBufferedCell cell)
+            => cell.Style == ExcelBufferedCellStyle.None
+               && cell.Kind != ExcelBufferedCellKind.DateTime
+               && cell.Kind != ExcelBufferedCellKind.Value;
+
         private bool TrySetPendingDirectCellLocked(int row, int column, in ExcelBufferedCell cell) {
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
             bool prepareDateTimeOffset = cell.Reference is DateTimeOffset;
-            if (!EnablePendingDirectCellValueBuffer
-                || _materializingPendingCellValueDirectSaveBuffer
-                || _disablePendingCellValueDirectSaveBuffer
-                || _excelDocument.HasDeferredDirectDataSetImport
-                || _excelDocument.HasDirectDataSetFastSaveState
-                || (_pendingCellValueDirectSaveBuffer == null && _hasCellValueDomWrites)
-                || (_pendingCellValueDirectSaveBuffer == null && !CanRegisterDirectTabularSaveCandidate(1, 1, Math.Max(1, column)))
+            if (!CanAcceptPendingDirectCell()
                 || (!prepareDateTimeOffset && !CanBufferDirectCell(cell))) {
                 return false;
             }
@@ -67,7 +138,7 @@ namespace OfficeIMO.Excel {
                 || _excelDocument.HasDeferredDirectDataSetImport
                 || _excelDocument.HasDirectDataSetFastSaveState
                 || (_pendingCellValueDirectSaveBuffer == null && _hasCellValueDomWrites)
-                || (_pendingCellValueDirectSaveBuffer == null && !CanRegisterDirectTabularSaveCandidate(1, 1, Math.Max(1, column)))) {
+                || (_pendingCellValueDirectSaveBuffer == null && !CanStartCellValueBuffer())) {
                 return false;
             }
 
@@ -136,9 +207,8 @@ namespace OfficeIMO.Excel {
         private static bool CanBufferDirectCell(in ExcelBufferedCell cell) {
             switch (cell.Kind) {
                 case ExcelBufferedCellKind.Text:
-                    string text = (string)cell.Reference!;
-                    CoerceValueHelper.ValidateSharedStringLength(text, "value");
-                    return text.IndexOf('\n') < 0 && text.IndexOf('\r') < 0;
+                    CoerceValueHelper.ValidateSharedStringLength((string)cell.Reference!, "value");
+                    return true;
                 case ExcelBufferedCellKind.DateTime:
                     _ = cell.DateTimeValue.ToOADate();
                     return true;
@@ -207,6 +277,8 @@ namespace OfficeIMO.Excel {
 
                     ApplyPendingDirectCellValueToDom(cell.Row, cell.Column, cell.Value);
                 }
+
+                ApplyBufferedHyperlinkStyles(buffer);
                 if (ReferenceEquals(_pendingCellValueDirectSaveBuffer, buffer)) {
                     _pendingCellValueDirectSaveBuffer = null;
                     _excelDocument.ClearPendingDirectCellValueSheet(this);
@@ -221,10 +293,37 @@ namespace OfficeIMO.Excel {
                 cancellationToken.ThrowIfCancellationRequested();
                 ApplyPendingDirectCellValueToDom(cell.Row, cell.Column, cell.Value);
             }
+
+            ApplyBufferedHyperlinkStyles(buffer);
+        }
+
+        private void ApplyBufferedHyperlinkStyles(ExcelCellValueBuffer buffer) {
+            foreach ((int row, int column) in buffer.EnumerateHyperlinkCells()) {
+                ApplyHyperlinkStyle(GetCell(row, column));
+            }
         }
 
         internal bool IsMaterializingPendingDirectCellValues
             => Volatile.Read(ref _materializingPendingCellValueDirectSaveBuffer);
+
+        private bool CanWriteCellValueBuffer(ExcelCellValueBuffer buffer)
+            => buffer.HasCompactRectangle && !WorksheetHoldsCellsOutsideBuffer(buffer);
+
+        // Hands the buffer to an extended save; cells that cannot go direct stay for the DOM.
+        internal ExcelCellValueBuffer? TryTakeCellValueBufferForDirectWorksheet() {
+            var buffer = _pendingCellValueDirectSaveBuffer;
+            return buffer != null && CanWriteCellValueBuffer(buffer) ? buffer : null;
+        }
+
+        internal void ReleaseCellValueBuffer() {
+            _pendingCellValueDirectSaveBuffer = null;
+            _excelDocument.ClearPendingDirectCellValueSheet(this);
+        }
+
+        internal bool HasStyledPendingCells => _pendingCellValueDirectSaveBuffer is { } buffer
+            && (buffer.UsesStyle(ExcelBufferedCellStyle.WrapText) || buffer.UsesStyle(ExcelBufferedCellStyle.Hyperlink));
+
+        internal int PendingCellValueCount => _pendingCellValueDirectSaveBuffer?.CellCount ?? 0;
 
         // A DOM-only cell inside the buffer's rectangle, such as an array formula set
         // between buffered cells, would be lost to a writer that sees only the buffer.
@@ -257,8 +356,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (buffer.CellCount < PendingDirectCellValueMinimumCellCount
-                || !buffer.HasCompactRectangle
-                || WorksheetHoldsCellsOutsideBuffer(buffer)) {
+                || !CanWriteCellValueBuffer(buffer)
+                || !IsOnlyVisibleWorksheetWithoutParts()) {
                 return false;
             }
 

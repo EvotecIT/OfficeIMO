@@ -19,7 +19,8 @@ namespace OfficeIMO.Excel {
         /// <param name="ct">Cancels the auto-fit pass while widths are being measured or applied.</param>
         public void AutoFitColumns(ExcelExecutionMode? mode = null, CancellationToken ct = default) {
             ct.ThrowIfCancellationRequested();
-            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, ct)) {
+            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, ct)
+                || TryAutoFitPendingCells(null, mode, ct)) {
                 return;
             }
 
@@ -53,7 +54,8 @@ namespace OfficeIMO.Excel {
             var list = columnIndexes.Where(i => i > 0).Distinct().OrderBy(i => i).ToList();
             ct.ThrowIfCancellationRequested();
             if (list.Count == 0) return;
-            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, list, ct)) {
+            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, list, ct)
+                || TryAutoFitPendingCells(list, mode, ct)) {
                 return;
             }
 

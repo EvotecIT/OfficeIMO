@@ -143,6 +143,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            PrepareCellValueBuffersForExtendedSave(options);
             bool preferExtendedPackageWriter = _materializedDirectDataSetFastSaveModel != null;
             Stopwatch? saveStageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
             PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter);
@@ -301,6 +302,7 @@ namespace OfficeIMO.Excel {
             }
 
             cancellationToken.ThrowIfCancellationRequested();
+            PrepareCellValueBuffersForExtendedSave(options);
             bool preferExtendedPackageWriter = _materializedDirectDataSetFastSaveModel != null;
             Stopwatch? saveStageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
             PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter);
@@ -413,6 +415,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            PrepareCellValueBuffersForExtendedSave(options);
             bool preferExtendedPackageWriter = _materializedDirectDataSetFastSaveModel != null;
             Stopwatch? saveStageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
             PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter);
@@ -559,6 +562,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            PrepareCellValueBuffersForExtendedSave(options);
             bool preferExtendedPackageWriter = _materializedDirectDataSetFastSaveModel != null;
             Stopwatch? saveStageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
             PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter);
