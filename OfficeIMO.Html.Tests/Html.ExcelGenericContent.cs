@@ -56,6 +56,32 @@ public sealed class HtmlExcelGenericContentTests {
         Assert.DoesNotContain(sheet.EnumerateCells(), cell => Equals(cell.Value, "SECRET"));
     }
 
+    [Fact]
+    public void UnknownErrorLiteralFallsBackToVisibleTextAndCanBeSavedAsXlsb() {
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(
+            "<section class='officeimo-sheet' data-officeimo-sheet='Errors'><table><tr>"
+            + "<td data-officeimo-value-kind='error' data-officeimo-value='&lt;bad&gt;'>Shown</td>"
+            + "<td data-officeimo-value-kind='error' data-officeimo-value='#N/A'>NA</td>"
+            + "</tr></table></section>")
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Semantic, ImportTypedCellValues = true });
+        using ExcelDocument workbook = result.RequireValue();
+
+        ExcelSheet sheet = workbook.Sheets[0];
+        Assert.True(sheet.TryGetCellText(1, 1, out string fallback));
+        Assert.Equal("Shown", fallback);
+        Assert.True(sheet.TryGetCellText(1, 2, out string error));
+        Assert.Equal("#N/A", error);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticValueInvalid);
+
+        string path = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".xlsb");
+        try {
+            workbook.Save(path);
+            Assert.True(new FileInfo(path).Length > 0);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     private static ExcelDocument Import(string html) =>
         HtmlConversionDocument.Parse(html)
             .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic })

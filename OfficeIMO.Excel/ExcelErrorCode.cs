@@ -14,6 +14,8 @@ namespace OfficeIMO.Excel {
             ["#GETTING_DATA"] = 0x2b
         };
 
+        internal static bool IsLiteral(string? text) => Codes.Keys.Contains(text, StringComparer.Ordinal);
+
         internal static bool TryGetCode(string text, out byte errorCode) {
             return Codes.TryGetValue((text ?? string.Empty).Trim(), out errorCode);
         }
