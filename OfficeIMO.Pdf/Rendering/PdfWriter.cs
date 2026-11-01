@@ -1523,7 +1523,8 @@ internal static partial class PdfWriter {
         int count = Math.Min(availableCount, effects.Count);
         for (int index = 0; index < count; index++) {
             PageEffectGroup effect = effects[index];
-            if (effect.ObjectId <= 0 || string.IsNullOrEmpty(effect.Name) || string.IsNullOrEmpty(effect.Token)) continue;
+            if (effect.ObjectId <= 0 || string.IsNullOrEmpty(effect.Name) || string.IsNullOrEmpty(effect.Token)
+                || result.IndexOf(effect.Token, StringComparison.Ordinal) < 0) continue;
             var invocation = new StringBuilder();
             var stream = new ContentStreamBuilder(invocation).SaveState();
             if (!string.IsNullOrEmpty(effect.GraphicsStateName)) stream.GraphicsState(effect.GraphicsStateName!);
