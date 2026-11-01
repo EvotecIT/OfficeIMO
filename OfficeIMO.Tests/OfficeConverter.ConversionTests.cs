@@ -9,6 +9,27 @@ public sealed class OfficeConverterConversionTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void PdfHtmlUsesCommonSemanticPolicyUnlessAdapterOverridesIt(bool adapterOverride) {
+        using var pdf = PdfDocument.Create(builder => {
+            builder.Page(page => page.Content(content => content.Text("First source page")));
+            builder.Page(page => page.Content(content => content.Text("Second source page")));
+        });
+        using var source = new MemoryStream(pdf.ToBytes());
+        using var output = new MemoryStream();
+        var policy = new PdfLoadOptions { Profile = PdfReadProfile.Fast, PageSelection = PdfPageSelection.Parse("2") };
+        var html = adapterOverride ? new OfficeIMO.Html.Pdf.PdfToHtmlOptions {
+            ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.Parse("1") }
+        } : null;
+        OfficeConverter.Convert(source, OfficeDocumentFormat.Pdf, output, OfficeDocumentFormat.Html,
+            new OfficeConversionOptions { PdfLoad = policy, PdfHtml = html });
+        string result = Encoding.UTF8.GetString(output.ToArray());
+        Assert.Contains(adapterOverride ? "First source page" : "Second source page", result);
+        Assert.DoesNotContain(adapterOverride ? "Second source page" : "First source page", result);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void PdfModelConversionCompletesRenderingBeforeReturningItsReport(bool encrypt) {
         using var source = MarkdownDocument.Parse("Completed PDF conversion\n\n![Blocked image](https://example.invalid/image.png)");
         const string password = "synthetic-model-conversion-password";

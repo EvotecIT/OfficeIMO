@@ -2,6 +2,24 @@
 <Configuration>
   <ViewDefinitions>
     <View>
+      <Name>PSWriteOffice.Models.Pdf.PdfReadOptions</Name>
+      <ViewSelectedBy><TypeName>PSWriteOffice.Models.Pdf.PdfReadOptions</TypeName></ViewSelectedBy>
+      <TableControl>
+        <TableHeaders>
+          <TableColumnHeader><Label>Profile</Label></TableColumnHeader>
+          <TableColumnHeader><Label>Page</Label></TableColumnHeader>
+          <TableColumnHeader><Label>MaximumInputBytes</Label></TableColumnHeader>
+          <TableColumnHeader><Label>OcrReview</Label></TableColumnHeader>
+        </TableHeaders>
+        <TableRowEntries><TableRowEntry><TableColumnItems>
+          <TableColumnItem><ScriptBlock>$_.LoadOptions.Profile</ScriptBlock></TableColumnItem>
+          <TableColumnItem><ScriptBlock>if ($null -eq $_.LoadOptions.PageSelection) { 'All' } else { $_.LoadOptions.PageSelection.ToString() }</ScriptBlock></TableColumnItem>
+          <TableColumnItem><ScriptBlock>$_.LoadOptions.Limits.MaxInputBytes</ScriptBlock></TableColumnItem>
+          <TableColumnItem><ScriptBlock>$null -ne $_.OcrMergeOptions</ScriptBlock></TableColumnItem>
+        </TableColumnItems></TableRowEntry></TableRowEntries>
+      </TableControl>
+    </View>
+    <View>
       <Name>OfficeIMO.OfficeConversionReport</Name>
       <ViewSelectedBy><TypeName>OfficeIMO.OfficeConversionReport</TypeName></ViewSelectedBy>
       <TableControl>

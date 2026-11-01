@@ -167,12 +167,16 @@ public sealed partial class ReadOfficeDocumentCommand : OfficeInputCmdlet {
         if (Bundle && As is not (OfficeReadView.Tables or OfficeReadView.Visuals)) throw new PSArgumentException("Bundle applies to Tables or Visuals.");
         if (NoChunks && As != OfficeReadView.Ingest) throw new PSArgumentException("NoChunks applies to Ingest.");
         if (NoPageMarkers && As != OfficeReadView.Markdown) throw new PSArgumentException("NoPageMarkers applies to Markdown.");
+        _configuration = BuildConfiguration();
+        if (_configuration.PdfOcrMergeOptions != null && As != OfficeReadView.Ocr)
+            throw new PSArgumentException("PDF OCR merge settings apply to As Ocr. Use OcrOptions.ExecutionOptions for ordinary text enrichment.");
         bool recognize = Ocr || OcrOptions != null || As == OfficeReadView.Ocr;
         if (ParameterSetName == "InputObject" && As == OfficeReadView.Ocr)
             throw new PSArgumentException("An OCR review requires an original image or PDF path. Existing normalized results are never reread.");
         if (recognize && Reader != null) throw new PSArgumentException("Use a Reader with its own OCR processor, or Ocr/OcrOptions without a caller-provided Reader.");
         _ocrOptions = recognize ? OfficeReadOcr.Capture(OcrOptions ?? new OfficeOcrOptions()) : null;
-        _configuration = BuildConfiguration();
+        if (_configuration.PdfOcrMergeOptions != null)
+            _ocrOptions!.RecognitionOptions = _configuration.PdfOcrMergeOptions.Clone();
         if (!recognize) _reader = Reader ?? ReaderCommandUtilities.CreateReader(_configuration.Formats, ThrottleLimit);
         return Task.CompletedTask;
     }

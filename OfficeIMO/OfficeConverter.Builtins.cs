@@ -116,7 +116,7 @@ public static partial class OfficeConverter {
                     result = await SaveConvertedAsync(await document.ToPowerPointAsync(options, token).ConfigureAwait(false),
                         model => model.SaveAsync(output, settings.PowerPointSave, token)).ConfigureAwait(false);
                 } else {
-                    PdfToHtmlOptions options = settings.PdfHtml ?? new(); options.FailOnLoss |= settings.FailOnLoss;
+                    PdfToHtmlOptions options = settings.PdfHtml ?? new(); options.ReadOptions ??= settings.PdfLoad; options.FailOnLoss |= settings.FailOnLoss;
                     options.MaximumOutputCharacters = (int)Math.Min(options.MaximumOutputCharacters ?? int.MaxValue, settings.MaximumOutputBytes);
                     result = await document.SaveAsHtmlAsync(output, options, token).ConfigureAwait(false);
                 }

@@ -17517,7 +17517,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates PDF reading options (profile, pages, layout, authentication, load limits) for the cross-format commands.",
-      "outputType": "PdfReadOptions",
+      "outputType": "PSWriteOffice.Models.Pdf.PdfReadOptions",
       "parameterSets": [
         {
           "name": "Default",
@@ -17564,12 +17564,13 @@
               "type": "PdfOcrMergeOptions",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Used when Read-OfficeDocument -Ocr runs on a PDF."
+              "notes": "Used when Read-OfficeDocument -Ocr runs on a PDF.",
+              "note": "Applied by Read-OfficeDocument -As Ocr; ordinary text enrichment uses OcrOptions.ExecutionOptions."
             }
           ]
         }
       ],
-      "notes": "Exposes PdfReadOptions plus PDF authentication and load limits. Passed in -Options to Read-OfficeDocument, Get-OfficeDocumentInfo, Convert-OfficeDocument and Export-OfficeDocumentImage, which have no PDF-specific parameters of their own.",
+      "notes": "Composes detached native PdfLoadOptions with optional PdfOcrMergeOptions. Supply the result to Read-OfficeDocument -Options; OCR merge settings require -As Ocr. Without OCR settings the same object can supply PDF read policy to Convert-OfficeDocument.",
       "examples": [
         {
           "title": "Read only some pages",
@@ -19056,8 +19057,8 @@
         "Password": "New-OfficePdfReadOptions -Password",
         "IgnorePermissionRestrictions": "New-OfficePdfReadOptions -IgnorePermissionRestrictions"
       },
-      "hint": "Read-OfficeDocument -Path .\\Scan.pdf -Ocr -OcrOptions (New-OfficeOcrOptions -Engine $engine)",
-      "reason": "It reads native plus OCR text without writing a file: Read-OfficeDocument -Ocr with -OcrOptions. Writing a searchable PDF is Update-OfficePdf -Searchable."
+      "hint": "Read-OfficeDocument -Path .\\Scan.pdf -As Ocr -OcrOptions (New-OfficeOcrOptions -Engine $engine)",
+      "reason": "It reads native plus OCR text without writing a file: Read-OfficeDocument -As Ocr returns the native OCR review and applies PDF recognition settings. Writing a searchable PDF is Update-OfficePdf -Searchable."
     },
     {
       "old": "Join-OfficePdf",
