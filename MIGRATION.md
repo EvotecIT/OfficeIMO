@@ -1128,7 +1128,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 | `Set-OfficePdfPageBorder` | `Set-OfficePdfPageBorder` | Kept | Removed: `-Document`, `-PassThru` |   |
 | `Set-OfficePdfPageSetup` | `Set-OfficePdfPageSetup` | Kept | `-Landscape` &rarr; `-Orientation Landscape`<br>`-Left` &rarr; `-MarginLeft`<br>`-Top` &rarr; `-MarginTop`<br>`-Right` &rarr; `-MarginRight`<br>`-Bottom` &rarr; `-MarginBottom`<br>Removed: `-Document`, `-PassThru` |   |
 | `Set-OfficePdfSignature` | `Set-OfficePdfSignature` | Kept | `-PassThruReport` &rarr; `-PassThru` |   |
-| `Set-OfficePdfTheme` | `New-OfficePdf` (`Content \| Document` set) | Now a parameter | `-Theme` &rarr; `-Theme` (OfficeTheme) | `New-OfficePdf -Path .\Report.pdf -Theme Modern { ... }` |
+| `Set-OfficePdfTheme` | `New-OfficePdf` (`Content \| Live` set) | Now a parameter | `-Theme` &rarr; `-Theme` (OfficeTheme) | `New-OfficePdf -Path .\Report.pdf -Theme Modern { ... }` |
 | `Split-OfficePdf` | `Split-OfficeDocument` (`PathByPageCount \| PathByRange \| PathByBookmark` set) | Cross-format | `-FilePath` &rarr; `-Path`<br>`-PagesPerDocument` &rarr; `-PageCount`<br>`-PageRange`, `-Range`, `-PageRanges` &rarr; `-Page`<br>`-BookmarkName`, `-BookmarkTitle` &rarr; `-Bookmark`<br>Removed: `-IgnorePermissionRestrictions` | `Split-OfficeDocument -Path .\In.pdf -OutputDirectory .\Parts -PageCount 1` |
 | `Test-OfficePdfRewrite` | `Test-OfficePdfRewrite` | Kept | `-ReferencePassword` &rarr; `-Password`<br>`-IgnoreReferencePermissionRestrictions` &rarr; `-IgnorePermissionRestrictions` |   |
 
@@ -1183,7 +1183,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 | `PdfTableCellField` | `PdfFormField` | Renamed | `PdfFormField -Type Text` |
 | `PdfTableCellImage` | `PdfImage` | Renamed | `PdfImage .\logo.png` |
 | `PdfText` | `PdfText` | Kept |   |
-| `PdfTheme` | `New-OfficePdf` (`Content \| Document` set) | Now a parameter | `New-OfficePdf -Path .\Report.pdf -Theme Modern { ... }` |
+| `PdfTheme` | `New-OfficePdf` (`Content \| Live` set) | Now a parameter | `New-OfficePdf -Path .\Report.pdf -Theme Modern { ... }` |
 | `PdfVisual` | `PdfImage` | Renamed | `PdfImage -InputObject $visual` |
 | `PdfWatermark` | `PdfWatermark` | Kept |   |
 

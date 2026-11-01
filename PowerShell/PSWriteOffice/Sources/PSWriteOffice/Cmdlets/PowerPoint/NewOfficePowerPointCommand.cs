@@ -32,14 +32,9 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 ///     PowerPointSlide -Title 'Decisions' { PowerPointList 'Retain the API boundary', 'Track rollout evidence' }
 /// }</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficePowerPoint", SupportsShouldProcess = true)]
+[Cmdlet(VerbsCommon.New, "OfficePowerPoint", DefaultParameterSetName = "Live", SupportsShouldProcess = true)]
 [OutputType(typeof(PowerPointDocument), typeof(FileInfo))]
-public sealed class NewOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPointDocument> {
-    /// <summary>Optional associated destination; required with a content block.</summary>
-    [Parameter(Position = 0)]
-    [ValidateNotNullOrEmpty]
-    public string? Path { get; set; }
-
+public sealed class NewOfficePowerPointCommand : OfficeNewLifecycleCmdlet<PowerPointDocument> {
     /// <summary>Allow the new document to replace an existing destination.</summary>
     [Parameter]
     public SwitchParameter Force { get; set; }
@@ -98,16 +93,12 @@ public sealed class NewOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPoin
     public string? Template { get; set; }
 
     /// <summary>Password for the saved file; plaintext input warns, and credentials contribute their password.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Content")]
     [OfficePasswordTransformation]
     public SecureString? Password { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        if (Content == null && MyInvocation.BoundParameters.ContainsKey(nameof(Password))) {
-            InvalidArgument(new PSArgumentException("Password requires a content block. Supply it to Save-OfficePowerPoint when saving a live document."), Password);
-            return;
-        }
         if (!Enum.IsDefined(typeof(PowerPointSlideSizePreset), SlideSize)) {
             InvalidArgument(new PSArgumentException("Choose a supported slide size.", nameof(SlideSize)), SlideSize);
             return;

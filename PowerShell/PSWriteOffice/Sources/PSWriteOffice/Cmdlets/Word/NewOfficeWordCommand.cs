@@ -20,13 +20,9 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// $document | Add-OfficeWordParagraph -Text 'Reviewed and approved'
 /// Save-OfficeWord -Document $document -Path ./Review.docx
 /// Close-OfficeWord -Document $document</code></example>
-[Cmdlet(VerbsCommon.New, "OfficeWord", SupportsShouldProcess = true)]
+[Cmdlet(VerbsCommon.New, "OfficeWord", DefaultParameterSetName = "Live", SupportsShouldProcess = true)]
 [OutputType(typeof(WordDocument), typeof(FileInfo))]
-public sealed class NewOfficeWordCommand : OfficeLifecycleCmdlet<WordDocument> {
-    /// <summary>Optional associated destination; required with a content block.</summary>
-    [Parameter(Position = 0), ValidateNotNullOrEmpty]
-    public string? Path { get; set; }
-
+public sealed class NewOfficeWordCommand : OfficeNewLifecycleCmdlet<WordDocument> {
     /// <summary>Built-in theme, theme object or a document/template whose visual theme is read.</summary>
     [Parameter, OfficeThemeTransformation]
     public OfficeThemeInput? Theme { get; set; }
@@ -40,15 +36,11 @@ public sealed class NewOfficeWordCommand : OfficeLifecycleCmdlet<WordDocument> {
     public SwitchParameter Force { get; set; }
 
     /// <summary>Password for a completed content block's saved file; use Save-OfficeWord for a live document.</summary>
-    [Parameter, OfficePasswordTransformation]
+    [Parameter(ParameterSetName = "Content"), OfficePasswordTransformation]
     public SecureString? Password { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        if (Content == null && MyInvocation.BoundParameters.ContainsKey(nameof(Password))) {
-            InvalidArgument(new PSArgumentException("Password requires a content block. Supply it to Save-OfficeWord when saving a live document."), Password);
-            return;
-        }
         var options = new WordCreateOptions {
             PersistenceMode = DocumentPersistenceMode.Explicit,
             Theme = Theme?.Resolve(OfficeTheme.FromDocument),

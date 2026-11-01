@@ -10,7 +10,7 @@
       "parameterSets": [
         {
           "name": "Content",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -225,8 +225,8 @@
           ]
         },
         {
-          "name": "Document",
-          "default": false,
+          "name": "Live",
+          "default": true,
           "parameters": [
             {
               "name": "Path",
@@ -19601,7 +19601,7 @@
       "kind": "cmdlet",
       "action": "parameter",
       "new": "New-OfficePdf",
-      "parameterSet": "Content | Document",
+      "parameterSet": "Content | Live",
       "parameters": {
         "Theme": "Theme (OfficeTheme)"
       },
@@ -19613,7 +19613,7 @@
       "kind": "alias",
       "action": "parameter",
       "new": "New-OfficePdf",
-      "parameterSet": "Content | Document",
+      "parameterSet": "Content | Live",
       "hint": "New-OfficePdf -Path .\\Report.pdf -Theme Modern { ... }",
       "reason": "Theme is a New-OfficePdf parameter."
     },

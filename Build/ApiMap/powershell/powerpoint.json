@@ -11,7 +11,7 @@
       "parameterSets": [
         {
           "name": "Content",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -153,7 +153,7 @@
         },
         {
           "name": "Live",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Path",
