@@ -104,6 +104,7 @@ internal sealed class OfficeRichTextFlow {
             trimmed.UsesPublisherFontMetrics = last.UsesPublisherFontMetrics;
             trimmed.UsesPublisherKerningContext = last.UsesPublisherKerningContext;
             trimmed = trimmed.WithTabStops(last.TabStops);
+            trimmed.SuppressAutomaticHyphenation = last.SuppressAutomaticHyphenation;
             trimmed.NativeFlowPlan = last.NativeFlowPlan;
             visible[visible.Count - 1] = trimmed;
         }
@@ -152,6 +153,7 @@ internal sealed class OfficeRichTextFlow {
         result.ContinuesInNextRegion = !complete || source.ContinuesInNextRegion;
         result.UsesPublisherFontMetrics = source.UsesPublisherFontMetrics;
         result.UsesPublisherKerningContext = source.UsesPublisherKerningContext;
+        result.SuppressAutomaticHyphenation = source.SuppressAutomaticHyphenation;
         return result.WithTabStops(source.TabStops);
     }
 }

@@ -78,12 +78,23 @@ public sealed class OfficeRichTextParagraph {
 
     /// <summary>Optional measured tab settings. Null retains the legacy space-expansion behavior.</summary>
     public OfficeTextTabStops? TabStops { get; private set; }
+    /// <summary>Whether automatic word hyphenation is suppressed for this paragraph. Native adapters retain this setting independently of source text; shared layout does not yet generate automatic hyphens.</summary>
+    public bool SuppressAutomaticHyphenation { get; internal set; }
+
+    /// <summary>Returns an independent paragraph with automatic word hyphenation suppressed or allowed.</summary>
+    public OfficeRichTextParagraph WithAutomaticHyphenationSuppressed(bool suppressed) {
+        var copy = WithTabStops(TabStops);
+        copy.SuppressAutomaticHyphenation = suppressed;
+        if (suppressed != SuppressAutomaticHyphenation) copy.NativeFlowPlan = null;
+        return copy;
+    }
 
     /// <summary>Returns an independent paragraph with these tab settings; null restores legacy tab expansion.</summary>
     public OfficeRichTextParagraph WithTabStops(OfficeTextTabStops? tabStops) {
         var copy = Label == null ? new OfficeRichTextParagraph(Runs, Alignment, LineHeight, Margins, Indent, LineHeightFactor) :
             new OfficeRichTextParagraph(Runs, Label, Alignment, LineHeight, Margins, Indent, LineHeightFactor);
         copy.TabStops = tabStops;
+        copy.SuppressAutomaticHyphenation = SuppressAutomaticHyphenation;
         copy.ContinuesInNextRegion = ContinuesInNextRegion;
         copy.UsesPublisherFontMetrics = UsesPublisherFontMetrics;
         copy.UsesPublisherKerningContext = UsesPublisherKerningContext;

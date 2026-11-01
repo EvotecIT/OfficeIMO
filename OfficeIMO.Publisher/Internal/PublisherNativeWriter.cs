@@ -33,7 +33,7 @@ internal sealed partial class PublisherNativeWriter {
         writer.Compare();
         if (writer._diagnostics.Count != 0) return new PublisherNativePreparation(null, writer._diagnostics, writer._styleDependencies);
         PublisherNativeSource source = imported.NativeSource;
-        if (writer._patches.Count == 0 && writer._quillBytes == null && writer._shapeProperties.Count == 0 && writer._frameAlignments.Count == 0 && writer._imageStore == null && writer._masterAssignments.Count == 0) {
+        if (writer._patches.Count == 0 && writer._quillBytes == null && writer._shapeProperties.Count == 0 && writer._frameAlignments.Count == 0 && writer._imageStore == null && writer._masterAssignments.Count == 0 && writer._storyHyphenation.Count == 0) {
             if (source.ByteLength > maximumBytes) throw new InvalidDataException("Publisher native output byte limit exceeded.");
             token.ThrowIfCancellationRequested();
             return new PublisherNativePreparation(source.CopyBytes(), new[] { Finding("PUB_NATIVE_EXACT_COPY",
@@ -70,6 +70,9 @@ internal sealed partial class PublisherNativeWriter {
         byte[] output = source.Rewrite(streams, maximumBytes, token);
         token.ThrowIfCancellationRequested();
         var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+        if (writer._storyHyphenation.Count > 0) diagnostics.Add(Finding("PUB_NATIVE_STORY_HYPHENATION_UNQUALIFIED",
+            "Selected native story automatic-hyphenation flags changed without modifying source text or Quill formatting. Managed layout does not yet generate automatic hyphens. Repair-free opening and opaque semantic preservation remain unassessed.",
+            OfficeConversionLossKind.Unassessed, "Contents/stories"));
         if (writer._masterAssignments.Count > 0)
             diagnostics.Add(Finding("PUB_NATIVE_MASTER_ASSIGNMENT_UNQUALIFIED",
                 "Existing physical pages select qualified direct master definitions or suppress their formatting while retaining latent native references. Page roles, definition ownership and unrelated records are retained. Native repair-free opening, rendering and opaque semantic preservation require independent qualification.",

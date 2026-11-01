@@ -6,6 +6,7 @@ namespace OfficeIMO.Publisher.Internal;
 internal sealed class PublisherParagraphStyle {
     public uint? DefaultStyleIndex { get; internal set; }
     public OfficeTextAlignment? Alignment { get; internal set; }
+    public bool? SuppressAutomaticHyphenation { get; internal set; }
     public double? LineHeight { get; internal set; }
     public double? LineHeightFactor { get; internal set; }
     public double? Before { get; internal set; }
@@ -30,6 +31,7 @@ internal sealed class PublisherParagraphStyle {
     internal PublisherParagraphStyle Inherit(PublisherParagraphStyle fallback) => new() {
         DefaultStyleIndex = DefaultStyleIndex ?? fallback.DefaultStyleIndex,
         Alignment = Alignment ?? fallback.Alignment,
+        SuppressAutomaticHyphenation = SuppressAutomaticHyphenation ?? fallback.SuppressAutomaticHyphenation,
         LineHeight = LineHeight ?? (LineHeightFactor.HasValue ? null : fallback.LineHeight),
         LineHeightFactor = LineHeightFactor ?? (LineHeight.HasValue ? null : fallback.LineHeightFactor),
         Before = Before ?? fallback.Before, After = After ?? fallback.After,

@@ -109,6 +109,23 @@ var story = publication.TextStories.First(item => item.Paragraphs.Count >= 2);
 publication.ReplaceStoryParagraphs(story.Id, story.Paragraphs.Skip(1).ToArray());
 ```
 
+`PublisherTextStory.AutomaticHyphenation` exposes the qualified native story
+setting, or null when it cannot be recovered. Ordinary stories can save an
+explicit enabled/disabled setting. Paragraph suppression uses the existing
+paragraph replacement API:
+
+```csharp
+publication.SetStoryAutomaticHyphenation(story.Id, true);
+publication.ReplaceStoryParagraphs(story.Id, story.Paragraphs.Select((paragraph, index) =>
+    paragraph.WithAutomaticHyphenationSuppressed(index == 0)).ToArray());
+```
+
+This enables native story hyphenation while suppressing it in the first
+paragraph. The native flags save independently of the stored text; generated
+hyphens are never inserted into story text. Managed rendering does not yet
+generate automatic hyphens. The application's hyphenation zone is not a recovered
+document setting. See the [native setting contract](SUPPORT.md#native-hyphenation-settings).
+
 Frame-layout saves retain links and page/master ownership. They can add missing
 default fields and relocate native records; changed distances must be exact
 nonnegative EMU values. This API's gap is the full distance between columns.

@@ -564,13 +564,41 @@ pair-kerning threshold and zero manual kerning without changing application opti
 A separate source-derived disabled control retains its false story flag after
 native resaving; all four frame ranges match the current non-hyphenating managed
 layout. Core's versioned English patterns and Publisher choose different breaks
-for some words, including `creative`. Shared automatic hyphenation, effective omitted native kerning defaults
+for some words, including `creative`. Shared automatic hyphenation
 and generated-hyphen transport across frame boundaries remain open work;
 the controls do not enable those behaviors in the product. The `hyphenationReference`
 qualification record identifies the native inputs and comparison limits.
 Complete stories and source styles survive overflow; byte-exact no-op native saving
 remains independent of rendering. Native/managed pixel fidelity and repair-free
 opening are not established by this font profile.
+
+### Native hyphenation settings
+
+`PublisherTextStory.AutomaticHyphenation` recovers the Contents story-catalog
+flag: omitted or type `0x08` is enabled in the qualified profile, and type `0x00`
+is disabled. A missing catalog entry or an unassessed encoding produces null;
+an unknown encoding is reported and remains opaque. `SetStoryAutomaticHyphenation`
+changes an ordinary story without changing source characters or Quill formatting.
+Saving requires a qualified existing source entry. Table story flag edits remain
+unsupported. Existing text replacements retain the story setting.
+
+`OfficeRichTextParagraph.SuppressAutomaticHyphenation` and
+`WithAutomaticHyphenationSuppressed` read/edit the qualified Quill paragraph
+field `0x1C`, using true `0x0A` and false `0x02` through the paragraph-style codec.
+Selected style defaults and direct overrides use the existing style inheritance
+path. Unknown field encodings remain opaque and cannot be overwritten by a
+suppression edit. The source-derived suppressed [TextHyphenation control](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextHyphenation/provenance.json)
+removes generated hyphens on 13 of its 15 native pages; all 15 initial/resaved
+page pairs are identical at 144 dpi. Native save retains true and normalizes
+false to omission. These flags do not insert hyphens into stored story text.
+
+The recorded 18 pt zone belongs to the observed native application option
+profile. Its getter reads application-wide state; a file carrier and
+cross-profile default are not established. No global option changes are required
+by reading or editing publications. Managed layout does not yet apply automatic
+hyphenation, its zone, or generated display hyphens; dictionary equivalence and
+source-range transport across linked frames remain open. Native operation
+acceptance does not establish repair-free opening or general opaque preservation.
 
 The `linkedStoryCreation` record covers source-free creation of one story shared
 by three frames flowing through pages 1, 3 and 2, beside an independent story.

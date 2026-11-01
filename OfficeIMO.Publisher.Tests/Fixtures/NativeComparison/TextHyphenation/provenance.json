@@ -37,5 +37,23 @@
     }
   ],
   "observed": "15 independent US English frames on 15 pages: narrow-word and full-line word breaks, pair-kerning defaults and a three-frame linked story. Application options are observed without changing them.",
-  "limits": "Font binary and existing native option profile are recorded. Native dictionary breaks, pair kerning and source-versus-display hyphen transport remain separate managed implementation work. Native repair is unassessed."
+  "limits": "Font binary and existing native option profile are recorded. Native dictionary breaks, pair kerning and source-versus-display hyphen transport remain separate managed implementation work. Native repair is unassessed.",
+  "paragraphSuppression": {
+    "source": "native-texthyphenation.pub",
+    "sourceSha256": "50aa7ed69016d9fdcbc1b4df31bdaa708c24f60c0aa5afadd18d8f7f18888ab0",
+    "controlledInputSha256": "d6bcc293bf3442aceca66459e3b3a879cfa132456d01001a1c35eeb3766f8bec",
+    "derivation": "Source-only FDPP OPL field0x1C/type0x0A in every paragraph. Story text, formatting endpoints and every other compound stream remain unchanged before native validation. Native read-only open, PDF export, SaveAs, reopen and second PDF export; stored PUB/PDF are native-resaved artifacts.",
+    "observed": "True 0x0A suppresses generated hyphens on 13 of 15 pages; false 0x02 retains enabled reference behavior and normalizes to omission. All 15 initial/resaved page pairs are identical at 144 dpi. Story flags remain enabled; no global application options were written.",
+    "limits": "Source-derived control does not establish independent native creation, repair-free opening or dictionary parity. Earlier 0x00/0x08 paragraph encodings were ineffective and removed by native save.",
+    "files": [
+      {
+        "name": "native-paragraph-suppressed.pub",
+        "sha256": "279dc6bdec35db4d2287e1866e95e088752af7c765af7cfb14acf98bb2f9e5c8"
+      },
+      {
+        "name": "native-paragraph-suppressed.pdf",
+        "sha256": "6d190557740cf3a7bbac7f1b93e34021927dbda31bf8d3cbfd2d65c8bd17646c"
+      }
+    ]
+  }
 }

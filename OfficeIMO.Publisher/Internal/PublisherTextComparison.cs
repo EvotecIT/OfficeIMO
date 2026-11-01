@@ -68,7 +68,7 @@ internal static class PublisherTextComparison {
             int hash = 17;
             if (_includeFormatting) {
                 Add(paragraph.Alignment); Add(paragraph.LineHeight); Add(paragraph.LineHeightFactor);
-                Add(paragraph.Margins); Add(paragraph.Indent);
+                Add(paragraph.Margins); Add(paragraph.Indent); Add(paragraph.SuppressAutomaticHyphenation);
             }
             if (_includeFormatting && paragraph.TabStops is { } tabs) {
                 Add(tabs.DefaultInterval); Add(tabs.Origin); Add(tabs.AlignWithParagraph); Add(tabs.Stops.Count);

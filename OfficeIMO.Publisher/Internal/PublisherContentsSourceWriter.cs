@@ -4,11 +4,16 @@ namespace OfficeIMO.Publisher.Internal;
 internal static class PublisherContentsSourceWriter {
     internal static byte[]? Rewrite(byte[] source, PublisherContents contents, IReadOnlyDictionary<uint, uint> alignments,
         IReadOnlyDictionary<uint, string> pictureNames, IReadOnlyDictionary<uint, uint?> masterAssignments,
-        PublisherParseContext context, long maximumBytes) {
+        PublisherParseContext context, long maximumBytes, IReadOnlyDictionary<uint, bool>? storyHyphenation = null) {
         var data = new PublisherBinaryData(source, "Contents");
         var blocks = new PublisherBlockReader(data, context);
         var edits = new List<PublisherNativeStreamEdit>();
         var growth = new SortedDictionary<int, int>();
+        if (storyHyphenation?.Count > 0) {
+            PublisherNativeStreamEdit? edit = PublisherStoryHyphenation.Rewrite(data, contents, storyHyphenation, context);
+            if (edit == null) return null;
+            edits.Add(edit); growth.Add(edit.Offset, edit.Bytes.Length - edit.Length);
+        }
         var shapeChanges = new Dictionary<uint, Dictionary<byte, byte[]>>();
         foreach (var pair in alignments) {
             context.Token.ThrowIfCancellationRequested();

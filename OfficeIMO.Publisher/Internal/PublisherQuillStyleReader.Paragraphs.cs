@@ -8,6 +8,12 @@ internal sealed partial class PublisherQuillStyleReader {
         foreach (PublisherBlock field in _blocks.Chunk(offset, end)) {
             switch (field.Id) {
                 case 0x19: result.DefaultStyleIndex = field.Value; break;
+                case 0x1C:
+                    if (field.Type is 0x0A or 0x02) result.SuppressAutomaticHyphenation = field.Type == 0x0A;
+                    else _context.Add("PUB_HYPHENATION_SUPPRESSION_UNASSESSED",
+                        "The native paragraph hyphenation-suppression flag is outside the qualified boolean profile and remains opaque.",
+                        OfficeConversionLossKind.Unassessed, "Quill/FDPP");
+                    break;
                 case 0x04:
                     result.Alignment = (field.Value & 255) switch { 2 => OfficeTextAlignment.Center, 1 => OfficeTextAlignment.Right,
                         6 => OfficeTextAlignment.Justify, _ => OfficeTextAlignment.Left }; break;

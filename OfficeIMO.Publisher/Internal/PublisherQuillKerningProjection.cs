@@ -136,6 +136,7 @@ internal sealed class PublisherQuillKerningProjection {
                 paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor)
                 : new OfficeRichTextParagraph(runs, label, paragraph.Alignment, paragraph.LineHeight,
                     paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor);
+            copy.SuppressAutomaticHyphenation = paragraph.SuppressAutomaticHyphenation;
             copy = copy.WithTabStops(paragraph.TabStops);
             copy.UsesPublisherFontMetrics = paragraph.UsesPublisherFontMetrics;
             copy.UsesPublisherKerningContext = true;

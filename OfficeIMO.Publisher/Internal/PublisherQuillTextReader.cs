@@ -6,8 +6,10 @@ internal sealed class PublisherQuillTextReader {
     private readonly PublisherBinaryData _data;
     private readonly PublisherParseContext _context;
     private readonly double? _documentTabInterval;
-    internal PublisherQuillTextReader(PublisherBinaryData data, PublisherParseContext context, double? documentTabInterval = null) {
-        _data = data; _context = context; _documentTabInterval = documentTabInterval;
+    private readonly IReadOnlyDictionary<uint, bool?>? _hyphenation;
+    internal PublisherQuillTextReader(PublisherBinaryData data, PublisherParseContext context, double? documentTabInterval = null,
+        IReadOnlyDictionary<uint, bool?>? hyphenation = null) {
+        _data = data; _context = context; _documentTabInterval = documentTabInterval; _hyphenation = hyphenation;
     }
     internal PublisherQuillText Read(IReadOnlyList<OfficeColor?> palette) {
         IReadOnlyList<PublisherQuillChunk> chunks = PublisherQuillDirectory.Read(_data, _context);
@@ -40,7 +42,7 @@ internal sealed class PublisherQuillTextReader {
             string value = _data.Utf16(text.Offset + position * 2, characters * 2);
             IReadOnlyList<OfficeRichTextParagraph> paragraphs = ReadParagraphs(value, position, styles, tabInterval);
             if (result.Stories.ContainsKey(id)) throw new InvalidDataException("Duplicate Publisher text story identifier.");
-            result.Stories.Add(id, new PublisherTextStory(id, Normalize(value), paragraphs));
+            result.Stories.Add(id, new PublisherTextStory(id, Normalize(value), paragraphs, automaticHyphenation: Hyphenation(id)));
             sourceStyles.Add(styles.BindStory(id, i, position, value, text.Offset));
             rawStories.Add((id, value, position));
             position += characters;
@@ -66,7 +68,7 @@ internal sealed class PublisherQuillTextReader {
                 if (end < start || end > story.Text.Length) throw new InvalidDataException("Publisher cell text endpoints are outside their story.");
                 string segment = story.Text.Substring(start, end - start);
                 IReadOnlyList<OfficeRichTextParagraph> paragraphs = ReadParagraphs(segment, story.Offset + start, styles, tabInterval);
-                segments.Add(new PublisherTextStory(story.Id, Normalize(segment), paragraphs));
+                segments.Add(new PublisherTextStory(story.Id, Normalize(segment), paragraphs, automaticHyphenation: Hyphenation(story.Id)));
                 start = end;
             }
             if (start != story.Text.Length) throw new InvalidDataException("Publisher cell text does not cover its complete story.");
@@ -76,6 +78,7 @@ internal sealed class PublisherQuillTextReader {
         result.StyleCatalog = styles.Catalog.WithStories(sourceStyles);
         return result;
     }
+    private bool? Hyphenation(uint id) => _hyphenation != null && _hyphenation.TryGetValue(id, out bool? value) ? value : null;
     private IReadOnlyList<OfficeRichTextParagraph> ReadParagraphs(string text, int storyOffset, PublisherQuillStyles styles, double tabInterval) {
         var paragraphs = new List<OfficeRichTextParagraph>();
         int start = 0, runCount = 0, projectedCharacters = 0;
@@ -117,6 +120,7 @@ internal sealed class PublisherQuillTextReader {
                 : new OfficeRichTextParagraph(runs, label, paragraph.Alignment ?? OfficeTextAlignment.Left, paragraph.LineHeight,
                     paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor);
             if (label != null && ++runCount > 4096) throw new InvalidDataException("Publisher story exceeds the shared rich text run limit, including list labels.");
+            projected.SuppressAutomaticHyphenation = paragraph.SuppressAutomaticHyphenation ?? false;
             paragraphs.Add(projected.WithTabStops(paragraph.CreateTabStops(tabInterval)));
             if (runCount + paragraphs.Count - 1 > 4096) throw new InvalidDataException("Publisher story exceeds the shared rich text run limit, including paragraph separators.");
             if (paragraphs.Count > 4096) throw new InvalidDataException("Publisher paragraph limit exceeded.");

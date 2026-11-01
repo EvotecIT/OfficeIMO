@@ -5,6 +5,7 @@ namespace OfficeIMO.Publisher.Internal;
 
 internal sealed partial class PublisherNativeWriter {
     private void Compare() {
+        CompareStoryHyphenation();
         if (!MapEqual(_baseline.Text.Stories, _current.Text.Stories, StoryEqual)
             || !MapEqual(_baseline.Text.TableStories, _current.Text.TableStories, TableStoryEqual)) {
             var sourceStyles = _imported.Styles.Stories.ToDictionary(story => story.StoryId);

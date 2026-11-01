@@ -7,7 +7,8 @@ namespace OfficeIMO.Publisher.Internal;
 internal static class PublisherQuillParagraphStyleWriter {
     internal static bool HasChanges(OfficeRichTextParagraph before, OfficeRichTextParagraph after) => before.Alignment != after.Alignment
         || before.LineHeight != after.LineHeight || before.LineHeightFactor != after.LineHeightFactor
-        || !before.Margins.Equals(after.Margins) || before.Indent != after.Indent || !TabsEqual(before.TabStops, after.TabStops);
+        || !before.Margins.Equals(after.Margins) || before.Indent != after.Indent || !TabsEqual(before.TabStops, after.TabStops)
+        || before.SuppressAutomaticHyphenation != after.SuppressAutomaticHyphenation;
 
     internal static byte[]? Rewrite(PublisherBinaryData source, PublisherQuillSourceSpan span,
         OfficeRichTextParagraph before, OfficeRichTextParagraph after, PublisherParseContext context) {
@@ -23,6 +24,10 @@ internal static class PublisherQuillParagraphStyleWriter {
         var blocks = new PublisherBlockReader(source, context);
         IReadOnlyList<PublisherBlock> fields = blocks.Chunk(span.Offset, span.Offset + span.Length);
         var changes = new SortedDictionary<byte, byte[]>();
+        if (before.SuppressAutomaticHyphenation != after.SuppressAutomaticHyphenation) {
+            if (fields.Any(field => field.Id == 0x1C && field.Type is not (0x0A or 0x02))) return null;
+            changes.Add(0x1C, Boolean(0x1C, after.SuppressAutomaticHyphenation));
+        }
         if (before.Alignment != after.Alignment) {
             if (fields.Any(field => field.Id == 4 && field.Value is not (0 or 1 or 2 or 6))) return null;
             ushort alignment = after.Alignment switch {

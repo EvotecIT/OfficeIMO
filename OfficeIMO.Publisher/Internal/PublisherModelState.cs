@@ -58,6 +58,15 @@ internal sealed partial class PublisherModelState {
         return WithPublication(_publication.WithText(_publication.Text.SetBounds(frame.Id, x, y, width, height)));
     }
 
+    internal PublisherModelState SetStoryAutomaticHyphenation(uint storyId, bool enabled) {
+        if (!_publication.Text.Stories.TryGetValue(storyId, out PublisherTextStory? story))
+            throw new ArgumentOutOfRangeException(nameof(storyId), "The publication has no such story.");
+        if (_publication.Text.IsTableStory(storyId))
+            throw new NotSupportedException("Automatic-hyphenation edits require an ordinary non-table story.");
+        return WithPublication(_publication.WithText(_publication.Text.ReplaceStory(new PublisherTextStory(
+            story.Id, story.Text, story.Paragraphs, story.HasFinalParagraphTerminator, enabled))));
+    }
+
     internal PublisherModelState SetFrameLayout(uint id, int columns, double spacing, OfficeTextPadding padding, OfficeTextVerticalAlignment alignment) =>
         WithPublication(_publication.WithText(_publication.Text.SetFrameLayout(id, columns, spacing, padding, alignment, _decoded.Options)));
 

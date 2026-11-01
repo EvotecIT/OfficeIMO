@@ -41,6 +41,7 @@ internal static class PublisherStoryEditor {
             OfficeRichTextParagraph copy = paragraph.Label == null
                 ? new OfficeRichTextParagraph(values, paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor)
                 : new OfficeRichTextParagraph(values, paragraph.Label, paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor);
+            copy.SuppressAutomaticHyphenation = paragraph.SuppressAutomaticHyphenation;
             copy = copy.WithTabStops(paragraph.TabStops);
             // Immutable source paragraphs identify a deliberate native selection when
             // equal projected values carry different opaque formatting definitions.
@@ -53,7 +54,7 @@ internal static class PublisherStoryEditor {
         if (copied.Count != 0 && original.HasFinalParagraphTerminator) text.Append('\n');
         if (text.Length > 100000 || text.Length > options.Limits.MaxTextCharacters || runs + Math.Max(0, copied.Count - 1) > 4096)
             throw new ArgumentException("The story exceeds the configured text or run limit.", nameof(paragraphs));
-        return new PublisherTextStory(original.Id, text.ToString(), copied, original.HasFinalParagraphTerminator);
+        return new PublisherTextStory(original.Id, text.ToString(), copied, original.HasFinalParagraphTerminator, original.AutomaticHyphenation);
     }
 
     /// <summary>Counts semantic story characters and separately stored labels for edit admission.</summary>
