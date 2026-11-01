@@ -240,7 +240,8 @@ the destination CR. Unsupported matching source definitions remain ambiguity
 barriers. Equal visible formatting does
 not choose between conflicting opaque native definitions. Count-changing
 edits preserving neither complete paragraph text nor complete formatting remain
-outside this profile.
+outside this profile; the [complete nonempty replacement profile](#complete-nonempty-replacement-during-paragraph-count-changes)
+provides the separate agreement-based path.
 A newly authored empty final paragraph is refused when its requested typing
 cannot be represented safely. A zero-paragraph story remains unsupported
 for native saving; in-memory clearing and rendering remain available.
@@ -426,6 +427,42 @@ refuse saving, including with an Allow loss policy. Labels, empty-body/typing
 reshapes, paragraph-count changes, alternate unsupported native carriers and
 broader producer/style profiles remain separate limits. Native repair status is
 unassessed; this source-editing qualification does not promote native creation.
+
+### Complete nonempty replacement during paragraph-count changes
+
+The `sourceEditing.completeNonemptyRetention` qualification extends complete
+text, visible formatting and run-boundary replacement to native paragraph-count
+changes. Exact snapshots/values, retained text/content, format-matched replacement
+and qualified empty-refill correspondence keep their priority. An ambiguous
+stronger match cannot fall through to a different source. Without an eligible
+empty source, the nonempty fallback prefers retained paragraph formatting and
+rewrites every contributing native body definition through the existing complete
+character codec. All selected templates must agree on complete rewritten body
+ranges, paragraph definitions and destination-role CR typing.
+
+Nonempty CR typing remains separate from visible body formatting. Interior
+destinations need each candidate's qualified interior terminator; moving a former
+final paragraph inside still needs an observed body-equivalent interior CR. A
+final destination uses the original segment's final CR. Only the existing
+explicit nullable language/kerning changes apply to those retained CRs. Candidate
+bodies that agree can therefore remain ambiguous for an interior destination
+while safely agreeing for a final destination.
+
+Sixteen native outputs cover deletion, growth, duplication, former-final source
+movement, equivalent templates and the final-CR ambiguity control in ordinary
+stories and first/final table cells. All 320 initial/resaved native page pairs
+match at 144 dpi, and 304 untouched neighboring pages match the independent
+source PDFs. Thirty-six source-to-output CR-role checks include native resaves
+and retain all source CR fields apart from requested language/kerning. Sixteen
+source-built PSWriteOffice conversions preserve the requested paragraph/run
+metadata. Managed comparisons use exact scoped Arial regular, italic and bold
+plus Times New Roman bold; decoration and position parity remain separate limits.
+
+Conflicting candidate language, opaque body fields or destination CRs refuse
+output. Empty replacement runs, unsupported preserved fields, labels, unavailable
+interior CR roles and broader producer/style carriers remain bounded by their
+existing refusal rules. General reflow, mixed scripts, repair-free opening and
+native template-free product creation remain separate work.
 
 When ranges no longer fit the original allocation, the codec can append aligned
 formatting pages and directory pages, relocate enlarged BTE indexes and resources,

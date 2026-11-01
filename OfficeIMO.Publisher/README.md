@@ -107,8 +107,17 @@ their native fields and must agree across the source body. Explicit values can
 replace supported differences. Opaque fields, background, paragraph-indent
 overrides and links must remain unambiguous; destination CR typing follows the
 existing last-run edit rule. This profile excludes labels, empty replacement runs
-and unsupported native definitions. Other requests preserving neither text nor
-complete formatting refuse output. A changed story
+and unsupported native definitions.
+
+Paragraph-count changes can also replace complete nonempty paragraph text,
+visible formatting and run boundaries. Existing snapshot, text, formatting and
+empty-source correspondences retain priority and their ambiguity barriers. With
+no eligible empty source, the nonempty fallback prefers retained paragraph
+formatting and requires all rewritten body, paragraph and destination-CR
+definitions to agree. Interior destinations retain qualified interior CR typing;
+final destinations retain the original final CR. Visible body styling does not
+replace that CR typing; only the existing explicit language/kerning changes
+apply. A changed story
 can use one existing frame or a complete resolved chain of ordinary, visible,
 untransformed document-page frames. Native links, ownership and frame identities
 remain fixed. Known chained Quill layouts are supported; formatting and directory
@@ -588,8 +597,9 @@ definition for a styled refill with one or more runs during paragraph-count
 changes. Existing correspondence takes priority; empty-source matching prefers
 retained paragraph formatting, and all eligible sources must agree after body,
 CR and paragraph rewriting. The last requested run supplies the new CR typing.
-Matching stays
-within the edited cell. Unknown
+Complete nonempty text/format replacements during paragraph-count changes also
+use the agreement-based fallback described above, retaining separate interior
+and final CR typing. Matching stays within the edited cell. Unknown
 native partition records, arbitrary count-changing rewrites of nonuniform cell
 definitions and unsupported typing encodings refuse output. Publisher can expand rows when text
 wraps or exceeds a cell, so retained stored bounds do not guarantee fixed native

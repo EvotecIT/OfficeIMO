@@ -18544,6 +18544,437 @@
         }
       ]
     },
+    "completeNonemptyRetention": {
+      "sourceCommit": "98972d606e361a4a47ddf373df4ec43fbabc7295",
+      "contract": "Complete nonempty paragraph text, supported visible formatting and run boundaries can change during native paragraph-count changes when all rewritten body/PP/destination-role-CR bytes agree across eligible templates.",
+      "ownership": "Existing native Quill retention/replacement and character/paragraph codecs; unchanged public story/table-cell paragraph APIs, no new production dependency.",
+      "precedence": "Existing snapshot/value/text/content/format matches retain priority and ambiguity barriers. Eligible empty-source fallback keeps its refusal barrier. Without eligible empty sources, the nonempty fallback prefers unchanged paragraph formatting and requires complete rewritten output agreement.",
+      "body": "Existing source-coverage/full-visible character replacement planner rewrites every distinct contributing definition for each target run. Unspecified nullable language/kerning and unknown native residue remain source-bound.",
+      "CRRoles": "Interior destinations use qualified candidate interior CRs, including an observed body-equivalent CR when moving a former-final source inside. Final destinations use the original segment final CR. Visible body styling does not replace nonempty CR typing; existing explicit nullable-attribute changes still apply. CR bytes participate in template agreement.",
+      "sources": {
+        "ordinary": {
+          "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextRunSegmentation/native-textrunsegmentation.pub",
+          "sha256": "f557637ebdca16e8efc37da659ff1571b044bd8ff5c5a7c134ea5f6d95394fe0"
+        },
+        "table": {
+          "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableRunSegmentation/native-tablerunsegmentation.pub",
+          "sha256": "baa93ef30010626dd04d09b0752fb70c53ec2c566d2fa48f20c35040a5b345f3"
+        }
+      },
+      "nativeProducer": {
+        "name": "Microsoft Publisher",
+        "version": "16.0",
+        "executableVersion": "16.0.20527.20088",
+        "automationSecurity": 3
+      },
+      "nativeQualifiedOperations": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "nativeCompletedOperations": 112,
+      "sourceUnchanged": true,
+      "nativeRepairStatus": "Unassessed: COM operation success does not establish repair-free opening.",
+      "nativeCases": [
+        {
+          "name": "body-drop",
+          "source": "ordinary",
+          "page": 1,
+          "cellIndex": null,
+          "inputSha256": "4241043f6cfc63f3e3438deaa73587e8d1b179c9803c9b680f00595489680f00",
+          "nativeResavedSha256": "14c5611a61f5559c9baa15b53c6a85b088849d4717216ebe85b2f45dace57754",
+          "paragraphs": 3,
+          "CRRoles": [
+            {
+              "paragraph": 0,
+              "sourceParagraph": 0
+            }
+          ]
+        },
+        {
+          "name": "body-only",
+          "source": "ordinary",
+          "page": 1,
+          "cellIndex": null,
+          "inputSha256": "876e602f13689cbe8511834795133b751ccc18fe3197542eb704d964c8acab18",
+          "nativeResavedSha256": "dba84d994d23f107f105d195a07729b77a9dd4e2ffa5bf2af27701beea1d610d",
+          "paragraphs": 1,
+          "CRRoles": [
+            {
+              "paragraph": 0,
+              "sourceParagraph": 3
+            }
+          ]
+        },
+        {
+          "name": "body-duplicate",
+          "source": "ordinary",
+          "page": 1,
+          "cellIndex": null,
+          "inputSha256": "14ac88bb9346d5d9668b02def8e13d366f4b7bf3ddc3e878651bca28cd196cb2",
+          "nativeResavedSha256": "0eecdfde5e85222c3fc9bce46de1e34f730d01ec2032bb542d1fcbf0ab67a062",
+          "paragraphs": 5,
+          "CRRoles": [
+            {
+              "paragraph": 0,
+              "sourceParagraph": 0
+            },
+            {
+              "paragraph": 2,
+              "sourceParagraph": 0
+            }
+          ]
+        },
+        {
+          "name": "body-final-source",
+          "source": "ordinary",
+          "page": 1,
+          "cellIndex": null,
+          "inputSha256": "672efefadd777fc8694f7fd72480d1855071714ee948c5ca76d63a5d114d3627",
+          "nativeResavedSha256": "e93bf7d27f1e440e2f70b8be3068b118a235d07e7b16c648175f6f3bfc75b364",
+          "paragraphs": 2,
+          "CRRoles": [
+            {
+              "paragraph": 1,
+              "sourceParagraph": 3
+            }
+          ]
+        },
+        {
+          "name": "body-moved-final",
+          "source": "ordinary",
+          "page": 1,
+          "cellIndex": null,
+          "inputSha256": "973288f79d6aa51e1a539a5f8e404f16e34a1194c3fc91135e21db888c0132b0",
+          "nativeResavedSha256": "93afc98c1688068e96ac9bb453bd6ebf00bdc1d15edb71296f6d08e96bb5c6a7",
+          "paragraphs": 3,
+          "CRRoles": [
+            {
+              "paragraph": 0,
+              "sourceParagraph": 0
+            }
+          ]
+        },
+        {
+          "name": "body-equivalent",
+          "source": "ordinary",
+          "page": 13,
+          "cellIndex": null,
+          "inputSha256": "ebf4a563aa2d0b5f905cac8ca95ccb8033f2e6c4d9ae7c6e3f42ff2e33c58ea2",
+          "nativeResavedSha256": "30c2ad115d533d49019057b6c18baf77d254899fee8df3c77403d782a4cae124",
+          "paragraphs": 2,
+          "CRRoles": [
+            {
+              "paragraph": 0,
+              "sourceParagraph": 0
+            }
+          ]
+        },
+        {
+          "name": "body-cr-final",
+          "source": "ordinary",
+          "page": 13,
+          "cellIndex": null,
+          "inputSha256": "cd716d4053ac6a0587eeda8ca933d24d9b85f72ac69f5aaeb982ed0c91ca71ac",
+          "nativeResavedSha256": "2938a562d4fa03d9eae85f77dacee1b0985078227bb899ccd847e1c0339612f1",
+          "paragraphs": 1,
+          "CRRoles": [
+            {
+              "paragraph": 0,
+              "sourceParagraph": 2
+            }
+          ],
+          "preparedSourceSha256": "ef75e265fae4e93a9caf016b48026149f869c5f45255f7ab7e4530850dd795f7"
+        },
+        {
+          "name": "cell-drop",
+          "source": "table",
+          "page": 1,
+          "cellIndex": 0,
+          "inputSha256": "b80a18c1ef79ca20bfe2069bc875d72d840fe052082adb279aa9f0cb67da2a13",
+          "nativeResavedSha256": "ed489bd621309a0916e001b3336a6a87a9005a2c563faab824c0bd29382f3e85",
+          "paragraphs": 3,
+          "CRRoles": [
+            {
+              "paragraph": 0,
+              "sourceParagraph": 0
+            }
+          ]
+        },
+        {
+          "name": "cell-only",
+          "source": "table",
+          "page": 1,
+          "cellIndex": 0,
+          "inputSha256": "b2963a783756b5743ea25bb68b35df356e93026d3c1074b241c8465439e5f17e",
+          "nativeResavedSha256": "11f988e90874f22d4bc9be4f8079c1773db78c8e3de5435c605730cac365c09e",
+          "paragraphs": 1,
+          "CRRoles": [
+            {
+              "paragraph": 0,
+              "sourceParagraph": 3
+            }
+          ]
+        },
+        {
+          "name": "cell-duplicate",
+          "source": "table",
+          "page": 1,
+          "cellIndex": 0,
+          "inputSha256": "ca1e2e70d606378793c82e9b02aac158b30476e000c686ee988b4ef6689f1590",
+          "nativeResavedSha256": "4b81f334555ddad54a57bec2c37c5128b4b6291db9387f855984c9999bf715e7",
+          "paragraphs": 5,
+          "CRRoles": [
+            {
+              "paragraph": 0,
+              "sourceParagraph": 0
+            },
+            {
+              "paragraph": 2,
+              "sourceParagraph": 0
+            }
+          ]
+        },
+        {
+          "name": "cell-final-source",
+          "source": "table",
+          "page": 1,
+          "cellIndex": 0,
+          "inputSha256": "70f9e6fc54027470ca36ce8b8472ebe9ace9b02a817458e25ac93f5dccc1317a",
+          "nativeResavedSha256": "ac59e6ab34867741577654ac27d749dfcdb9603dad1c86f7811d1015ed93863e",
+          "paragraphs": 2,
+          "CRRoles": [
+            {
+              "paragraph": 1,
+              "sourceParagraph": 3
+            }
+          ]
+        },
+        {
+          "name": "cell-moved-final",
+          "source": "table",
+          "page": 1,
+          "cellIndex": 0,
+          "inputSha256": "24991061886d9193620a10c045ba73b93f1bd427e2504df597705467dc4a7732",
+          "nativeResavedSha256": "014fdf1303f2c1a7f055d93e7377bf96ba46453c6b3da616996ccd54605279e1",
+          "paragraphs": 3,
+          "CRRoles": [
+            {
+              "paragraph": 0,
+              "sourceParagraph": 0
+            }
+          ]
+        },
+        {
+          "name": "cell-equivalent",
+          "source": "table",
+          "page": 13,
+          "cellIndex": 0,
+          "inputSha256": "c25fa2ee6a272f70e07854e60c5148e628d0b6283269a2844c07ff1edabfdbed",
+          "nativeResavedSha256": "a47ac860d73fc37398ac49f83901c5c1d36a0e46df0466a00ae3823516554269",
+          "paragraphs": 2,
+          "CRRoles": [
+            {
+              "paragraph": 0,
+              "sourceParagraph": 0
+            }
+          ]
+        },
+        {
+          "name": "cell-cr-final",
+          "source": "table",
+          "page": 13,
+          "cellIndex": 0,
+          "inputSha256": "b79b52db14d87b773d7db573147debb5164ed812c210a26624c33451f4f5c3f9",
+          "nativeResavedSha256": "fa4b8caa98f95239d4c839ff11d0d282d0dacfe4184c8faa53f7a019eb8291ad",
+          "paragraphs": 1,
+          "CRRoles": [
+            {
+              "paragraph": 0,
+              "sourceParagraph": 2
+            }
+          ],
+          "preparedSourceSha256": "4b3bb700b9194cbd8ca77fe955b3bf19b2ac4f8ef4173c75e186a7d2c88fb286"
+        },
+        {
+          "name": "finalcell-drop",
+          "source": "table",
+          "page": 1,
+          "cellIndex": 3,
+          "inputSha256": "be970c032485b82ef3fc73a84437849be99f43b36ea8229340b4e640f8f333c5",
+          "nativeResavedSha256": "ab29b19ebb546bb28f8a54919102b45b4bf0b8b8526e95a9aefee4a0c83f8412",
+          "paragraphs": 3,
+          "CRRoles": [
+            {
+              "paragraph": 0,
+              "sourceParagraph": 0
+            }
+          ]
+        },
+        {
+          "name": "finalcell-only",
+          "source": "table",
+          "page": 1,
+          "cellIndex": 3,
+          "inputSha256": "f332ec8725d43d717b1d3e60a564b0ec9ef34d2f3a2a6d7ce3fa7d003fae2d94",
+          "nativeResavedSha256": "d6d063603d2111de0384543458a27fab37533e500e564353578befea23b2794c",
+          "paragraphs": 1,
+          "CRRoles": [
+            {
+              "paragraph": 0,
+              "sourceParagraph": 3
+            }
+          ]
+        }
+      ],
+      "comparison": {
+        "dpi": 144,
+        "nativeInitialResavedPixelPairs": 320,
+        "managedInitialReloadedPixelPairs": 320,
+        "untouchedSourceNeighborPages": 304,
+        "nativeInitialResavedInventoriesEqual": true,
+        "nativeAndManagedRequestedFontSizeRGBBoldItalic": true,
+        "sourceCRRoleComparisons": 36,
+        "CRStages": [
+          "Source to input",
+          "Source to native resave"
+        ],
+        "CRInvariant": "All source CR fields apart from explicitly changed language/kerning remain byte-identical.",
+        "visual": "All16target regions inspected. Exact scoped Arial regular/italic/bold and TimesNewRomanbold; requested strike/underline and retained bold controls visible. Known decoration/position differences remain, no native/managed pixel parity claim.",
+        "fonts": [
+          {
+            "family": "Arial",
+            "file": "arial.ttf",
+            "style": "Regular",
+            "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+          },
+          {
+            "family": "Arial",
+            "file": "ariali.ttf",
+            "style": "Italic",
+            "sha256": "86b32db9a06f9694e2a3760c42e5117bcdc5cc1255bb5186ca8ce0305e22f288"
+          },
+          {
+            "family": "Arial",
+            "file": "arialbd.ttf",
+            "style": "Bold",
+            "sha256": "e8f4e3baf6cc35fed6fcce3a540e8b39e8f6cda1d22a28f2ec8f526fef7a43f5"
+          },
+          {
+            "family": "Times New Roman",
+            "file": "timesbd.ttf",
+            "style": "Bold",
+            "sha256": "54fbe2c70af7c85a97bed0573227e3ccc4b2486012e3ca2a40c6bc77065846f5"
+          }
+        ],
+        "fontQualification": "Initial private font set omitted Arialbold for retained neighboring text. Corrected and regenerated all16public/managed cases; native PUB inputs and prepared source bindings remained byte-identical, so qualified native results were reused."
+      },
+      "tests": [
+        {
+          "report": "final-broad",
+          "passed": 1042,
+          "failed": 0
+        },
+        {
+          "report": "publisher-net8.0",
+          "passed": 1042,
+          "failed": 0
+        },
+        {
+          "report": "publisher-net472",
+          "passed": 1042,
+          "failed": 0
+        },
+        {
+          "report": "reader",
+          "passed": 93,
+          "failed": 0
+        }
+      ],
+      "regressions": {
+        "newCases": 15,
+        "beforeIntendedSaveRefusals": 13,
+        "beforeNegativePasses": 2,
+        "agreementMutant": "Removing only new cross-template PC/PP/CR output agreement yields two negative failures and thirteen positive passes; exact source restored before rebuilt broad proof.",
+        "CRControl": "Equivalent candidate bodies with different interiorCR bold typing refuse an interior destination and admit the common final-CR destination. A separate uniform candidate-LCID mismatch refuses when unspecified.",
+        "retiredObsoleteRefusalRows": 8,
+        "retiredScopes": [
+          "Merged/split changed-text mixed-run count edits:4",
+          "Complete text/format count changes:2",
+          "Changed-text segmentation:2"
+        ],
+        "retainedRefusalCoverage": [
+          "Empty replacement runs",
+          "Unsupported background/preserved fields",
+          "Stronger template ambiguity",
+          "Unknown body metadata",
+          "Unavailable interior CR roles"
+        ],
+        "preservation": "Original PP bytes when unchanged, destination-role CR residue, complete neighboring PC/PP perUTF16position and text, neighboring cells, unrelated compound streams and reload no-op."
+      },
+      "consumers": {
+        "readerPublisherTests": 93,
+        "readerNetstandard20Build": true,
+        "sourcePSNet80Build": true,
+        "psRuntime": "7.6.9",
+        "workflowConversions": 16,
+        "workflowPagesEach": 20,
+        "publicConsumerCases": 16,
+        "publicConsumerAPIOnly": true,
+        "nativeResavedRequestedParagraphAndRunMetadataEqual": true,
+        "finalCellControls": 2,
+        "typingInspector": "Private existing-friend-identity read-only source-style/compound validator; no new product seam or runtime requirement."
+      },
+      "review": {
+        "mode": "Fresh independent read-only local review",
+        "baseCommit": "a1e94a9d4b2b906259a6eb5c535d94fc0bfee4d4",
+        "headCommit": "98972d606e361a4a47ddf373df4ec43fbabc7295",
+        "scope": "Nonempty count-changing complete body correspondence, template precedence, independent interior/final CR typing, opaque/nullable metadata, cell partition ownership and save/resource/cancellation paths; all seven changed files including obsolete-negative retirement.",
+        "result": "No actionable P0-P3 findings; accept as shaped subject to native/public/final-cell proof and documentation, now supplied.",
+        "boundary": "current",
+        "targetedConfirmationUsed": false
+      },
+      "limits": [
+        "Stronger ambiguous correspondences and eligible empty-refill ambiguity cannot fall through to nonempty candidates.",
+        "Labels, empty replacement runs, unsupported preserved fields/native carriers, conflicting candidate definitions and unavailable interior CRs still refuse.",
+        "Broader producer/style/CR carriers, compact-profile growth, general reflow, mixed scripts, native/managed pixel/decoration parity and PowerShell5.1 remain unqualified.",
+        "No repair-free opening, native template-free product writer or earlier-generation lifecycle acceptance inferred."
+      ],
+      "sourceBindings": [
+        {
+          "path": "OfficeIMO.Publisher.Tests/PublisherCompleteRetentionWritingTests.cs",
+          "sha256": "8c47793b0918815f1a00d4fe3aa819d11ddf8dce21aa276bc2e880e6493e7f2a"
+        },
+        {
+          "path": "OfficeIMO.Publisher.Tests/PublisherFormattingTopologyWritingTests.cs",
+          "sha256": "0f541fa18f2d0c3d5cfb1f2033731ade7959c800400f22a2ae7ebc27ed2c639a"
+        },
+        {
+          "path": "OfficeIMO.Publisher.Tests/PublisherMixedRunTextReplacementWritingTests.cs",
+          "sha256": "a715ba9ecd4bfab534cd26f955e7a92eb189b2395ab1481db8348a6c59df1370"
+        },
+        {
+          "path": "OfficeIMO.Publisher.Tests/PublisherRunSegmentationWritingTests.cs",
+          "sha256": "6c1328fede7f80e218a605dc8f5f03bed9df1fc75426667d09606d0ee79b8bff"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.CompleteRetention.cs",
+          "sha256": "d248538e7800b4d0a7098698d86c6a2a23f42ee2b5bc5aedb44781d1b9c1e986"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Eligibility.cs",
+          "sha256": "0192e42712b80d8ea183499c52d4656d0bf12d951d397dc611040cbf05169e99"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Retention.cs",
+          "sha256": "c81c65b3a2abde1ae5a74d7ae9c7fa3cc0c3ecd5797e61698cace3b880cab4d5"
+        }
+      ]
+    },
     "implicitFrameColumnGap": {
       "schema": "officeimo.publisher.implicit-frame-column-gap.v1",
       "sourceCommit": "1d233dcb4fd45c9c2a23994c231e0fba1afe0695",
