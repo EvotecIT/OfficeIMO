@@ -15,6 +15,25 @@ namespace OfficeIMO.Tests;
 
 public partial class Excel {
     [Fact]
+    public void ImageLengths_MovingATwoCellImageAcrossDifferentColumnWidthsKeepsItsSize() {
+        byte[] bytes = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
+        using var document = ExcelDocument.Create();
+        var sheet = document.AddSheet("Images");
+        sheet.SetColumnWidth(5, ExcelColumnWidth.Characters(40));
+        sheet.SetColumnWidth(6, ExcelColumnWidth.Characters(40));
+        ExcelImage image = sheet.AddImage("A1:C10", bytes, new OfficeIMO.Excel.ExcelImageOptions {
+            OffsetX = OfficeLength.Pixels(30), EndOffsetX = OfficeLength.Pixels(10)
+        });
+        OfficeLength width = image.Width, height = image.Height;
+
+        image.MoveTo(1, 5);
+
+        Assert.True(image.ToOffsetX >= OfficeLength.Zero);
+        Assert.Equal(width.ToEmus(), image.Width.ToEmus(), tolerance: 1D);
+        Assert.Equal(height.ToEmus(), image.Height.ToEmus(), tolerance: 1D);
+    }
+
+    [Fact]
     public void ImageCleanup_KeepsThePartBehindAnSvgBlipExtension() {
         byte[] bytes = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
         var stream = new MemoryStream();
