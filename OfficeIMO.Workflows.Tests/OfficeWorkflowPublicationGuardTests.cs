@@ -32,6 +32,22 @@ public sealed class OfficeWorkflowPublicationGuardTests {
         Assert.DoesNotContain(Directory.EnumerateFileSystemEntries(scope.Root), path => path.Contains("officeimo-recovery-"));
     }
 
+    [Fact]
+    public async Task OutputNameAtTheFileNameLimitPublishes() {
+        using var scope = new Scope();
+        string source = Path.Combine(scope.Root, "source.pdf");
+        File.WriteAllBytes(source, PdfDocument.Create(document => document.Page(_ => { })).ToBytes());
+        string output = Path.Combine(scope.Root, new string('a', 251) + ".pdf");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new() {
+            Operation = OfficeWorkflowOperation.Optimize, InputPath = source, OutputPath = output
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal(output, result.OutputPath);
+        Assert.True(File.Exists(output));
+    }
+
     [Theory]
     [InlineData(OfficeWorkflowOperation.Optimize)]
     [InlineData(OfficeWorkflowOperation.Sanitize)]

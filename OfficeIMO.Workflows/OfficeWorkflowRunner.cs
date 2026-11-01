@@ -101,9 +101,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             Directory.CreateDirectory(outputDirectory);
             if (validated.OutputStream is null && stagingGuard is not null)
                 await stagingGuard.EnsureStagingDirectoryAllowedAsync(outputDirectory, cancellationToken).ConfigureAwait(false);
-            stagingPath = Path.Combine(
-                outputDirectory,
-                "." + Path.GetFileName(validated.OutputStream?.Name ?? validated.OutputPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+            stagingPath = Path.Combine(outputDirectory, ".officeimo-" + Guid.NewGuid().ToString("N") + ".tmp");
             await OfficeRuntimeCompatibility.WriteAllBytesAsync(stagingPath, artifact.Bytes, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
 
