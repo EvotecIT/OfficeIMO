@@ -87,18 +87,18 @@ New-OfficeWord -Path $docx {
     WordFooter { WordPageNumber -IncludeTotal }
     WordParagraph {
         Set-OfficeWordParagraph -SpacingAfter 12 -KeepWithNext:$true
-        WordText 'Windows event review' -Bold -FontSize 26 -Color '17365D'
+        WordText 'Windows event review' -Bold -Size 26 -Color '17365D'
     }
     WordParagraph -Text $scope
     WordParagraph {
         Set-OfficeWordParagraph -SpacingBefore 12 -SpacingAfter 10
         WordText "$($records.Count) retained / $critical critical / $errors errors / $warnings warnings" `
-            -Bold -FontSize 16 -Color '9A3412'
+            -Bold -Size 16 -Color '9A3412'
     }
     WordParagraph -Text 'This bounded snapshot supports investigation. Counts do not identify a root cause or describe the entire environment.'
     WordParagraph {
         Set-OfficeWordParagraph -SpacingBefore 16 -SpacingAfter 8 -KeepWithNext:$true
-        WordText 'Where to start looking' -Bold -FontSize 15 -Color '17365D'
+        WordText 'Where to start looking' -Bold -Size 15 -Color '17365D'
     }
     if ($providers.Count) {
         $table = WordTable -InputObject $providers -Style GridTable4Accent1 `
@@ -112,7 +112,7 @@ New-OfficeWord -Path $docx {
     }
     WordParagraph {
         Set-OfficeWordParagraph -SpacingBefore 16 -SpacingAfter 8 -KeepWithNext:$true
-        WordText 'Investigation handoff' -Bold -FontSize 15 -Color '17365D'
+        WordText 'Investigation handoff' -Bold -Size 15 -Color '17365D'
     }
     WordList -Style Bulleted {
         WordListItem -Text 'Open EventRegister.xlsx and read the full messages for the busiest providers.'
@@ -132,7 +132,7 @@ The brief should stay short. The workbook is where the reader filters by compute
 ```powershell
 New-OfficeExcel -Path $xlsx {
     ExcelSheet 'Events' {
-        ExcelGridlines -Hide
+        ExcelSheetView -NoGridlines
         ExcelCell -Address A1 -Value 'Windows event register'
         ExcelRow -Row 1 -Height 30 -Bold $true
         ExcelCell -Address A2 -Value $scope
@@ -154,7 +154,7 @@ New-OfficeExcel -Path $xlsx {
         ExcelColumn -Column 5 -Width 22
         ExcelColumn -Column 6 -Width 18
         ExcelColumn -Column 7 -Width 60
-        ExcelFreeze -TopRows 4
+        ExcelSheetView -FreezeRows 4
     }
 }
 ```
