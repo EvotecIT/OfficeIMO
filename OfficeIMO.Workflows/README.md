@@ -152,7 +152,7 @@ OfficeConversionReport diagram = await OfficeConverter.ConvertAsync("drawing.vdx
     });
 ```
 
-`OfficeWorkflowLimits.MaximumXmlCharactersInPart` bounds each XML part read by built-in DOCX, XLSX, PPTX, Draw and Visio conversions, including Office inputs normalized during PDF assembly. For VDX and VTX it bounds the complete XML source. Its default is 10 MiB. `OfficeBatchOptions` exposes the same setting per document; both APIs capture it before asynchronous source access.
+`OfficeOperationLimits.MaximumXmlCharactersInPart` bounds each XML part read by built-in DOCX, XLSX, PPTX, Draw and Visio conversions, including Office inputs normalized during PDF assembly. For VDX and VTX it bounds the complete XML source. Its default is 10 MiB. `OfficeBatchOptions` exposes the same setting per document; both APIs capture it before asynchronous source access.
 
 Both `.xps` and `.oxps` select `xps-pdf`, using the native fixed-page reader and
 PDF bridge. Single conversion, batches, PDF assembly and document preview share
