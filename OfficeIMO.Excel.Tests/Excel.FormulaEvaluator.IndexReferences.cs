@@ -30,6 +30,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FormulaEvaluator_IndexAreasOnDifferentSheetsReturnTypedValueErrors() {
+            using var document = ExcelDocument.Create();
+            var source = document.AddWorksheet("Data");
+            source.CellValue(1, 1, 10d);
+            var report = document.AddWorksheet("Report");
+            report.CellValue(1, 1, 20d);
+            report.CellFormula(1, 4, "INDEX((Data!A1,Report!A1),1,1,2)");
+            report.CellFormula(2, 4, "IFERROR(SUM(INDEX((Data!A1,Report!A1),0,1,2)),99)");
+            report.SetArrayFormula("D4:D4", "INDEX((Data!A1,Report!A1),1,1,2)");
+            Assert.Equal(3, document.Calculate());
+            AssertFormulaCache(report, 1, 4, "#VALUE!");
+            AssertFormulaCache(report, 2, 4, "99");
+            AssertFormulaCache(report, 4, 4, "#VALUE!");
+        }
+
+        [Fact]
         public void FormulaEvaluator_IndexAndXLookupArraysFeedDependentCellsAndRefresh() {
             using var document = ExcelDocument.Create();
             var sheet = CreateLookupModeSheet(document);

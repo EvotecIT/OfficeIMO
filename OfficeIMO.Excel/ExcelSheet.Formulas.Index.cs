@@ -54,12 +54,16 @@ namespace OfficeIMO.Excel {
                     : new[] { source };
                 int baseR1 = 0, baseC1 = 0, baseR2 = 0, baseC2 = 0;
                 ExcelSheet selectedSheet = this;
+                ExcelSheet? firstAreaSheet = null;
+                bool differentSheets = false;
                 for (int index = 0; index < areas.Count; index++) {
                     if (!TryResolveFormulaRangeReference(areas[index], currentRow, out ExcelSheet areaSheet,
                         out int ar1, out int ac1, out int ar2, out int ac2)
                         && !TryParseQualifiedFormulaWholeRange(areas[index], this, out areaSheet,
                             out ar1, out ac1, out ar2, out ac2, out _)
                         && !_formulaReferenceError.IsError) return false;
+                    if (firstAreaSheet == null) firstAreaSheet = areaSheet;
+                    else if (!ReferenceEquals(firstAreaSheet._worksheetPart, areaSheet._worksheetPart)) differentSheets = true;
                     if (index == area - 1) {
                         selectedSheet = areaSheet;
                         baseR1 = ar1; baseC1 = ac1; baseR2 = ar2; baseC2 = ac2;
@@ -71,6 +75,7 @@ namespace OfficeIMO.Excel {
                 if (!TrySelectIndexBounds(tokens, sourceRows, sourceColumns, out int row, out int column,
                     out int rows, out int columns, out error)) return false;
                 if (_formulaReferenceError.IsError) error = _formulaReferenceError;
+                else if (differentSheets) error = FormulaArgumentValue.Error("#VALUE!");
                 else if (areaError.IsError) error = areaError;
                 else if (invalidArea) error = FormulaArgumentValue.Error(area < 1 ? "#VALUE!" : "#REF!");
                 if (error.IsError) return true;

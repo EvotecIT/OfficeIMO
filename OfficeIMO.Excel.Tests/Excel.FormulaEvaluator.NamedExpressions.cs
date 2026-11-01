@@ -65,6 +65,7 @@ namespace OfficeIMO.Tests {
             var report = document.AddWorksheet("Report");
             document.SetNamedFormula("Total", "=0", save: false);
             document.SetNamedFormula("tOtAl", "=SUM(Data!$A$1:$A$6)*2", save: false);
+            Assert.Equal("SUM(Data!$A$1:$A$6)*2", document.GetNamedRange("TOTAL"));
             data.SetNamedFormula("Rate", "5", save: false, hidden: true);
             report.SetNamedFormula("Rate", "7", save: false);
             report.CellFormula(1, 1, "Total+Rate+Data!Rate");
@@ -78,6 +79,44 @@ namespace OfficeIMO.Tests {
             AssertFormulaCache(reopened.Sheets[1], 1, 1, "352");
             Assert.Equal(1, reopened.Calculate());
             AssertFormulaCache(reopened.Sheets[1], 1, 1, "352");
+        }
+
+        [Fact]
+        public void FormulaEvaluator_NameChangesInvalidateCachePreflightAndPersistDirtyState() {
+            using var document = ExcelDocument.Create();
+            var source = document.AddWorksheet("Data");
+            source.CellValue(1, 1, 3d);
+            source.CellValue(2, 1, 6d);
+            var report = document.AddWorksheet("Report");
+            document.SetNamedFormula("Rate", "1", save: false);
+            document.SetNamedRange("Chosen", "Data!A1", save: false);
+            report.CellFormula(1, 1, "Rate*2");
+            report.CellFormula(1, 2, "Chosen");
+            Assert.Equal(2, document.Calculate());
+            Assert.All(report.InspectFormulas().Formulas, formula => Assert.False(formula.IsDirty));
+            Assert.True(document.InspectFeatures().Can(ExcelPreflightCapability.UseCachedFormulaValues));
+
+            document.SetNamedFormula("Rate", "3", save: false);
+            AssertFormulaCache(report, 1, 1, "2");
+            Assert.All(report.InspectFormulas().Formulas, formula => Assert.True(formula.IsDirty));
+            Assert.False(document.InspectFeatures().Can(ExcelPreflightCapability.UseCachedFormulaValues));
+            Assert.False(document.InspectFeatures().Can(ExcelPreflightCapability.ExportPdfReport));
+            using var saved = new MemoryStream();
+            document.Save(saved);
+            saved.Position = 0;
+            using var reopened = ExcelDocument.Load(saved);
+            var reopenedReport = reopened.Sheets[1];
+            Assert.All(reopenedReport.InspectFormulas().Formulas, formula => Assert.True(formula.IsDirty));
+            Assert.Equal(2, reopened.Calculate());
+            AssertFormulaCache(reopenedReport, 1, 1, "6");
+            Assert.All(reopenedReport.InspectFormulas().Formulas, formula => Assert.False(formula.IsDirty));
+            reopened.SetNamedRange("Chosen", "Data!A2", save: false);
+            Assert.True(reopenedReport.InspectFormulas().Formulas.Single(formula => formula.CellReference == "B1").IsDirty);
+            Assert.Equal(2, reopened.Calculate());
+            AssertFormulaCache(reopenedReport, 1, 2, "6");
+            Assert.True(reopened.RemoveNamedRange("cHoSeN", save: false));
+            Assert.True(reopenedReport.InspectFormulas().Formulas.Single(formula => formula.CellReference == "B1").IsDirty);
+            Assert.False(reopened.InspectFeatures().Can(ExcelPreflightCapability.UseCachedFormulaValues));
         }
 
         [Fact]

@@ -1447,6 +1447,8 @@ calls. Aliases and worksheet-local scope are retained. Cyclic definitions,
 unsupported expressions and expansion limits remain unevaluated; they do not
 prevent independent cells from calculating. Each calculation observes later
 input and definition edits.
+Adding, replacing or removing a name marks existing formula caches dirty until
+recalculation, including after saving and reopening the workbook.
 
 Use `SetNamedFormula(...)` for an expression; `SetNamedRange(...)` retains its A1
 range validation. Both document and worksheet setters replace the matching name
