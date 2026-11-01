@@ -539,7 +539,9 @@ internal static partial class HtmlPdfRenderedConverter {
         internal bool AllowInstalledFontFaces { get; set; }
         internal OfficeFontFaceCollection Faces { get; }
         internal PdfCore.PdfCreateOptions Options { get; }
+        internal HtmlRenderFidelityPolicy FidelityPolicy { get; set; }
         internal HashSet<string> ReportedPrivateUseOmissions { get; } = new(StringComparer.Ordinal);
+        internal HashSet<string> ReportedUnpaintableText { get; } = new(StringComparer.Ordinal);
         internal bool OutlineBudgetApproximationReported { get; set; }
         internal Dictionary<string, bool> PrivateUsePaintability { get; } = new(StringComparer.Ordinal);
         internal HtmlDiagnosticReport Diagnostics { get; }

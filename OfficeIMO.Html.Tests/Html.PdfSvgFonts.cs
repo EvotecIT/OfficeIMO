@@ -34,7 +34,8 @@ public sealed class HtmlPdfSvgFontTests {
     [Fact]
     public void SvgUnicodeTextStillRequiresCoverageWhenHostFontsAreDisabled() {
         var options = new HtmlToPdfOptions {
-            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
         };
         const string html = "<svg xmlns='http://www.w3.org/2000/svg' width='200' height='60'><svg width='200' height='60'><text x='5' y='30'>ęłź</text></svg></svg>";
 

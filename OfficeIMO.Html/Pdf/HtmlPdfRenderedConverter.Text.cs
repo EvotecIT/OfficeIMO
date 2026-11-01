@@ -101,9 +101,9 @@ internal static partial class HtmlPdfRenderedConverter {
         }
         OfficeFontStyle requestedStyle = (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (visual.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
-        string pdfText = OmitUnavailablePrivateUseGlyphs(visual, webFonts, conversionReport, requestedStyle, cancellationToken);
-        if (pdfText.Length == 0) return;
-        var runs = webFonts.Faces.PlanFallbackRuns(pdfText, visual.Font.FamilyName, requestedStyle)
+        string logicalPdfText = OmitUnavailablePrivateUseGlyphs(visual, webFonts, conversionReport, requestedStyle, cancellationToken);
+        if (logicalPdfText.Length == 0) return;
+        PdfCore.PdfTextRun[] CreatePdfRuns(string runText) => webFonts.Faces.PlanFallbackRuns(runText, visual.Font.FamilyName, requestedStyle)
             .SelectMany(fallbackRun => {
                 bool allowInstalledFace = webFonts.AllowInstalledFontFaces
                     && !webFonts.Slots.ContainsKey(fallbackRun.FamilyName);
@@ -127,7 +127,7 @@ internal static partial class HtmlPdfRenderedConverter {
                     fontSize: global::OfficeIMO.OfficeLength.Points(visual.Font.Size * PointsPerCssPixel),
                     font: MapFont(family, faceRun.Text, requestedStyle, webFonts),
                     linkUri: link,
-                    linkContents: link == null ? null : pdfText,
+                    linkContents: link == null ? null : runText,
                     linkDestinationName: linkDestination,
                     fontFamily: family,
                     baseline: MapTextBaseline(visual.Baseline),
@@ -137,6 +137,8 @@ internal static partial class HtmlPdfRenderedConverter {
                     .WithFeatureSettings(visual.FeatureSettings)
                     .WithPaintedGlyphPreservation(visual.PreservesPaintedGlyphs));
             }).ToArray();
+        string pdfText = ReplaceUnpaintableTextElements(logicalPdfText, visual, webFonts, CreatePdfRuns, cancellationToken);
+        PdfCore.PdfTextRun[] runs = CreatePdfRuns(pdfText);
         void Paint(PdfCore.PdfPageCanvas target) => target.PositionedText(
             runs,
             asSpan ? PdfCore.PdfCanvasTextStructureRole.Span : MapStructureRole(visual.SemanticRole),
@@ -164,10 +166,12 @@ internal static partial class HtmlPdfRenderedConverter {
         // only page-space clipped native text; transformed logical/outlined
         // groups retain their own replacement carriers without changing the
         // native reader's existing partially-visible text policy.
-        if (!logicalTextOwned && (!logicalClip.HasValue || logicalClip.Value.ConstrainToSurface)
+        // A replacement glyph must not reach text extraction in place of the source character.
+        bool replacedText = !ReferenceEquals(pdfText, logicalPdfText);
+        if (!logicalTextOwned && (replacedText || (!logicalClip.HasValue || logicalClip.Value.ConstrainToSurface)
             && (carrier.X != visual.X || carrier.Y != logicalY
-            || carrier.Width != logicalWidth || carrier.Height != logicalHeight)) {
-            canvas.ActualText(pdfText, carrier.X * PointsPerCssPixel, carrier.Y * PointsPerCssPixel,
+            || carrier.Width != logicalWidth || carrier.Height != logicalHeight))) {
+            canvas.ActualText(logicalPdfText, carrier.X * PointsPerCssPixel, carrier.Y * PointsPerCssPixel,
                 carrier.Width * PointsPerCssPixel, carrier.Height * PointsPerCssPixel, Paint, logicalOrder: visual.SemanticSourceOrder);
         } else Paint(canvas);
     }

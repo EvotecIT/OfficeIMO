@@ -12,7 +12,7 @@ public sealed class HtmlPdfFontCoverageTests {
     [InlineData(HtmlRenderIntentProfile.PrintPaged)]
     [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged)]
     [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged)]
-    public void HtmlPdf_UncoveredUnicodeFailsWithStructuredDiagnosticBeforeReturningDocument(
+    public void HtmlPdf_UncoveredUnicodePaintsReplacementWithDiagnosticAndKeepsSourceText(
         HtmlRenderIntentProfile profile) {
         const string html = "<p>A−B</p>";
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
@@ -20,16 +20,29 @@ public sealed class HtmlPdfFontCoverageTests {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         });
 
-        HtmlConversionException failure = Assert.Throws<HtmlConversionException>(() =>
-            document.RenderToPdfDocumentResult(request));
+        HtmlPdfRenderRequestResult result = document.RenderToPdfResult(request);
 
-        HtmlDiagnostic diagnostic = Assert.Single(failure.Diagnostics,
-            item => item.Code == "unsupported-text-glyph");
-        Assert.Equal(HtmlDiagnosticSeverity.Error, diagnostic.Severity);
-        Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
-        Assert.Contains("U+2212", diagnostic.Message, StringComparison.Ordinal);
-        Assert.Contains("PdfCanvas", diagnostic.Detail, StringComparison.Ordinal);
+        Assert.Contains("A−B", PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Output.Report.Warnings,
+            item => item.Code == HtmlPdfDiagnosticCodes.UnavailableTextGlyphReplaced);
+        Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind);
+        Assert.Contains("U+2212", warning.Message, StringComparison.Ordinal);
         Assert.Equal(html, document.SourceHtml);
+    }
+
+    [Fact]
+    public void HtmlPdf_UncoveredUnicodeStillFailsWhenLossIsNotAllowed() {
+        var request = HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        });
+
+        HtmlConversionException failure = Assert.Throws<HtmlConversionException>(() =>
+            HtmlConversionDocument.Parse("<p>A−B</p>").RenderToPdfDocumentResult(request));
+
+        HtmlDiagnostic diagnostic = Assert.Single(failure.Diagnostics, item => item.Code == "unsupported-text-glyph");
+        Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
+        Assert.Contains("PdfCanvas", diagnostic.Detail, StringComparison.Ordinal);
     }
 
     [Theory]

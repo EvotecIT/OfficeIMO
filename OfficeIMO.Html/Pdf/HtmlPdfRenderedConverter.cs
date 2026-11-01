@@ -357,6 +357,7 @@ internal static partial class HtmlPdfRenderedConverter {
             options.TextShapingProvider,
             options.TextShapingLanguage,
             cancellationToken);
+        webFonts.FidelityPolicy = options.FidelityPolicy;
         webFonts.AllowInstalledFontFaces = options.ResourcePolicy.AllowSystemFontEmbedding
             && options.ResourcePolicy.AllowDocumentFontEmbedding;
         var activeWebFontFamilies = new HashSet<string>(
