@@ -113,4 +113,18 @@ public partial class PdfFormFillerTests {
         Assert.DoesNotContain("XFASECRET", Latin1(flattened), StringComparison.Ordinal);
         Assert.DoesNotContain("/NeedsRendering", Latin1(flattened), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void FlattenFields_RemovesWidgetsMissingFromTheFieldTree() {
+        byte[] input = BuildReviewFormPdf("/Fields [10 0 R]", "/Annots [10 0 R 11 0 R]", string.Empty,
+            TextWidget(10, "Listed", "72 700 272 720", "/F 4 /V (listed) /AP << /N 12 0 R >>"),
+            TextWidget(11, "Unlisted", "72 650 272 670", "/F 4 /V (UNLISTEDVALUE) /AP << /N 13 0 R >>"),
+            TextAppearance(12, "listed"), TextAppearance(13, "shown"));
+
+        byte[] flattened = PdfFormFiller.FlattenFields(input);
+
+        Assert.DoesNotContain("UNLISTEDVALUE", Latin1(flattened), StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Widget", Latin1(flattened), StringComparison.Ordinal);
+        Assert.Contains("shown", PdfDocument.Load(flattened).ExtractText(), StringComparison.Ordinal);
+    }
 }

@@ -51,6 +51,11 @@ internal static partial class PdfFormFiller {
             CollectFlattenWidgets(objects, fields.Items[i], null, 0, ReadFieldQuadding(objects, acroForm, null), null, acroFormDefaultResources, acroFormDefaultAppearance, null, null, null, null, options, NeedsAppearances(objects, acroForm), widgets, removableObjects, new HashSet<int>(), ref nextObjectNumber, source.ReadOptions.Limits.MaxDecodedTextCharacters, cancellationToken);
         }
 
+        // A widget on a page but outside /Fields still holds its value, and would outlive the form it belonged to.
+        foreach (PdfReference unlisted in FindWidgetsOutsideFieldTree(objects, widgets, cancellationToken)) {
+            CollectFlattenWidgets(objects, unlisted, null, 0, ReadFieldQuadding(objects, acroForm, null), null, acroFormDefaultResources, acroFormDefaultAppearance, null, null, null, null, options, NeedsAppearances(objects, acroForm), widgets, removableObjects, new HashSet<int>(), ref nextObjectNumber, source.ReadOptions.Limits.MaxDecodedTextCharacters, cancellationToken);
+        }
+
         if (widgets.Count == 0) {
             throw new NotSupportedException(UnsupportedFlattenWidgetMessage);
         }
@@ -174,6 +179,24 @@ internal static partial class PdfFormFiller {
         }
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber, cancellationToken);
         return RewriteAllObjects(objects, catalogObjectNumber, source, pdf, generatedGrowth, out outputReadOptions, cancellationToken);
+    }
+
+    // Starts from each widget's topmost field, so what the widget inherits comes with it.
+    private static List<PdfReference> FindWidgetsOutsideFieldTree(Dictionary<int, PdfIndirectObject> objects, Dictionary<int, FlattenWidgetState> widgets, CancellationToken cancellationToken) {
+        var roots = new Dictionary<int, PdfReference>();
+        foreach (PdfIndirectObject item in objects.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (item.Value is not PdfDictionary page || page.Get<PdfName>("Type")?.Name != "Page" ||
+                !page.Items.TryGetValue("Annots", out PdfObject? annotsObject) || ResolveObject(objects, annotsObject) is not PdfArray annots) continue;
+            foreach (PdfObject annot in annots.Items) {
+                if (annot is not PdfReference reference || widgets.ContainsKey(reference.ObjectNumber) || ResolveObject(objects, reference) is not PdfDictionary widget || !IsWidget(widget)) continue;
+                PdfReference root = reference;
+                var visited = new HashSet<int> { root.ObjectNumber };
+                while (ResolveObject(objects, root) is PdfDictionary field && field.Items.TryGetValue("Parent", out PdfObject? parent) && parent is PdfReference parentReference && visited.Add(parentReference.ObjectNumber)) root = parentReference;
+                roots[root.ObjectNumber] = root;
+            }
+        }
+        return roots.Values.ToList();
     }
 
     // NeedAppearances says stored appearances may be out of date, and viewers repaint from the value. Flattening freezes what they would show.
