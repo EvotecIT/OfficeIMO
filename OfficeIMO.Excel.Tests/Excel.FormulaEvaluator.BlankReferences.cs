@@ -65,7 +65,10 @@ namespace OfficeIMO.Tests {
                 ($"OFFSET(A1,{reference},0)", "1"),
                 ($"XLOOKUP(1,B1:B3,C1:C3,,{reference})", "20"),
                 ($"PROB(B1:B3,{{0.2;0.3;0.5}},{reference})", "0.2"),
-                ($"TEXTJOIN(\",\",{reference},\"\",\"x\")", ",x")
+                ($"TEXTJOIN(\",\",{reference},\"\",\"x\")", ",x"),
+                ($"RANDBETWEEN({reference},0)", "0"),
+                ($"IPMT({reference},1,2,100)", "0"),
+                ($"PPMT({reference},1,2,100)", "-50")
             };
             for (int index = 0; index < cases.Length; index++) sheet.CellFormula(index + 1, 5, cases[index].Formula);
             Assert.Equal(cases.Length, document.Calculate());
