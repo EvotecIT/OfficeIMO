@@ -93,6 +93,24 @@ public sealed class PowerPointLayoutTableTests {
     }
 
     [Fact]
+    public void RowsTallerThanTwoLinesPaginateInsideTheLiveArea() {
+        using var document = PowerPointDocument.Create();
+        var table = new PowerPointLayoutTable(new[] { "Service\vOwner", "Detail" },
+            Enumerable.Range(0, 12).Select(index => (IReadOnlyList<string>)new[] { "Service " + index, "one\ntwo\nthree\nfour\nfive" }).ToArray());
+        var options = PowerPointCompositionOptions.FromDesign(PowerPointDeckDesign.FromBrand("#2563EB", "table-tall"));
+        options.ApplyTheme = false;
+        document.Compose(new PowerPointDeckPlan().AddContent("Services", new[] { table }), options);
+        var natives = document.Slides.SelectMany(slide => slide.Tables).ToArray();
+        Assert.True(natives.Length > 1);
+        Assert.Equal(12, natives.Sum(native => native.Rows - 1));
+        foreach (var native in natives) {
+            double size = native.GetCell(1, 1).Paragraphs[0].Runs[0].FontSize!.Value.ToPoints();
+            Assert.True(native.Height.ToPoints() >= (native.Rows - 1) * 5 * size, "The frame must carry all five lines of each row.");
+            Assert.True(native.Top.ToPoints() + native.Height.ToPoints() <= 488D, "The table must stay inside the live area.");
+        }
+    }
+
+    [Fact]
     public void SavedTableUsesItsAuthoredCaptionAsAlternativeText() {
         const string caption = "Service & owners <review>";
         using var document = PowerPointDocument.Create();

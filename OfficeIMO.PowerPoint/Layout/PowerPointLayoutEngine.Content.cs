@@ -368,13 +368,22 @@ namespace OfficeIMO.PowerPoint {
                 metrics.Widths = metrics.Widths.Select(w => w * scale).ToArray();
             }
 
+            if (table.IncludeHeaders) {
+                int headerLines = 1;
+                for (int c = 0; c < columns; c++) {
+                    headerLines = Math.Max(headerLines, PowerPointTextMeasure.LineCount(table.Headers[c], metrics.HeaderSize,
+                        metrics.Widths[c] - 2D * (pad + 5D), context.Theme.BodyFont, true));
+                }
+                metrics.HeaderHeight += (headerLines - 1) * metrics.HeaderSize * header.LineHeight;
+            }
+
             return metrics;
         }
 
         private static double WidestLine(string? text, double size, string family, bool bold) =>
             PowerPointLayoutRun.NormalizeBreaks(text).Split('\n').Max(line => PowerPointTextMeasure.Width(line, size, family, bold));
 
-        /// <summary>Rows a table row occupies toward the slide limit: one per line, wrapping at most two lines.</summary>
+        /// <summary>Rows a table row occupies toward the slide limit: one per line.</summary>
         private static int RowUnits(PowerPointLayoutContext context, TableMetrics metrics, IReadOnlyList<string> row) {
             double pad = context.Theme.TableCellPadding;
             int lines = 1;
@@ -383,8 +392,12 @@ namespace OfficeIMO.PowerPoint {
                     metrics.Widths[c] - 2D * (pad + 5D), context.Theme.BodyFont));
             }
 
-            return Math.Min(2, lines);
+            return lines;
         }
+
+        /// <summary>A row grows to its text when opened, so its written height carries every line.</summary>
+        private static double RowHeight(TableMetrics metrics, int units) =>
+            metrics.RowHeight + (units - 1) * metrics.BodySize * 1.2D;
 
         private static int TableCapacity(PowerPointLayoutContext context, PowerPointLayoutSlide slide, TableMetrics metrics, bool lede) {
             double zone = ContentZone(context, MeasureHeader(context, slide)).Height - (lede ? LedeAllowance : 0D);
@@ -456,6 +469,11 @@ namespace OfficeIMO.PowerPoint {
                 // A row taller than the limit takes a slide of its own, so this ends at one row per slide.
                 if (table.MaximumRows.HasValue || chunks.All(c => c.Sum(i => Math.Min(units[i], limit)) <= limit)) break;
                 pages++;
+            }
+
+            if (!table.MaximumRows.HasValue && units.Any(unit => RowHeight(metrics, unit) > limit * metrics.RowHeight)) {
+                context.Deck.Report(PowerPointLayoutDiagnosticCodes.TableOverflow, OfficeDiagnosticSeverity.Warning,
+                    "A table row is taller than one slide; shorten its text or choose fewer columns.", slide.Title);
             }
 
             for (int page = 0; page < pages; page++) {
@@ -551,7 +569,7 @@ namespace OfficeIMO.PowerPoint {
             }
             for (int r = 0; r < table.Rows.Count; r++) {
                 IReadOnlyList<string> row = table.Rows[r];
-                double height = metrics.RowHeight + (RowUnits(context, metrics, row) - 1) * metrics.BodySize * 1.2D;
+                double height = RowHeight(metrics, RowUnits(context, metrics, row));
                 heights.Add(height);
                 string? fill = theme.TableBanding && r % 2 == 1 ? theme.Surface : null;
                 xml.Append("<a:tr h=\"").Append(Emu(height)).Append("\">");
