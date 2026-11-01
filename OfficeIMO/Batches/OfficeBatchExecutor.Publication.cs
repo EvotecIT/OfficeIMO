@@ -1,3 +1,5 @@
+using OfficeIMO.Core.Internal;
+
 namespace OfficeIMO;
 
 internal static partial class OfficeBatchExecutor {
@@ -30,7 +32,8 @@ internal static partial class OfficeBatchExecutor {
             EnsureNoLinks(staged);
             EnsureNoLinks(output);
             token.ThrowIfCancellationRequested();
-            File.Move(staged, output);
+            if (!OfficeFileCommit.TryCommitTemporaryFileIfAbsent(staged, output))
+                throw new IOException("The batch output destination is already claimed; completion was not recorded.");
             // Confirm the published path before clearing the intent, including replacement
             // races after the last stage check. A mismatch retains the recovery record.
             EnsureNoLinks(output);
