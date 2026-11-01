@@ -214,7 +214,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : HtmlRenderTextDirection.LeftToRight;
     }
 
-    internal HtmlRenderDocument Render() {
+    internal HtmlRenderDocument Render() =>
+        HtmlExecutionStack.TryRun(RenderOnCurrentStack, HtmlExecutionStack.StackBytesFor(_options.MaxLayoutDepth), out HtmlRenderDocument rendered)
+            ? rendered
+            : RenderOnCurrentStack();
+
+    private HtmlRenderDocument RenderOnCurrentStack() {
         HtmlRenderDocument rendered = RenderCore();
         // A replacement engine has already finalized its authoritative result.
         return _fontLayoutRebuilt ? rendered : ReportEstimatedTextMetrics(rendered);

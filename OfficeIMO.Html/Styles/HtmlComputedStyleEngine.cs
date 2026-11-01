@@ -489,6 +489,30 @@ public static partial class HtmlComputedStyleEngine {
             colorValues);
     }
 
+    private static void ComputeElementOnContinuationStack(
+        IElement element,
+        HtmlComputedStyle? parent,
+        StyleRuleIndex rules,
+        IDictionary<IElement, HtmlComputedStyle> computed,
+        IDictionary<IElement, HtmlPseudoElementStylePair> pseudoElements,
+        bool includePseudoElements,
+        bool includeCascadeTraces,
+        HtmlCssProcessingBudget budget,
+        MediaEnvironment environment,
+        double containingWidth,
+        double? containingHeight,
+        IReadOnlyList<ContainerQueryContext> containerContexts) {
+        // Style computation also serves the conversions that never reach layout.
+        Func<bool> work = () => {
+            ComputeElement(element, parent, rules, computed, pseudoElements, includePseudoElements, includeCascadeTraces,
+                budget, environment, containingWidth, containingHeight, containerContexts);
+            return true;
+        };
+        if (!HtmlExecutionStack.TryRun(work, HtmlExecutionStack.MinimumStackBytes, out _)) {
+            throw new InsufficientExecutionStackException("HTML style computation exhausted the available stack.");
+        }
+    }
+
     private static void ComputeElement(
         IElement element,
         HtmlComputedStyle? parent,
@@ -502,6 +526,11 @@ public static partial class HtmlComputedStyleEngine {
         double containingWidth,
         double? containingHeight,
         IReadOnlyList<ContainerQueryContext> containerContexts) {
+        if (!HtmlExecutionStack.HasRoom()) {
+            ComputeElementOnContinuationStack(element, parent, rules, computed, pseudoElements, includePseudoElements,
+                includeCascadeTraces, budget, environment, containingWidth, containingHeight, containerContexts);
+            return;
+        }
         var properties = new Dictionary<string, CascadedProperty>(HtmlCssPropertyNameComparer.Instance);
         IReadOnlyDictionary<string, string>? parentProperties =
             GetParentPropertiesWithEffectiveDisplay(parent, element.ParentElement);
