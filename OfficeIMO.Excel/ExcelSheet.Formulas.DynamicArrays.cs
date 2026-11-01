@@ -66,8 +66,9 @@ namespace OfficeIMO.Excel {
 
         private void EnsureDynamicArrayCellWritable(int row, int column) {
             EnsureDynamicArrayWriteIndex();
-            if (SpillOwnership.WriteRanges.Any(range => row >= range.Top && row <= range.Bottom
-                && column >= range.Left && column <= range.Right))
+            if (SpillOwnership.WriteRanges.Count > 0
+                && SpillOwnership.WriteRanges.Any(range => row >= range.Top && row <= range.Bottom
+                    && column >= range.Left && column <= range.Right))
                 throw new InvalidOperationException($"Cell '{ExcelA1.CellReference(row, column)}' belongs to a dynamic array; clear its array formula first.");
         }
 

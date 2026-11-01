@@ -248,9 +248,9 @@ namespace OfficeIMO.Excel {
                     .Any(part => !ReferenceEquals(part.Table, excludedTable)
                         && ExcelReference.TryParse(part.Table?.Reference?.Value, out ExcelReference? table)
                         && table!.Intersects(range))
-                || InspectMutationPlanElements(WorksheetRoot.Descendants<MergeCell>(), budget)
+                || InspectMutationPlanElements(WorksheetRoot.MetadataDescendants<MergeCell>(), budget)
                     .Any(merge => ExcelReference.TryParse(merge.Reference?.Value, out ExcelReference? merged) && merged!.Intersects(range))
-                || InspectMutationPlanElements(WorksheetRoot.Descendants<CellFormula>(), budget).Any(formula =>
+                || InspectMutationPlanElements(ExcelWorksheetScan.CellFormulas(WorksheetRoot), budget).Any(formula =>
                     (formula.FormulaType?.Value == CellFormulaValues.Array || formula.FormulaType?.Value == CellFormulaValues.DataTable)
                     && ExcelReference.TryParse(formula.Reference?.Value, out ExcelReference? formulaRange) && formulaRange!.Intersects(range))
                 || InspectMutationPlanElements(_worksheetPart.PivotTableParts, budget)

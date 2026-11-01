@@ -16,6 +16,29 @@ namespace OfficeIMO.Excel {
             return null;
         }
 
+        internal static CellValue? FindValue(Cell cell) {
+            for (OpenXmlElement? child = cell.FirstChild; child != null; child = child.NextSibling()) {
+                if (child is CellValue value) return value;
+            }
+            return null;
+        }
+
+        /// <summary>Sets the cached value of a cell. The typed property walks the schema particle, which allocates per call.</summary>
+        internal static void SetValueText(Cell cell, string text) {
+            if (FindValue(cell) is { } value) value.Text = text;
+            else if (cell.FirstChild == null) cell.AppendChild(new CellValue(text));
+            else cell.CellValue = new CellValue(text);
+        }
+
+        internal static void RemoveInlineString(Cell cell) {
+            for (OpenXmlElement? child = cell.FirstChild; child != null; child = child.NextSibling()) {
+                if (child is InlineString) {
+                    child.Remove();
+                    return;
+                }
+            }
+        }
+
         internal static IEnumerable<Row> Rows(Worksheet worksheet) {
             for (OpenXmlElement? part = worksheet.FirstChild; part != null; part = part.NextSibling()) {
                 if (part is not SheetData) continue;

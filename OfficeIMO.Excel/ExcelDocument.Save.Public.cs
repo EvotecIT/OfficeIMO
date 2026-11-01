@@ -408,6 +408,11 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            if (TryWritePropertiesOnlyPackage(destination, options)) {
+                LastSaveDiagnostics = ExcelSaveDiagnostics.UnchangedPackage();
+                return;
+            }
+
             if (TryWriteDirectDataSetPackage(destination, options, updateDocumentState: true, CancellationToken.None, out _)) {
                 LastSaveDiagnostics = ExcelSaveDiagnostics.DirectDataSetPackage();
                 return;

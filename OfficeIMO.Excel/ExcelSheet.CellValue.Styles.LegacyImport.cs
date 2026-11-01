@@ -82,9 +82,9 @@ namespace OfficeIMO.Excel {
 
             WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
-                cell.CellValue = new CellValue(errorText);
+                ExcelWorksheetScan.SetValueText(cell, errorText);
                 cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Error;
-                cell.InlineString = null;
+                ExcelWorksheetScan.RemoveInlineString(cell);
                 CompleteCellValueMutation(row, column);
             });
         }
