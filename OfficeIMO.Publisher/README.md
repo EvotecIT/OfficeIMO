@@ -308,6 +308,22 @@ shared managed layout does not perform language-specific hyphenation. Paragraph
 and drawing copies retain the annotation. See the [qualified language
 profile](SUPPORT.md) for native creation/editing coverage and limits.
 
+`PublisherReadOptions.Fonts` supplies scoped font faces for story flow and page
+rendering. The options clone the font collection, and exported drawing snapshots
+retain independent copies. For example:
+
+```csharp
+var fonts = new OfficeFontFaceCollection()
+    .Add("Arial", File.ReadAllBytes("assets/Arial.ttf"));
+var withFonts = PublisherDocument.Load("newsletter.pub",
+    new PublisherReadOptions { Fonts = fonts });
+File.WriteAllText("newsletter.svg", withFonts.ToSvg());
+```
+
+Publisher paragraphs separate font content height from line advance and baseline;
+the final line's unused advance is excluded from vertical alignment. The
+[font profile](SUPPORT.md) defines the qualified native PDF reference and its limits.
+
 `ReplaceStoryParagraphs` replaces a complete non-table story. It derives `Text`
 from the supplied paragraphs, normalizes carriage returns to newlines, and
 retains the source's final paragraph-terminator convention, including after

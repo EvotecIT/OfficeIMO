@@ -25,10 +25,11 @@ internal static partial class OfficeDrawingTextLayout {
         Func<string?, double, string?, OfficeFontStyle, double> measure, double scale,
         Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint,
         bool reportUnwrappedWidthOverflow = true,
-        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?>? measureSegmentPaint = null) =>
+        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?>? measureSegmentPaint = null,
+        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? measurePublisherFont = null) =>
         CreateParagraphsWithArea(text.Paragraphs, width, height, measure, text.TextAreaAlignment, text.WrapText, scale, measurePaint,
             shrinkToFit: text.ShrinkToFit, minimumFontSize: 6D * scale,
-            reportUnwrappedWidthOverflow: reportUnwrappedWidthOverflow, measureSegmentPaint: measureSegmentPaint);
+            reportUnwrappedWidthOverflow: reportUnwrappedWidthOverflow, measureSegmentPaint: measureSegmentPaint, measurePublisherFont: measurePublisherFont);
 
     /// <summary>Places paragraph runs with shared measured wrapping and paragraph-relative line offsets.</summary>
     internal static OfficeRichTextBlockLayout CreateParagraphs(IReadOnlyList<OfficeRichTextParagraph> paragraphs,
@@ -44,7 +45,7 @@ internal static partial class OfficeDrawingTextLayout {
         CancellationToken cancellationToken = default, bool shrinkToFit = false, double minimumFontSize = 1D) =>
         CreateParagraphsWithArea(paragraphs, width, height, metrics.MeasureText, OfficeTextAreaAlignment.FullWidth,
             wrap, scale, metrics.MeasurePaintBounds, cancellationToken, shrinkToFit, minimumFontSize,
-            measureSegmentPaint: metrics.MeasureSegmentPaintBounds);
+            measureSegmentPaint: metrics.MeasureSegmentPaintBounds, measurePublisherFont: metrics.MeasurePublisherFont);
 
     // The friend-callable method above retains its CLR signature across Core package upgrades.
     private static OfficeRichTextBlockLayout CreateParagraphsWithArea(IReadOnlyList<OfficeRichTextParagraph> paragraphs,
@@ -53,7 +54,8 @@ internal static partial class OfficeDrawingTextLayout {
         Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint = null,
         CancellationToken cancellationToken = default, bool shrinkToFit = false, double minimumFontSize = 1D,
         bool reportUnwrappedWidthOverflow = true,
-        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?>? measureSegmentPaint = null) {
+        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?>? measureSegmentPaint = null,
+        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? measurePublisherFont = null) {
         cancellationToken.ThrowIfCancellationRequested();
         if (!Enum.IsDefined(typeof(OfficeTextAreaAlignment), areaAlignment)) throw new ArgumentOutOfRangeException(nameof(areaAlignment));
         double fontScale = 1D;
@@ -68,14 +70,15 @@ internal static partial class OfficeDrawingTextLayout {
             fontScale = OfficeTextLayoutEngine.ResolveFrameFitScale(minimumScale, candidate => {
                 OfficeRichTextBlockLayout measured = CreateParagraphsCore(paragraphs, width, double.MaxValue,
                     measure, wrap, scale, candidate, measurePaint, cancellationToken, reportLeaderPaintClipping: false,
-                    areaAlignment: areaAlignment == OfficeTextAreaAlignment.FullWidth ? areaAlignment : OfficeTextAreaAlignment.Left);
+                    areaAlignment: areaAlignment == OfficeTextAreaAlignment.FullWidth ? areaAlignment : OfficeTextAreaAlignment.Left,
+                    measurePublisherFont: measurePublisherFont);
                 return !measured.Clipped && measured.Width <= width + .01D
                     && RequiredFrameHeight(measured, measurePaint, measureSegmentPaint) <= height + .000001D;
             }, cancellationToken);
         }
         OfficeRichTextBlockLayout layout = CreateParagraphsCore(paragraphs, width, height, measure, wrap,
             scale, fontScale, measurePaint, cancellationToken, areaAlignment: areaAlignment,
-            reportUnwrappedWidthOverflow: reportUnwrappedWidthOverflow);
+            reportUnwrappedWidthOverflow: reportUnwrappedWidthOverflow, measurePublisherFont: measurePublisherFont);
         return shrinkToFit ? IncludePaintedHeight(layout, height, measurePaint, measureSegmentPaint) : layout;
     }
 
@@ -85,20 +88,21 @@ internal static partial class OfficeDrawingTextLayout {
         Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint,
         CancellationToken cancellationToken, bool reportLeaderPaintClipping = true,
         OfficeTextAreaAlignment areaAlignment = OfficeTextAreaAlignment.FullWidth,
-        bool reportUnwrappedWidthOverflow = true) {
+        bool reportUnwrappedWidthOverflow = true,
+        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? measurePublisherFont = null) {
         if (areaAlignment != OfficeTextAreaAlignment.FullWidth)
             return CreateIntrinsicParagraphs(paragraphs, width, height, measure, wrap, scale, fontScale,
-                measurePaint, cancellationToken, reportLeaderPaintClipping, areaAlignment, reportUnwrappedWidthOverflow);
+                measurePaint, cancellationToken, reportLeaderPaintClipping, areaAlignment, reportUnwrappedWidthOverflow, measurePublisherFont);
         var lines = new List<OfficeRichTextLine>();
         // Truncated decorative paint cannot be recovered by shrinking the body.
         // Fit probes still enforce the budget, but fit against body geometry.
         var leaderBudget = new OfficeTextTabLeaderLayout.Budget(reportLeaderPaintClipping);
-        double usedHeight = 0, usedWidth = 0, maximumLineHeight = 1;
+        double usedHeight = 0, usedWidth = 0, maximumLineHeight = 1, terminalAdvance = 0;
         bool clipped = false;
         foreach (OfficeRichTextParagraph paragraph in paragraphs) {
             cancellationToken.ThrowIfCancellationRequested();
             MeasuredParagraph? measured = MeasureParagraph(paragraph, width, measure, wrap, scale, fontScale,
-                measurePaint, cancellationToken, leaderBudget, ref clipped, reportUnwrappedWidthOverflow);
+                measurePaint, cancellationToken, leaderBudget, ref clipped, reportUnwrappedWidthOverflow, measurePublisherFont);
             if (measured == null) continue;
             OfficeTextPadding margin = measured.Margins;
             ParagraphLabelLayout? label = measured.Label;
@@ -110,19 +114,20 @@ internal static partial class OfficeDrawingTextLayout {
                 cancellationToken.ThrowIfCancellationRequested();
                 OfficeRichTextLine line = measured.Line(i);
                 double lineHeight = paragraph.LineHeight * scale ?? OfficeTextBlockRenderer.ResolveRichTextRenderLineHeight(line, paragraphLayout.LineHeight);
-                if (i == 0 && label != null && !paragraph.LineHeight.HasValue) lineHeight = Math.Max(lineHeight, label.Height);
-                if (lines.Count >= OfficeTextLayoutEngine.MaximumLayoutLines || usedHeight + lineHeight > height + .000001D) {
+                if (i == 0 && label != null && !line.ContentHeight.HasValue && !paragraph.LineHeight.HasValue) lineHeight = Math.Max(lineHeight, label.Height);
+                if (lines.Count >= OfficeTextLayoutEngine.MaximumLayoutLines || usedHeight + (line.ContentHeight ?? lineHeight) > height + .000001D) {
                     clipped = true; paragraphTruncated = true; break;
                 }
                 OfficeRichTextLine placed = PlaceParagraphLine(paragraph, measured, line, i, lineHeight, width,
                     wrap, paragraph.Alignment, measure);
                 lines.Add(placed); usedHeight += lineHeight;
+                terminalAdvance = lineHeight - (line.ContentHeight ?? lineHeight);
                 maximumLineHeight = Math.Max(maximumLineHeight, lineHeight);
                 usedWidth = Math.Max(usedWidth, placed.OffsetX + placed.Width + margin.Right);
             }
             if (paragraphTruncated || !AddGap(margin.Bottom)) { clipped = true; break; }
         }
-        return new OfficeRichTextBlockLayout(lines, maximumLineHeight, usedWidth, usedHeight, clipped);
+        return new OfficeRichTextBlockLayout(lines, maximumLineHeight, usedWidth, Math.Max(0D, usedHeight - terminalAdvance), clipped);
 
         bool AddGap(double gap) {
             if (gap == 0) return true;
@@ -150,7 +155,8 @@ internal static partial class OfficeDrawingTextLayout {
         Func<string?, double, string?, OfficeFontStyle, double> measure, bool wrap, double scale, double fontScale,
         Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint,
         CancellationToken cancellationToken, OfficeTextTabLeaderLayout.Budget leaderBudget, ref bool clipped,
-        bool reportUnwrappedWidthOverflow) {
+        bool reportUnwrappedWidthOverflow,
+        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? measurePublisherFont) {
         OfficeTextPadding margin = paragraph.Margins.Scale(scale);
         OfficeTextParagraphIndent indent = paragraph.Indent.Scale(scale);
         double originalLeft = margin.Left;
@@ -171,6 +177,8 @@ internal static partial class OfficeDrawingTextLayout {
             overflowBehavior: OfficeTextOverflowBehavior.Clip, paragraphIndent: indent, measurePaint: measurePaint,
             hardBreakStartsParagraph: false, tabStops: paragraph.TabStops?.Scale(scale, originalLeft - margin.Left, fontScale),
             cancellationToken: cancellationToken, leaderBudget: leaderBudget);
+        if (paragraph.UsesPublisherFontMetrics && measurePublisherFont != null)
+            layout = ApplyPublisherLineGeometry(layout, runs, paragraph, measurePublisherFont, label);
         clipped |= layout.Clipped && (reportUnwrappedWidthOverflow || !layout.OnlyUnwrappedWidthOverflow);
         return new MeasuredParagraph(layout, margin, indent, label);
     }
@@ -188,7 +196,7 @@ internal static partial class OfficeDrawingTextLayout {
             OfficeTextPlacement.ResolveLeftFromAnchor(OfficeTextPlacement.ResolveAnchorX(0, lineWidth, alignment), line.Width, alignment);
         double offset = measured.Margins.Left + line.OffsetX + (tabbedLine && !paragraph.TabStops!.AlignWithParagraph ? 0 : alignmentOffset);
         if (alignment == OfficeTextAlignment.Justify) offset = measured.Margins.Left + line.OffsetX;
-        var placed = new OfficeRichTextLine(segments, lineHeight, offset) { SourceTextEnd = line.SourceTextEnd, CompletesSource = line.CompletesSource };
+        var placed = line.WithPlacement(segments, lineHeight, offset);
         OfficeRichTextLine result = index == 0 && measured.Label != null ? AddParagraphLabel(placed, measured.Label, lineHeight) : placed;
         result.SourceTextEnd = line.SourceTextEnd;
         result.CompletesSource = line.CompletesSource;

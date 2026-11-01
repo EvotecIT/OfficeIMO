@@ -10,7 +10,7 @@ internal static partial class PdfWriter {
 
     internal static OfficeDrawingTextMetrics CreateDrawingTextMetrics(PdfOptions options, System.Threading.CancellationToken cancellationToken = default) {
         var metrics = new Dictionary<(byte[] Data, string Family, OfficeFontStyle Style), OfficeRasterCanvas?>();
-        return new OfficeDrawingTextMetrics(Measure, MeasurePaint, MeasureHorizontalPaint, MeasurePositioned, MeasureSegmentPaint);
+        return new OfficeDrawingTextMetrics(Measure, MeasurePaint, MeasureHorizontalPaint, MeasurePositioned, MeasureSegmentPaint, MeasurePublisherFont);
 
         IEnumerable<(PdfTextRun Run, OfficeRasterCanvas? Canvas, string Family, PdfStandardFont Font, bool SyntheticOblique)> Resolve(
             string? text, double size, string? family, OfficeFontStyle style) {
@@ -48,6 +48,19 @@ internal static partial class PdfWriter {
                 }
                 yield return (part, canvas, measuredFamily, selectedFont, syntheticOblique);
             }
+        }
+
+        OfficePublisherFontMetrics? MeasurePublisherFont(string? text, double size, string? family, OfficeFontStyle style) {
+            double ascent = 0D, descent = 0D, baseline = 0D;
+            bool resolved = false;
+            foreach (var part in Resolve(string.IsNullOrEmpty(text) ? " " : text, size, family, style)) {
+                double partSize = part.Run.FontSize ?? size;
+                OfficePublisherFontMetrics? selected = part.Canvas?.MeasurePublisherFont(part.Run.Text, partSize, part.Family, style);
+                OfficePublisherFontMetrics value = selected ?? new OfficePublisherFontMetrics(partSize * .84D, partSize * .16D, partSize * .84D);
+                ascent = Math.Max(ascent, value.Ascent); descent = Math.Max(descent, value.Descent);
+                baseline = Math.Max(baseline, value.Baseline); resolved |= selected.HasValue;
+            }
+            return resolved ? new OfficePublisherFontMetrics(ascent, descent, baseline) : null;
         }
 
         double Measure(string? text, double size, string? family, OfficeFontStyle style) {

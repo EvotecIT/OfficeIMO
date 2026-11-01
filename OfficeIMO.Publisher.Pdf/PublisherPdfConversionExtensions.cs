@@ -1,4 +1,5 @@
 using OfficeIMO.Pdf;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.Pdf;
 
@@ -10,12 +11,21 @@ public static class PublisherPdfConversionExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         var report = new PdfConversionReport();
         PdfOptions operation = options?.Clone() ?? new PdfOptions();
-        operation.ReportDiagnosticsTo(report, "OfficeIMO.Publisher.Pdf");
-        PdfDocument pdf = PdfDocument.Create(operation);
+        var drawings = new System.Collections.Generic.List<OfficeDrawing>(document.Pages.Count);
         foreach (PublisherPage page in document.Pages) {
             cancellationToken.ThrowIfCancellationRequested();
-            pdf.Compose(builder => builder.Page(surface => surface.Size(page.Width, page.Height).Margin(0)
-                .Canvas(canvas => canvas.Drawing(page.CreateDrawing(), 0, 0, page.Width, page.Height))));
+            drawings.Add(page.CreateDrawing());
+        }
+        var fonts = new OfficeFontFaceCollection();
+        foreach (OfficeDrawing drawing in drawings) fonts.AddRange(drawing.Fonts);
+        if (fonts.Faces.Count != 0)
+            operation.UseRenderingProfile(new OfficeRenderingProfile("Publisher", fonts), OfficeRenderingProfileApplyMode.Overlay);
+        operation.ReportDiagnosticsTo(report, "OfficeIMO.Publisher.Pdf");
+        PdfDocument pdf = PdfDocument.Create(operation);
+        foreach (OfficeDrawing drawing in drawings) {
+            cancellationToken.ThrowIfCancellationRequested();
+            pdf.Compose(builder => builder.Page(surface => surface.Size(drawing.Width, drawing.Height).Margin(0)
+                .Canvas(canvas => canvas.Drawing(drawing, 0, 0, drawing.Width, drawing.Height))));
         }
         return new PdfDocumentConversionResult(pdf, report).WithSourceConversionReport(document.ReadReport);
     }

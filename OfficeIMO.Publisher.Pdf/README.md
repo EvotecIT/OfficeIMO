@@ -23,6 +23,25 @@ margins. Master definitions are already applied by the Publisher reader and do
 not become separate PDF pages. Text and simple shapes remain drawing elements;
 pictures use the PDF engine's managed image handling.
 
+Fonts supplied through `PublisherReadOptions.Fonts` are retained by the page
+scene and applied through the PDF engine's rendering profile. This keeps scoped
+font selection consistent between story flow, PDF measurement and embedded glyphs.
+For example:
+
+```csharp
+using OfficeIMO.Drawing;
+
+var fonts = new OfficeFontFaceCollection()
+    .Add("Arial", File.ReadAllBytes("assets/Arial.ttf"));
+var withFonts = PublisherDocument.Load("newsletter.pub",
+    new PublisherReadOptions { Fonts = fonts });
+File.WriteAllBytes("newsletter.pdf", withFonts.ToPdfBytes());
+```
+
+The [font support contract](../OfficeIMO.Publisher/SUPPORT.md) describes the
+qualified native PDF baseline profile. Font substitution, broader line breaking
+and other native layout profiles remain reported approximations.
+
 `ToPdfDocumentResult()` returns the existing `PdfDocumentConversionResult` with
 `PublisherReadReport` in `SourceConversionReports`. The PDF report captures
 rendering and serialization findings. Inspect source and output reports before

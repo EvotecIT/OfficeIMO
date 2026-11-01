@@ -20,5 +20,6 @@
     <Using Include="System.Threading" />
     <Using Include="Xunit" />
     <None Include="Fixtures/**/*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf" Link="TestAssets/Carlito-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

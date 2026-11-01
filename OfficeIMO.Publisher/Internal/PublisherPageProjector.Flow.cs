@@ -30,7 +30,7 @@ internal sealed partial class PublisherPageProjector {
                 IReadOnlyList<OfficeTextFlowRegion> exclusions = TextExclusions(frame);
                 int? start = unavailable ? null : flow.HasRemaining ? Math.Min(flow.CharacterPosition, story.Text.Length) : story.Text.Length;
                 if (!unavailable && width > 0 && height > 0) {
-                    _textMetrics ??= new OfficeRasterCanvas(new OfficeRasterImage(1, 1), null, null, cancellationToken: _context.Token);
+                    _textMetrics ??= new OfficeRasterCanvas(new OfficeRasterImage(1, 1), null, _context.Options.Fonts, cancellationToken: _context.Token);
                     for (int column = 0; column < columns && flow.HasRemaining; column++) {
                         if (!frame.IsAuthored) _context.Record();
                         var area = new OfficeTextFlowRegion(padding.Left + column * (width + frame.ColumnSpacing), padding.Top, width, height);
@@ -39,7 +39,7 @@ internal sealed partial class PublisherPageProjector {
                         foreach (OfficeTextFlowRegion region in regions) {
                             if (!flow.HasRemaining) break;
                             IReadOnlyList<OfficeRichTextParagraph> paragraphs = flow.Take(region.Width, region.Height,
-                                _textMetrics.MeasureText, _context.Token);
+                                _textMetrics.CreateDrawingTextMetrics(), _context.Token);
                             if (paragraphs.Count != 0) content.Add(new PreparedTextRegion(paragraphs, region.X, region.Y, region.Width, region.Height));
                         }
                     }

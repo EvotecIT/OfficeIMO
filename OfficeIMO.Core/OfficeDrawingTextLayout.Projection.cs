@@ -19,10 +19,11 @@ internal static partial class OfficeDrawingTextLayout {
     private static OfficeRichTextBlockLayout CreateForProjectionCore(OfficeDrawingRichText text, double width, double height,
         Func<string?, double, string?, OfficeFontStyle, double> measure, double scale,
         Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint,
-        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?>? measureSegmentPaint) {
+        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?>? measureSegmentPaint,
+        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? measurePublisherFont = null) {
         if (text.WrapText || text.ShrinkToFit || text.Paragraphs.Count == 0)
-            return CreateCore(text, width, height, measure, scale, measurePaint, measureSegmentPaint);
+            return CreateCore(text, width, height, measure, scale, measurePaint, measureSegmentPaint, measurePublisherFont);
         return CreateParagraphs(text, width, height, measure, scale, measurePaint,
-            reportUnwrappedWidthOverflow: false, measureSegmentPaint: measureSegmentPaint);
+            reportUnwrappedWidthOverflow: false, measureSegmentPaint: measureSegmentPaint, measurePublisherFont: measurePublisherFont);
     }
 }

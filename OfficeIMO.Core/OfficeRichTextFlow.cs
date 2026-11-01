@@ -30,6 +30,16 @@ internal sealed class OfficeRichTextFlow {
     /// </summary>
     internal IReadOnlyList<OfficeRichTextParagraph> Take(double width, double height,
         Func<string?, double, string?, OfficeFontStyle, double> measure, CancellationToken cancellationToken) {
+        return TakeCore(width, height, measure, null, cancellationToken);
+    }
+
+    internal IReadOnlyList<OfficeRichTextParagraph> Take(double width, double height,
+        OfficeDrawingTextMetrics metrics, CancellationToken cancellationToken) =>
+        TakeCore(width, height, metrics.MeasureText, metrics, cancellationToken);
+
+    private IReadOnlyList<OfficeRichTextParagraph> TakeCore(double width, double height,
+        Func<string?, double, string?, OfficeFontStyle, double> measure, OfficeDrawingTextMetrics? metrics,
+        CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         var visible = new List<OfficeRichTextParagraph>();
         if (width <= 0 || height <= 0) return visible;
@@ -40,8 +50,9 @@ internal sealed class OfficeRichTextFlow {
             int length = TextLength(source);
             OfficeRichTextParagraph tail = Slice(source, _offset, length - _offset, complete: true);
             _accountMeasurement(length - _offset);
-            OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.CreateParagraphs(new[] { tail },
-                width, remainingHeight, measure, cancellationToken: cancellationToken);
+            OfficeRichTextBlockLayout layout = metrics == null
+                ? OfficeDrawingTextLayout.CreateParagraphs(new[] { tail }, width, remainingHeight, measure, cancellationToken: cancellationToken)
+                : OfficeDrawingTextLayout.CreateParagraphsWithMetrics(new[] { tail }, width, remainingHeight, metrics, cancellationToken: cancellationToken);
             int consumed = 0;
             bool sourceEndVisible = false;
             double measuredHeight = 0D, completedHeight = 0D;
@@ -78,6 +89,7 @@ internal sealed class OfficeRichTextFlow {
                 ? new OfficeRichTextParagraph(last.Runs, last.Alignment, last.LineHeight, margins, last.Indent, last.LineHeightFactor)
                 : new OfficeRichTextParagraph(last.Runs, last.Label, last.Alignment, last.LineHeight, margins, last.Indent, last.LineHeightFactor);
             trimmed.ContinuesInNextRegion = last.ContinuesInNextRegion;
+            trimmed.UsesPublisherFontMetrics = last.UsesPublisherFontMetrics;
             visible[visible.Count - 1] = trimmed.WithTabStops(last.TabStops);
         }
         return visible;
@@ -123,6 +135,7 @@ internal sealed class OfficeRichTextFlow {
             ? new OfficeRichTextParagraph(runs, source.Label, source.Alignment, source.LineHeight, margins, paragraphIndent, source.LineHeightFactor)
             : new OfficeRichTextParagraph(runs, source.Alignment, source.LineHeight, margins, paragraphIndent, source.LineHeightFactor);
         result.ContinuesInNextRegion = !complete || source.ContinuesInNextRegion;
+        result.UsesPublisherFontMetrics = source.UsesPublisherFontMetrics;
         return result.WithTabStops(source.TabStops);
     }
 }

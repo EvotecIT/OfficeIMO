@@ -61,6 +61,6 @@ internal static partial class OfficeDrawingTextLayout {
         if (label.Separator || gap > 0)
             segments.Add(new OfficeRichTextSegment(label.Separator ? " " : string.Empty, gap, Math.Max(1, label.Line.FontSize), OfficeColor.Black, false, false, false, "Arial", false, null));
         segments.AddRange(body.Segments);
-        return new OfficeRichTextLine(segments, height, label.Left);
+        return body.WithPlacement(segments, height, label.Left);
     }
 }

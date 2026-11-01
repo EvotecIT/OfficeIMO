@@ -686,6 +686,7 @@ public static partial class OfficeTextBlockRenderer {
         double lineTop,
         double lineHeight,
         bool centerLineInLineHeight) {
+        if (line.BaselineOffset.HasValue) return lineTop + line.BaselineOffset.Value;
         OfficeTextLayoutEngine.ResolveRichTextVerticalExtents(line.Segments, out double contentTop, out double contentBottom);
         double contentHeight = Math.Max(0D, contentBottom - contentTop);
         double leading = centerLineInLineHeight ? Math.Max(0D, lineHeight - contentHeight) / 2D : 0D;

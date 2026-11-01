@@ -128,9 +128,10 @@ internal static partial class OfficeDrawingTextLayout {
     private static OfficeRichTextBlockLayout CreateCore(OfficeDrawingRichText text, double width, double height,
         Func<string?, double, string?, OfficeFontStyle, double> measure, double scale,
         Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint,
-        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?>? measureSegmentPaint) {
+        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?>? measureSegmentPaint,
+        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? measurePublisherFont = null) {
         if (text.Paragraphs.Count > 0) return CreateParagraphs(text, width, height, measure, scale, measurePaint,
-            measureSegmentPaint: measureSegmentPaint);
+            measureSegmentPaint: measureSegmentPaint, measurePublisherFont: measurePublisherFont);
         var runs = new List<OfficeRichTextRun>(text.Runs.Count);
         double maxFontSize = 0D;
         foreach (OfficeRichTextRun run in text.Runs) {

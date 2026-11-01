@@ -495,9 +495,40 @@ native terminal empty paragraphs and byte-exact no-op native save are preserved.
 An after-spacing gap that cannot fit ends the current region; it does not consume
 following text that must continue into another region or remain as overflow.
 The controls include 12 and 18 pt Arial and requested terminal paragraph marks;
-saved native text determines the actual empty-paragraph count. First-baseline
-differences from native PDF output reach 1.40 pt. Font metrics, line advances and
-broader native layout remain separate qualification work.
+saved native text determines the actual empty-paragraph count. Matching selected
+fonts is required for the separately qualified baseline profile below; substitute
+fonts and broader native layout retain approximation reports.
+
+Publisher paragraphs use a shared Core font profile that separates selected design
+content height, line advance and the rendered baseline. A region's final line fits
+and aligns by its content height; its unused advance is omitted. The full advance
+and paragraph-after spacing still separate following text. Ordinary drawing
+paragraphs retain their existing layout defaults.
+
+`PublisherReadOptions.Fonts` supplies scoped faces for story flow and retained page
+drawings. Options and drawing snapshots clone the collection; application font
+providers remain shared. The PDF adapter passes those faces through the existing
+PDF rendering profile, so its measurement and embedded glyphs use the same selected
+font. Without scoped faces, installed-font availability and configured PDF font
+substitution can still produce different results.
+
+The native PDF reference profile selects OS/2 typographic ascent, positive line gap
+and descent when the selected Latin default-language GSUB/GPOS features include a
+recognized non-kerning feature. Otherwise it retains Windows design metrics and
+samples the baseline from VDMX or scaled Windows ascent at the qualified 600 dpi
+reference. Sampling uses managed font-table arithmetic; it does not access a
+printer or operating-system graphics API. This reference does not change general
+Core, Word or CSS metric policies.
+
+The independently authored `TextFontMetrics`, `TextFallbackAlignment` and
+`TextVerticalPlacement` controls cover ten exact font binaries, 12/18 pt and
+fractional Courier sizes, inherited/single/1.19 spacing, terminal empty paragraphs
+and top/center/bottom placement. Fixture provenance records the font hashes.
+Other fonts, device resolutions, complex scripts, mixed-baseline native geometry,
+wrapping and native frame-break equivalence require separate qualification.
+Complete stories and source styles survive overflow; byte-exact no-op native saving
+remains independent of rendering. Native/managed pixel fidelity and repair-free
+opening are not established by this font profile.
 
 The `linkedStoryCreation` record covers source-free creation of one story shared
 by three frames flowing through pages 1, 3 and 2, beside an independent story.

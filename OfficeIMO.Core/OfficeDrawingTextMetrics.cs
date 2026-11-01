@@ -18,13 +18,24 @@ internal sealed class OfficeDrawingTextMetrics {
         Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds> measurePaint,
         Func<string?, double, string?, OfficeFontStyle, (double Left, double Right)> measureHorizontalPaint,
         Func<string?, double, string?, OfficeFontStyle, OfficeTextDirection, double>? measurePositioned,
-        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?> measureSegmentPaint) {
+        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?> measureSegmentPaint)
+        : this(measure, measurePaint, measureHorizontalPaint, measurePositioned, measureSegmentPaint, null) {
+    }
+
+    internal OfficeDrawingTextMetrics(Func<string?, double, string?, OfficeFontStyle, double> measure,
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds> measurePaint,
+        Func<string?, double, string?, OfficeFontStyle, (double Left, double Right)> measureHorizontalPaint,
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextDirection, double>? measurePositioned,
+        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?> measureSegmentPaint,
+        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? measurePublisherFont) {
+        MeasurePublisherFont = measurePublisherFont;
         MeasureSegmentPaintBounds = measureSegmentPaint;
         MeasureText = measure;
         MeasurePaintBounds = measurePaint;
         MeasureHorizontalPaintBounds = measureHorizontalPaint;
         MeasurePositionedText = measurePositioned ?? ((text, size, family, style, _) => measure(text, size, family, style));
     }
+    internal Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? MeasurePublisherFont { get; }
     internal Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?> MeasureSegmentPaintBounds { get; }
     internal Func<string?, double, string?, OfficeFontStyle, double> MeasureText { get; }
     internal Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds> MeasurePaintBounds { get; }

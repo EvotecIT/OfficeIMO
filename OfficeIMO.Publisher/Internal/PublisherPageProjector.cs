@@ -41,6 +41,7 @@ internal sealed partial class PublisherPageProjector {
         foreach (PublisherPageState page in _publication.Pages) {
             _context.Token.ThrowIfCancellationRequested();
             var drawing = new OfficeDrawing(page.Width, page.Height);
+            if (_context.Options.Fonts != null) drawing.Fonts.AddRange(_context.Options.Fonts);
             foreach (uint id in page.ObjectIds) {
                 _context.Token.ThrowIfCancellationRequested();
                 if (_publication.Tables.TryGetValue(id, out PublisherTableState? table) && table.HasSemanticPaint)

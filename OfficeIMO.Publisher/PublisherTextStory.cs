@@ -6,7 +6,13 @@ namespace OfficeIMO.Publisher;
 public sealed class PublisherTextStory {
     internal PublisherTextStory(uint id, string text, IReadOnlyList<OfficeRichTextParagraph> paragraphs,
         bool? hasFinalParagraphTerminator = null) {
-        Id = id; Text = text; Paragraphs = Array.AsReadOnly(paragraphs.ToArray());
+        Id = id; Text = text;
+        Paragraphs = Array.AsReadOnly(paragraphs.Select(paragraph => {
+            if (paragraph.UsesPublisherFontMetrics) return paragraph;
+            OfficeRichTextParagraph copy = paragraph.WithTabStops(paragraph.TabStops);
+            copy.UsesPublisherFontMetrics = true;
+            return copy;
+        }).ToArray());
         HasFinalParagraphTerminator = hasFinalParagraphTerminator ?? text.EndsWith("\n", StringComparison.Ordinal);
     }
     // This source convention survives clearing the content. Inferring it from

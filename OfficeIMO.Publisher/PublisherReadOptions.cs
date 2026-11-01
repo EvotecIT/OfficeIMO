@@ -14,12 +14,14 @@ public sealed class PublisherReadOptions {
     public int MaximumTotalImageBytes { get; set; } = 64 * 1024 * 1024;
     /// <summary>Optional trusted application codec for projecting native WMF/EMF pictures and supported raster payloads requiring picture effects. Original bytes remain in Images.</summary>
     public OfficeIMO.Drawing.IOfficeRasterImageCodec? ImageCodec { get; set; }
+    /// <summary>Optional scoped font faces used for story flow and retained drawing rendering. The collection is cloned with the options; providers remain shared.</summary>
+    public OfficeIMO.Drawing.OfficeFontFaceCollection? Fonts { get; set; }
     /// <summary>Maximum decoded pixels for one projected picture, including application codec output and picture-effect decoding.</summary>
     public long MaximumRasterPixels { get; set; } = 8_000_000;
     /// <summary>Maximum cumulative picture-effect work in pixels. Charges the selected raster once for decoding and once for filtering, plus each inspected GIF, WebP or icon frame.</summary>
     public long MaximumImageProcessingPixels { get; set; } = 64_000_000;
 
-    /// <summary>Creates a validated independent options copy. A supplied application image codec remains shared.</summary>
+    /// <summary>Creates a validated independent options copy. Supplied application image codecs and font providers remain shared.</summary>
     public PublisherReadOptions Clone() {
         if (Limits == null) throw new ArgumentNullException(nameof(Limits));
         Limits.Validate();
@@ -32,7 +34,7 @@ public sealed class PublisherReadOptions {
         return new PublisherReadOptions {
             Limits = Limits.Clone(), MaximumPages = MaximumPages, MaximumNestingDepth = MaximumNestingDepth,
             MaximumImageBytes = MaximumImageBytes, MaximumTotalImageBytes = MaximumTotalImageBytes,
-            ImageCodec = ImageCodec, MaximumRasterPixels = MaximumRasterPixels,
+            ImageCodec = ImageCodec, Fonts = Fonts?.Clone(), MaximumRasterPixels = MaximumRasterPixels,
             MaximumImageProcessingPixels = MaximumImageProcessingPixels
         };
     }

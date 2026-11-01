@@ -19,7 +19,7 @@ internal sealed partial class PublisherPageProjector {
         // The shared managed metrics match the default SVG layout. PDF or
         // application fonts can produce different wrapping, so retain the
         // layout approximation report even when this measurement fits.
-        _textMetrics ??= new OfficeRasterCanvas(new OfficeRasterImage(1, 1), null, null,
+        _textMetrics ??= new OfficeRasterCanvas(new OfficeRasterImage(1, 1), null, _context.Options.Fonts,
             cancellationToken: _context.Token);
         OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.CreateWithRasterMetrics(frame,
             width - padding.Horizontal, height - padding.Vertical, _textMetrics);

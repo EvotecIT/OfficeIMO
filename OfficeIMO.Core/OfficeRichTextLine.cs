@@ -12,6 +12,15 @@ public sealed class OfficeRichTextLine {
     internal int SourceTextEnd { get; set; }
     // A terminal hard break has a second, empty source line at the same endpoint.
     internal bool CompletesSource { get; set; }
+    // Content extent controls fitting/alignment; LineHeight remains the advance.
+    internal double? ContentHeight { get; set; }
+    internal double? BaselineOffset { get; set; }
+
+    internal OfficeRichTextLine WithPlacement(IReadOnlyList<OfficeRichTextSegment> segments, double advance, double offset) =>
+        new OfficeRichTextLine(segments, advance, offset) {
+            SourceTextEnd = SourceTextEnd, CompletesSource = CompletesSource,
+            ContentHeight = ContentHeight, BaselineOffset = BaselineOffset
+        };
     /// <summary>Creates a line with renderer-resolved height and no horizontal offset.</summary>
     public OfficeRichTextLine(IReadOnlyList<OfficeRichTextSegment> segments)
         : this(segments, 0D, 0D) {
