@@ -24616,5 +24616,357 @@
         ]
       }
     ]
+  },
+  "pairKerningRendering": {
+    "schema": "officeimo.publisher.pair-kerning-rendering.v1",
+    "sourceCommit": "82ab8ccc1722f4c59774093a446bebbff206b47f",
+    "profile": "Explicit per-run thresholds in shared font-aware layout and raster/SVG/PDF. Native omitted defaults and mixed-run parity remain open.",
+    "contract": {
+      "zero": "Disabled",
+      "positive": "Enabled iff base run font size meets threshold, before script-size reduction",
+      "unspecified": "Generic renderer feature defaults; native source save retains selected source definition",
+      "drawingScale": "Scale font size and threshold",
+      "fontFit": "Scale font size; retain threshold",
+      "customMeasurement": "Existing callbacks retain caller control",
+      "preservedClrSignatures": true
+    },
+    "boundaries": [
+      "normalization and copied runs/segments",
+      "wrapping and source UTF-16 endpoints",
+      "tabs and leaders",
+      "trimming/ellipsis",
+      "justification using painted token advances",
+      "font-fit intervals at feature activation",
+      "font fallback and feature-sensitive ink caches",
+      "raster glyphs and bounds",
+      "SVG CSS font-feature-settings",
+      "PDF glyph features and unwrapped-paragraph overhang"
+    ],
+    "focusedTests": {
+      "coreCases": 13,
+      "pdfCases": 8,
+      "names": [
+        "Shrink_to_fit_considers_the_higher_fitting_interval_after_kerning_activates",
+        "Justification_uses_the_advances_of_the_tokens_that_are_actually_painted",
+        "Svg_emits_run_font_features_as_css_that_browsers_apply",
+        "Unwrapped_paragraph_keeps_disabled_kerning_italic_overhang_outside_frame"
+      ],
+      "noWrapRegression": {
+        "beforeClipRightPoints": 30.8,
+        "requiredInkRightPoints": 32.666666666666664,
+        "afterPass": true,
+        "calibration": "Earlier antialiased pixel and120unit kern attempts did not discriminate clipping; final240unit adjustment does."
+      }
+    },
+    "tests": [
+      {
+        "suite": "drawing-stable",
+        "target": "net10.0",
+        "outcomes": {
+          "Passed": 6284,
+          "NotExecuted": 5
+        },
+        "skips": [
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.PngUnfilterObservesCancellationAfterPixelsChange",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngIdentificationObservesCancellationDuringChunkValidation",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowTiffDecodeObservesCancellationInsidePixelLoops"
+        ]
+      },
+      {
+        "suite": "drawing-stable",
+        "target": "net8.0",
+        "outcomes": {
+          "Passed": 6284,
+          "NotExecuted": 5
+        },
+        "skips": [
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.PngUnfilterObservesCancellationAfterPixelsChange",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowTiffDecodeObservesCancellationInsidePixelLoops",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngIdentificationObservesCancellationDuringChunkValidation"
+        ]
+      },
+      {
+        "suite": "drawing-stable",
+        "target": "net472",
+        "outcomes": {
+          "Passed": 6256,
+          "NotExecuted": 5
+        },
+        "skips": [
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.PngUnfilterObservesCancellationAfterPixelsChange",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngIdentificationObservesCancellationDuringChunkValidation",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowTiffDecodeObservesCancellationInsidePixelLoops"
+        ]
+      },
+      {
+        "suite": "publisher-stable",
+        "target": "net10.0",
+        "outcomes": {
+          "Passed": 983
+        },
+        "skips": []
+      },
+      {
+        "suite": "publisher-stable",
+        "target": "net8.0",
+        "outcomes": {
+          "Passed": 983
+        },
+        "skips": []
+      },
+      {
+        "suite": "publisher-stable",
+        "target": "net472",
+        "outcomes": {
+          "Passed": 983
+        },
+        "skips": []
+      },
+      {
+        "suite": "pdf-final",
+        "target": "net10.0",
+        "outcomes": {
+          "Passed": 469
+        },
+        "skips": []
+      },
+      {
+        "suite": "pdf-final",
+        "target": "net8.0",
+        "outcomes": {
+          "Passed": 469
+        },
+        "skips": []
+      },
+      {
+        "suite": "pdf-final",
+        "target": "net472",
+        "outcomes": {
+          "Passed": 469
+        },
+        "skips": []
+      }
+    ],
+    "browser": {
+      "engine": "Installed Chrome via HtmlTinkerX; headless local HTTP",
+      "actualGeneratedSvg": true,
+      "arialSha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a",
+      "text": "AVATAR",
+      "fontSize": 40,
+      "widthDisabled": 160.03125,
+      "widthEnabled": 148.16015625,
+      "xmlAttributeIgnoredInControl": true,
+      "cssApplied": true
+    },
+    "native": {
+      "producer": "Microsoft Publisher16.0.20527.20088",
+      "sourceFixture": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+      "sourceDerived": true,
+      "fullRuns": 21,
+      "operations": 147,
+      "initialResaved144DpiPairs": 21,
+      "allNativePairsEqual": true,
+      "sourceUnchanged": true,
+      "normalUniformOriginMaxXPoints": 0.525,
+      "normalUniformOriginMaxYPoints": 0.069,
+      "scriptBaseSizePoints": 12,
+      "scriptGlyphSizePoints": 7.8,
+      "scriptThreshold8Activates": true,
+      "scriptBaselineMaxSuperscriptPoints": 1.929,
+      "scriptBaselineMaxSubscriptPoints": 5.39,
+      "mixed": "Stored thresholds both persist; observed same-face line activation follows first setting. Color/space do not reset it; new paragraph does. Cause/soft-line behavior unresolved.",
+      "repairFreeQualified": false
+    },
+    "portableBuilds": [
+      {
+        "project": "OfficeIMO.Reader.Publisher",
+        "target": "netstandard2.0",
+        "result": "PASS"
+      },
+      {
+        "project": "PSWriteOffice",
+        "target": "net8.0",
+        "result": "PASS",
+        "publicApiNativeSavePdfSmoke": true
+      }
+    ],
+    "review": {
+      "fullPasses": 1,
+      "targetedConfirmations": 1,
+      "validatedFindings": 1,
+      "unresolvedFindings": 0,
+      "scope": "Shared explicit-threshold transport/rendering; native defaults and general layout remain separate"
+    },
+    "sourceFiles": [
+      {
+        "path": "Docs/ROADMAP.md",
+        "sha256": "70324519ffdb69207b5b3bdc9b02cff352554c8ed2155f9bf9c426226bbc4a76"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeCalloutRenderer.cs",
+        "sha256": "01f35b95b163fb96c11590393953f93206dc599fb3fd075bea0d12899b0b5d11"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.Labels.cs",
+        "sha256": "fa06a0b1930ceaa990ae13dde5079054669237b745065919654f038f4b7650c0"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.PaintEnvelope.cs",
+        "sha256": "48a203a07b888f2ed7b267c7dfba93ed62c775d56eab204a732cd26c0c176ded"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.Paragraphs.cs",
+        "sha256": "480815ae71ba47897a4902995aa9f57c4f2a2414a946f403776f29d7e9bedac8"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.Projection.cs",
+        "sha256": "def172dd0ee28ba5c1e7cf3c05ab9a5ca8a567b64852d9493e3d81487061d77a"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.RasterPaintEnvelope.cs",
+        "sha256": "820272a28a30ee1cdd6ce42f9503e08ce9479b68048f02ca755caeef116af0af"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.Sizing.cs",
+        "sha256": "b2b99354c8cb976f8a645ed7e4ee16c38e3f476f566232f0987edb4e53182533"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.TextArea.cs",
+        "sha256": "0a7fdc872d1f975f4f62ba82df4191070dd9aa663849ffd68e846c34ac5e2e77"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.cs",
+        "sha256": "042ecfde19a6eec6f2c518487e345c48ea0ed6434613069d853e3dbd04988a23"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextMetrics.cs",
+        "sha256": "14a90ae319226e6aa2cc5180bf0bb98c13c45c8004b5ab5c234f36d9b66180a5"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextMeasurement.cs",
+        "sha256": "3e626d3a44be93f83dbf60261f72eb37ccb7d774170996e0cdc23a92221a8db1"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextRun.cs",
+        "sha256": "81bff06f3bf440f1950e5f3aa341429e8cb1c8b883d2f861fe2f31558f43567e"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextSegment.cs",
+        "sha256": "4c74ce42f1a149d2250552c226f55ee584c1cc13d6d819f598550588356da411"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextBlockRenderer.RichTextJustification.cs",
+        "sha256": "8d836c347958b0d3ff5e0080155f35b29be2d50f7ca932d3d5094f2e0a6abaa2"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextBlockRenderer.SvgElements.cs",
+        "sha256": "eda61d0f6a6f4b4b6c1afc293bb40b2854f7738c3e50f57f7df459463765083f"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextBlockRenderer.cs",
+        "sha256": "53e527419fa13d9ffdc3fa83375d98c564f135cc59c0a22a28e6b55d4a51d5cf"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextLayoutEngine.RichText.Fitting.cs",
+        "sha256": "0312c16b028f0f97955d1ca245347a0be6ba3d5bee11349a661794e801875170"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextLayoutEngine.RichText.Overflow.cs",
+        "sha256": "ed5d964f76c819cbb8abae8fa624722da8eba8e3b7ef6dba4a096600fbd472c4"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextLayoutEngine.RichText.Runs.cs",
+        "sha256": "663156780eda0f96de285150c8724182b98cd633cf4eb85bbc6cc583bc0b2c4b"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextLayoutEngine.RichText.cs",
+        "sha256": "f37c7cc8f1365c41cf232a50409447a83194d3caeb7df026e03f6350d50cddb5"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextLayoutEngine.Stacked.cs",
+        "sha256": "7bfd95a871719aaa4e6b8a7b4b5b727ef66e24767555425deb4dc85635bf80ef"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextLayoutEngine.Tabs.cs",
+        "sha256": "9bf49b8dcb51412698a88a927b9d430c670d4196636e5c592b4ff5099a18dd5e"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextTabLeaderStyle.cs",
+        "sha256": "925b231b700d029f88e793938c9ffdc2e3b9eb127052610aef30850636c4c67c"
+      },
+      {
+        "path": "OfficeIMO.Core/Raster/OfficeRasterCanvas.PublisherMetrics.cs",
+        "sha256": "088aa0457f389f599430d9e70160dd08deeccf79c8ff282779caad1ec050a16e"
+      },
+      {
+        "path": "OfficeIMO.Core/Raster/OfficeRasterCanvas.Text.FallbackRuns.cs",
+        "sha256": "e1b92096a2a48e79fb55cc5fcb34d90619facd3150c77948d93cfcdccfa33217"
+      },
+      {
+        "path": "OfficeIMO.Core/Raster/OfficeRasterCanvas.Text.HorizontalPaintBounds.cs",
+        "sha256": "b5ec7b7a5965d3757232b7d01d1e83876d32f97a942f8f43891d72cd1b75cf52"
+      },
+      {
+        "path": "OfficeIMO.Core/Raster/OfficeRasterCanvas.Text.Line.cs",
+        "sha256": "d9613d4a54d02ea3c2aa6c9eea4f51a72090a40cb3bb14691526eb2c169c611e"
+      },
+      {
+        "path": "OfficeIMO.Core/Raster/OfficeRasterCanvas.Text.LinePaintBounds.cs",
+        "sha256": "91b4bb120494d6ecd027f74b5ac4ff52d102db289a3ced1514a502ee3375dda6"
+      },
+      {
+        "path": "OfficeIMO.Core/Raster/OfficeRasterCanvas.Text.MeasurementCache.cs",
+        "sha256": "04491eeb08906dd296067ec9bdae191398e0b56150def70970e9fd4ba7d51508"
+      },
+      {
+        "path": "OfficeIMO.Core/Raster/OfficeRasterCanvas.Text.PaintBounds.cs",
+        "sha256": "87576f58071fcf237659afa74b85a208c25c1b7983e70dee822e63722db0ea78"
+      },
+      {
+        "path": "OfficeIMO.Core/Raster/OfficeRasterCanvas.Text.cs",
+        "sha256": "39b05eec24bc7b27a11b9eb9846b48798a1b80a82b5b1f348d86f25d780487c9"
+      },
+      {
+        "path": "OfficeIMO.Drawing.Tests/Drawing.RichText.Kerning.cs",
+        "sha256": "622e563cc797133b320c7bf44e283a931e4538f8834a64347ac4b3de958de080"
+      },
+      {
+        "path": "OfficeIMO.Pdf.Tests/Pdf/PdfDrawingRichKerningTests.cs",
+        "sha256": "265c5b211d622865c617401d63d380ee184af4fd64f7eef4a433aeeb8f1a0f8a"
+      },
+      {
+        "path": "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.DrawingTextMetrics.cs",
+        "sha256": "93f055d14ade9d2d8d17eeab166e7eec8401662cebd24a51d10efdcc106ce97f"
+      },
+      {
+        "path": "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.Drawing.Text.cs",
+        "sha256": "8db79d836c67634b8a21eced9ffafe8a9fe571bca54a860f72083ab3c7bd0020"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextPairKerning/provenance.json",
+        "sha256": "a5c65edb887f14790ab65cbd4c9aded57a1eaebcf3bd5e8164b87113b8ec2658"
+      },
+      {
+        "path": "OfficeIMO.Publisher/README.md",
+        "sha256": "a0964bff06f7c184cadea008c43676c49a82fefb5f4d78a1e13aa452a80b9fc0"
+      },
+      {
+        "path": "OfficeIMO.Publisher/SUPPORT.md",
+        "sha256": "18e1ec254c3ad3ac5b4f96c513e064b6fce724288650ce3c8e8594a2c10b7b64"
+      }
+    ],
+    "limits": [
+      "Omitted native effective defaults and source-definition correspondence remain unqualified.",
+      "Native mixed settings differ from independent managed per-run policy.",
+      "Native device advances and script baselines differ; no native-managed pixel parity.",
+      "Automatic hyphenation, dictionaries, generated display hyphens and source continuation remain open.",
+      "Full PUB00-PUB06 lifecycle is incomplete."
+    ]
   }
 }
