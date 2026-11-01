@@ -11,11 +11,11 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// <example><summary>Convert HTML using a portable Markdown profile.</summary>
 /// <code>$options = New-OfficeHtmlMarkdownOptions -Portable -LineEnding LF
 /// Convert-OfficeDocument -Path ./Report.html -To Markdown -OutputPath ./Report.md -Options $options</code></example>
-[Cmdlet(VerbsCommon.New, "OfficeHtmlMarkdownOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeHtmlMarkdownOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(MarkdownHtmlImportOptions))]
 public sealed class NewOfficeHtmlMarkdownOptionsCommand : OfficeCmdlet, IMarkdownWriteOptionSource {
     /// <summary>Native settings to copy before applying explicit changes.</summary>
-    [Parameter, OfficeOptionsTransformation(typeof(MarkdownHtmlImportOptions)), ValidateNotNull]
+    [Parameter(ParameterSetName = "Default"), OfficeOptionsTransformation(typeof(MarkdownHtmlImportOptions)), ValidateNotNull]
     public MarkdownHtmlImportOptions? BaseOptions { get; set; }
     /// <summary>Start with the native portable profile instead of the OfficeIMO profile.</summary>
     [Parameter]

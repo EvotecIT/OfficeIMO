@@ -15155,7 +15155,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates Excel-only protection settings for Protect-OfficeDocument.",
-      "outputType": "OfficeIMO.Excel.ExcelProtectionOptions",
+      "outputType": "PSWriteOffice.Services.OfficeProtectionExcelOptions",
       "shouldProcess": false,
       "parameterSets": [
         {
