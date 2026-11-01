@@ -6,7 +6,8 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Removes empty containers and orphaned references on this worksheet to prevent Excel repairs.
         /// </summary>
-        internal void Preflight() {
+        /// <param name="saveWorksheet">False when the save reads the loaded worksheet, as the fast writers, the splice and the SDK clone all do.</param>
+        internal void Preflight(bool saveWorksheet = true) {
             WriteLock(() => {
                 var ws = WorksheetRoot;
                 if (!HasPreflightCandidates(ws)) {
@@ -100,7 +101,7 @@ namespace OfficeIMO.Excel {
                     try { _worksheetPart.GetPartById(lId); } catch (ArgumentOutOfRangeException) { ws.RemoveChild(legacy); }
                 }
 
-                ws.Save();
+                if (saveWorksheet) ws.Save();
             });
             _requiresSavePreparation = false;
         }

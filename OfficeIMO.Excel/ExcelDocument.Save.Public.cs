@@ -35,9 +35,9 @@ namespace OfficeIMO.Excel {
             _requiresSavePreflight = false;
         }
 
-        private void PreflightWorkbook(IEnumerable<ExcelSheet> sheets) {
+        private void PreflightWorkbook(IEnumerable<ExcelSheet> sheets, bool saveWorksheets = true) {
             foreach (var sheet in sheets) {
-                sheet.Preflight();
+                sheet.Preflight(saveWorksheets);
             }
             CleanupWorkbookViewArtifacts(save: true);
             CleanupStyleAndSharedStringArtifacts(save: true);
@@ -167,6 +167,10 @@ namespace OfficeIMO.Excel {
 
             if (!preferExtendedPackageWriter
                 && TrySaveWithExtendedPackageToFile(path, options, out extendedPackageSkipReason)) {
+                return;
+            }
+
+            if (TrySaveSplicedPackageToFile(path, options, extendedPackageSkipReason ?? fastPackageSkipReason)) {
                 return;
             }
 
@@ -326,6 +330,11 @@ namespace OfficeIMO.Excel {
 
             if (!preferExtendedPackageWriter
                 && TrySaveWithExtendedPackageToFile(target, options, out extendedPackageSkipReason, cancellationToken)) {
+                return;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            if (TrySaveSplicedPackageToFile(target, options, extendedPackageSkipReason ?? fastPackageSkipReason)) {
                 return;
             }
 
@@ -600,6 +609,16 @@ namespace OfficeIMO.Excel {
             if (!preferExtendedPackageWriter
                 && TryWriteExtendedWorkbookPackage(destination, options, updateDocumentState: true, out extendedPackageSkipReason, cancellationToken)) {
                 LastSaveDiagnostics = ExcelSaveDiagnostics.ExtendedPackage();
+                return;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            if (TrySplicePackage(options) is byte[] splicedPackage) {
+                PrepareDestinationStreamForWrite(destination);
+                await destination.WriteAsync(splicedPackage, 0, splicedPackage.Length, cancellationToken).ConfigureAwait(false);
+                try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
+                MarkPackageClean(splicedPackage);
+                LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(extendedPackageSkipReason ?? fastPackageSkipReason);
                 return;
             }
 

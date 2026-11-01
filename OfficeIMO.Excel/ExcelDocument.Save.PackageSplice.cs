@@ -16,26 +16,46 @@ namespace OfficeIMO.Excel {
         /// size and CRC, because parts can change through streams that leave no trace on the document.
         /// </remarks>
         private bool TryWriteSplicedPackage(Stream destination, ExcelSaveOptions? options) {
+            byte[]? package = TrySplicePackage(options);
+            if (package == null) return false;
+
+            PrepareDestinationStreamForWrite(destination);
+            destination.Write(package, 0, package.Length);
+            try { destination.Flush(); } catch (NotSupportedException) { }
+            MarkPackageClean(package);
+            return true;
+        }
+
+        private bool TrySaveSplicedPackageToFile(string targetPath, ExcelSaveOptions? options, string? fallbackReason) {
+            byte[]? package = TrySplicePackage(options);
+            if (package == null) return false;
+
+            CommitPreparedPackageToFile(targetPath, package);
+            MarkPackageClean(package);
+            FilePath = targetPath;
+            LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(fallbackReason);
+            return true;
+        }
+
+        private byte[]? TrySplicePackage(ExcelSaveOptions? options) {
             byte[]? source = _packageBaselineBytes;
             if (source == null
                 || options?.DisableFastPackageWriter == true
                 || _spreadSheetDocument.DigitalSignatureOriginPart != null
                 || _spreadSheetDocument.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null
                 || CollectLoadedCarriageReturnParts(WorkbookPartRoot).Count > 0) {
-                return false;
+                return null;
             }
 
-            _spreadSheetDocument.Save();
+            // Writing the package only to read its parts back here compresses every part, so that waits for a stream
+            // that outlives this save.
+            if (_packageStream != null || _usesFileBackedPackage) _spreadSheetDocument.Save();
             byte[]? package = ExcelPackageEntrySplicer.TryEdit(source, SpliceLivePackage);
-            if (package == null) return false;
+            if (package == null) return null;
 
             ThrowIfPackageMaterializationExceedsLimit(package.LongLength, options);
             ThrowIfOpenXmlValidationFails(package, options);
-            PrepareDestinationStreamForWrite(destination);
-            destination.Write(package, 0, package.Length);
-            try { destination.Flush(); } catch (NotSupportedException) { }
-            MarkPackageClean(package);
-            return true;
+            return package;
         }
 
         private void SpliceLivePackage(ExcelPackageEntrySplicer splicer) {
@@ -65,28 +85,37 @@ namespace OfficeIMO.Excel {
             }
             ReconcileContentTypes(splicer, parts, removedParts);
 
-            byte[] buffer = new byte[64 * 1024];
-            foreach (KeyValuePair<string, OpenXmlPart> pair in parts) {
-                string name = pair.Key.TrimStart('/');
-                if (!splicer.Contains(name)) throw new InvalidDataException($"Part '{name}' is new.");
-                if (string.Equals(name, core.Key, StringComparison.OrdinalIgnoreCase)) continue;
-                int length = ReadPart(pair.Value, ref buffer);
-                if (splicer.Matches(name, buffer, length)) continue;
-                var content = new byte[length];
-                Buffer.BlockCopy(buffer, 0, content, 0, length);
-                splicer.Replace(name, content);
+            var buffer = new ExcelPartBuffer();
+            try {
+                foreach (KeyValuePair<string, OpenXmlPart> pair in parts) {
+                    string name = pair.Key.TrimStart('/');
+                    if (!splicer.Contains(name)) throw new InvalidDataException($"Part '{name}' is new.");
+                    if (string.Equals(name, core.Key, StringComparison.OrdinalIgnoreCase)) continue;
+                    SpliceLivePart(splicer, name, pair.Value, buffer);
+                }
+            } finally {
+                buffer.Release();
             }
             splicer.Replace(core.Key, core.Value);
         }
 
-        private static int ReadPart(OpenXmlPart part, ref byte[] buffer) {
-            using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
-            int length = 0;
-            while (true) {
-                if (length == buffer.Length) Array.Resize(ref buffer, buffer.Length * 2);
-                int read = stream.Read(buffer, length, buffer.Length - length);
-                if (read == 0) return length;
-                length += read;
+        /// <summary>Leaves a changed root in its part as well, so nothing that reads the live package sees it stale.</summary>
+        private static void SpliceLivePart(ExcelPackageEntrySplicer splicer, string name, OpenXmlPart part, ExcelPartBuffer buffer) {
+            bool serialized = part.IsRootElementLoaded && part.RootElement != null;
+            buffer.Clear();
+            if (serialized) {
+                part.RootElement!.Save(buffer);
+            } else {
+                using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+                buffer.ReadFrom(stream);
+            }
+            if (splicer.Matches(name, buffer.Buffer, buffer.ContentLength)) return;
+            var content = new byte[buffer.ContentLength];
+            Buffer.BlockCopy(buffer.Buffer, 0, content, 0, content.Length);
+            splicer.Replace(name, content);
+            if (serialized) {
+                using Stream target = part.GetStream(FileMode.Create, FileAccess.Write);
+                target.Write(content, 0, content.Length);
             }
         }
 

@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
@@ -110,6 +111,47 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Also", also);
             Assert.True(reopened.Sheets[2].TryGetCellText(1, 1, out string created));
             Assert.Equal("New", created);
+        }
+
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        [InlineData(true, true)]
+        public async Task Saving_a_loaded_workbook_leaves_unchanged_entries_as_the_source_had_them(bool toFile, bool asynchronous) {
+            using var authored = new MemoryStream();
+            using (var document = ExcelDocument.Create(authored)) {
+                document.AddSheet("Edited").CellValue(1, 1, "Before");
+                document.Save(authored);
+            }
+            string relationships = "xl/_rels/workbook.xml.rels";
+            byte[] expected = ReadEntry(authored.ToArray(), relationships);
+
+            string path = Path.Combine(_directoryWithFiles, $"SplicedRoute-{toFile}-{asynchronous}.xlsx");
+            File.WriteAllBytes(path, authored.ToArray());
+            using var target = new MemoryStream();
+            using (var document = ExcelDocument.Load(path)) {
+                document.Sheets[0].CellValue(1, 1, "After");
+                if (toFile && asynchronous) await document.SaveAsync(path);
+                else if (toFile) document.Save(path);
+                else if (asynchronous) await document.SaveAsync(target);
+                else document.Save(target);
+            }
+
+            byte[] saved = toFile ? File.ReadAllBytes(path) : target.ToArray();
+            Assert.Equal(expected, ReadEntry(saved, relationships));
+            using var reopened = ExcelDocument.Load(new MemoryStream(saved));
+            Assert.True(reopened.Sheets[0].TryGetCellText(1, 1, out string text));
+            Assert.Equal("After", text);
+            File.Delete(path);
+        }
+
+        private static byte[] ReadEntry(byte[] package, string name) {
+            using var archive = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read);
+            using Stream entry = archive.GetEntry(name)!.Open();
+            using var content = new MemoryStream();
+            entry.CopyTo(content);
+            return content.ToArray();
         }
 
         private static bool IsCoreProperties(ZipArchiveEntry entry) =>

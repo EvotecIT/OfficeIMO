@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel {
             if (_requiresSavePreflight || options?.SafePreflight == true) {
                 if (!skipDirectFastSaveSheetPreparation || options?.SafePreflight == true) {
                     MaterializePendingDirectCellValueSheetIfNeeded();
-                    PreflightWorkbook(sheets);
+                    PreflightWorkbook(sheets, saveWorksheets: !fastWritersReadWorksheets || _openXmlDocumentExposed);
                     _requiresSavePreflight = false;
                 } else {
                     ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.SkipAutomaticPreflight");
@@ -159,8 +159,7 @@ namespace OfficeIMO.Excel {
                 if (!part.IsRootElementLoaded) continue;
 
                 Worksheet? worksheet = part.Worksheet;
-                if (worksheet?.Descendants<OpenXmlLeafTextElement>()
-                    .Any(text => text.Text?.IndexOf('\r') >= 0) != true) continue;
+                if (worksheet == null || !ExcelWorksheetScan.HasCarriageReturnText(worksheet)) continue;
 
                 carriageReturnParts.Add(part.Uri.OriginalString.TrimStart('/'), worksheet);
             }
@@ -168,8 +167,7 @@ namespace OfficeIMO.Excel {
             SharedStringTablePart? sharedStringsPart = workbookPart.SharedStringTablePart;
             if (sharedStringsPart?.IsRootElementLoaded == true
                 && sharedStringsPart.SharedStringTable is SharedStringTable sharedStrings
-                && sharedStrings.Descendants<OpenXmlLeafTextElement>()
-                    .Any(text => text.Text?.IndexOf('\r') >= 0)) {
+                && ExcelWorksheetScan.HasCarriageReturnText(sharedStrings)) {
                 carriageReturnParts.Add(sharedStringsPart.Uri.OriginalString.TrimStart('/'), sharedStrings);
             }
 
