@@ -18,7 +18,9 @@ public sealed class DrawingRichTextHyphenationTests {
 
     [Theory]
     [InlineData(1033U, "representation", 30D, "repre-|senta-|tion", new[] { 5, 10, 14 })]
+    [InlineData(9U, "representation", 30D, "repre-|senta-|tion", new[] { 5, 10, 14 })]
     [InlineData(1031U, "Silbentrennung", 25D, "Sil-|ben-|tren-|nung", new[] { 3, 6, 10, 14 })]
+    [InlineData(7U, "Silbentrennung", 25D, "Sil-|ben-|tren-|nung", new[] { 3, 6, 10, 14 })]
     [InlineData(1031U, "BA\u0308CKEREI", 20D, "BA\u0308-|CKE-|REI", new[] { 3, 6, 9 })]
     [InlineData(2057U, "representation", 30D, "repres|entati|on", new[] { 6, 12, 14 })]
     public void Shared_rich_text_uses_supported_original_word_points_and_keeps_source_ends(uint language, string text,

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Text;
 using System.Threading;
 
@@ -35,10 +34,9 @@ internal sealed class OfficeRichTextHyphenation {
 
         void Flush() {
             if (word.Length > 0 && word.Length <= 512 && !mixed && language.HasValue) {
-                string? tag = null;
-                try { tag = CultureInfo.GetCultureInfo(checked((int)language.Value)).Name; }
-                catch (CultureNotFoundException) { }
-                catch (OverflowException) { }
+                // Resolve exactly the existing resources and neutral aliases,
+                // including hosts that deliberately omit OS/ICU culture data.
+                string? tag = language.Value switch { 9 or 1033 => "en-US", 7 or 1031 => "de-DE", _ => null };
                 foreach (int point in OfficeTextHyphenationPatterns.GetBreakpoints(word.ToString(), tag)) points.Add(start + point);
             }
             word.Clear();
