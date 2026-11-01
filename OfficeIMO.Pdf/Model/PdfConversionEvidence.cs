@@ -5,12 +5,18 @@ internal static partial class PdfConversionEvidence {
     internal static PdfDocument CompleteModel(PdfDocumentConversionResult conversion, string source, bool failOnLoss,
         System.Diagnostics.Stopwatch timer, System.Threading.CancellationToken token, out OfficeConversionReport report) {
         try {
-            byte[] bytes = conversion.ToBytes(token);
+            byte[] bytes;
+            PdfConversionReport outputDiagnostics;
+            using (var scope = new PdfOutputDiagnosticScope()) {
+                bytes = conversion.ToBytes(token);
+                outputDiagnostics = scope.Report;
+            }
             PdfLoadOptions reading = PdfLoadOptions.WithMinimumInputBytes(conversion.Value.ReadOptions, bytes.LongLength);
             using PdfDocument model = PdfDocument.LoadOwned(bytes, reading, token);
             int pageCount = model.Pages.Count;
             report = CreateReport(source, conversion.ConversionReports, elapsed: timer.Elapsed, itemsWritten: pageCount);
             if (failOnLoss) report.ThrowIfLoss();
+            conversion.Value.RetainCompletedOutput(bytes, outputDiagnostics);
             return conversion.Value;
         } catch (Exception error) when (error is not OperationCanceledException and not OfficeConversionException and not OutOfMemoryException and not StackOverflowException) {
             conversion.Value.Dispose();

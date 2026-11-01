@@ -348,6 +348,7 @@ public sealed partial class PdfDocument : IDisposable {
         if (_source is not null) {
             throw new InvalidOperationException("This PDF was opened from existing bytes and cannot accept generated document content. Use Pages, Stamp, Forms, metadata operations, or create a new PdfDocument.");
         }
+        Volatile.Write(ref _completedOutput, null);
     }
 
     internal byte[] GetBytesForOperation() => GetBytesForOperation(CancellationToken.None);

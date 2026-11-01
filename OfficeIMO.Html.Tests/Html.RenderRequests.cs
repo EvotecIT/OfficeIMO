@@ -11,6 +11,20 @@ public sealed class HtmlRenderRequestTests {
     private const string TallHtml = "<style>html,body{margin:0}.block{height:700px;background:#336699}</style><div class='block'>Tall</div>";
 
     [Fact]
+    public void ChangingAConvertedDocumentReachesItsSavedOutput() {
+        using OfficeIMO.Pdf.PdfDocument unchanged = HtmlConversionDocument.Parse("<p>Body</p>").ToPdf();
+        int originalPages = OfficeIMO.Pdf.PdfDocument.Load(new MemoryStream(unchanged.ToBytes())).Pages.Count;
+
+        using OfficeIMO.Pdf.PdfDocument changed = HtmlConversionDocument.Parse("<p>Body</p>").ToPdf();
+        changed.Meta(title: "Changed after conversion");
+        changed.Compose(compose => compose.Page(page => page.Content(content => content.Paragraph(text => text.Text("Added")))));
+
+        OfficeIMO.Pdf.PdfDocument saved = OfficeIMO.Pdf.PdfDocument.Load(new MemoryStream(changed.ToBytes()));
+        Assert.Equal("Changed after conversion", saved.Inspect().Metadata.Title);
+        Assert.Equal(originalPages + 1, saved.Pages.Count);
+    }
+
+    [Fact]
     public void BuiltInProfilesExposeStableUniqueAxisContracts() {
         Assert.Equal(6, HtmlRenderProfileContracts.All.Count);
         Assert.Equal(6, HtmlRenderProfileContracts.All.Select(item => item.Id).Distinct(StringComparer.Ordinal).Count());

@@ -34,7 +34,7 @@ public sealed partial class PdfDocument {
     /// <summary>Sets the document-wide default style for bullet and numbered lists.</summary>
     internal PdfDocument DefaultListStyle(PdfListStyle style) {
         Guard.NotNull(style, nameof(style));
-        _options.DefaultListStyle = style;
+        OptionsToChange.DefaultListStyle = style;
         return this;
     }
 }

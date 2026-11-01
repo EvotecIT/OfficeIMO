@@ -99,31 +99,31 @@ public sealed partial class PdfDocument {
 
     /// <summary>Sets the document-wide default page size used by top-level flow and composed pages.</summary>
     internal PdfDocument Size(PdfPageSize size) {
-        _options.PageSize = size;
+        OptionsToChange.PageSize = size;
         return this;
     }
 
     /// <summary>Sets the document-wide default page size in points.</summary>
     internal PdfDocument Size(double width, double height) {
-        _options.PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(width),OfficeIMO.OfficeLength.Points(height));
+        OptionsToChange.PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(width),OfficeIMO.OfficeLength.Points(height));
         return this;
     }
 
     /// <summary>Sets the document-wide default page orientation while preserving the current page size dimensions.</summary>
     internal PdfDocument Orientation(OfficePageOrientation orientation) {
-        _options.PageSize = _options.PageSize.WithOrientation(orientation);
+        OptionsToChange.PageSize = _options.PageSize.WithOrientation(orientation);
         return this;
     }
 
     /// <summary>Sets or clears the document-wide default page background color.</summary>
     internal PdfDocument Background(global::OfficeIMO.OfficeColor? color) {
-        _options.BackgroundColor = color;
+        OptionsToChange.BackgroundColor = color;
         return this;
     }
 
     /// <summary>Sets or clears the document-wide default text watermark rendered behind page content.</summary>
     internal PdfDocument Watermark(PdfTextWatermark? watermark) {
-        _options.TextWatermark = watermark;
+        OptionsToChange.TextWatermark = watermark;
         return this;
     }
 
@@ -138,13 +138,13 @@ public sealed partial class PdfDocument {
         if (opacity.HasValue) watermark.Opacity = opacity.Value;
         if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
         if (font.HasValue) watermark.Font = font.Value;
-        _options.TextWatermark = watermark;
+        OptionsToChange.TextWatermark = watermark;
         return this;
     }
 
     /// <summary>Sets or clears the document-wide default image watermark rendered behind page content.</summary>
     internal PdfDocument ImageWatermark(PdfImageWatermark? watermark) {
-        _options.ImageWatermark = watermark;
+        OptionsToChange.ImageWatermark = watermark;
         return this;
     }
 
@@ -153,13 +153,13 @@ public sealed partial class PdfDocument {
         var watermark = new PdfImageWatermark(imageBytes, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height));
         if (opacity.HasValue) watermark.Opacity = opacity.Value;
         if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
-        _options.ImageWatermark = watermark;
+        OptionsToChange.ImageWatermark = watermark;
         return this;
     }
 
     /// <summary>Sets or clears the document-wide default page border.</summary>
     internal PdfDocument PageBorder(PdfPageBorder? border) {
-        _options.PageBorder = border;
+        OptionsToChange.PageBorder = border;
         return this;
     }
 
@@ -172,13 +172,13 @@ public sealed partial class PdfDocument {
         if (width.HasValue) border.Width = global::OfficeIMO.OfficeLength.Points(width.Value);
         if (inset.HasValue) border.Inset = global::OfficeIMO.OfficeLength.Points(inset.Value);
         if (opacity.HasValue) border.Opacity = opacity.Value;
-        _options.PageBorder = border;
+        OptionsToChange.PageBorder = border;
         return this;
     }
 
     /// <summary>Sets or clears the document-wide default page background image.</summary>
     internal PdfDocument BackgroundImage(PdfPageBackgroundImage? image) {
-        _options.PageBackgroundImage = image;
+        OptionsToChange.PageBackgroundImage = image;
         return this;
     }
 
@@ -188,7 +188,7 @@ public sealed partial class PdfDocument {
             Fit = fit
         };
         if (opacity.HasValue) image.Opacity = opacity.Value;
-        _options.PageBackgroundImage = image;
+        OptionsToChange.PageBackgroundImage = image;
         return this;
     }
 
@@ -200,7 +200,7 @@ public sealed partial class PdfDocument {
 
     /// <summary>Replaces or clears document-wide default page background shapes.</summary>
     internal PdfDocument BackgroundShapes(System.Collections.Generic.IEnumerable<PdfPageBackgroundShape>? shapes) {
-        _options.PageBackgroundShapes = shapes?.ToList();
+        OptionsToChange.PageBackgroundShapes = shapes?.ToList();
         return this;
     }
 
@@ -246,31 +246,31 @@ public sealed partial class PdfDocument {
 
     /// <summary>Sets uniform document-wide default page margins in points.</summary>
     internal PdfDocument Margin(double all) {
-        _options.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(all));
+        OptionsToChange.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(all));
         return this;
     }
 
     /// <summary>Sets document-wide default page margins from a reusable margin value.</summary>
     internal PdfDocument Margin(PdfPageMargins margins) {
-        _options.Margins = margins;
+        OptionsToChange.Margins = margins;
         return this;
     }
 
     /// <summary>Sets document-wide default page margins in points.</summary>
     internal PdfDocument Margin(double left, double top, double right, double bottom) {
-        _options.Margins = new PdfPageMargins(OfficeIMO.OfficeLength.Points(left),OfficeIMO.OfficeLength.Points(top),OfficeIMO.OfficeLength.Points(right),OfficeIMO.OfficeLength.Points(bottom));
+        OptionsToChange.Margins = new PdfPageMargins(OfficeIMO.OfficeLength.Points(left),OfficeIMO.OfficeLength.Points(top),OfficeIMO.OfficeLength.Points(right),OfficeIMO.OfficeLength.Points(bottom));
         return this;
     }
 
     /// <summary>Sets the first visible page number for the document-wide flow.</summary>
     internal PdfDocument PageNumberStart(int start) {
-        _options.PageNumberStart = start;
+        OptionsToChange.PageNumberStart = start;
         return this;
     }
 
     /// <summary>Sets the document-wide visible page-number style for header/footer tokens.</summary>
     internal PdfDocument PageNumberStyle(PdfPageNumberStyle style) {
-        _options.PageNumberStyle = style;
+        OptionsToChange.PageNumberStyle = style;
         return this;
     }
 
@@ -689,20 +689,20 @@ public sealed partial class PdfDocument {
     /// <summary>Sets the document-wide default paragraph style used by paragraphs that do not provide an explicit style.</summary>
     internal PdfDocument DefaultParagraphStyle(PdfParagraphStyle style) {
         Guard.NotNull(style, nameof(style));
-        _options.DefaultParagraphStyle = style;
+        OptionsToChange.DefaultParagraphStyle = style;
         return this;
     }
 
     /// <summary>Sets the document-wide default table style used by tables that do not provide an explicit style.</summary>
     internal PdfDocument DefaultTableStyle(PdfTableStyle style) {
         Guard.NotNull(style, nameof(style));
-        _options.DefaultTableStyle = style;
+        OptionsToChange.DefaultTableStyle = style;
         return this;
     }
 
     /// <summary>Sets the document-wide default table style from a supported Word table style name.</summary>
     internal PdfDocument DefaultTableStyle(string wordTableStyleName) {
-        _options.DefaultTableStyle = PdfTableStyles.FromWordTableStyle(wordTableStyleName);
+        OptionsToChange.DefaultTableStyle = PdfTableStyles.FromWordTableStyle(wordTableStyleName);
         return this;
     }
 
