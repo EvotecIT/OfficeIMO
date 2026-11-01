@@ -125,7 +125,7 @@ New-OfficeWord -Path $path {
             WordDropDownList -Items 'Draft','Ready for review','Approved' -Alias 'ReviewStatus' -Tag 'review-status'
         }
 
-        Update-OfficeWordFields
+        Update-OfficeWordField
     }
 }
 

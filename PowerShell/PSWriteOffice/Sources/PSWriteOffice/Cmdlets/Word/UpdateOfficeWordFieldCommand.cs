@@ -13,15 +13,16 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>New-OfficeWord -Path .\Report.docx {
 ///     Add-OfficeWordParagraph -Text 'Release report'
 ///     Add-OfficeWordTableOfContents
-///     Update-OfficeWordFields
+///     Update-OfficeWordField
 /// }</code>
 ///   <para>Updates PAGE and NUMPAGES fields and marks TOC fields as dirty before saving.</para>
 /// </example>
-[Cmdlet(VerbsData.Update, "OfficeWordFields")]
-public sealed class UpdateOfficeWordFieldsCommand : PSCmdlet
+[Cmdlet(VerbsData.Update, "OfficeWordField", DefaultParameterSetName = "Default")]
+[OutputType(typeof(WordDocument))]
+public sealed class UpdateOfficeWordFieldCommand : PSCmdlet
 {
     /// <summary>Document to update when provided explicitly.</summary>
-    [Parameter(ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Default")]
     public WordDocument? Document { get; set; }
 
     /// <summary>Emit the updated document.</summary>

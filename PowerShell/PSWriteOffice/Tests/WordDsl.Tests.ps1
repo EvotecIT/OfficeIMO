@@ -1269,7 +1269,7 @@ Describe 'Word DSL surface' {
             Add-OfficeWordParagraph { Add-OfficeWordComboBox -Items 'Red','Blue' -DefaultValue 'Blue' -Alias 'Color' }
             Add-OfficeWordParagraph { Add-OfficeWordRepeatingSection -SectionTitle 'Items' -Alias 'LineItems' }
             Add-OfficeWordTableOfContents -Style Template1
-            Update-OfficeWordFields
+            Update-OfficeWordField
         } | Out-Null
 
         Test-Path $path | Should -BeTrue

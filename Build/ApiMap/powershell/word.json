@@ -8495,7 +8495,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates Word-to-HTML settings for Convert-OfficeDocument -To Html.",
-      "outputType": "WordToHtmlOptions",
+      "outputType": "WordHtmlExportOptions",
       "parameterSets": [
         {
           "name": "Default",
@@ -8571,7 +8571,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates Word-to-Markdown settings for Convert-OfficeDocument -To Markdown.",
-      "outputType": "WordToMarkdownOptions",
+      "outputType": "WordMarkdownExportOptions",
       "parameterSets": [
         {
           "name": "Default",
@@ -8597,7 +8597,7 @@
             },
             {
               "name": "ImageExportMode",
-              "type": "ImageExportMode",
+              "type": "WordMarkdownImageExportMode",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8629,7 +8629,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates HTML-to-Word settings for Convert-OfficeDocument -To Word.",
-      "outputType": "HtmlToWordOptions",
+      "outputType": "WordHtmlImportOptions",
       "parameterSets": [
         {
           "name": "Default",
@@ -8685,13 +8685,13 @@
             },
             {
               "name": "TableCaptionPosition",
-              "type": "TableCaptionPosition",
+              "type": "WordHtmlTableCaptionPosition",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "SectionTagHandling",
-              "type": "SectionTagHandling",
+              "type": "WordHtmlSectionTagHandling",
               "mandatory": false,
               "pipeline": "none"
             }
