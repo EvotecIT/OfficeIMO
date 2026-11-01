@@ -53,6 +53,7 @@ namespace OfficeIMO.PowerPoint {
 
             if (index.HasValue && index.Value < Rows) {
                 A.TableRow refRow = table.Elements<A.TableRow>().ElementAt(index.Value);
+                ContinueMergesThroughRow(row, refRow);
                 table.InsertBefore(row, refRow);
             } else {
                 table.Append(row);
@@ -78,9 +79,11 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
+            KeepOnlyHorizontalMerges(newRow);
             int insertAt = index.HasValue ? Math.Min(index.Value, Rows) : Rows;
             if (insertAt < Rows) {
                 A.TableRow refRow = table.Elements<A.TableRow>().ElementAt(insertAt);
+                ContinueMergesThroughRow(newRow, refRow);
                 table.InsertBefore(newRow, refRow);
             } else {
                 table.Append(newRow);
@@ -102,6 +105,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal void RemoveRow(A.TableRow row) {
             if (row.Parent == null) return;
+            ReleaseMergesInRow(row);
             string[] discardedSoundIds = PowerPointEmbeddedSound
                 .GetRelationshipIds(row);
             row.Remove();
@@ -136,6 +140,7 @@ namespace OfficeIMO.PowerPoint {
 
                 if (index.HasValue && index.Value < existingColumns) {
                     A.TableCell refCell = row.Elements<A.TableCell>().ElementAt(index.Value);
+                    ContinueMergeThroughCell(cell, refCell);
                     row.InsertBefore(cell, refCell);
                 } else {
                     row.Append(cell);
@@ -174,8 +179,10 @@ namespace OfficeIMO.PowerPoint {
                     ClearCellText(newCell);
                 }
 
+                KeepOnlyVerticalMerge(newCell);
                 if (insertAt < existingColumns) {
                     A.TableCell refCell = row.Elements<A.TableCell>().ElementAt(insertAt);
+                    ContinueMergeThroughCell(newCell, refCell);
                     row.InsertBefore(newCell, refCell);
                 } else {
                     row.Append(newCell);
@@ -200,6 +207,7 @@ namespace OfficeIMO.PowerPoint {
                 .SelectMany(PowerPointEmbeddedSound.GetRelationshipIds)
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
+            ReleaseMergesInColumn(index);
             grid.Elements<A.GridColumn>().ElementAt(index).Remove();
             foreach (A.TableCell cell in discardedCells) {
                 cell.Remove();
