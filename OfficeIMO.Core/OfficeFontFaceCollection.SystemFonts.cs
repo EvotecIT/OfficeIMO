@@ -39,8 +39,8 @@ public sealed partial class OfficeFontFaceCollection {
             alias.InstalledSubstituteFamily = isGenericAlias || font.MatchesFamilyName(familyName)
                 ? null : font.DisplayName ?? "installed substitute";
             int index = _faces.FindLastIndex(face => face.FamilyName == familyName && face.ResourceFamilyName == aliasResource);
-            if (index >= 0) _faces[index] = alias;
-            else _faces.Add(alias);
+            if (index >= 0) FacesToChange[index] = alias;
+            else FacesToChange.Add(alias);
             return true;
         }
         bool shareData = nativeSelection

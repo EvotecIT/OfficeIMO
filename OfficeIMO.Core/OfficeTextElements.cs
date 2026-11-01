@@ -13,11 +13,31 @@ internal static class OfficeTextElements {
             yield break;
         }
 
+        if (HasOnlySingleCodeUnitElements(value!)) {
+            for (int index = 0; index < value!.Length; index++) yield return SingleCodeUnitElement(value[index]);
+            yield break;
+        }
+
         TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(value);
         while (enumerator.MoveNext()) {
             yield return enumerator.GetTextElement();
         }
     }
+
+    // Nothing below the combining marks joins its neighbour except CR LF.
+    private const char FirstCombiningMark = '\u0300';
+    private static readonly string?[] SingleCodeUnitElements = new string?[FirstCombiningMark];
+
+    private static bool HasOnlySingleCodeUnitElements(string value) {
+        for (int index = 0; index < value.Length; index++) {
+            char current = value[index];
+            if (current >= FirstCombiningMark || current == '\r') return false;
+        }
+        return true;
+    }
+
+    private static string SingleCodeUnitElement(char value) =>
+        SingleCodeUnitElements[value] ??= value.ToString();
 
     /// <summary>Splits text into Unicode grapheme clusters.</summary>
     public static IReadOnlyList<string> Split(string? value, bool includeEmptyElement = false) {
