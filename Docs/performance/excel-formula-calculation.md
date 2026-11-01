@@ -81,7 +81,7 @@ separate output roots. Never treat an incomplete baseline as equivalent work.
 
 The [expansion evidence](excel-formula-expansion-2026-11-01.json) compares the
 complete shared-string-optimized source `67ab8dd54bcc17697df755b5b69bb36316056827`
-with `8f1d519761a3f831ddafa15667ffb02d91944198`. It records the exact Excel/Core assembly hashes,
+with `1a07d6633d1b573061f1273d108df0c81148b677`. It records the exact Excel/Core assembly hashes,
 all 144 measured report operations and the complete summaries. Both versions
 calculate the same four inputs and validate all 2,048 cached values.
 
@@ -96,22 +96,22 @@ source adapter used by the qualified SUMPRODUCT input handling.
 
 | Report | Domain 0 median, baseline → candidate | Domain 1 median, baseline → candidate | Formula allocation, baseline → candidate |
 | --- | --- | --- | --- |
-| INDEX/MATCH hit | 353.05 → 212.51 ms | 267.65 → 224.03 ms | 251.8–251.9 → 151.0–151.0 MB |
-| INDEX/MATCH missing product | 319.54 → 225.35 ms | 239.45 → 171.78 ms | 251.8–251.9 → 153.3–153.3 MB |
-| VLOOKUP missing product | 355.51 → 232.14 ms | 161.38 → 164.72 ms | 154.9–154.9 → 148.3–148.3 MB |
-| XLOOKUP missing product | 639.25 → 204.21 ms | 406.92 → 163.12 ms | 414.7–414.7 → 150.6–150.7 MB |
+| INDEX/MATCH hit | 315.71 → 169.71 ms | 239.16 → 206.49 ms | 251.9–252.0 → 151.1–151.1 MB |
+| INDEX/MATCH missing product | 269.46 → 199.77 ms | 199.69 → 180.87 ms | 251.9–251.9 → 153.3–153.4 MB |
+| VLOOKUP missing product | 176.28 → 208.53 ms | 207.06 → 195.72 ms | 154.9–154.9 → 148.3–148.3 MB |
+| XLOOKUP missing product | 378.09 → 159.73 ms | 476.74 → 191.51 ms | 414.8–414.8 → 150.7–150.7 MB |
 
 Allocation is cumulative managed allocation inside Calculate, expressed in decimal
 MB; it is not peak or retained RAM. The observed baseline/candidate median ratios
-range from 1.19 to 1.66 for INDEX/MATCH and
-2.49 to 3.13 for XLOOKUP.
-VLOOKUP ratios are 1.53 on domain 0 and
-0.98 on domain 1; a ratio above one means a smaller
+range from 1.10 to 1.86 for INDEX/MATCH and
+2.37 to 2.49 for XLOOKUP.
+VLOOKUP ratios are 0.85 on domain 0 and
+1.06 on domain 1; a ratio above one means a smaller
 candidate median. Keep these observations separate from portable speed guarantees.
 Full sample ranges, standard deviations and slower results remain in the evidence.
 
 The shared development host's CPU snapshot before this final report comparison
-was 100%. It is not a continuous trace. Background development activity,
+was 53%. It is not a continuous trace. Background development activity,
 processor placement and finite sample counts limit timing precision.
 
 ## Binary lookup scale
@@ -122,14 +122,14 @@ compares 256 linear and binary XLOOKUPs over identical sorted numeric sources at
 processor domain ran the complete four-case matrix with BenchmarkDotNet 0.15.8
 ShortRun, one launch, three warmups and three measured iterations. Normal priority
 is explicitly applied to all benchmark children. These primary cohorts measure
-the same `8f1d519761a3f831ddafa15667ffb02d91944198` assemblies as the report comparison.
+the same `1a07d6633d1b573061f1273d108df0c81148b677` assemblies as the report comparison.
 
 | Domain | Keys | Linear mean | Binary mean | Linear allocation | Binary allocation |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 512 | 79.39 ms | 86.53 ms | 55.12 MiB | 4.87 MiB |
-| 0 | 8,192 | 1887.08 ms | 565.14 ms | 753.50 MiB | 11.78 MiB |
-| 1 | 512 | 222.80 ms | 44.24 ms | 55.18 MiB | 5.06 MiB |
-| 1 | 8,192 | 723.38 ms | 136.90 ms | 753.50 MiB | 11.86 MiB |
+| 0 | 512 | 75.89 ms | 74.56 ms | 55.16 MiB | 5.06 MiB |
+| 0 | 8,192 | 670.06 ms | 124.39 ms | 753.49 MiB | 11.71 MiB |
+| 1 | 512 | 71.01 ms | 67.01 ms | 55.23 MiB | 5.05 MiB |
+| 1 | 8,192 | 808.85 ms | 163.84 ms | 753.45 MiB | 11.79 MiB |
 
 All 256 cached results were checked after every measured operation. Binary search
 requires sorted input; this numeric cohort does not qualify arbitrary mixed-type
@@ -142,6 +142,6 @@ and processor cohorts separate when interpreting variation.
 All final report operations and scale cases pass output validation. No persistent
 lookup index, parser cache, timing assertion or memory budget is added to ordinary
 correctness CI. The [native Excel lookup corpus](../../OfficeIMO.TestAssets/Documents/ExcelFormulaCorpus/lookup-conformance.provenance.json)
-separately qualifies 218 formulas, 242 typed result cells and 12 spill ranges after
+separately qualifies 223 formulas, 247 typed result cells and 12 spill ranges after
 save/reopen. The timed engine in both report lanes is OfficeIMO; desktop Excel
 produces the independent correctness fixture.
