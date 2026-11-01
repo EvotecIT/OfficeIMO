@@ -28,10 +28,17 @@ internal sealed partial class PublisherPageProjector {
                 _context.Add("PUB_TIGHT_TEXT_WRAP_APPROXIMATED", "A native wrap polygon uses its transformed bounding rectangle. Tight and through-outline text paths are not reproduced.",
                     OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(id));
         }
-        _context.Add("PUB_TEXT_WRAP_APPROXIMATED", "Native wrap references and distances exclude transformed object rectangles. Text uses the widest available interval per horizontal band; native side selection and outline wrapping can differ.",
+        _context.Add("PUB_TEXT_WRAP_APPROXIMATED", UsesBothSideWrap(frame)
+            ? "Native rectangular both-side wrap references and distances exclude transformed object rectangles. Text flows left to right through free intervals on a shared baseline; native line fitting and outline wrapping can differ."
+            : "Native wrap references and distances exclude transformed object rectangles. Unqualified wrap modes use the widest available interval per horizontal band; native side selection and outline wrapping can differ.",
             OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(frame.Id));
         return result;
     }
+
+    private bool UsesBothSideWrap(PublisherFrameState frame) => frame.VerticalAlignment == OfficeTextVerticalAlignment.Top &&
+        frame.WrapObjectIds.Count != 0 && frame.WrapObjectIds.All(id =>
+        _publication.Text.WrapInfo.TryGetValue(id, out PublisherWrapInfo? wrap) &&
+        wrap.NativeMode == PublisherNativeWrapMode.RectangularBoth && !wrap.Tight && !wrap.NegativeMargins);
 
     private PublisherImportedWrapObject? CurrentWrapObject(uint id) {
         if (_publication.Tables.TryGetValue(id, out PublisherTableState? table))

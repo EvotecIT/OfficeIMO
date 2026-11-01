@@ -34,6 +34,17 @@ internal sealed partial class PublisherPageProjector {
                     for (int column = 0; column < columns && flow.HasRemaining; column++) {
                         if (!frame.IsAuthored) _context.Record();
                         var area = new OfficeTextFlowRegion(padding.Left + column * (width + frame.ColumnSpacing), padding.Top, width, height);
+                        if (exclusions.Count != 0 && UsesBothSideWrap(frame)) {
+                            foreach (OfficeRichTextFlowFragment fragment in flow.TakeAround(area, exclusions,
+                                _textMetrics.CreateDrawingTextMetrics(), _context.Record, _context.Token)) {
+                                OfficeTextFlowRegion region = fragment.Region;
+                                // Flow already admitted this exact line. Retain
+                                // native-frame first-line painting when a backend's
+                                // font extent rounds just beyond the measured box.
+                                content.Add(new PreparedTextRegion(new[] { fragment.Paragraph }, region.X, region.Y, region.Width, region.Height, true));
+                            }
+                            continue;
+                        }
                         IReadOnlyList<OfficeTextFlowRegion> regions = exclusions.Count == 0 ? new[] { area } :
                             OfficeTextFlowRegions.Exclude(area, exclusions, _context.Record, _context.Token);
                         foreach (OfficeTextFlowRegion region in regions) {

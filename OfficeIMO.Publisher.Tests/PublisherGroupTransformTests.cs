@@ -171,9 +171,13 @@ public sealed class PublisherGroupTransformTests {
         OfficeDrawingRichText[] regions = transformed.Pages.SelectMany(item => PublisherNativeTests.Elements(item.CreateDrawing()))
             .OfType<OfficeDrawingRichText>().Where(item => item.SourceElementIds?.Contains("publisher-object-327") == true)
             .OrderBy(item => item.Y).ToArray();
-        Assert.Equal(2, regions.Length);
-        Assert.Equal(corners.Min(point => point.Y), regions[0].Y + regions[0].Height, 6);
-        Assert.Equal(corners.Max(point => point.X), regions[1].X, 6);
+        Assert.NotEmpty(regions);
+        double left = corners.Min(point => point.X), right = corners.Max(point => point.X);
+        double top = corners.Min(point => point.Y), bottom = corners.Max(point => point.Y);
+        Assert.Contains(regions, region => region.Y + region.Height <= top + .000001D);
+        Assert.Contains(regions, region => Math.Abs(region.X - right) < .000001D);
+        Assert.All(regions, region => Assert.False(region.X < right - .000001D && region.X + region.Width > left + .000001D
+            && region.Y < bottom - .000001D && region.Y + region.Height > top + .000001D));
     }
 
     [Fact]

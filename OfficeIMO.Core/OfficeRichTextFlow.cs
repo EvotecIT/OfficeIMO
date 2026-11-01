@@ -9,7 +9,7 @@ namespace OfficeIMO.Drawing;
 /// This adapter primitive uses the same line breaker as drawing renderers and
 /// retains source whitespace and UTF-16 boundaries instead of parsing painted text.
 /// </summary>
-internal sealed class OfficeRichTextFlow {
+internal sealed partial class OfficeRichTextFlow {
     private readonly IReadOnlyList<OfficeRichTextParagraph> _paragraphs;
     private readonly Action<int> _accountMeasurement;
     private int _paragraph, _offset;
@@ -119,17 +119,18 @@ internal sealed class OfficeRichTextFlow {
         return length;
     }
 
-    private static OfficeRichTextParagraph Slice(OfficeRichTextParagraph source, int start, int length, bool complete) {
+    private static OfficeRichTextParagraph Slice(OfficeRichTextParagraph source, int start, int length, bool complete,
+        bool verticalMargins = true, double tabOriginAdjustment = 0, bool keepTypingStyles = false) {
         var runs = new List<OfficeRichTextRun>();
         int position = 0, end = checked(start + length);
         foreach (OfficeRichTextRun run in source.Runs) {
             int next = checked(position + run.Text.Length);
             int left = Math.Max(position, start), right = Math.Min(next, end);
-            if (right > left) {
+            if (right > left || keepTypingStyles) {
                 OfficeTextParagraphIndent? indent = run.ParagraphIndent;
                 if (start != 0 && indent.HasValue) indent = new OfficeTextParagraphIndent(
                     indent.Value.ContinuationLineOffset, indent.Value.ContinuationLineOffset);
-                runs.Add(new OfficeRichTextRun(run.Text.Substring(left - position, right - left),
+                runs.Add(new OfficeRichTextRun(right > left ? run.Text.Substring(left - position, right - left) : string.Empty,
                     run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily,
                     run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle,
                     run.Baseline, indent) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold, LanguageId = run.LanguageId, LinkUri = run.LinkUri });
@@ -145,8 +146,8 @@ internal sealed class OfficeRichTextFlow {
                     run.Underline, run.FontFamily, run.Strikethrough, run.BackgroundColor,
                     run.UnderlineStyle, run.StrikethroughStyle, run.Baseline) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold, LanguageId = run.LanguageId });
         }
-        var margins = new OfficeTextPadding(source.Margins.Left, start == 0 ? source.Margins.Top : 0,
-            source.Margins.Right, complete ? source.Margins.Bottom : 0);
+        var margins = new OfficeTextPadding(source.Margins.Left, verticalMargins && start == 0 ? source.Margins.Top : 0,
+            source.Margins.Right, verticalMargins && complete ? source.Margins.Bottom : 0);
         OfficeTextParagraphIndent paragraphIndent = start == 0 ? source.Indent :
             new OfficeTextParagraphIndent(source.Indent.ContinuationLineOffset, source.Indent.ContinuationLineOffset);
         OfficeRichTextParagraph result = start == 0 && source.Label != null
@@ -157,6 +158,6 @@ internal sealed class OfficeRichTextFlow {
         result.UsesPublisherKerningContext = source.UsesPublisherKerningContext;
         result.SuppressAutomaticHyphenation = source.SuppressAutomaticHyphenation;
         result.Hyphenation = source.Hyphenation?.Slice(start, length);
-        return result.WithTabStops(source.TabStops);
+        return result.WithTabStops(tabOriginAdjustment == 0 ? source.TabStops : source.TabStops?.Scale(1, tabOriginAdjustment));
     }
 }

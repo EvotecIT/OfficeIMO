@@ -161,8 +161,10 @@ public sealed class PublisherPictureEditingTests {
         OfficeDrawingRichText[] before = Regions();
         Assert.True(before.Length > 1);
         document.SetPictureBounds(101, 280, 30, 72, 72);
-        OfficeDrawingRichText after = Assert.Single(Regions());
-        Assert.True(after.Width > before.Min(region => region.Width));
+        OfficeDrawingRichText[] after = Regions();
+        Assert.NotEmpty(after);
+        Assert.All(after, region => Assert.True(region.Width > before.Min(item => item.Width)));
+        Assert.Equal(story, string.Concat(after.Select(PublisherNativeTests.Text)));
         Assert.Equal(story, Assert.Single(document.TextStories).Text);
         Assert.Equal(new uint[] { 101 }, Assert.Single(document.Pages[0].TextFrames).WrapObjectIds);
         Assert.Equal(280, document.Pages[0].Pictures[0].X);

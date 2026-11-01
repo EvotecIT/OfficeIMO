@@ -7,6 +7,32 @@ namespace OfficeIMO.Drawing;
 /// <summary>Shared conservative rectangular exclusion for native text-flow adapters.</summary>
 internal static class OfficeTextFlowRegions {
     /// <summary>
+    /// Returns every free interval, left to right, across the complete height of
+    /// a proposed text row. Intersecting masks are unioned before placing text.
+    /// </summary>
+    internal static IReadOnlyList<OfficeTextFlowRegion> Row(OfficeTextFlowRegion area,
+        double top, double height, IReadOnlyList<OfficeTextFlowRegion> exclusions,
+        Action accountInspection, CancellationToken cancellationToken) {
+        var obstacles = new List<OfficeTextFlowRegion>();
+        foreach (OfficeTextFlowRegion exclusion in exclusions) {
+            cancellationToken.ThrowIfCancellationRequested(); accountInspection();
+            if (exclusion.Width > 0 && exclusion.Height > 0 && (height == 0 ? exclusion.Y <= top : exclusion.Y < top + height) && exclusion.Bottom > top
+                && exclusion.Right > area.X && exclusion.X < area.Right) obstacles.Add(exclusion);
+        }
+        obstacles.Sort((left, right) => left.X.CompareTo(right.X));
+        var result = new List<OfficeTextFlowRegion>();
+        double cursor = area.X;
+        foreach (OfficeTextFlowRegion obstacle in obstacles) {
+            cancellationToken.ThrowIfCancellationRequested(); accountInspection();
+            double left = Math.Max(area.X, obstacle.X);
+            if (left > cursor) result.Add(new OfficeTextFlowRegion(cursor, top, left - cursor, height));
+            cursor = Math.Max(cursor, Math.Min(area.Right, obstacle.Right));
+        }
+        if (cursor < area.Right) result.Add(new OfficeTextFlowRegion(cursor, top, area.Right - cursor, height));
+        return result;
+    }
+
+    /// <summary>
     /// Selects the widest free horizontal interval in each vertical band, using
     /// the left interval to break ties. Adjacent equal intervals are coalesced.
     /// Inspection is charged to the caller's work budget before each operation.
