@@ -35,6 +35,6 @@ internal static partial class PdfRedactionPlanner {
         search.CancellationToken.ThrowIfCancellationRequested();
         return new PdfRedactionPlan(planned.Preflight, planned.Areas, planned.Matches,
             planned.Findings.Concat(selectionFindings).ToArray(), DescribeCriteria(search), planned.SourceSha256,
-            planned.PageIdentities, planned.ReviewedTextObjectScopes, search.MatchCase, search.RegexOptions, search.RegexTimeout);
+            planned.PageIdentities, planned.ReviewedTextObjectScopes, search.MatchCase, search.RegexOptions, search.RegexTimeout, alternateTextSections: planned.AlternateTextSections);
     }
 }

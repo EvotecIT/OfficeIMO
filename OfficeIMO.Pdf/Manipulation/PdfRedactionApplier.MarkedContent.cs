@@ -8,18 +8,29 @@ internal static partial class PdfRedactionApplier {
     private delegate IReadOnlyList<string> PropertyAlternateText(string propertyName);
 
     private sealed class AlternateTextScope {
-        internal AlternateTextScope(int start, int operationEnd, int end, IReadOnlyList<string> values) {
+        private readonly StringBuilder _painted;
+        private readonly int _bodyStart;
+
+        internal AlternateTextScope(int start, int operationEnd, int end, IReadOnlyList<string> values, StringBuilder painted) {
             Start = start;
             OperationEnd = operationEnd;
             End = end;
             Values = values;
+            _painted = painted;
+            _bodyStart = painted.Length;
         }
 
         internal int Start { get; }
         internal int OperationEnd { get; }
         internal int End { get; set; }
         internal IReadOnlyList<string> Values { get; }
-        internal bool Paints { get; set; }
+        internal int? BodyEnd { get; set; }
+
+        // What the section paints, as written. A section never closed runs into whatever follows the page, so it has no body to compare.
+        internal IEnumerable<string> GetFingerprints() {
+            string body = BodyEnd is int end ? _painted.ToString(_bodyStart, end - _bodyStart) : string.Empty;
+            return Values.Select(value => PdfRedactionPlan.ComputeSourceSha256(Encoding.UTF8.GetBytes(value + "\0" + body)));
+        }
     }
 
     // A section can open outside the text object it describes, so this reads the whole stream, not one BT..ET.
@@ -27,6 +38,7 @@ internal static partial class PdfRedactionApplier {
         var scopes = new List<AlternateTextScope>();
         if (content.IndexOf("BDC", StringComparison.Ordinal) < 0) return scopes;
         var open = new Stack<AlternateTextScope?>();
+        var painted = new StringBuilder();
         int previousEnd = 0;
         PdfContentStreamInterpreter.Interpret(content, limits.MaxContentOperations, operation => {
             int start = PdfContentStreamTextRewriter.FindOperationStart(content, previousEnd, operation.OperatorOffset);
@@ -34,13 +46,16 @@ internal static partial class PdfRedactionApplier {
             if (operation.Name == "BMC") open.Push(null);
             else if (operation.Name == "BDC") {
                 IReadOnlyList<string> values = ReadAlternateText(operation.Operands, propertyText);
-                AlternateTextScope? scope = values.Count > 0 ? new AlternateTextScope(start, previousEnd, content.Length, values) : null;
+                AlternateTextScope? scope = values.Count > 0 ? new AlternateTextScope(start, previousEnd, content.Length, values, painted) : null;
                 if (scope is not null) scopes.Add(scope);
                 open.Push(scope);
             } else if (operation.Name == "EMC") {
-                if (open.Count > 0 && open.Pop() is AlternateTextScope closed) closed.End = operation.OperatorOffset;
-            } else if (IsPaintingOperator(operation.Name)) {
-                foreach (AlternateTextScope? scope in open) if (scope is not null) scope.Paints = true;
+                if (open.Count > 0 && open.Pop() is AlternateTextScope closed) {
+                    closed.End = operation.OperatorOffset;
+                    closed.BodyEnd = painted.Length;
+                }
+            } else {
+                painted.Append(content, start, previousEnd - start).Append('\n');
             }
         }, maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands);
         return scopes;
@@ -69,9 +84,6 @@ internal static partial class PdfRedactionApplier {
 
     private static PdfDictionary? GetPropertyLists(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? resources) =>
         resources is not null && resources.Items.TryGetValue("Properties", out PdfObject? value) ? ResolveDictionary(objects, value) : null;
-
-    private static bool IsPaintingOperator(string name) =>
-        name is "Tj" or "TJ" or "'" or "\"" or "Do" or "sh" or "BI" or "EI" || IsPathPaintOperator(name);
 
     /// <summary>
     /// Alternate text repeats what its section paints, so a section losing content loses its property list too.
@@ -204,18 +216,21 @@ internal static partial class PdfRedactionApplier {
         }
     }
 
-    /// <summary>Finds alternate text the rewrite should have cleared: a section left painting nothing, or one repeating reviewed text.</summary>
-    internal static IReadOnlyList<PdfRedactionVerificationIssue> FindAlternateTextAroundRemovedContent(
-        byte[] pdf, PdfRedactionPlan plan, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken) {
-        var issues = new List<PdfRedactionVerificationIssue>();
-        var pages = new HashSet<int>(plan.Matches.Select(static match => match.PageNumber));
-        if (pages.Count == 0) return issues;
-        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
+    /// <summary>Fingerprints every alternate-text section as reviewed, so verification can tell a section that survived untouched from one that lost content.</summary>
+    internal static HashSet<string> CaptureAlternateTextSections(PdfReadDocument document, System.Threading.CancellationToken cancellationToken) {
+        var sections = new HashSet<string>(StringComparer.Ordinal);
+        foreach ((string content, PdfDictionary? resources, _) in EnumerateAlternateTextOwners(document, Enumerable.Range(1, document.Pages.Count), cancellationToken)) {
+            foreach (AlternateTextScope scope in FindAlternateTextScopes(content, ReadPropertyAlternateText(document.Objects, resources), document.ReadOptions.Limits))
+                sections.UnionWith(scope.GetFingerprints());
+        }
+        return sections;
+    }
+
+    private static IEnumerable<(string Content, PdfDictionary? Resources, string Owner)> EnumerateAlternateTextOwners(
+        PdfReadDocument document, IEnumerable<int> pageNumbers, System.Threading.CancellationToken cancellationToken) {
         Dictionary<int, PdfIndirectObject> objects = document.Objects;
         PdfReadLimits limits = document.ReadOptions.Limits;
-        var reviewed = new HashSet<string>(plan.ReviewedTextObjectScopes.SelectMany(static scopes => scopes).SelectMany(static scope => scope.Spans)
-            .Select(static span => span.SourceActualText).OfType<string>(), StringComparer.Ordinal);
-        foreach (int pageNumber in pages) {
+        foreach (int pageNumber in pageNumbers) {
             cancellationToken.ThrowIfCancellationRequested();
             if (pageNumber < 1 || pageNumber > document.Pages.Count ||
                 !objects.TryGetValue(document.Pages[pageNumber - 1].ObjectNumber, out PdfIndirectObject? pageObject) || pageObject.Value is not PdfDictionary page ||
@@ -223,21 +238,32 @@ internal static partial class PdfRedactionApplier {
             var content = new StringBuilder();
             foreach (PdfReference reference in EnumerateContentReferences(objects, contents)) {
                 if (PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) && indirect.Value is PdfStream stream &&
-                    TryDecodeContent(stream, objects, limits, out string segment)) content.Append(segment).Append('\n');
+                    TryDecodeContent(stream, objects, limits, out string segment)) content.Append(segment).Append(PdfContentStreamSequenceDecoder.Separator);
             }
-            Check(content.ToString(), GetInheritedDictionary(objects, page, "Resources"), "page " + pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            yield return (content.ToString(), GetInheritedDictionary(objects, page, "Resources"), "page " + pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
         foreach (PdfIndirectObject item in objects.Values) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (item.Value is PdfStream form && string.Equals(form.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal) &&
-                TryDecodeContent(form, objects, limits, out string formContent)) Check(formContent, ResolveDictionary(objects, form.Dictionary.Items.TryGetValue("Resources", out PdfObject? own) ? own : null),
-                "object " + item.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            if (item.Value is PdfStream form && string.Equals(form.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal) && TryDecodeContent(form, objects, limits, out string formContent))
+                yield return (formContent, ResolveDictionary(objects, form.Dictionary.Items.TryGetValue("Resources", out PdfObject? own) ? own : null),
+                    "object " + item.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
-        return issues;
+    }
 
-        void Check(string content, PdfDictionary? resources, string owner) {
-            if (FindAlternateTextScopes(content, ReadPropertyAlternateText(objects, resources), limits).Any(scope => !scope.Paints || scope.Values.Any(reviewed.Contains)))
+    /// <summary>Finds alternate text the rewrite should have cleared: a section that no longer matches any reviewed section, or one repeating reviewed text.</summary>
+    internal static IReadOnlyList<PdfRedactionVerificationIssue> FindAlternateTextAroundRemovedContent(
+        byte[] pdf, PdfRedactionPlan plan, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken) {
+        var issues = new List<PdfRedactionVerificationIssue>();
+        var pages = new HashSet<int>(plan.Matches.Select(static match => match.PageNumber));
+        if (pages.Count == 0) return issues;
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
+        var reviewed = new HashSet<string>(plan.ReviewedTextObjectScopes.SelectMany(static scopes => scopes).SelectMany(static scope => scope.Spans)
+            .Select(static span => span.SourceActualText).OfType<string>(), StringComparer.Ordinal);
+        foreach ((string content, PdfDictionary? resources, string owner) in EnumerateAlternateTextOwners(document, pages, cancellationToken)) {
+            if (FindAlternateTextScopes(content, ReadPropertyAlternateText(document.Objects, resources), document.ReadOptions.Limits)
+                .Any(scope => scope.Values.Any(reviewed.Contains) || scope.GetFingerprints().Any(fingerprint => !plan.AlternateTextSections.Contains(fingerprint))))
                 issues.Add(new PdfRedactionVerificationIssue("RedactedContentOutsidePageContent", "AlternateText", "Marked content on " + owner + " keeps alternate text for removed content."));
         }
+        return issues;
     }
 }

@@ -127,6 +127,29 @@ public partial class PdfRedactionApplierTests {
         Assert.Contains(report.Issues, static issue => issue.Feature == "RedactedContentOutsidePageContent" && issue.Marker == "AlternateText");
     }
 
+    [Fact]
+    public void VerificationRejectsAlternateTextSectionThatLostPartOfItsContent() {
+        const string survivor = "BT /F1 12 Tf 72 300 Td (kept) Tj ET";
+        PdfDocument source = PdfDocument.Load(BuildResidueHolderPdf("/Figure<</Alt(TOPSECRET)>>BDC BT /F1 12 Tf 72 700 Td (visible) Tj ET " + survivor + " EMC"));
+        PdfRedactionPlan plan = source.Redactions.Plan(new[] { new PdfRedactionArea(1, 60, 690, 250, 30) });
+        byte[] leftBehind = BuildResidueHolderPdf("/Figure<</Alt(TOPSECRET)>>BDC " + survivor + " EMC");
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(leftBehind, plan, new PdfRedactionVerificationOptions());
+
+        Assert.Contains(report.Issues, static issue => issue.Feature == "RedactedContentOutsidePageContent" && issue.Marker == "AlternateText");
+    }
+
+    [Fact]
+    public void VerificationAcceptsUnrelatedAlternateTextSectionThatWasAlreadyEmpty() {
+        PdfDocument source = PdfDocument.Load(BuildResidueHolderPdf("BT /F1 12 Tf 72 700 Td (visible) Tj ET /Figure<</Alt(described)>>BDC EMC"));
+        PdfRedactionPlan plan = source.Redactions.Plan(new[] { new PdfRedactionArea(1, 60, 690, 250, 30) });
+
+        PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+
+        Assert.Contains("/Alt(described)", Encoding.GetEncoding("ISO-8859-1").GetString(result.Pdf), StringComparison.Ordinal);
+        Assert.True(result.Evidence.IsVerified);
+    }
+
     [Theory]
     [InlineData("70 695 50 20 re f", 250D)]
     [InlineData("q 100 0 0 20 70 695 cm /Im0 Do Q", 250D)]

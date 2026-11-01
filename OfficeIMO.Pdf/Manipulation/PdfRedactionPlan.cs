@@ -14,7 +14,8 @@ public sealed class PdfRedactionPlan {
         bool searchMatchCase = true,
         System.Text.RegularExpressions.RegexOptions searchRegexOptions = System.Text.RegularExpressions.RegexOptions.CultureInvariant,
         TimeSpan? searchRegexTimeout = null,
-        IReadOnlyCollection<int>? searchPageNumbers = null) {
+        IReadOnlyCollection<int>? searchPageNumbers = null,
+        IReadOnlyCollection<string>? alternateTextSections = null) {
         Preflight = preflight;
         Areas = Array.AsReadOnly(areas.ToArray());
         PdfRedactionSearchCriteria[] textCriteria = areas.Select(static area => area.SearchCriteria).OfType<PdfRedactionSearchCriteria>().Distinct().ToArray();
@@ -28,6 +29,7 @@ public sealed class PdfRedactionPlan {
         SourceSha256 = sourceSha256;
         PageIdentities = pageIdentities ?? Array.Empty<string>();
         ReviewedTextObjectScopes = reviewedTextObjectScopes ?? Array.Empty<IReadOnlyList<PdfRedactionTextObjectScope>>();
+        AlternateTextSections = new HashSet<string>(alternateTextSections ?? Array.Empty<string>(), StringComparer.Ordinal);
         SearchMatchCase = searchMatchCase;
         SearchRegexOptions = searchRegexOptions;
         SearchRegexTimeout = searchRegexTimeout ?? TimeSpan.FromSeconds(2);
@@ -57,6 +59,8 @@ public sealed class PdfRedactionPlan {
     internal IReadOnlyList<string> PageIdentities { get; }
 
     internal IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>> ReviewedTextObjectScopes { get; }
+
+    internal HashSet<string> AlternateTextSections { get; }
 
     internal bool SearchMatchCase { get; }
 

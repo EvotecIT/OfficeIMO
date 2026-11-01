@@ -211,7 +211,8 @@ internal static partial class PdfRedactionPlanner {
             searchCriteria: null,
             PdfRedactionPlan.ComputeSourceSha256(pdf),
             pageIdentities,
-            reviewedTextObjectScopes);
+            reviewedTextObjectScopes,
+            alternateTextSections: PdfRedactionApplier.CaptureAlternateTextSections(readDocument, cancellationToken));
     }
 
     /// <summary>Plans redaction impact for a PDF file.</summary>
