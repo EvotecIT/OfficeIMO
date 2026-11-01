@@ -11,12 +11,12 @@ Adds a plain or rich paragraph backed by native content before layout.
 ## SYNTAX
 ### Text (Default)
 ```powershell
-Add-OfficePowerPointParagraph [-Text] <string> [-Alignment <OfficeAlignment>] [-SpacingBefore <OfficeLength>] [-SpacingAfter <OfficeLength>] [-Bold] [-Italic] [-Strikethrough] [-Underline <PowerPointUnderlineStyle>] [-Color <OfficeColor>] [-Highlight <OfficeColor>] [-Font <string>] [-Size <OfficeLength>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointParagraph [-Text] <string> [-Alignment <OfficeAlignment>] [-SpacingBefore <OfficeLength>] [-SpacingAfter <OfficeLength>] [-Bold] [-Italic] [-Strikethrough] [-Underline <PowerPointUnderlineStyle>] [-Color <OfficeColor>] [-Highlight <OfficeColor>] [-Font <string>] [-Size <OfficeLength>] [-PassThru] [-Slide <PowerPointSlideSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Column <Int32>] [-Span <Int32>] [<CommonParameters>]
 ```
 
 ### Content
 ```powershell
-Add-OfficePowerPointParagraph [-Content] <scriptblock> [-Alignment <OfficeAlignment>] [-SpacingBefore <OfficeLength>] [-SpacingAfter <OfficeLength>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointParagraph [-Content] <scriptblock> [-Alignment <OfficeAlignment>] [-SpacingBefore <OfficeLength>] [-SpacingAfter <OfficeLength>] [-PassThru] [-Slide <PowerPointSlideSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Column <Int32>] [-Span <Int32>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -83,6 +83,22 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Column
+Gets or sets the one-based theme grid column; explicit X overrides its position.
+
+```yaml
+Type: Int32
+Parameter Sets: Text, Content
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Content
 Gets or sets the block of native styled runs.
 
@@ -105,6 +121,22 @@ Gets or sets the font family.
 ```yaml
 Type: String
 Parameter Sets: Text
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Height
+Gets or sets the height; omission uses the native default for fixed placement.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
@@ -179,6 +211,22 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Slide
+Gets or sets a native slide or one-based position; omission uses the current slide block.
+
+```yaml
+Type: PowerPointSlideSelector
+Parameter Sets: Text, Content
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
 ### -SpacingAfter
 Gets or sets space after the paragraph; numbers mean points.
 
@@ -200,6 +248,22 @@ Gets or sets space before the paragraph; numbers mean points.
 
 ```yaml
 Type: OfficeLength
+Parameter Sets: Text, Content
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Span
+Gets or sets the grid column count; omission with Column uses twelve. Explicit Width overrides it.
+
+```yaml
+Type: Int32
 Parameter Sets: Text, Content
 Aliases: None
 Possible values:
@@ -259,12 +323,60 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Width
+Gets or sets the width; omission uses the native default for fixed placement.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Text, Content
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -X
+Gets or sets the left coordinate; numbers mean points.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Text, Content
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Y
+Gets or sets the top coordinate; numbers mean points.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Text, Content
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### CommonParameters
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
-- `None`
+- `PSWriteOffice.Foundation.PowerPointSlideSelector`: A live slide or a one-based slide position in a document.
 
 ## OUTPUTS
 

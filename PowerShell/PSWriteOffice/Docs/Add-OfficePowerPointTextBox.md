@@ -11,12 +11,12 @@ Adds a native text box with deliberate placement and plain or rich content.
 ## SYNTAX
 ### Text (Default)
 ```powershell
-Add-OfficePowerPointTextBox [-Text] <string> [-Slide <PowerPointSlideSelector>] [-Name <string>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Column <Int32>] [-Span <Int32>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointTextBox [-Text] <string> [-Name <string>] [-PassThru] [-Slide <PowerPointSlideSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Column <Int32>] [-Span <Int32>] [<CommonParameters>]
 ```
 
 ### Content
 ```powershell
-Add-OfficePowerPointTextBox [-Content] <scriptblock> [-Slide <PowerPointSlideSelector>] [-Name <string>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Column <Int32>] [-Span <Int32>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointTextBox [-Content] <scriptblock> [-Name <string>] [-PassThru] [-Slide <PowerPointSlideSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Column <Int32>] [-Span <Int32>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -69,7 +69,7 @@ Accept wildcard characters: False
 ```
 
 ### -Height
-Gets or sets the height; omission uses the native default.
+Gets or sets the height; omission uses the native default for fixed placement.
 
 ```yaml
 Type: OfficeLength
@@ -133,7 +133,7 @@ Accept wildcard characters: False
 ```
 
 ### -Span
-Gets or sets the number of grid columns; the default is twelve, and explicit Width overrides it.
+Gets or sets the grid column count; omission with Column uses twelve. Explicit Width overrides it.
 
 ```yaml
 Type: Int32
@@ -165,7 +165,7 @@ Accept wildcard characters: False
 ```
 
 ### -Width
-Gets or sets the width; omission uses the native default.
+Gets or sets the width; omission uses the native default for fixed placement.
 
 ```yaml
 Type: OfficeLength

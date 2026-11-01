@@ -16,6 +16,6 @@ $matches = Search-OfficeDocument -Path '.\Evidence' -Recurse `
 
 Document, result, store-item, and concurrency limits are safety and predictability controls. Use `-NoDocumentLimit`, `-AllResults`, or `-AllStoreItems` only when the input scope is already controlled. Extension filters are applied before files consume the document ceiling.
 
-The [search-folder recipe](https://github.com/EvotecIT/OfficeIMO/blob/65aaa724ed52729bb9f2219015cc79c5bff8bd95/PowerShell/PSWriteOffice/Examples/Reader/Recipe-Reader-SearchFolder.ps1) searches a mixed `.\Documents` folder with one command and selects the useful result fields.
+The [search-folder recipe](https://github.com/EvotecIT/OfficeIMO/blob/3641d943a94047c81e77a25567907c10517e5884/PowerShell/PSWriteOffice/Examples/Reader/Recipe-Reader-SearchFolder.ps1) searches a mixed `.\Documents` folder with one command and selects the useful result fields.
 
 Use `-IncludePageLocations` when page-aware PDF or paged-document results matter. For downstream retrieval or indexing, continue with [chunks and tables](/docs/pswriteoffice/reader-chunks-tables/).

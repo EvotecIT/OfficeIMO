@@ -11,7 +11,7 @@ Updates OfficeIMO Word image sizing, wrapping, crop, and metadata.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Set-OfficeWordImage [-Image] <WordImage> [-Width <Double>] [-Height <Double>] [-Wrap <WordImageTextWrapping>] [-CropTop <Int32>] [-CropBottom <Int32>] [-CropLeft <Int32>] [-CropRight <Int32>] [-Rotation <Int32>] [-Opacity <Int32>] [-HorizontalFlip <Boolean>] [-VerticalFlip <Boolean>] [-Title <string>] [-Description <string>] [-Hidden <Boolean>] [-PassThru] [<CommonParameters>]
+Set-OfficeWordImage [-Image] <WordImage> [-Width <OfficeLength>] [-Height <OfficeLength>] [-Wrap <WordImageTextWrapping>] [-CropTop <Int32>] [-CropBottom <Int32>] [-CropLeft <Int32>] [-CropRight <Int32>] [-Rotation <Int32>] [-Opacity <Int32>] [-HorizontalFlip <Boolean>] [-VerticalFlip <Boolean>] [-Title <string>] [-Description <string>] [-Hidden <Boolean>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -113,10 +113,10 @@ Accept wildcard characters: False
 ```
 
 ### -Height
-Image height in points.
+Image height; numbers mean points and unit suffixes are accepted.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -257,10 +257,10 @@ Accept wildcard characters: False
 ```
 
 ### -Width
-Image width in points.
+Image width; numbers mean points and unit suffixes are accepted.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

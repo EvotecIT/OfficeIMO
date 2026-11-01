@@ -53,10 +53,7 @@ Adds a dashboard-ready chart using an OfficeIMO chart preset.
 Writes every table in a DataSet to separate Excel worksheets.
 
 ### [Add-OfficeExcelImage](Add-OfficeExcelImage.md)
-Adds an image anchored to a worksheet cell or range.
-
-### [Add-OfficeExcelImageFromUrl](Add-OfficeExcelImageFromUrl.md)
-Adds an image from a URL anchored to a worksheet cell or range.
+Embeds a file, HTTP image or reusable visual at a worksheet cell or range.
 
 ### [Add-OfficeExcelPackageMetadata](Add-OfficeExcelPackageMetadata.md)
 Adds explicit workbook package metadata such as connection or query-table XML.
@@ -144,9 +141,6 @@ Adds a time data validation rule to a worksheet range.
 
 ### [Add-OfficeExcelValidationWholeNumber](Add-OfficeExcelValidationWholeNumber.md)
 Adds a whole-number data validation rule to a worksheet range.
-
-### [Add-OfficeExcelVisual](Add-OfficeExcelVisual.md)
-Adds a ChartForgeX artifact, portable SVG, or converted Office visual to an Excel worksheet.
 
 ### [Add-OfficeMarkdownCallout](Add-OfficeMarkdownCallout.md)
 Adds a Markdown callout block.
@@ -268,9 +262,6 @@ Adds a ChartForgeX artifact, portable SVG, or converted Office visual to PDF flo
 ### [Add-OfficePdfWatermark](Add-OfficePdfWatermark.md)
 Adds a generated-document text watermark.
 
-### [Add-OfficePowerPointBullets](Add-OfficePowerPointBullets.md)
-Adds a bulleted list to a PowerPoint slide.
-
 ### [Add-OfficePowerPointCard](Add-OfficePowerPointCard.md)
 Adds a narrative card or logo tile to the current designed slide.
 
@@ -280,11 +271,11 @@ Adds a chart to a PowerPoint slide.
 ### [Add-OfficePowerPointColumn](Add-OfficePowerPointColumn.md)
 Groups typed content into one column of a designed slide.
 
-### [Add-OfficePowerPointDesignerDeck](Add-OfficePowerPointDesignerDeck.md)
-Renders a semantic deck plan through OfficeIMO PowerPoint designer helpers.
+### [Add-OfficePowerPointFooter](Add-OfficePowerPointFooter.md)
+Sets a deck or logical-slide footer slot using text or native inline content.
 
 ### [Add-OfficePowerPointImage](Add-OfficePowerPointImage.md)
-Adds an image to a PowerPoint slide.
+Adds a native picture from a local image, SVG or reusable visual, using the slide layout or explicit lengths.
 
 ### [Add-OfficePowerPointKpi](Add-OfficePowerPointKpi.md)
 Adds a metric to the current designed slide.
@@ -301,27 +292,6 @@ Adds a named location to a coverage slide.
 ### [Add-OfficePowerPointParagraph](Add-OfficePowerPointParagraph.md)
 Adds a plain or rich paragraph backed by native content before layout.
 
-### [Add-OfficePowerPointPlanCapability](Add-OfficePowerPointPlanCapability.md)
-Adds a semantic capability/content slide to a PowerPoint deck plan.
-
-### [Add-OfficePowerPointPlanCardGrid](Add-OfficePowerPointPlanCardGrid.md)
-Adds a semantic card-grid slide to a PowerPoint deck plan.
-
-### [Add-OfficePowerPointPlanCaseStudy](Add-OfficePowerPointPlanCaseStudy.md)
-Adds a semantic case-study slide to a PowerPoint deck plan.
-
-### [Add-OfficePowerPointPlanCoverage](Add-OfficePowerPointPlanCoverage.md)
-Adds a semantic coverage/location slide to a PowerPoint deck plan.
-
-### [Add-OfficePowerPointPlanLogoWall](Add-OfficePowerPointPlanLogoWall.md)
-Adds a semantic logo/proof-wall slide to a PowerPoint deck plan.
-
-### [Add-OfficePowerPointPlanProcess](Add-OfficePowerPointPlanProcess.md)
-Adds a semantic process/timeline slide to a PowerPoint deck plan.
-
-### [Add-OfficePowerPointPlanSection](Add-OfficePowerPointPlanSection.md)
-Adds a semantic section/title slide to a PowerPoint deck plan.
-
 ### [Add-OfficePowerPointQuote](Add-OfficePowerPointQuote.md)
 Adds a quotation and attribution to the current designed slide.
 
@@ -333,6 +303,9 @@ Adds a native preset shape at physical coordinates or on the theme grid.
 
 ### [Add-OfficePowerPointSlide](Add-OfficePowerPointSlide.md)
 Adds a designed slide, choosing its layout from typed content unless Layout is supplied.
+
+### [Add-OfficePowerPointSlideNumber](Add-OfficePowerPointSlideNumber.md)
+Inserts a native slide-number field into the current footer.
 
 ### [Add-OfficePowerPointStep](Add-OfficePowerPointStep.md)
 Adds a process step to the current designed slide.
@@ -348,9 +321,6 @@ Adds a live styled run to the enclosing paragraph or list item, or starts a slid
 
 ### [Add-OfficePowerPointTextBox](Add-OfficePowerPointTextBox.md)
 Adds a native text box with deliberate placement and plain or rich content.
-
-### [Add-OfficePowerPointVisual](Add-OfficePowerPointVisual.md)
-Adds a ChartForgeX artifact, portable SVG, or converted Office visual to a PowerPoint slide.
 
 ### [Add-OfficeProjectAssignment](Add-OfficeProjectAssignment.md)
 Assigns a project resource to a task by stable UID.
@@ -437,7 +407,7 @@ Adds content to a section header.
 Adds a heading using the document's built-in heading, title or subtitle style.
 
 ### [Add-OfficeWordImage](Add-OfficeWordImage.md)
-Inserts an image into the current paragraph.
+Embeds an image file, SVG or reusable visual in a Word paragraph.
 
 ### [Add-OfficeWordList](Add-OfficeWordList.md)
 Starts a list inside the current section or paragraph anchor.
@@ -486,9 +456,6 @@ Adds styled text or a hyperlink to the current or given Word paragraph.
 
 ### [Add-OfficeWordTextBox](Add-OfficeWordTextBox.md)
 Adds an OfficeIMO Word text box to the current Word DSL location.
-
-### [Add-OfficeWordVisual](Add-OfficeWordVisual.md)
-Adds a ChartForgeX artifact, portable SVG, or converted Office visual to Word.
 
 ### [Add-OfficeWordWatermark](Add-OfficeWordWatermark.md)
 Adds a watermark to the current section or header.
@@ -982,9 +949,6 @@ Lists template layouts from all masters, or one selected master.
 ### [Get-OfficePowerPointLayoutBox](Get-OfficePowerPointLayoutBox.md)
 Computes native content, column or row boxes for manual placement.
 
-### [Get-OfficePowerPointLayoutPlaceholder](Get-OfficePowerPointLayoutPlaceholder.md)
-Gets layout placeholder metadata for a slide.
-
 ### [Get-OfficePowerPointNotes](Get-OfficePowerPointNotes.md)
 Reads speaker notes without creating empty notes parts.
 
@@ -1124,7 +1088,7 @@ Imports normalized CSV/TSV text into an Excel workbook through OfficeIMO.
 Imports bounded DTD-free XFDF through the validated PDF form filler.
 
 ### [Import-OfficePowerPointSlide](Import-OfficePowerPointSlide.md)
-Imports a slide from another PowerPoint presentation.
+Imports selected slides from a file or live document, preserving native relationships.
 
 ### [Import-OfficeProjectTable](Import-OfficeProjectTable.md)
 Imports explicitly mapped tables into a new project without changing existing documents.
@@ -1299,9 +1263,6 @@ Creates discoverable rendering and tolerance settings for Compare-OfficePdfVisua
 
 ### [New-OfficePowerPoint](New-OfficePowerPoint.md)
 Creates a themed presentation, returning a live document or saving a completed content block.
-
-### [New-OfficePowerPointDeckPlan](New-OfficePowerPointDeckPlan.md)
-Creates a semantic PowerPoint deck plan for designer rendering.
 
 ### [New-OfficePowerPointHtmlOptions](New-OfficePowerPointHtmlOptions.md)
 Creates native PowerPoint-to-HTML settings for Convert-OfficeDocument.

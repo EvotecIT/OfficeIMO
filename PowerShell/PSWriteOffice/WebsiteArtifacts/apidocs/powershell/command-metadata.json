@@ -144,18 +144,8 @@
         "ExcelImage"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelImageCommand.cs",
-      "sourceLine": 31,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelImageCommand.cs#L31"
-    },
-    {
-      "name": "Add-OfficeExcelImageFromUrl",
-      "kind": "Cmdlet",
-      "aliases": [
-        "ExcelImageFromUrl"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelImageFromUrlCommand.cs",
       "sourceLine": 24,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelImageFromUrlCommand.cs#L24"
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelImageCommand.cs#L24"
     },
     {
       "name": "Add-OfficeExcelPackageMetadata",
@@ -447,16 +437,6 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelValidationWholeNumberCommand.cs",
       "sourceLine": 18,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelValidationWholeNumberCommand.cs#L18"
-    },
-    {
-      "name": "Add-OfficeExcelVisual",
-      "kind": "Cmdlet",
-      "aliases": [
-        "ExcelVisual"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelVisualCommand.cs",
-      "sourceLine": 13,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelVisualCommand.cs#L13"
     },
     {
       "name": "Add-OfficeMarkdownCallout",
@@ -853,16 +833,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/AddOfficePdfWatermarkCommand.cs#L21"
     },
     {
-      "name": "Add-OfficePowerPointBullets",
-      "kind": "Cmdlet",
-      "aliases": [
-        "PptBullets"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointBulletsCommand.cs",
-      "sourceLine": 25,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointBulletsCommand.cs#L25"
-    },
-    {
       "name": "Add-OfficePowerPointCard",
       "kind": "Cmdlet",
       "aliases": [
@@ -893,14 +863,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointColumnCommand.cs#L12"
     },
     {
-      "name": "Add-OfficePowerPointDesignerDeck",
+      "name": "Add-OfficePowerPointFooter",
       "kind": "Cmdlet",
       "aliases": [
-        "PptDesignerDeck"
+        "PowerPointFooter"
       ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointDesignerDeckCommand.cs",
-      "sourceLine": 29,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointDesignerDeckCommand.cs#L29"
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointFooterCommand.cs",
+      "sourceLine": 20,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointFooterCommand.cs#L20"
     },
     {
       "name": "Add-OfficePowerPointImage",
@@ -909,8 +879,8 @@
         "PowerPointImage"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointImageCommand.cs",
-      "sourceLine": 25,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointImageCommand.cs#L25"
+      "sourceLine": 23,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointImageCommand.cs#L23"
     },
     {
       "name": "Add-OfficePowerPointKpi",
@@ -963,76 +933,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointParagraphCommand.cs#L20"
     },
     {
-      "name": "Add-OfficePowerPointPlanCapability",
-      "kind": "Cmdlet",
-      "aliases": [
-        "PptPlanCapability"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointPlanCapabilityCommand.cs",
-      "sourceLine": 23,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointPlanCapabilityCommand.cs#L23"
-    },
-    {
-      "name": "Add-OfficePowerPointPlanCardGrid",
-      "kind": "Cmdlet",
-      "aliases": [
-        "PptPlanCardGrid"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointPlanCardGridCommand.cs",
-      "sourceLine": 23,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointPlanCardGridCommand.cs#L23"
-    },
-    {
-      "name": "Add-OfficePowerPointPlanCaseStudy",
-      "kind": "Cmdlet",
-      "aliases": [
-        "PptPlanCaseStudy"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointPlanCaseStudyCommand.cs",
-      "sourceLine": 27,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointPlanCaseStudyCommand.cs#L27"
-    },
-    {
-      "name": "Add-OfficePowerPointPlanCoverage",
-      "kind": "Cmdlet",
-      "aliases": [
-        "PptPlanCoverage"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointPlanCoverageCommand.cs",
-      "sourceLine": 23,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointPlanCoverageCommand.cs#L23"
-    },
-    {
-      "name": "Add-OfficePowerPointPlanLogoWall",
-      "kind": "Cmdlet",
-      "aliases": [
-        "PptPlanLogoWall"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointPlanLogoWallCommand.cs",
-      "sourceLine": 23,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointPlanLogoWallCommand.cs#L23"
-    },
-    {
-      "name": "Add-OfficePowerPointPlanProcess",
-      "kind": "Cmdlet",
-      "aliases": [
-        "PptPlanProcess"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointPlanProcessCommand.cs",
-      "sourceLine": 24,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointPlanProcessCommand.cs#L24"
-    },
-    {
-      "name": "Add-OfficePowerPointPlanSection",
-      "kind": "Cmdlet",
-      "aliases": [
-        "PptPlanSection"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointPlanSectionCommand.cs",
-      "sourceLine": 22,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointPlanSectionCommand.cs#L22"
-    },
-    {
       "name": "Add-OfficePowerPointQuote",
       "kind": "Cmdlet",
       "aliases": [
@@ -1071,6 +971,16 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointSlideCommand.cs",
       "sourceLine": 22,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointSlideCommand.cs#L22"
+    },
+    {
+      "name": "Add-OfficePowerPointSlideNumber",
+      "kind": "Cmdlet",
+      "aliases": [
+        "PowerPointSlideNumber"
+      ],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointSlideNumberCommand.cs",
+      "sourceLine": 13,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointSlideNumberCommand.cs#L13"
     },
     {
       "name": "Add-OfficePowerPointStep",
@@ -1119,16 +1029,6 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointTextBoxCommand.cs",
       "sourceLine": 20,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointTextBoxCommand.cs#L20"
-    },
-    {
-      "name": "Add-OfficePowerPointVisual",
-      "kind": "Cmdlet",
-      "aliases": [
-        "PptVisual"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointVisualCommand.cs",
-      "sourceLine": 13,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointVisualCommand.cs#L13"
     },
     {
       "name": "Add-OfficeProjectAssignment",
@@ -1409,8 +1309,8 @@
         "WordImage"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordImageCommand.cs",
-      "sourceLine": 18,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordImageCommand.cs#L18"
+      "sourceLine": 22,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordImageCommand.cs#L22"
     },
     {
       "name": "Add-OfficeWordList",
@@ -1569,16 +1469,6 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordTextBoxCommand.cs",
       "sourceLine": 19,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordTextBoxCommand.cs#L19"
-    },
-    {
-      "name": "Add-OfficeWordVisual",
-      "kind": "Cmdlet",
-      "aliases": [
-        "WordVisual"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordVisualCommand.cs",
-      "sourceLine": 19,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordVisualCommand.cs#L19"
     },
     {
       "name": "Add-OfficeWordWatermark",
@@ -3001,16 +2891,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/GetOfficePowerPointLayoutBoxCommand.cs#L19"
     },
     {
-      "name": "Get-OfficePowerPointLayoutPlaceholder",
-      "kind": "Cmdlet",
-      "aliases": [
-        "PptLayoutPlaceholders"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/GetOfficePowerPointLayoutPlaceholderCommand.cs",
-      "sourceLine": 26,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/GetOfficePowerPointLayoutPlaceholderCommand.cs#L26"
-    },
-    {
       "name": "Get-OfficePowerPointNotes",
       "kind": "Cmdlet",
       "aliases": [],
@@ -3422,8 +3302,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/ImportOfficePowerPointSlideCommand.cs",
-      "sourceLine": 23,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/ImportOfficePowerPointSlideCommand.cs#L23"
+      "sourceLine": 18,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/ImportOfficePowerPointSlideCommand.cs#L18"
     },
     {
       "name": "Import-OfficeProjectTable",
@@ -3922,18 +3802,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointCommand.cs",
-      "sourceLine": 28,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointCommand.cs#L28"
-    },
-    {
-      "name": "New-OfficePowerPointDeckPlan",
-      "kind": "Cmdlet",
-      "aliases": [
-        "PptDeckPlan"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointDeckPlanCommand.cs",
-      "sourceLine": 27,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointDeckPlanCommand.cs#L27"
+      "sourceLine": 37,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointCommand.cs#L37"
     },
     {
       "name": "New-OfficePowerPointHtmlOptions",
@@ -5109,8 +4979,8 @@
         "WordImageStyle"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordImageCommand.cs",
-      "sourceLine": 20,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordImageCommand.cs#L20"
+      "sourceLine": 22,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordImageCommand.cs#L22"
     },
     {
       "name": "Set-OfficeWordPageSetup",
