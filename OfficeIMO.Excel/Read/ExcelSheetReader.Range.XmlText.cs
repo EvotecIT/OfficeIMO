@@ -13,6 +13,7 @@ namespace OfficeIMO.Excel {
 
             int depth = valueReader.Depth;
             if (!valueReader.Read()) return null;
+            if (IsValueEndElement(valueReader, depth)) return string.Empty;
             if (!IsXmlTextNode(valueReader.NodeType)) {
                 SkipXmlElementContent(valueReader, depth);
                 return null;
@@ -22,6 +23,10 @@ namespace OfficeIMO.Excel {
             // The XML reader keeps this on the value end element for the caller.
             return valueReader.ReadContentAsString();
         }
+
+        // <v></v> is the same empty value as <v/>, which the branch above handles.
+        private static bool IsValueEndElement(XmlReader valueReader, int valueDepth) =>
+            valueReader.NodeType == XmlNodeType.EndElement && valueReader.Depth == valueDepth;
 
         private static string? ReadXmlValueTextAndSkipCell(XmlReader valueReader, int cellDepth) {
             string? text = ReadXmlValueText(valueReader);
@@ -60,6 +65,12 @@ namespace OfficeIMO.Excel {
 
             int valueDepth = valueReader.Depth;
             if (!valueReader.Read()) {
+                return false;
+            }
+
+            if (IsValueEndElement(valueReader, valueDepth)) {
+                SkipXmlElementContent(valueReader, cellDepth);
+                rawText = string.Empty;
                 return false;
             }
 

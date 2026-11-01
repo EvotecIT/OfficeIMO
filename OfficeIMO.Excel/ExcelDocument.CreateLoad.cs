@@ -309,6 +309,9 @@ namespace OfficeIMO.Excel {
                     unchangedPackageBytes: unchangedPackageBytes,
                     persistenceMode: options.PersistenceMode);
                 document._sourceMaxCharactersInPart = effectiveOpenSettings.MaxCharactersInPart;
+                // The streaming readers apply neither setting, so those loads stay on the SDK route.
+                document._readSnapshotAllowed = effectiveOpenSettings.MaxCharactersInPart == 0
+                    && effectiveOpenSettings.MarkupCompatibilityProcessSettings.ProcessMode == MarkupCompatibilityProcessMode.NoProcess;
                 document._openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(bytes)
                     ? (byte[])bytes.Clone()
                     : null;

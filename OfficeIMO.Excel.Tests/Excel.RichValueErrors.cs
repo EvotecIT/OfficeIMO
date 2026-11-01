@@ -32,6 +32,12 @@ namespace OfficeIMO.Tests {
                 Assert.True(dataReader.Read());
                 Assert.Equal(expected, dataReader.GetValue(0));
             }
+            using (var document = ExcelDocument.Load(path)) {
+                var sheet = document[sheetName];
+                Assert.Equal(expected, sheet.EnumerateCells().Single(cell => cell.Row == row && cell.Column == column).Value);
+                _ = document.OpenXmlDocument; // Later reads leave the unchanged-package route.
+                Assert.Equal(expected, sheet.EnumerateCells().Single(cell => cell.Row == row && cell.Column == column).Value);
+            }
             using (var reader = ExcelDocumentReader.Open(path)) {
                 Assert.Equal(expected, reader.GetSheet(sheetName).ReadRange(anchor + ":" + anchor)[0, 0]);
             }

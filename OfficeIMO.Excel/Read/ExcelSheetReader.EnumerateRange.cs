@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
         private IEnumerable<ExcelCellValueInfo> EnumerateRangeXmlFast(int r1, int c1, int r2, int c2, CancellationToken ct) {
             using var stream = _wsPart.GetStream(System.IO.FileMode.Open, System.IO.FileAccess.Read);
             RewindWorksheetStream(stream);
-            using var reader = OpenWorksheetXmlReader(stream);
+            using var reader = OpenCellEnumerationXmlReader(stream);
             var worksheetRows = new WorksheetXmlRowSelector();
             bool canCancel = ct.CanBeCanceled;
             bool fillBlanks = _opt.FillBlanksInRanges;
@@ -134,11 +134,14 @@ namespace OfficeIMO.Excel {
                             yield return new ExcelCellValueInfo(rowIndex, columnIndex, customValue);
                         }
                     } else if (fillBlanks) {
-                        yield return new ExcelCellValueInfo(rowIndex, columnIndex, ReadXmlCellValue(reader));
-                    } else if (!reader.IsEmptyElement) {
-                        object? cellValue = ReadXmlCellValue(reader);
-                        if (cellValue != null) {
-                            yield return new ExcelCellValueInfo(rowIndex, columnIndex, cellValue);
+                        yield return new ExcelCellValueInfo(rowIndex, columnIndex, ReadXmlCellValue(reader, ReadValidatedXmlCellType(reader)));
+                    } else {
+                        string? cellType = ReadValidatedXmlCellType(reader);
+                        if (!reader.IsEmptyElement || cellType == "e") {
+                            object? cellValue = ReadXmlCellValue(reader, cellType);
+                            if (cellValue != null) {
+                                yield return new ExcelCellValueInfo(rowIndex, columnIndex, cellValue);
+                            }
                         }
                     }
 

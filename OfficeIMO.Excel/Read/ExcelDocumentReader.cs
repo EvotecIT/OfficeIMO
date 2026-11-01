@@ -5,6 +5,7 @@ using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel.Utilities;
 using System.IO;
 using System.IO.Packaging;
+using System.Threading;
 using System.Xml;
 
 namespace OfficeIMO.Excel {
@@ -29,6 +30,8 @@ namespace OfficeIMO.Excel {
         private readonly Stream? _ownedStream;
         private readonly IDisposable? _ownedResource;
         private readonly OpenXmlPackagePartBufferReader? _partBufferReader;
+        private readonly ExcelPackageReadSnapshot? _snapshot;
+        private int _snapshotReleased;
 
         private ExcelDocumentReader(
             SpreadsheetDocument doc,
@@ -37,7 +40,8 @@ namespace OfficeIMO.Excel {
             Package? ownedPackage = null,
             Stream? ownedStream = null,
             OpenXmlPackagePartBufferReader? partBufferReader = null,
-            IDisposable? ownedResource = null) {
+            IDisposable? ownedResource = null,
+            ExcelPackageReadSnapshot? snapshot = null) {
             _doc = doc;
             _owns = owns;
             _canStreamWorksheetParts = owns || doc.FileOpenAccess == FileAccess.Read;
@@ -49,8 +53,9 @@ namespace OfficeIMO.Excel {
             _partBufferReader = partBufferReader;
             ValidateSdkMetadataLimits();
             _dateSystem = GetWorkbookDateSystem(doc);
-            _sst = SharedStringCache.Build(doc, _opt);
-            _styles = new StylesCacheProvider(doc);
+            _sst = snapshot?.RentSharedStrings(_opt) ?? SharedStringCache.Build(doc, _opt);
+            _styles = snapshot?.Styles ?? new StylesCacheProvider(doc);
+            _snapshot = snapshot;
             _opt.CancellationToken.ThrowIfCancellationRequested();
         }
 
@@ -171,6 +176,21 @@ namespace OfficeIMO.Excel {
         public static ExcelDocumentReader Wrap(SpreadsheetDocument document, ExcelReaderOptions? options = null) {
             if (document is null) throw new ArgumentNullException(nameof(document));
             return new ExcelDocumentReader(document, options ?? new ExcelReaderOptions(), owns: false);
+        }
+
+        /// <summary>Reads through a snapshot, taking over the caller's reference to it.</summary>
+        internal static ExcelDocumentReader Wrap(ExcelPackageReadSnapshot snapshot, ExcelReaderOptions options) {
+            try {
+                return new ExcelDocumentReader(
+                    snapshot.Document,
+                    options,
+                    owns: false,
+                    partBufferReader: snapshot.PartBufferReader,
+                    snapshot: snapshot);
+            } catch {
+                snapshot.Release();
+                throw;
+            }
         }
 
         /// <summary>
@@ -550,6 +570,14 @@ namespace OfficeIMO.Excel {
         /// Disposes the underlying OpenXML document.
         /// </summary>
         public void Dispose() {
+            if (_snapshot != null) {
+                if (Interlocked.Exchange(ref _snapshotReleased, 1) == 0) {
+                    _snapshot.ReturnSharedStrings(_sst);
+                    _snapshot.Release();
+                }
+                return;
+            }
+
             _sst.Dispose();
             if (_owns) {
                 try {
