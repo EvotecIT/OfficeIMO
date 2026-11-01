@@ -54,7 +54,7 @@ namespace OfficeIMO.Excel {
                     || _packageDirty
                     || _sharedStringTableDirty
                     || _directDataSetSaveCandidate != null
-                    || _pendingDirectCellValueSheet != null) {
+                    || HasPendingDirectCellValues) {
                     return null;
                 }
 
