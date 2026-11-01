@@ -29229,6 +29229,602 @@
       }
     ]
   },
+  "rectangularBothSideTextFlow": {
+    "scope": "Managed rendering of known rectangular Both references in Top-aligned ordinary frames. Shared Core line flow; existing widest-band and sequential-flow contracts remain available.",
+    "implementationCommit": "80f1fbf20b36decec5c928408f99052d9427b504",
+    "contracts": [
+      "Free intervals are visited left to right on a common baseline before advancing the row.",
+      "Only fonts actually selected into a row enlarge its full-height rectangular masks; blocked or unfitted content remains in the source.",
+      "Paragraph spacing/labels apply once; hard breaks and paragraph ends finish the row.",
+      "Source UTF-16 endpoints, formatting, native selected-line replay and column-relative tab grids survive fragmentation.",
+      "Growing lookahead ends at complete words or tab fields, resets field state at hard breaks, retains empty-line typing styles and charges every measured window to the existing work budget.",
+      "Center/Bottom frames and unqualified side/outline/negative-margin modes retain the established widest-band path."
+    ],
+    "nativeReferenceContract": "Existing independently produced PUB/PDF/provenance controls are reused. No new native operation or native-writer acceptance is inferred from this renderer-only change.",
+    "nativeProducerVersions": [
+      "16.0.20527.20088"
+    ],
+    "fontSha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a",
+    "coreSha256": "a46454cd5b287d8a11818ff23ba699aa932a0d9e55510836710e15eaba5fcf17",
+    "publisherSha256": "a019d4dd3c1f71e88cebec9cd5d9d912f11c9ba52ea760e871d10d4185be86b2",
+    "nativeControls": [
+      {
+        "name": "WrapObjectOrder",
+        "publicationSha256": "5a60f5c8e5c64e676d81ea0c3da2aa74c55c6f5250dd1fa38f2080a2f28bc41e",
+        "referencePdfSha256": "e0cbc70457d6125ef12efb54c8f96a42f601b0df7ce3241921a88c8ab03578e9",
+        "provenanceSha256": "d7d2c4a81c31f10e8744b67c291885803caf94b460156f67d57dd0905bac7cec",
+        "managedPdfSha256": "1c056c3d3ed231b5377f66cdb25af19d245fb74edaa5c025cbd805ab6acb0506",
+        "managedSvgSha256": "ca5931dbf1197d8f68639dd7bb187e518fab8f0c80e9ef4ff4be04157acdfe39"
+      },
+      {
+        "name": "WrapObjectOrderRectangleOnly",
+        "publicationSha256": "8da33c9d291b3f1d2462f7abb4b3ccd115c642c898068e0b3155a2438119cbfe",
+        "referencePdfSha256": "87eabf90201b1fc9fcd4f477b9785bc23b629751a3f245cf7abfbfa32819aed3",
+        "provenanceSha256": "5044cbb18d1df3b6855f40a06f5bb317d9c3bcd4d58a8451c4d04decd71fe1d1",
+        "managedPdfSha256": "df54301418fb41e726692d0a8eca68cfd2fc902f248e0494422559166609b1cd",
+        "managedSvgSha256": "c3e2b9655ea88521947ff2dd5a6932a560652578c303d94b3d97e6f34f3f1ce4"
+      },
+      {
+        "name": "WrapObjectOrderPictureOnly",
+        "publicationSha256": "3d2e8fdc2e9a5aac1b1a7af92264d9a71b54059dbf4f5aa6b7da826baf8e9077",
+        "referencePdfSha256": "f8000b8621e4f14da332b01a4e22f380a32bfe75b03a52612ce5258c9659e204",
+        "provenanceSha256": "1a6d01c3fed87a6b4056e32ff1f796cb423538040a6690f92b48570b73a85109",
+        "managedPdfSha256": "f2738d7be51709f6f15aea9ba5db572ee175916e3b85c1aab92626e78c270469",
+        "managedSvgSha256": "1ac2ba4b06c879a7df46870861ec63a7734b7893449ad64e9445d5f1f2fa0283"
+      },
+      {
+        "name": "WrapObjectOrderSwap",
+        "publicationSha256": "0712111e80a056ab2a14da42a109a3682389dd6468da26a784c32bf47385ceb7",
+        "referencePdfSha256": "b458c31ec261299008bddeeecace0a3a1b858b9c5e0f295dc6604236c1e738c0",
+        "provenanceSha256": "8969735e75d1adf3148fc1c8477bf4853fe649bedd78579325aaa5b5a7d93170",
+        "managedPdfSha256": "536d81a42286dc748689fde39523e7ab5272d32d3ca173cad5172a736b6608ad",
+        "managedSvgSha256": "7a96d17a2a4567da05afbadd1d7edaaa773af87d77c0937a3057e993cb12df67"
+      },
+      {
+        "name": "WrapObjectOrderReversed",
+        "publicationSha256": "15df010a83e8147a3088311c308d0961e53f2f1ba0b2d5e5319e7b8f8fa73fe1",
+        "referencePdfSha256": "c96f7fc009b2012edd3f55d0726c24acc8a1b2317cf7c67e26b4801ba715cf3d",
+        "provenanceSha256": "0f6ba511c90f3849e866ab1423acb735e809a4834672ad113829f3c4ec1f2c81",
+        "managedPdfSha256": "3d00857e2bc58f7e5497e1b8750f72959797fc59078c14e1115ff2d84df8cf25",
+        "managedSvgSha256": "eb3c313341de45672b9fb46f92d18c6ce3dc2125a57975b6ea9d6c3a5fccb3eb"
+      },
+      {
+        "name": "WrapObjectOrderNone",
+        "publicationSha256": "a97844eaa118c09915c7babd8302ba266d83257f9c2b2e2aabd948b6d6445518",
+        "referencePdfSha256": "a18395f24d0f85937edddb74c898bd196cdffc435b513b0c11a27b7970271c0e",
+        "provenanceSha256": "c5b2cbbb2ea4060afac4c9a52675f43762ab347e0504e57241c1931199f84864",
+        "managedPdfSha256": "e7b58f60d44551ea63590bdbe58704f4f30573e5d4ee1613d0313f48ebb3222c",
+        "managedSvgSha256": "dd2e6688758b71041cb1df80213b1d1241a1ad83b2e562a28d7d8478e09355e3"
+      },
+      {
+        "name": "WrapObjectOrderOutside",
+        "publicationSha256": "240f93d69204603fb8b9a63c5346769e39ff556aa3e20b6470a2b53ceb6e8568",
+        "referencePdfSha256": "c2c1ee53ed73e38b10d3503c6bf3b330ca42e0ec89781ad8c597fb1bdc365e5e",
+        "provenanceSha256": "921db18247ce3177637ec1fc3f64bbc6e929b2dc461272ba2ffc71129e808ac3",
+        "managedPdfSha256": "a341ce321119829f0636b1798a2eb125b53232a7a10768d9eeba57eb03f11c69",
+        "managedSvgSha256": "e7f3ed91e244d9d69b2e07f5752f837541926f4e7ba080d342c72184caaf2875"
+      },
+      {
+        "name": "WrapTextFrameOutside",
+        "publicationSha256": "e62059a91dd34c18a14a5abf4aabceffc337a4b8d4f45614cb840438f27943ef",
+        "referencePdfSha256": "34aa9c23322430f0fd2069ebff9823b7782f6e3c8e73f596bf6a4b54838445e2",
+        "provenanceSha256": "40c6561d437e1b0c7f86b2f9dc3461844e4fde26592a656ef64d4f2f57952827",
+        "managedPdfSha256": "6207407314b690c0e4b9324a23cf1abf2f9740a42f1a9f5a528653249eb71724",
+        "managedSvgSha256": "77162b2bcbc52a498a0b11577387929ee0c058190a790705d5d0bb7057486a6a"
+      },
+      {
+        "name": "WrapObjectOrderLayout",
+        "publicationSha256": "91aa989dcc05e7f74ec08c44113423027b1a35b403c074d4b8aa14fe4d1c32f3",
+        "referencePdfSha256": "f3dbd4442eb2c71618b98ac8ffd97c8b63cd3b23843ec41c6ac044451f89fdb6",
+        "provenanceSha256": "949e0066318acde1c74982a56fafc89f4250d0fa91ffe7a8658d3d293e96efe9",
+        "managedPdfSha256": "23885d551c37d1222b49ef51580826ae7c9cc91ca079f7a3ca1c36afc43b32ee",
+        "managedSvgSha256": "d532610348e3c514b9cfce979ed99896690d12ded654401ddd9191daa879863f"
+      },
+      {
+        "name": "WrapObjectOrderDefaults",
+        "publicationSha256": "c103ce51d45d58135b3036eefd0d5eac6aa92b6de2cf108f64551406f0e5aca1",
+        "referencePdfSha256": "94a09d5101f5ee554da18ed60290601143e1b539732670f9b0a600ff077905db",
+        "provenanceSha256": "3ea83286cb0c2c8adfabf6313952d32d4111219eaf6cf1a7d9ad01435d34771a",
+        "managedPdfSha256": "21aae55e8e2deb967cbeb2809f85b42b1033d6c345c13dc1797f1a7356cb1e14",
+        "managedSvgSha256": "249c02694106a2c758c396e47e30f5538e1c05df83bfe2380e982cd3edde9d1d"
+      },
+      {
+        "name": "WrapObjectOrderLeft",
+        "publicationSha256": "80f3e065a88b9850a0679c83fedb50c93cc60c389b802cf2ac738c6cd1366777",
+        "referencePdfSha256": "6b05cd44d5c44e221d6683a2c31699371698b21aa0cab67cd68ac954b2b9b5b8",
+        "provenanceSha256": "7c8d04f9cb355ac0c5de09f88299221f0e5f73fc7542f96b0beb237f41e17c15",
+        "managedPdfSha256": "d9c18af6ccbe45c526bfb51e24bbd07df682e4af2481830f178d84c64478b402",
+        "managedSvgSha256": "52161d7e89320910529c742119f14d2fd1d22961a7d9443387f34d35623c0bb4"
+      },
+      {
+        "name": "WrapObjectOrderRight",
+        "publicationSha256": "6c09bbd12a5b32b1ae431f8e757bd49499b07104fdce2701df5b74d6100e9a6e",
+        "referencePdfSha256": "fae9ed16c886cf61126fa866e3a8d1562585e3e223f67f59850260527e89cbed",
+        "provenanceSha256": "202fcfd174d27e7cbb671f641f66c31a1bafc71af582a5e9b54c6977355b87eb",
+        "managedPdfSha256": "d9c18af6ccbe45c526bfb51e24bbd07df682e4af2481830f178d84c64478b402",
+        "managedSvgSha256": "52161d7e89320910529c742119f14d2fd1d22961a7d9443387f34d35623c0bb4"
+      },
+      {
+        "name": "WrapObjectOrderLarger",
+        "publicationSha256": "a27fe7de0063ba6a67c73d287bcfe1cb864b1ab6b73e2bf2d825834a4c91f3f2",
+        "referencePdfSha256": "2f9574c976d034bcb710e9a5322883c15afbcee6c163b087459a170922c2a6b5",
+        "provenanceSha256": "093a045389f5cd831a17c265b7d79cac49af38263121a1202ab19bf2806df94c",
+        "managedPdfSha256": "d9c18af6ccbe45c526bfb51e24bbd07df682e4af2481830f178d84c64478b402",
+        "managedSvgSha256": "52161d7e89320910529c742119f14d2fd1d22961a7d9443387f34d35623c0bb4"
+      }
+    ],
+    "textLineObservations": [
+      {
+        "case": "WrapObjectOrder",
+        "nativeTextLines": 35,
+        "before": {
+          "lines": 24,
+          "exactTextLineMatches": 12,
+          "maxMatchedXDelta": 12.04998779296875,
+          "maxMatchedYDelta": 107.46722412109375,
+          "sha256": "d9c18af6ccbe45c526bfb51e24bbd07df682e4af2481830f178d84c64478b402"
+        },
+        "current": {
+          "lines": 34,
+          "exactTextLineMatches": 32,
+          "maxMatchedXDelta": 0.0500030517578125,
+          "maxMatchedYDelta": 0.136810302734375,
+          "sha256": "1c056c3d3ed231b5377f66cdb25af19d245fb74edaa5c025cbd805ab6acb0506"
+        }
+      },
+      {
+        "case": "WrapObjectOrderRectangleOnly",
+        "nativeTextLines": 29,
+        "before": {
+          "lines": 25,
+          "exactTextLineMatches": 18,
+          "maxMatchedXDelta": 0.0240020751953125,
+          "maxMatchedYDelta": 41.2841796875,
+          "sha256": "fc3c34a0bb68c8818a60fe1ed4e296a6ba24b8e9d4e84a838dedd109e9739d5f"
+        },
+        "current": {
+          "lines": 28,
+          "exactTextLineMatches": 28,
+          "maxMatchedXDelta": 0.04998779296875,
+          "maxMatchedYDelta": 0.136810302734375,
+          "sha256": "df54301418fb41e726692d0a8eca68cfd2fc902f248e0494422559166609b1cd"
+        }
+      },
+      {
+        "case": "WrapObjectOrderPictureOnly",
+        "nativeTextLines": 31,
+        "before": {
+          "lines": 24,
+          "exactTextLineMatches": 18,
+          "maxMatchedXDelta": 0.0240020751953125,
+          "maxMatchedYDelta": 34.209228515625,
+          "sha256": "c1670622bbe2029a3399fbc8fa8cd3653834dec752e7ec0d817a02ac321a287a"
+        },
+        "current": {
+          "lines": 30,
+          "exactTextLineMatches": 28,
+          "maxMatchedXDelta": 0.0500030517578125,
+          "maxMatchedYDelta": 0.136810302734375,
+          "sha256": "f2738d7be51709f6f15aea9ba5db572ee175916e3b85c1aab92626e78c270469"
+        }
+      },
+      {
+        "case": "WrapObjectOrderSwap",
+        "nativeTextLines": 35,
+        "before": {
+          "lines": 24,
+          "exactTextLineMatches": 12,
+          "maxMatchedXDelta": 12.04998779296875,
+          "maxMatchedYDelta": 107.46722412109375,
+          "sha256": "ec13b896709b2daa2ec496e626e1a4295e6c283d19cfc11bbeaf437da405d47e"
+        },
+        "current": {
+          "lines": 34,
+          "exactTextLineMatches": 32,
+          "maxMatchedXDelta": 0.0500030517578125,
+          "maxMatchedYDelta": 0.136810302734375,
+          "sha256": "536d81a42286dc748689fde39523e7ab5272d32d3ca173cad5172a736b6608ad"
+        }
+      },
+      {
+        "case": "WrapObjectOrderReversed",
+        "nativeTextLines": 25,
+        "before": {
+          "lines": 24,
+          "exactTextLineMatches": 24,
+          "maxMatchedXDelta": 0.0240020751953125,
+          "maxMatchedYDelta": 0.136810302734375,
+          "sha256": "3d00857e2bc58f7e5497e1b8750f72959797fc59078c14e1115ff2d84df8cf25"
+        },
+        "current": {
+          "lines": 24,
+          "exactTextLineMatches": 24,
+          "maxMatchedXDelta": 0.0240020751953125,
+          "maxMatchedYDelta": 0.136810302734375,
+          "sha256": "3d00857e2bc58f7e5497e1b8750f72959797fc59078c14e1115ff2d84df8cf25"
+        }
+      },
+      {
+        "case": "WrapObjectOrderNone",
+        "nativeTextLines": 25,
+        "before": {
+          "lines": 24,
+          "exactTextLineMatches": 24,
+          "maxMatchedXDelta": 0.0240020751953125,
+          "maxMatchedYDelta": 0.136810302734375,
+          "sha256": "e7b58f60d44551ea63590bdbe58704f4f30573e5d4ee1613d0313f48ebb3222c"
+        },
+        "current": {
+          "lines": 24,
+          "exactTextLineMatches": 24,
+          "maxMatchedXDelta": 0.0240020751953125,
+          "maxMatchedYDelta": 0.136810302734375,
+          "sha256": "e7b58f60d44551ea63590bdbe58704f4f30573e5d4ee1613d0313f48ebb3222c"
+        }
+      },
+      {
+        "case": "WrapObjectOrderOutside",
+        "nativeTextLines": 25,
+        "before": {
+          "lines": 24,
+          "exactTextLineMatches": 24,
+          "maxMatchedXDelta": 0.0240020751953125,
+          "maxMatchedYDelta": 0.136810302734375,
+          "sha256": "a341ce321119829f0636b1798a2eb125b53232a7a10768d9eeba57eb03f11c69"
+        },
+        "current": {
+          "lines": 24,
+          "exactTextLineMatches": 24,
+          "maxMatchedXDelta": 0.0240020751953125,
+          "maxMatchedYDelta": 0.136810302734375,
+          "sha256": "a341ce321119829f0636b1798a2eb125b53232a7a10768d9eeba57eb03f11c69"
+        }
+      },
+      {
+        "case": "WrapTextFrameOutside",
+        "nativeTextLines": 27,
+        "before": {
+          "lines": 26,
+          "exactTextLineMatches": 26,
+          "maxMatchedXDelta": 0.100006103515625,
+          "maxMatchedYDelta": 0.15277099609375,
+          "sha256": "6207407314b690c0e4b9324a23cf1abf2f9740a42f1a9f5a528653249eb71724"
+        },
+        "current": {
+          "lines": 26,
+          "exactTextLineMatches": 26,
+          "maxMatchedXDelta": 0.100006103515625,
+          "maxMatchedYDelta": 0.15277099609375,
+          "sha256": "6207407314b690c0e4b9324a23cf1abf2f9740a42f1a9f5a528653249eb71724"
+        }
+      },
+      {
+        "case": "WrapObjectOrderLayout",
+        "nativeTextLines": 48,
+        "before": {
+          "lines": 46,
+          "exactTextLineMatches": 25,
+          "maxMatchedXDelta": 181.45001220703125,
+          "maxMatchedYDelta": 255.58778381347656,
+          "sha256": "23885d551c37d1222b49ef51580826ae7c9cc91ca079f7a3ca1c36afc43b32ee"
+        },
+        "current": {
+          "lines": 46,
+          "exactTextLineMatches": 25,
+          "maxMatchedXDelta": 181.45001220703125,
+          "maxMatchedYDelta": 255.58778381347656,
+          "sha256": "23885d551c37d1222b49ef51580826ae7c9cc91ca079f7a3ca1c36afc43b32ee"
+        }
+      },
+      {
+        "case": "WrapObjectOrderDefaults",
+        "nativeTextLines": 35,
+        "before": {
+          "lines": 24,
+          "exactTextLineMatches": 14,
+          "maxMatchedXDelta": 180.0500030517578,
+          "maxMatchedYDelta": 166.3777618408203,
+          "sha256": "72d512c04d111baa1a83e843eb52c8096916bfad9cc2748ae0ff606c405cd3bc"
+        },
+        "current": {
+          "lines": 34,
+          "exactTextLineMatches": 17,
+          "maxMatchedXDelta": 182.8560028076172,
+          "maxMatchedYDelta": 60.4490966796875,
+          "sha256": "21aae55e8e2deb967cbeb2809f85b42b1033d6c345c13dc1797f1a7356cb1e14"
+        }
+      },
+      {
+        "case": "WrapObjectOrderLeft",
+        "nativeTextLines": 27,
+        "before": {
+          "lines": 24,
+          "exactTextLineMatches": 11,
+          "maxMatchedXDelta": 0.0240020751953125,
+          "maxMatchedYDelta": 50.535797119140625,
+          "sha256": "d9c18af6ccbe45c526bfb51e24bbd07df682e4af2481830f178d84c64478b402"
+        },
+        "current": {
+          "lines": 24,
+          "exactTextLineMatches": 11,
+          "maxMatchedXDelta": 0.0240020751953125,
+          "maxMatchedYDelta": 50.535797119140625,
+          "sha256": "d9c18af6ccbe45c526bfb51e24bbd07df682e4af2481830f178d84c64478b402"
+        }
+      },
+      {
+        "case": "WrapObjectOrderRight",
+        "nativeTextLines": 26,
+        "before": {
+          "lines": 24,
+          "exactTextLineMatches": 23,
+          "maxMatchedXDelta": 0.0500030517578125,
+          "maxMatchedYDelta": 85.99081420898438,
+          "sha256": "d9c18af6ccbe45c526bfb51e24bbd07df682e4af2481830f178d84c64478b402"
+        },
+        "current": {
+          "lines": 24,
+          "exactTextLineMatches": 23,
+          "maxMatchedXDelta": 0.0500030517578125,
+          "maxMatchedYDelta": 85.99081420898438,
+          "sha256": "d9c18af6ccbe45c526bfb51e24bbd07df682e4af2481830f178d84c64478b402"
+        }
+      },
+      {
+        "case": "WrapObjectOrderLarger",
+        "nativeTextLines": 26,
+        "before": {
+          "lines": 24,
+          "exactTextLineMatches": 23,
+          "maxMatchedXDelta": 0.0500030517578125,
+          "maxMatchedYDelta": 85.99081420898438,
+          "sha256": "d9c18af6ccbe45c526bfb51e24bbd07df682e4af2481830f178d84c64478b402"
+        },
+        "current": {
+          "lines": 24,
+          "exactTextLineMatches": 23,
+          "maxMatchedXDelta": 0.0500030517578125,
+          "maxMatchedYDelta": 85.99081420898438,
+          "sha256": "d9c18af6ccbe45c526bfb51e24bbd07df682e4af2481830f178d84c64478b402"
+        }
+      }
+    ],
+    "comparisonMethod": "Exact trimmed line text with nearest occurrence for coordinates. Text recovery, native byte preservation, line geometry and visible appearance remain separate observations; these are not universal pixel-parity claims.",
+    "visualInspection": "Before/current/native main Both, default-distance, centered column and left-side sheets inspected. Final outputs match the inspected artifacts; default-distance hyphenation and broader native line assignments still differ.",
+    "longParagraph": {
+      "characters": 99000,
+      "placedCharacters": 1309,
+      "overflow": true,
+      "completeSourceRetained": true
+    },
+    "powerShell": {
+      "runtime": "7.6.9",
+      "actualPublisherPdfWorkflows": 13,
+      "nativeNoopByteExactControls": 13,
+      "workflowManagedPixelPairsEqual": 13
+    },
+    "validation": [
+      {
+        "id": "settled-drawing-stable-net10-final",
+        "exitCode": 0,
+        "counters": {
+          "total": 6349,
+          "executed": 6344,
+          "passed": 6344,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "resultOutcomes": {
+          "Passed": 6344,
+          "NotExecuted": 5
+        },
+        "skippedTestNames": [
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngIdentificationObservesCancellationDuringChunkValidation",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowTiffDecodeObservesCancellationInsidePixelLoops",
+          "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.PngUnfilterObservesCancellationAfterPixelsChange"
+        ],
+        "reportSha256": "e546d4b530594d95d2d5fefdb8b2a98c1198fc425478ed01ad794d44179898c1"
+      },
+      {
+        "id": "settled-drawing-focused-net80",
+        "exitCode": 0,
+        "counters": {
+          "total": 85,
+          "executed": 85,
+          "passed": 85,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "resultOutcomes": {
+          "Passed": 85
+        },
+        "skippedTestNames": [],
+        "reportSha256": "6563c1bc068d27aac3f2cbbfc328b82a863889c24ec0dbe81bb91eec58d26c09"
+      },
+      {
+        "id": "settled-drawing-focused-net472",
+        "exitCode": 0,
+        "counters": {
+          "total": 85,
+          "executed": 85,
+          "passed": 85,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "resultOutcomes": {
+          "Passed": 85
+        },
+        "skippedTestNames": [],
+        "reportSha256": "80407cbd677c984d6355709f6041a4a49403e4ddf1957c79b1e1697333bc7e65"
+      },
+      {
+        "id": "settled-publisher-stable-net100",
+        "exitCode": 0,
+        "counters": {
+          "total": 1076,
+          "executed": 1076,
+          "passed": 1076,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "resultOutcomes": {
+          "Passed": 1076
+        },
+        "skippedTestNames": [],
+        "reportSha256": "4166e485b0256b4ba6cfe0e9df7843b123236bc18343f5d3382d829dfc7e368b"
+      },
+      {
+        "id": "settled-publisher-stable-net80",
+        "exitCode": 0,
+        "counters": {
+          "total": 1076,
+          "executed": 1076,
+          "passed": 1076,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "resultOutcomes": {
+          "Passed": 1076
+        },
+        "skippedTestNames": [],
+        "reportSha256": "ef308fe57056ec257e27a3fe6c022b045a24827bfe257231cb7ae1e5479369e8"
+      },
+      {
+        "id": "settled-publisher-stable-net472",
+        "exitCode": 0,
+        "counters": {
+          "total": 1076,
+          "executed": 1076,
+          "passed": 1076,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "resultOutcomes": {
+          "Passed": 1076
+        },
+        "skippedTestNames": [],
+        "reportSha256": "5ae36faa36bf4d98759a7b0b5635ab2986a6b3d9fcfb6ffd8aad9a3a2a90f87e"
+      },
+      {
+        "id": "settled-reader",
+        "exitCode": 0,
+        "counters": {
+          "total": 93,
+          "executed": 93,
+          "passed": 93,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "resultOutcomes": {
+          "Passed": 93
+        },
+        "skippedTestNames": [],
+        "reportSha256": "a8cf4f172709d8a54ae078b153173062f06cde82f8b06a71200c712673016768"
+      },
+      {
+        "id": "settled-reader-standard",
+        "exitCode": 0
+      },
+      {
+        "id": "settled-source-ps",
+        "exitCode": 0
+      }
+    ],
+    "regressionEvidence": {
+      "initialBothSourceControls": "The baseline runtime fails both known Both shared-row controls.",
+      "reviewFindings": "Pre-remediation controls reproduce unused larger-font mask activation and ordinary long-paragraph budget exhaustion.",
+      "tabFieldHardBreak": "Retained pre-fix runtime fails the tab/hard-break prefix budget case while the ordinary control passes. Final focused37 flow cases pass.",
+      "existingProofMaintenance": "Picture-movement and transformed-group exclusion tests assert full-width story retention and exclusion geometry instead of one region per band.",
+      "nativeFramePaint": "Actual short-paragraph PDF visibility and distinct Top/Center/Bottom baselines are checked through the public projection/rendering path."
+    },
+    "limits": [
+      "Only Top-aligned known rectangular Both/no-tight/no-negative frames enter multiple-interval flow.",
+      "NonTop and unqualified modes retain widest-band projection.",
+      "Native default-distance hyphenation, two-column alignment/balancing, broader font/side/outline/transform profiles remain unqualified.",
+      "Large complete tab fields and indivisible shaping contexts can still reach configured work limits.",
+      "Template-free native writer acceptance is separate from rendering qualification."
+    ],
+    "canClosePUB00": false
+  },
   "repairControlBoundaries": {
     "sourceCommit": "761ff2887a9adb89b0bc6c7bb1b8345fd9e40c2a",
     "scope": "Bounded native recovery-control investigation; these controls do not establish successful repair or repair-free opening.",
