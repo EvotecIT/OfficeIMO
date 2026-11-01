@@ -83,17 +83,15 @@ public sealed class PublisherRunSegmentationWritingTests {
     }
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public void Run_segmentation_refuses_changed_text_or_unsupported_preserved_fields(bool cells, bool changeText) {
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Run_segmentation_refuses_unsupported_background_changes(bool cells) {
         PublisherDocument document = PublisherDocument.Load(Fixture(cells));
         var table = cells ? document.Pages[0].Tables.Single() : null;
         var story = cells ? document.TextStories.Single(s => s.Id == table!.StoryId) : document.TextStories[0];
         var before = cells ? table!.Cells[0].Paragraphs : story.Paragraphs;
-        var run = new OfficeRichTextRun(Text(before[0]) + (changeText ? " changed" : ""), 12, OfficeColor.Black,
-            fontFamily: "Arial", backgroundColor: changeText ? null : OfficeColor.Yellow);
+        var run = new OfficeRichTextRun(Text(before[0]), 12, OfficeColor.Black,
+            fontFamily: "Arial", backgroundColor: OfficeColor.Yellow);
         var changed = Copy(before[0], new[] { run });
         if (cells) document.ReplaceTableCellParagraphs(table!.Id, 0, 0, new[] { changed, before[3] });
         else document.ReplaceStoryParagraphs(story.Id, new[] { changed, before[3] });

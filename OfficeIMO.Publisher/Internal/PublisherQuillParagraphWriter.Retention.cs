@@ -91,7 +91,14 @@ internal static partial class PublisherQuillParagraphWriter {
                         template = retainedContent.First; resegment = true;
                     } else {
                         if (!replacements.TryGetValue(paragraph, out TextReplacementCandidates? matching)) {
-                            if (!TryPlanEmptyRefill(data, context, templates, paragraph, token, resources, out var refill, out var refillDefinition)) return false;
+                            // Existing empty-source correspondence keeps its
+                            // ambiguity barrier; failure cannot select a body
+                            // from an unrelated nonempty paragraph instead.
+                            List<PublisherQuillFormattingRange> refill; byte[]? refillDefinition;
+                            bool planned = templates.Any(t => CanRefillParagraph(t.Paragraph, paragraph))
+                                ? TryPlanEmptyRefill(data, context, templates, paragraph, token, resources, out refill, out refillDefinition)
+                                : TryPlanCompleteRetention(data, context, templates, characters, paragraph, final, last, token, resources, out refill, out refillDefinition);
+                            if (!planned) return false;
                             foreach (var range in refill) AppendRange(pc, checked(position + range.AbsoluteEnd), range.Style);
                             position = checked(position + (paragraph.Runs.Sum(r => r.Text.Length) + 1) * 2);
                             pp.Add(new PublisherQuillFormattingRange(position, refillDefinition!));

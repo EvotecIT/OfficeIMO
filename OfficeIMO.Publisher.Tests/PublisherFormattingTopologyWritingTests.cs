@@ -94,24 +94,6 @@ public sealed class PublisherFormattingTopologyWritingTests {
         Assert.True(Assert.IsType<PublisherSaveReport>(error.Report).HasErrors);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void Count_changing_edits_without_retained_text_or_formatting_correspondence_refuse_output(bool cells) {
-        PublisherDocument document = PublisherDocument.Load(Fixture(cells));
-        var table = cells ? document.Pages[0].Tables.Single() : null;
-        var story = cells ? document.TextStories.Single(s => s.Id == table!.StoryId) : document.TextStories[0];
-        var values = cells ? table!.Cells[0].Paragraphs : story.Paragraphs;
-        var p = Format(values[0], "first-run", 0); var runs = p.Runs.ToArray(); var r = runs[0];
-        runs[0] = new OfficeRichTextRun("New text ", r.FontSize, r.Color, r.Bold, r.Italic, r.Underline,
-            r.FontFamily, r.Strikethrough, r.BackgroundColor, r.UnderlineStyle, r.StrikethroughStyle, r.Baseline, r.ParagraphIndent);
-        var requested = new[] { Copy(p, runs, p.Alignment, p.Margins, p.Indent), values[3] };
-        if (cells) document.ReplaceTableCellParagraphs(table!.Id, 0, 0, requested);
-        else document.ReplaceStoryParagraphs(story.Id, requested);
-        var error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
-        Assert.True(Assert.IsType<PublisherSaveReport>(error.Report).HasErrors);
-    }
-
     private static OfficeRichTextParagraph Format(OfficeRichTextParagraph p, string operation, int index) {
         bool resourceGrowth = operation == "resource-growth";
         if (operation == "resource-growth") operation = "combined";

@@ -102,13 +102,9 @@ public sealed class PublisherMixedRunTextReplacementWritingTests {
     }
 
     [Theory]
-    [InlineData(false, 0)]
-    [InlineData(false, 1)]
-    [InlineData(false, 2)]
-    [InlineData(true, 0)]
-    [InlineData(true, 1)]
-    [InlineData(true, 2)]
-    public void Mixed_run_count_changes_refuse_empty_merged_or_split_replacement_runs(bool cells, int change) {
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Mixed_run_count_changes_refuse_empty_replacement_runs(bool cells) {
         PublisherDocument document = PublisherDocument.Load(Fixture(cells));
         PublisherTable? table = cells ? document.Pages[0].Tables.Single() : null;
         var story = cells ? document.TextStories.Single(s => s.Id == table!.StoryId) : document.TextStories[0];
@@ -118,9 +114,7 @@ public sealed class PublisherMixedRunTextReplacementWritingTests {
         OfficeRichTextRun Copy(OfficeRichTextRun r, string text) => new OfficeRichTextRun(text, r.FontSize, r.Color,
             r.Bold, r.Italic, r.Underline, r.FontFamily, r.Strikethrough, r.BackgroundColor,
             r.UnderlineStyle, r.StrikethroughStyle, r.Baseline, r.ParagraphIndent);
-        if (change == 0) runs[1] = Copy(runs[1], "");
-        else if (change == 1) { runs[0] = Copy(runs[0], runs[0].Text + runs[1].Text); runs.RemoveAt(1); }
-        else { var first = runs[0]; runs[0] = Copy(first, "C"); runs.Insert(1, Copy(first, first.Text.Substring(1))); }
+        runs[1] = Copy(runs[1], "");
         var replacement = new OfficeRichTextParagraph(runs, p.Alignment, p.LineHeight, p.Margins, p.Indent, p.LineHeightFactor).WithTabStops(p.TabStops);
         var requested = new[] { replacement, values[3] };
         if (cells) document.ReplaceTableCellParagraphs(table!.Id, 0, 0, requested);
