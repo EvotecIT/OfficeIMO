@@ -154,5 +154,55 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = CreateOrdersTable(document, 2);
             Assert.Null(sheet.GetPageSetup()?.Orientation);
         }
+
+        [Fact]
+        public void SetTableTotals_SecondCallKeepsGeneratedCellsInStepAndUserFormulasIntact() {
+            using var stream = new MemoryStream();
+            using (var document = ExcelDocument.Create(stream)) {
+                ExcelSheet sheet = CreateOrdersTable(document, 3);
+                sheet.SetTableTotalsByName("Orders", new Dictionary<string, ExcelTableTotalsFunction> {
+                    ["Amount"] = ExcelTableTotalsFunction.Sum,
+                    ["Date"] = ExcelTableTotalsFunction.Maximum
+                });
+                sheet.CellFormula(5, 2, "COUNT(Orders[Date])");
+                Assert.Throws<ArgumentException>(() => sheet.SetTableTotalsByName("Orders", new Dictionary<string, ExcelTableTotalsFunction> {
+                    ["Amount"] = ExcelTableTotalsFunction.Custom
+                }));
+                sheet.SetTableTotalsByName("Orders", new Dictionary<string, ExcelTableTotalsFunction> {
+                    ["Customer"] = ExcelTableTotalsFunction.Count,
+                    ["Date"] = ExcelTableTotalsFunction.Minimum,
+                    ["Amount"] = ExcelTableTotalsFunction.Average
+                });
+                document.Save();
+            }
+
+            stream.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(stream, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("SUBTOTAL(103,Orders[Customer])", cells["A5"].CellFormula!.Text);
+            Assert.Equal("COUNT(Orders[Date])", cells["B5"].CellFormula!.Text);
+            Assert.Equal("SUBTOTAL(101,Orders[Amount])", cells["C5"].CellFormula!.Text);
+            Assert.Equal("20", cells["C5"].CellValue!.Text);
+            var column = worksheetPart.TableDefinitionParts.Single().Table!.TableColumns!
+                .Elements<DocumentFormat.OpenXml.Spreadsheet.TableColumn>().First();
+            Assert.Null(column.TotalsRowLabel);
+        }
+
+        [Fact]
+        public void SetTableTotals_NoneClearsTheGeneratedFormula() {
+            using var stream = new MemoryStream();
+            using (var document = ExcelDocument.Create(stream)) {
+                ExcelSheet sheet = CreateOrdersTable(document, 2);
+                sheet.SetTableTotalsByName("Orders", new Dictionary<string, ExcelTableTotalsFunction> { ["Amount"] = ExcelTableTotalsFunction.Sum });
+                sheet.SetTableTotalsByName("Orders", new Dictionary<string, ExcelTableTotalsFunction> { ["Amount"] = ExcelTableTotalsFunction.None });
+                document.Save();
+            }
+
+            stream.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(stream, false);
+            Assert.DoesNotContain(spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Cell>(),
+                cell => cell.CellReference?.Value == "C4" && (cell.CellFormula != null || cell.CellValue != null));
+        }
     }
 }
