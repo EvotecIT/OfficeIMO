@@ -22,6 +22,16 @@
       "category": "conversion",
       "phase": "M5",
       "applied": "applied"
+    },
+    {
+      "old": "HtmlRenderOptions batch image selection",
+      "kind": "property",
+      "action": "change",
+      "new": "HtmlRenderOptions.PageSelection (PdfPageSelection)",
+      "reason": "Batch image export can select noncontiguous one-based retained surfaces in caller order, including repeats, through the canonical PDF page selector and selected-count limits. The request page set, HTML layout, PDF output, archives and single-image operations retain their existing selection contracts.",
+      "category": "options",
+      "phase": "B",
+      "applied": "phase-b-applied"
     }
   ],
   "extraChanges": [

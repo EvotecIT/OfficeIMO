@@ -76,6 +76,24 @@ public sealed class WordSharedPageLayoutTests {
         Assert.Equal(2, selected.Count);
         for (int index = 0; index < selected.Count; index++) AssertWordIdentity(selected[index], index + 2, index, 2);
         Assert.Equal(1, Assert.Single(document.CreateVisualSnapshots(options)).PageIndex);
+        options.PageSelection = PdfPageSelection.From(3, 1, 3);
+        options.MaximumOutputCount = 3;
+        WordImageExportOptions batchOptions = options.Clone();
+        options.PageSelection = PdfPageSelection.From(2);
+        var ordered = document.ExportImages(OfficeImageExportFormat.Svg, batchOptions);
+        var expected = document.ConvertToPdfWithEvidence().ExportImages(OfficeImageExportFormat.Svg,
+            new PdfImageExportOptions { Scale = .3D }, PdfPageSelection.From(3, 1, 3));
+        Assert.Equal(expected.Select(image => image.Bytes), ordered.Select(image => image.Bytes), ByteArrayComparer.Instance);
+        for (int index = 0; index < ordered.Count; index++)
+            AssertWordIdentity(ordered[index], new[] { 3, 1, 3 }[index], index, 3);
+        Assert.Equal(new[] { 2, 0, 2 }, document.CreateVisualSnapshots(batchOptions).Select(snapshot => snapshot.PageIndex));
+        AssertWordIdentity(document.ExportImage(OfficeImageExportFormat.Svg, batchOptions), 2, 0, 1);
+        Assert.Equal(1, document.CreateVisualSnapshot(batchOptions).PageIndex);
+        batchOptions.MaximumOutputCount = 2;
+        delivered.Clear();
+        Assert.Throws<OfficeImageExportBatchLimitException>(() => document.ExportImages(
+            OfficeImageExportFormat.Svg, delivered.Add, batchOptions));
+        Assert.Empty(delivered);
         Assert.Throws<ArgumentOutOfRangeException>(() => document.ToImage(new WordImageExportOptions { PageIndex = 999 }));
     }
 

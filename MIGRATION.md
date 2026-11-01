@@ -1891,7 +1891,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Word.Pdf
 
 <details>
-<summary>17 changes</summary>
+<summary>18 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -1912,6 +1912,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocumentResult(PdfDocument document, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Merged | `PdfDocument.ToWord(WordPdfImportOptions options, out OfficeConversionReport report)` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
 | Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocumentResult(PdfDocumentReadResult document, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
 | Options | `OfficeIMO.Word.Pdf.PdfToWordOptions` | Moved | `OfficeIMO.Pdf.Word.WordPdfImportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
+| Options | `WordImageExportOptions batch image selection` | Changed | `WordImageExportOptions.PageSelection (PdfPageSelection)` | Batch images and visual snapshots can select noncontiguous one-based pages in caller order, including repeats, through the canonical PDF page selector and aggregate output limits. PageSelection overrides PageIndex/PageCount only for batches; single-page operations retain PageIndex. |
 
 </details>
 
@@ -3467,12 +3468,13 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Html
 
 <details>
-<summary>2 changes</summary>
+<summary>3 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
 | Conversion | `HTML p elements: margin-top 0; margin-bottom 1em` | Changed | `HTML p elements: margin-top 1em; margin-bottom 1em` | HTML to PDF and image rendering use browser paragraph defaults: one em above and below each p element, including Document mode. Adjacent block margins still collapse into one gap. Word-to-HTML output keeps paragraphs inside list items at zero margin, so exported Word lists retain their compact spacing. A bottom margin at the end of a page is dropped rather than opening an empty page when the content fits. HTML that relied on no paragraph top margin gains space above paragraphs; set p { margin-top: 0 } to keep the previous layout. |
 | Conversion | `OfficeHtmlDocumentOptions.Theme selects only OfficeVisualThemeKind presets` | Changed | `OfficeHtmlDocumentOptions.DocumentTheme accepts an OfficeTheme; when set, it overrides the preset palette and font choices` | Use the same immutable document theme for semantic HTML and Office files. The shared HTML shell projects its palette, font stack, table-header text and light or dark color scheme. Existing enum presets remain available when DocumentTheme is omitted. `New-OfficePowerPointHtmlOptions` defaults its shared document theme to Modern. |
+| Options | `HtmlRenderOptions batch image selection` | Changed | `HtmlRenderOptions.PageSelection (PdfPageSelection)` | Batch image export can select noncontiguous one-based retained surfaces in caller order, including repeats, through the canonical PDF page selector and selected-count limits. The request page set, HTML layout, PDF output, archives and single-image operations retain their existing selection contracts. |
 
 </details>
 
