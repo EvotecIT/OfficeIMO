@@ -5,10 +5,11 @@ namespace OfficeIMO.Publisher;
 /// <summary>An immutable current table cell snapshot, including its merged span and styled paragraphs.</summary>
 public sealed class PublisherTableCell {
     internal PublisherTableCell(int row, int column, int rowSpan, int columnSpan,
-        double x, double y, double width, double height, IReadOnlyList<OfficeRichTextParagraph> paragraphs) {
+        double x, double y, double width, double height, IReadOnlyList<OfficeRichTextParagraph> paragraphs, OfficeColor? fillColor = null) {
         RowIndex = row; ColumnIndex = column; RowSpan = rowSpan; ColumnSpan = columnSpan;
         X = x; Y = y; Width = width; Height = height;
         Paragraphs = Array.AsReadOnly(paragraphs.ToArray());
+        FillColor = fillColor;
         Text = string.Join("\n", paragraphs.Select(ParagraphText));
     }
     private static string ParagraphText(OfficeRichTextParagraph paragraph) {
@@ -32,6 +33,8 @@ public sealed class PublisherTableCell {
     public double Width { get; }
     /// <summary>Height of the occupied row tracks in points.</summary>
     public double Height { get; }
+    /// <summary>Qualified solid background color, or null for no recovered solid fill. Cell-style diagnostics identify unsupported native paint.</summary>
+    public OfficeColor? FillColor { get; }
     /// <summary>Current paragraphs and styled runs. Empty when the owning table has no resolved text mapping.</summary>
     public IReadOnlyList<OfficeRichTextParagraph> Paragraphs { get; }
     /// <summary>Current cell text including paragraph labels, with paragraphs separated by newlines. Empty when text mapping is unresolved.</summary>

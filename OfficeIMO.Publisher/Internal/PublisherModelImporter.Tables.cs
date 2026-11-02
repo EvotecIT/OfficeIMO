@@ -9,6 +9,7 @@ internal static partial class PublisherModelImporter {
         var result = new Dictionary<uint, PublisherTableState>();
         var shapes = artwork.Shapes.ToDictionary(shape => shape.Id);
         var mapper = new PublisherNativeShapeMapper(source.Palette, context);
+        var tableArtwork = artwork.TableArtwork.GroupBy(item => item.TableId).ToDictionary(group => group.Key, group => group.ToArray());
         foreach (PublisherSourceShape native in source.Shapes.Values.Where(native => native.Table != null)) {
             context.Token.ThrowIfCancellationRequested();
             if (!owners.TryGetValue(native.Chunk.Id, out uint? owner) || !owner.HasValue
@@ -30,13 +31,22 @@ internal static partial class PublisherModelImporter {
                 out _, tableFrame: nativeTable) : null;
             var padding = new OfficeTextPadding((shape?.Property(0x81) ?? 36576) / 12700D, (shape?.Property(0x82) ?? 36576) / 12700D,
                 (shape?.Property(0x83) ?? 36576) / 12700D, (shape?.Property(0x84) ?? 36576) / 12700D);
+            ImportTableArtwork(native.Chunk.Id, grid, tableArtwork.TryGetValue(native.Chunk.Id, out var decoration)
+                ? decoration : Array.Empty<PublisherTableArtwork>(), source.Palette, context, out var fills, out var borders);
             result.Add(native.Chunk.Id, new PublisherTableState(native.Chunk.Id, native.Value(0x27), page.Id,
                 bounds.X, bounds.Y, bounds.Width, bounds.Height, placement
                     ? OfficeTransform.Translate(bounds.X, bounds.Y).Then(PublisherNativeGeometry.PageTransform(shape!, bounds.X, bounds.Y,
                         bounds.Width, bounds.Height, page.RegistrationX, page.RegistrationY)) : OfficeTransform.Identity,
                 placement, shape?.Hidden == true, grid.Columns, grid.Rows,
                 grid.Cells.Select(cell => new PublisherTableCellSlot(cell.FirstRow, cell.FirstColumn,
-                    cell.LastRow - cell.FirstRow + 1, cell.LastColumn - cell.FirstColumn + 1)).ToArray(), padding, paint, limitation));
+                    cell.LastRow - cell.FirstRow + 1, cell.LastColumn - cell.FirstColumn + 1)).ToArray(), padding, paint, limitation,
+                    cellFills: fills, borders: borders));
+        }
+        foreach (uint owner in tableArtwork.Keys) {
+            context.Token.ThrowIfCancellationRequested();
+            if (!result.ContainsKey(owner))
+                context.Add("PUB_TABLE_CELL_STYLE_UNSUPPORTED", "Native cell decoration references an unavailable table or page owner. Its bytes remain preserved; the decoration is not projected.",
+                    OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(owner));
         }
         return result;
     }

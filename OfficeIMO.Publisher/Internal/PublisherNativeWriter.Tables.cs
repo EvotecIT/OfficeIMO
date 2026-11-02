@@ -18,6 +18,7 @@ internal sealed partial class PublisherNativeWriter {
             || before.PageTransform != OfficeTransform.Translate(before.X, before.Y)
             || after.PageTransform != OfficeTransform.Translate(after.X, after.Y)
             || !before.Cells.SequenceEqual(after.Cells)
+            || !before.CellFills.SequenceEqual(after.CellFills) || !before.BorderSegments.SequenceEqual(after.BorderSegments)
             || !ShapeEqual(paint == null ? null : PublisherShapeGeometry.Resize(paint, after.Width, after.Height), after.CreatePaint())
             || !ScaledTracks(before.Columns, after.Columns, before.Width, after.Width)
             || !ScaledTracks(before.Rows, after.Rows, before.Height, after.Height)) {

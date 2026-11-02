@@ -164,6 +164,7 @@ internal sealed partial class PublisherNativeWriter {
         && a.Width == b.Width && a.Height == b.Height && a.PageTransform == b.PageTransform && a.HasPlacement == b.HasPlacement
         && a.Hidden == b.Hidden && a.Padding.Equals(b.Padding) && a.BoundsEditLimitation == b.BoundsEditLimitation && a.IsAuthored == b.IsAuthored
         && a.Columns.SequenceEqual(b.Columns) && a.Rows.SequenceEqual(b.Rows) && a.Cells.SequenceEqual(b.Cells)
+        && a.CellFills.SequenceEqual(b.CellFills) && a.BorderSegments.SequenceEqual(b.BorderSegments)
         && ShapeEqual(a.CreatePaint(), b.CreatePaint());
 
     private static bool SameBounds(double ax, double ay, double aw, double ah, double bx, double by, double bw, double bh) =>

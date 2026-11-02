@@ -8,12 +8,16 @@ internal sealed class PublisherTableState {
     internal PublisherTableState(uint id, uint? storyId, uint pageId, double x, double y, double width, double height,
         OfficeTransform transform, bool hasPlacement, bool hidden, IReadOnlyList<double> columns, IReadOnlyList<double> rows,
         IReadOnlyList<PublisherTableCellSlot> cells, OfficeTextPadding padding, OfficeShape? paint,
-        string? boundsLimitation, bool isAuthored = false) {
+        string? boundsLimitation, bool isAuthored = false, IReadOnlyList<OfficeColor?>? cellFills = null,
+        IReadOnlyList<PublisherTableBorderSegment>? borders = null) {
         Id = id; StoryId = storyId; PageId = pageId; X = x; Y = y; Width = width; Height = height;
         PageTransform = transform; HasPlacement = hasPlacement; Hidden = hidden;
         Columns = Array.AsReadOnly(columns.ToArray()); Rows = Array.AsReadOnly(rows.ToArray());
         Cells = Array.AsReadOnly(cells.ToArray()); Padding = padding; _paint = paint?.Clone();
         BoundsEditLimitation = boundsLimitation; IsAuthored = isAuthored;
+        CellFills = Array.AsReadOnly((cellFills ?? new OfficeColor?[cells.Count]).ToArray());
+        BorderSegments = Array.AsReadOnly((borders ?? Array.Empty<PublisherTableBorderSegment>()).ToArray());
+        if (CellFills.Count != cells.Count) throw new ArgumentException("Cell fill count must match cell ownership.", nameof(cellFills));
     }
     internal uint Id { get; }
     internal uint? StoryId { get; }
@@ -32,11 +36,16 @@ internal sealed class PublisherTableState {
     internal bool HasSemanticPaint => _paint != null;
     internal string? BoundsEditLimitation { get; }
     internal bool IsAuthored { get; }
+    internal IReadOnlyList<OfficeColor?> CellFills { get; }
+    internal IReadOnlyList<PublisherTableBorderSegment> BorderSegments { get; }
     internal OfficeShape? CreatePaint() => _paint?.Clone();
 
-    internal PublisherTableState WithCells(IReadOnlyList<PublisherTableCellSlot> cells) =>
-        new(Id, StoryId, PageId, X, Y, Width, Height, PageTransform, HasPlacement, Hidden,
-            Columns, Rows, cells, Padding, _paint, BoundsEditLimitation, IsAuthored);
+    internal PublisherTableState WithCells(IReadOnlyList<PublisherTableCellSlot> cells) {
+        var fills = Cells.Select((cell, index) => (cell, index)).ToDictionary(item => (item.cell.Row, item.cell.Column), item => CellFills[item.index]);
+        return new(Id, StoryId, PageId, X, Y, Width, Height, PageTransform, HasPlacement, Hidden,
+            Columns, Rows, cells, Padding, _paint, BoundsEditLimitation, IsAuthored,
+            cells.Select(cell => fills[(cell.Row, cell.Column)]).ToArray(), BorderSegments);
+    }
 
     internal bool HasTextMapping(PublisherTextState text) => StoryId.HasValue && text.Stories.ContainsKey(StoryId.Value)
         && text.TableStories.TryGetValue(StoryId.Value, out PublisherTableStory? partition) && partition.Segments.Count == Cells.Count;
@@ -50,10 +59,10 @@ internal sealed class PublisherTableState {
             PublisherTableCellSlot cell = Cells[i];
             cells.Add(new PublisherTableCell(cell.Row, cell.Column, cell.RowSpan, cell.ColumnSpan, xs[cell.Column], ys[cell.Row],
                 xs[cell.Column + cell.ColumnSpan] - xs[cell.Column], ys[cell.Row + cell.RowSpan] - ys[cell.Row],
-                segments == null ? Array.Empty<OfficeRichTextParagraph>() : segments[i].Paragraphs));
+                segments == null ? Array.Empty<OfficeRichTextParagraph>() : segments[i].Paragraphs, CellFills[i]));
         }
         return new PublisherTable(Id, StoryId, PageId, X, Y, Width, Height, PageTransform, Columns, Rows, cells,
-            mapped, HasPlacement, textLimitation, BoundsEditLimitation);
+            mapped, HasPlacement, textLimitation, BoundsEditLimitation, BorderSegments);
     }
 
     internal PublisherTableState WithBounds(double x, double y, double width, double height) {
@@ -63,7 +72,7 @@ internal sealed class PublisherTableState {
         OfficeShape? paint = CreatePaint();
         if (paint != null) { paint.Width = width; paint.Height = height; }
         return new PublisherTableState(Id, StoryId, PageId, x, y, width, height, OfficeTransform.Translate(x, y), true,
-            Hidden, columns, rows, Cells, Padding, paint, BoundsEditLimitation, IsAuthored);
+            Hidden, columns, rows, Cells, Padding, paint, BoundsEditLimitation, IsAuthored, CellFills, BorderSegments);
     }
 
     internal static double ValidateTracks(IReadOnlyList<double> tracks, string name) {

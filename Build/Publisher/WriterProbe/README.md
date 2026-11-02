@@ -646,6 +646,18 @@ imported topology changes remain refused. Native/managed PDF parity, decorated
 tables, dynamic row sizing and the public source-free native writer remain
 unqualified.
 
+The `tableCellDecoration` record maps solid cell fills and shared grid borders
+from independent native controls into the canonical table model and current
+SVG/PDF output. Cell fills use native definition indices; border ranges use
+grid-boundary endpoints. Utility shapes remain outside publication object
+identity. Existing Core colors, border-side values and drawing primitives own
+the projected paint. Public cell-text growth preserves complete Escher bytes;
+native initial/resaved PDFs match an independent text-edited decorated control.
+Native/managed pixel parity, decoration mutation and decorated template-free
+encoding remain unqualified. The comparison worker retains explicit unknown
+fill/border observations, including unavailable diagonal observations, and its
+extended inventory also completes on the 96-cell control.
+
 The generated file and a public `SetPictureBounds` edit each match independently
 authored `ImagePages` and `ImagePagesEdited` controls before and after native
 resave: twelve page pairs at 144 dpi. Public reload preserves both complete PNG

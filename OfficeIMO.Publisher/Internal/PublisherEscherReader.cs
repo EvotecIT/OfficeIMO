@@ -96,6 +96,14 @@ internal sealed class PublisherEscherReader {
             if (space.HasValue && space.Value.TryResolve(relative, out PublisherNativeRectangle resolved)) shape.Bounds = resolved;
             else _context.Add("PUB_GROUP_COORDINATES_UNRESOLVED", "A child anchor has no enclosing group coordinate system.", OfficeConversionLossKind.Omission, ShapeLocation(id));
         }
+        if (id == 0 && anchor != null) {
+            Dictionary<ushort, uint> values = ClientValues(anchor);
+            if (values.TryGetValue(0x6802, out uint tableId)) {
+                if (_result.TableArtwork.Count >= _context.Options.Limits.MaxItems)
+                    throw new InvalidDataException("Publisher table artwork limit exceeded.");
+                _result.TableArtwork.Add(new PublisherTableArtwork(tableId, values, shape));
+            }
+        }
         if (coordinates != null) { _data.Range(coordinates.Offset, 16, coordinates.End); shape.GroupCoordinates = Rectangle(coordinates.Offset); }
         if (id != 0) {
             if (!_shapeIds.Add(id)) throw new InvalidDataException("Duplicate Publisher OfficeArt object identifier.");
@@ -257,6 +265,7 @@ internal sealed class PublisherEscherRecord {
 }
 
 internal sealed class PublisherEscherData {
+    internal List<PublisherTableArtwork> TableArtwork { get; } = new();
     internal List<PublisherEscherShape> Shapes { get; } = new();
     internal Dictionary<int, PublisherImage> Images { get; } = new();
     internal List<PublisherEscherRecord> ImageStores { get; } = new();

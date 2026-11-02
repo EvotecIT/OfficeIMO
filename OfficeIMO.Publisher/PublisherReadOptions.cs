@@ -2,7 +2,7 @@ namespace OfficeIMO.Publisher;
 
 /// <summary>Resource bounds for managed Publisher decoding, in-memory authoring and projection. Limits reject operations rather than silently truncate content.</summary>
 public sealed class PublisherReadOptions {
-    /// <summary>Source byte, text, record, object, and compound-stream limits. MaxInputBytes also bounds cumulative encoded image processing; MaxItems bounds image-store entries including unavailable assets, cumulative projected gradient stops, and recovered table tracks/cells. MaxTextCharacters also bounds copied table text, edited story labels and cumulative projected labels.</summary>
+    /// <summary>Source byte, text, record, object, and compound-stream limits. MaxInputBytes also bounds cumulative encoded image processing; MaxItems bounds image-store entries including unavailable assets, cumulative projected gradient stops, recovered table tracks/cells and native table utility paint records. MaxTextCharacters also bounds copied table text, edited story labels and cumulative projected labels.</summary>
     public OfficeLegacyImportLimits Limits { get; set; } = new OfficeLegacyImportLimits();
     /// <summary>Maximum number of document and master pages combined.</summary>
     public int MaximumPages { get; set; } = 1024;

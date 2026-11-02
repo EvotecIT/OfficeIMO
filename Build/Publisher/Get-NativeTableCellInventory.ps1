@@ -31,6 +31,7 @@ function Get-NativeTableCellInventory {
                 text = [string] $text.Text
                 columnSpan = [int] $cell.Width
                 rowSpan = [int] $cell.Height
+                style = Get-NativeTableCellStyle -Cell $cell -Objects $Objects
             }
         }
     }

@@ -27,8 +27,11 @@ internal sealed partial class PublisherPageProjector {
                 _context.Add("PUB_TABLE_TEXT_MAPPING_UNRESOLVED", "Recovered table text remains available in TextStories, but cannot be assigned to native cells.", OfficeConversionLossKind.Omission, location);
             if (!table.HasPlacement)
                 _context.Add("PUB_TABLE_PLACEMENT_UNRESOLVED", "The native table grid and mapped cell text are retained without available page placement.", OfficeConversionLossKind.Omission, location);
+            if (state.HasPlacement && !state.Hidden && !state.HasSemanticPaint
+                && (state.CellFills.Any(color => color.HasValue) || state.BorderSegments.Count != 0))
+                _context.Add("PUB_TABLE_CELL_STYLE_UNSUPPORTED", "Recovered cell decoration cannot be projected through this table's unsupported native graphic placement.", OfficeConversionLossKind.Omission, location);
             if (!state.IsAuthored)
-                _context.Add("PUB_TABLE_CELL_STYLE_UNASSESSED", "Native cell fills, individual borders, and cell-specific padding require additional qualification. The table model retains the native grid and any mapped styled cell text.", OfficeConversionLossKind.Unassessed, location);
+                _context.Add("PUB_TABLE_CELL_STYLE_UNASSESSED", "Qualified solid cell fills and shared grid borders are retained. Other native cell appearance and cell-specific padding require additional qualification.", OfficeConversionLossKind.Unassessed, location);
             if (!table.CanEditCellText)
                 _context.Add("PUB_TABLE_CELL_TEXT_EDIT_UNSUPPORTED", table.CellTextEditLimitation!, OfficeConversionLossKind.None, location);
             if (!table.CanEditBounds)
@@ -62,6 +65,7 @@ internal sealed partial class PublisherPageProjector {
         var local = new OfficeDrawing(width, height);
         OfficeShape? paint = table.CreatePaint();
         if (paint != null && (HasFill(paint) || paint.StrokeColor.HasValue)) local.AddShape(paint, 0, 0);
+        ProjectTableArtwork(snapshot, local);
         ProjectTableText(table.Id, local);
         TagSourceElements(local, new[] { "publisher-object-" + table.Id });
         if (table.X < 0 || table.Y < 0 || table.X + table.Width > page.Width || table.Y + table.Height > page.Height)

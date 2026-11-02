@@ -587,6 +587,15 @@ their corresponding limitation properties explain unsupported cases.
 `HasTextMapping` records successful text recovery and does not by itself grant
 editing. A table's graphic belongs to the table and is excluded from `Shapes`.
 
+`PublisherTableCell.FillColor` exposes a recovered solid background.
+`PublisherTable.BorderSegments` exposes shared grid edges with point widths and
+colors through `OfficeBorderSide`. Segment endpoints are row/column boundaries,
+so a shared edge appears once even when it borders two cells. These decorations
+render through qualified rectangular table placement and remain preserved during
+supported cell-text saves. They are read-only; decoration editing, gradients,
+cell-specific padding and broader native appearances remain separate profiles.
+Unsupported paint is reported rather than presented as an observed empty style.
+
 ```csharp
 var table = publication.Pages[0].Tables.First(item => item.CanEditCellText);
 publication.ReplaceTableCellParagraphs(table.Id, 0, 0, new[] {
@@ -662,7 +671,8 @@ are retained in that ratio. Qualified rectangular wrapping recalculates frame
 exclusions when a table enters or leaves a frame. Hidden, grouped, rotated,
 reflected, unplaced and unsupported graphic representations retain their reading/rendering behavior and reject
 bounds edits. Safe cell text can remain editable independently of those graphics.
-Native individual cell fills, borders and cell-specific padding remain unassessed.
+Qualified solid cell fills and shared borders are recovered; cell-specific
+padding and broader native paint remain unassessed.
 
 Native source saving supports direct table movement and proportional resizing of
 fixed grids. Coordinates, dimensions and tracks must have an exact signed-EMU
@@ -793,8 +803,9 @@ foreach (var page in publication.Pages)
 
 An unresolved native cell-text mapping retains the grid with
 `HasTextMapping = false` and empty cell paragraphs/text. The read report carries
-the omission; complete recovered stories remain in `TextStories`. Cell fills,
-individual borders and padding remain unassessed. These source records describe
+the omission; complete recovered stories remain in `TextStories`. Qualified solid
+fills and shared borders appear in current table snapshots; other native paint
+and cell-specific padding remain unassessed. These source records describe
 recovery; changing the separate page drawing does not update the table model.
 
 ## Export a page as SVG

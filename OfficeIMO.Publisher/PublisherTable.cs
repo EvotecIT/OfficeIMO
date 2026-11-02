@@ -7,12 +7,13 @@ public sealed class PublisherTable {
     internal PublisherTable(uint id, uint? storyId, uint pageId, double x, double y, double width, double height,
         OfficeTransform pageTransform, IReadOnlyList<double> columns, IReadOnlyList<double> rows,
         IReadOnlyList<PublisherTableCell> cells, bool hasTextMapping, bool hasPlacement = true,
-        string? cellTextEditLimitation = null, string? boundsEditLimitation = null) {
+        string? cellTextEditLimitation = null, string? boundsEditLimitation = null, IReadOnlyList<PublisherTableBorderSegment>? borders = null) {
         Id = id; StoryId = storyId; PageId = pageId; X = x; Y = y; Width = width; Height = height;
         PageTransform = pageTransform; HasTextMapping = hasTextMapping; HasPlacement = hasPlacement;
         ColumnWidths = Array.AsReadOnly(columns.ToArray()); RowHeights = Array.AsReadOnly(rows.ToArray());
         Cells = Array.AsReadOnly(cells.ToArray());
         CellTextEditLimitation = cellTextEditLimitation; BoundsEditLimitation = boundsEditLimitation;
+        BorderSegments = Array.AsReadOnly((borders ?? Array.Empty<PublisherTableBorderSegment>()).ToArray());
     }
     /// <summary>Stable current publication object identifier.</summary>
     public uint Id { get; }
@@ -42,6 +43,8 @@ public sealed class PublisherTable {
     public int RowCount => RowHeights.Count;
     /// <summary>Current cells in imported definition order or authored row-major order. A merged cell appears once with its span.</summary>
     public IReadOnlyList<PublisherTableCell> Cells { get; }
+    /// <summary>Recovered qualified borders in grid-boundary coordinates. Shared edges appear once, independently of cell ownership.</summary>
+    public IReadOnlyList<PublisherTableBorderSegment> BorderSegments { get; }
     /// <summary>Whether native text boundaries resolve to every recovered cell. False retains the grid with empty cell text and an omission report.</summary>
     public bool HasTextMapping { get; }
     /// <summary>Whether anchor-cell paragraph replacement has a qualified, complete and unambiguous story partition.</summary>

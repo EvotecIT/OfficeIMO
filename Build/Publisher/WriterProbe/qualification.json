@@ -33057,5 +33057,313 @@
     ],
     "canClosePUB00": false,
     "canPromotePublicNativeCreation": false
+  },
+  "tableCellDecoration": {
+    "sourceBaseCommit": "c7741e78e4cd41985700b85fe4dff90c9a5e1e66",
+    "scope": "Solid cell-fill/shared-border read and render model, plus opaque preservation during public cell-text growth. Decoration authoring, mutation and decorated template-free encoding remain open.",
+    "nativeBinary": {
+      "version": "16.0.20527.20112",
+      "sha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+      "macroSecurity": 3
+    },
+    "controls": [
+      {
+        "case": "TableDecoration",
+        "publicationSha256": "fdc0b1461ef08592c81586d992dae4fb5021916dbb9473d65e385dcdf7eb84c9",
+        "referenceSha256": "9e45b6f01dbe1d4d05a34468e3ac2d72a5f17aa7291d93f07a952b997ea74ddd"
+      },
+      {
+        "case": "TableDecorationEdited",
+        "publicationSha256": "143b3eba076cdf010804f5da9f7e134f8ce0efb7505b1c083d21fd0aa49b9d83",
+        "referenceSha256": "8f8831f278a7c48fcea4b42d419ee604ac500ae07931beb0fde07d2db9f5612b"
+      },
+      {
+        "case": "TableDecorationText",
+        "publicationSha256": "7a778aa8d8011726340d7acd40f8833c096105224e3e6f11767847950b3f3df8",
+        "referenceSha256": "edda02282d676889702eaaec3ffb832c04731aca7f4862a0013a08c4cec64467"
+      }
+    ],
+    "mapping": {
+      "storage": "Table-owned utility OfficeArt shapes, separate from publication object identity.",
+      "tableKey": "F010 client anchor6802",
+      "fill": "Kind2001=0; zero-based native cell-definition index2003. Omitted values default0.",
+      "border": "Kind2001=1 horizontal or2 vertical;2004/2005 start row/column boundary,2006/2007 end boundary.",
+      "paint": "Existing Core OfficeArt style/color decoding. FillColor0181 and boolean-use fields determine opaque solid paint. Border LineWidth01CB uses signedEMU/12700.",
+      "ownership": "Native border observation on the neighboring cell confirms shared grid edges. Each typed segment is retained once.",
+      "limits": "Unknown anchors, invalid ranges, ambiguous fills, gradients, nonopaque fills, rotated/hidden utility shapes and enabled shadows produce explicit omission; unsupported table placement also reports omitted cell paint."
+    },
+    "model": {
+      "cell": "PublisherTableCell.FillColor",
+      "table": "PublisherTable.BorderSegments",
+      "side": "Shared OfficeBorderSide color/point width",
+      "utilityObjectsExposed": false,
+      "mutation": "No public decoration setter in this slice."
+    },
+    "rendering": {
+      "before": "Pre-change managed PDF has no cell decoration.",
+      "after": "Three solid fills and six shared edges are visible. Outer edges are inset and horizontal edges paint after vertical edges.",
+      "comparison": {
+        "coloredPrimitives": 9,
+        "allColorsMatch": true,
+        "geometry": [
+          {
+            "rgb": [
+              255,
+              224,
+              160
+            ],
+            "nativeBounds": [
+              72.0009994506836,
+              144.0,
+              192.00100708007812,
+              186.0
+            ],
+            "managedBounds": [
+              72.0,
+              144.0,
+              192.0,
+              186.0
+            ],
+            "maxEdgeDifferencePoints": 0.001007080078125
+          },
+          {
+            "rgb": [
+              160,
+              224,
+              255
+            ],
+            "nativeBounds": [
+              192.0,
+              144.0,
+              372.0,
+              186.0
+            ],
+            "managedBounds": [
+              192.0,
+              144.0,
+              372.0,
+              186.0
+            ],
+            "maxEdgeDifferencePoints": 0.0
+          },
+          {
+            "rgb": [
+              180,
+              240,
+              180
+            ],
+            "nativeBounds": [
+              192.0,
+              186.0,
+              372.0,
+              240.0
+            ],
+            "managedBounds": [
+              192.0,
+              186.0,
+              372.0,
+              240.0
+            ],
+            "maxEdgeDifferencePoints": 0.0
+          },
+          {
+            "rgb": [
+              255,
+              0,
+              0
+            ],
+            "nativeBounds": [
+              72.0009994506836,
+              144.0,
+              74.04100036621094,
+              186.0
+            ],
+            "managedBounds": [
+              72.0,
+              144.0,
+              74.0,
+              186.0
+            ],
+            "maxEdgeDifferencePoints": 0.0410003662109375
+          },
+          {
+            "rgb": [
+              0,
+              128,
+              0
+            ],
+            "nativeBounds": [
+              191.5,
+              144.0,
+              192.5800018310547,
+              185.5
+            ],
+            "managedBounds": [
+              191.5,
+              144.0,
+              192.5,
+              186.0
+            ],
+            "maxEdgeDifferencePoints": 0.5
+          },
+          {
+            "rgb": [
+              255,
+              0,
+              255
+            ],
+            "nativeBounds": [
+              367.9200134277344,
+              186.0,
+              372.0,
+              238.0
+            ],
+            "managedBounds": [
+              368.0,
+              186.0,
+              372.0,
+              240.0
+            ],
+            "maxEdgeDifferencePoints": 2.0
+          },
+          {
+            "rgb": [
+              0,
+              0,
+              255
+            ],
+            "nativeBounds": [
+              72.0009994506836,
+              144.0,
+              192.50100708007812,
+              147.0
+            ],
+            "managedBounds": [
+              72.0,
+              144.0,
+              192.0,
+              147.0
+            ],
+            "maxEdgeDifferencePoints": 0.501007080078125
+          },
+          {
+            "rgb": [
+              128,
+              0,
+              128
+            ],
+            "nativeBounds": [
+              72.0009994506836,
+              185.5,
+              192.50100708007812,
+              186.58001708984375
+            ],
+            "managedBounds": [
+              72.0,
+              185.5,
+              192.0,
+              186.5
+            ],
+            "maxEdgeDifferencePoints": 0.501007080078125
+          },
+          {
+            "rgb": [
+              0,
+              255,
+              255
+            ],
+            "nativeBounds": [
+              192.0,
+              237.96002197265625,
+              372.0,
+              240.0
+            ],
+            "managedBounds": [
+              192.0,
+              238.0,
+              372.0,
+              240.0
+            ],
+            "maxEdgeDifferencePoints": 0.03997802734375
+          }
+        ],
+        "maxEdgeDifferencePoints": 2.0,
+        "limits": "Native PDF uses hinted filled rectangles; managed edges use shared strokes. Geometry differences and text baseline differences remain approximate."
+      },
+      "nativeManagedPixelParity": false,
+      "limits": "Native hinting, overlapping primitive extents/junctions and existing baseline offsets remain approximate."
+    },
+    "sourceTextEdit": {
+      "inputSha256": "fdc0b1461ef08592c81586d992dae4fb5021916dbb9473d65e385dcdf7eb84c9",
+      "outputSha256": "f344fb52b25c244cd619f5b5270c110ceb2103495da412436d9e374096aaf99b",
+      "operation": "First cell grows from Item to Updated/newline/Item using its existing paragraph/font/tab definitions.",
+      "opaqueStorage": "Complete Escher and every non-Quill stream remain byte-identical; covered by real public save regression.",
+      "nativeProof": {
+        "inventory": [
+          {
+            "observation": "initial",
+            "cells": 4,
+            "allTextSpansFillsBordersAndTracksMatchNativeControl": true
+          },
+          {
+            "observation": "resaved",
+            "cells": 4,
+            "allTextSpansFillsBordersAndTracksMatchNativeControl": true
+          }
+        ],
+        "pixelPairs": [
+          {
+            "left": "control",
+            "right": "initial",
+            "dpi": 100,
+            "width": 850,
+            "height": 1100,
+            "changedPixels": 0,
+            "exact": true
+          },
+          {
+            "left": "initial",
+            "right": "resaved",
+            "dpi": 100,
+            "width": 850,
+            "height": 1100,
+            "changedPixels": 0,
+            "exact": true
+          }
+        ],
+        "scope": "Public cell-text source save preserves decoration; no style mutation or template-free decorated encoding is claimed."
+      }
+    },
+    "oracle": {
+      "observations": "Per-cell native fill/color/type/transparency and individual edge weight/color, with explicit Unassessed HRESULT records.",
+      "fractionalSetter": "Attempted Double border weight1.5 was rejected by native COM Int32 marshaling during corpus authoring. Exact owned process closed; subsequent integer-weight controls were produced. No fractional claim.",
+      "diagonal": "Unassessed: native getter failed; no absent-diagonal inference.",
+      "largeGrid": {
+        "cells": 96,
+        "stage": "Export",
+        "completed": true,
+        "inventoryObservedElapsedSeconds": 6.199,
+        "perPhaseBoundSeconds": 45
+      }
+    },
+    "verification": {
+      "newCases": 9,
+      "net10FullPublisherTests": 1109,
+      "net8TableTests": 92,
+      "net472TableTests": 92,
+      "netstandard20Build": "Passed unsigned",
+      "PSWriteOfficeNet8SourceBuild": "Passed unsigned",
+      "powerShellWorkflows": 2,
+      "nativeScriptsParse": "PowerShell7 and5.1"
+    },
+    "limits": [
+      "PUB00 repair-positive/recovery acceptance remains unresolved.",
+      "No public source-free native writer promotion.",
+      "Decoration mutation, decorated template-free authoring, cell padding and other paint profiles remain open.",
+      "Managed/native pixel parity and native cell editing are not qualified.",
+      "Earlier generation codecs remain separate."
+    ],
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false
   }
 }
