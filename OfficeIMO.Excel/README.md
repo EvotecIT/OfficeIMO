@@ -121,18 +121,16 @@ using OfficeIMO.Excel;
 using var book = ExcelDocument.Create("Budget.xlsx");
 ExcelSheet sheet = book.AddSheet("Budget");
 
-sheet.CellValue(1, 1, "Item");
-sheet.CellValue(1, 2, "Cost");
-sheet.CellValue(2, 1, "Laptops");
-sheet.CellValue(2, 2, 18_500m);
-sheet.CellValue(3, 1, "Licenses");
-sheet.CellValue(3, 2, 7_250m);
-sheet.CellValue(4, 1, "Total");
-sheet.CellFormula(4, 2, "SUM(B2:B3)");
+sheet.Range("A1:B3").SetValues(new object?[,] {
+    { "Item", "Cost" },
+    { "Laptops", 18_500m },
+    { "Licenses", 7_250m },
+});
+sheet.Cell("A4").SetValue("Total").SetBold();
+sheet.Cell("B4").SetFormula("SUM(B2:B3)");
 
-sheet.FormatCell(2, 2, "#,##0.00");
-sheet.FormatCell(3, 2, "#,##0.00");
-sheet.FormatCell(4, 2, "#,##0.00");
+sheet.Range("A1:B1").SetBold().SetFillColor("D9EAF7");
+sheet.Range("B2:B4").SetNumberFormat("#,##0.00");
 sheet.AddConditionalDataBar("B2:B3", OfficeColor.Accent1);
 sheet.Freeze(topRows: 1);
 sheet.AutoFitColumns();
@@ -140,7 +138,14 @@ sheet.AutoFitColumns();
 book.Save();
 ```
 
-Rows and columns are 1-based, as in Excel.
+Rows and columns are 1-based, as in Excel. `sheet.Cell(row, column)` and `sheet.Cell("B4")` return a lightweight
+`ExcelCell` handle (a struct, so a loop over cells allocates nothing); `sheet.Range("A1:V1")` returns an
+`ExcelRange`. Format a block through its range rather than cell by cell: one range call applies the style under
+one lock and saves the stylesheet once. `sheet.UsedRange` returns the range in use, and
+`book.GetNamedRange("Total")?.FirstCell` writes through a defined name without parsing its address.
+
+Cells created in a formatted row or column start with that row's or column's style, so values written into a
+template keep its number formats and fonts. A date written into a cell that already has a date format keeps it.
 
 ## Read rows back as objects
 
