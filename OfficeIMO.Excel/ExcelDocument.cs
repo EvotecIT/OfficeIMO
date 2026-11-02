@@ -21,6 +21,9 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
         private const int StreamBufferSize = 4096;
         private ExcelCopyOnWriteStream? _packageCopyOnWriteStream;
+
+        /// <summary>The grid loader applies neither a part size limit nor markup-compatibility processing, as the streaming readers do not.</summary>
+        internal bool AllowsWorksheetGridLoader => _readSnapshotAllowed && FileOpenAccess != FileAccess.Read;
         private static readonly System.Text.RegularExpressions.Regex _multipleUnderscoresRegex =
             new System.Text.RegularExpressions.Regex("_+", System.Text.RegularExpressions.RegexOptions.Compiled);
 
