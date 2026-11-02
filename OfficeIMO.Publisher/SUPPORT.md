@@ -328,6 +328,39 @@ growth while preserving existing resource entries. Fifty-two selected-page and
 states. These fitting controls do not qualify broader producer/style profiles,
 general table reflow, explicit nonempty-CR styling or repair-free opening.
 
+### Native table placement and fixed-track resizing
+
+`SetTableBounds` saves direct, editable rectangular table placement through the
+existing native source-save API. Movement retains native track records.
+Proportional resizing updates guarded OfficeArt anchors and existing Contents
+width, height, cumulative track endpoints and nominal sizes. It requires unique
+direct typed fields, complete positive tracks, matching nominal and laid-out
+sizes, track sums matching the native extents, and exact signed-EMU values.
+Repeated model resizes are compared through that native representation. Cells,
+story ownership, formatting, paint and unrelated source bytes remain retained.
+Fixed-size track patches compose with Contents record growth and relocation.
+
+The `sourceTableBounds` qualification record covers ten public saves on generated
+3×4 and 12×8 grids, an independently authored 2×2 table, a composed newsletter
+and an expanded-row source. Native read-only opening, object inspection and PDF
+export confirm 148 cell texts and the requested fixed-grid bounds/tracks within
+0.001 point across twelve PDF pages. Cases include repeated resizing, combined
+cell paragraph growth and caption alignment, and a table entering a caption's
+rectangular wrapping region. Returning the table to its original bounds restores
+the exact source-copy path. Native kind `0x10` with a recovered table grid
+qualifies OfficeArt type 201 as a rectangular wrap obstacle; this does not admit
+that type as unrelated editable artwork.
+
+The expanded-row move retains Contents exactly. Its untouched source and moved
+output both open to the same native track sizes and 97.498665-point height;
+their stored model height is 97.200551 points. This is opening-time native reflow,
+not a promise of fixed rendered dimensions. Resizing expanded rows, incomplete
+or ambiguous track fields, unsupported wrap relationships and nonrepresentable
+values refuse output. Successful edits remain `Unassessed`, report
+`PUB_NATIVE_TABLE_BOUNDS_UNQUALIFIED` and require explicit `Allow`. Native editing,
+resave/reopen, repair-free opening and broader producer/reflow profiles remain
+unqualified.
+
 ### Existing page object ordering
 
 `SetPageObjectOrder` accepts every current `PublisherPage.ObjectIds` identifier
@@ -366,7 +399,7 @@ pixel equivalence and repair-free opening remain separate qualification gaps.
 
 ### Native wrapping and object-order admission
 
-`SetPageObjectOrder` and existing frame, shape and picture bounds edits rebuild
+`SetPageObjectOrder` and existing frame, shape, picture and table bounds edits rebuild
 qualified rectangular frame-exclusion relationships in the canonical model.
 Participating foreground objects appear in stacking order; moving them behind the
 text or outside its frame removes their references. Returning them restores the

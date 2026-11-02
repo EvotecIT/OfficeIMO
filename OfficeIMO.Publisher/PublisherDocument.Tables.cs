@@ -15,7 +15,7 @@ public sealed partial class PublisherDocument {
     }
 
     /// <summary>Moves and proportionally resizes a qualified table in page-local points, scaling its column and row tracks by the frame's width and height ratios.</summary>
-    /// <remarks>Dimensions must be positive and finite; finite negative offsets allow clipped bleed. Placement eligibility is independent of cell-text eligibility. Unsupported native graphics and transformed, hidden or unresolved placement reject bounds edits. Complete text is retained on overflow. Failed edits leave the publication unchanged.</remarks>
+    /// <remarks>Dimensions must be positive and finite; finite negative offsets allow clipped bleed. Placement eligibility is independent of cell-text eligibility. Unsupported native graphics and transformed, hidden or unresolved placement reject bounds edits. Qualified native source saving supports direct movement and proportional fixed-track resizing with exact signed-EMU coordinates and dimensions. Resizing requires complete matching nominal and laid-out tracks; unsupported wrap relationships refuse saving. Native reflow remains unassessed and edited output requires explicit Allow. Complete text is retained on overflow. Failed edits leave the publication unchanged.</remarks>
     public void SetTableBounds(uint tableId, double x, double y, double width, double height, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PublisherModelState model = _model ?? throw new NotSupportedException("This publication has no editable model.");

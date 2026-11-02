@@ -43,12 +43,14 @@ internal sealed partial class PublisherNativeWriter {
             if (artwork == null) { Reject("Escher/EscherStm", "Source edits have ambiguous or unsupported local OfficeArt records."); return false; }
             streams["Escher/EscherStm"] = artwork;
         }
+        byte[] contentsSource = _imported.NativeSource!.ContentsBytes;
+        if (_tableTrackEdits.Count > 0) contentsSource = PublisherNativeStreamEdit.Apply(contentsSource, _tableTrackEdits, _maximumBytes, _token);
         if (_frameAlignments.Count > 0 || _pictureNames.Count > 0 || _masterAssignments.Count > 0 || _storyHyphenation.Count > 0 || _frameWraps.Count > 0) {
-            byte[]? contents = PublisherContentsSourceWriter.Rewrite(_imported.NativeSource!.ContentsBytes,
+            byte[]? contents = PublisherContentsSourceWriter.Rewrite(contentsSource,
                 _imported.Contents, _frameAlignments, _pictureNames, _masterAssignments, context, _maximumBytes, _storyHyphenation, _frameWraps);
             if (contents == null) { Reject("Contents", "Source edits have an unsupported page relationship, shape, picture metadata or chunk-directory relocation profile."); return false; }
             streams.Add("Contents", contents);
-        }
+        } else if (_tableTrackEdits.Count > 0) streams.Add("Contents", contentsSource);
         return PrepareObjectOrder(streams, context);
     }
 }

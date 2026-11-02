@@ -22,7 +22,8 @@ internal static class PublisherWrapRelationships {
         // ordinary rectangle/text-box through wrapping has the same solid contour.
         if (!negativeMargins && !tight
             && !OfficeArtCustomPathProjector.HasPath(artwork.Properties)
-            && (picture || artwork.Type is 1 or 202)
+            && (picture || artwork.Type is 1 or 202
+                || artwork.Type == 201 && source.Chunk.Kind == 0x10 && source.Table != null)
             && (mode.Length == 0 || !picture && mode[0].Value == 0x103))
             return side.Length == 0 ? PublisherNativeWrapMode.RectangularBoth : side[0].Value switch {
                 0x101 => PublisherNativeWrapMode.RectangularLeft,
@@ -94,6 +95,9 @@ internal static class PublisherWrapRelationships {
             return picture.CanEdit ? new(picture.X, picture.Y, picture.Width, picture.Height) : null;
         if (state.Shapes.TryGetValue(id, out PublisherShape? shape))
             return shape.CanEdit ? new(shape.X, shape.Y, shape.Width, shape.Height) : null;
+        if (state.Tables.TryGetValue(id, out PublisherTableState? table))
+            return table.HasPlacement && !table.Hidden && table.BoundsEditLimitation == null
+                ? new(table.X, table.Y, table.Width, table.Height) : null;
         return null;
     }
 

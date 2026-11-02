@@ -34,7 +34,7 @@ internal sealed partial class PublisherNativeWriter {
         writer.Compare();
         if (writer._diagnostics.Count != 0) return new PublisherNativePreparation(null, writer._diagnostics, writer._styleDependencies);
         PublisherNativeSource source = imported.NativeSource;
-        if (writer._patches.Count == 0 && writer._quillBytes == null && writer._shapeProperties.Count == 0 && writer._frameAlignments.Count == 0 && writer._imageStore == null && writer._masterAssignments.Count == 0 && writer._storyHyphenation.Count == 0 && writer._objectOrders.Count == 0 && writer._frameWraps.Count == 0) {
+        if (writer._patches.Count == 0 && writer._quillBytes == null && writer._shapeProperties.Count == 0 && writer._frameAlignments.Count == 0 && writer._imageStore == null && writer._masterAssignments.Count == 0 && writer._storyHyphenation.Count == 0 && writer._objectOrders.Count == 0 && writer._frameWraps.Count == 0 && writer._tableTrackEdits.Count == 0) {
             if (source.ByteLength > maximumBytes) throw new InvalidDataException("Publisher native output byte limit exceeded.");
             token.ThrowIfCancellationRequested();
             return new PublisherNativePreparation(source.CopyBytes(), new[] { Finding("PUB_NATIVE_EXACT_COPY",
@@ -110,6 +110,9 @@ internal sealed partial class PublisherNativeWriter {
         if (writer._patches.Count != 0) diagnostics.Add(Finding("PUB_NATIVE_FIXED_PATCH_UNQUALIFIED",
             "Guarded fixed-size OfficeArt slots changed. Streams outside the prepared replacements and directory metadata are retained. Repair-free opening, native edit acceptance and opaque semantic preservation require independent qualification.",
             OfficeConversionLossKind.Unassessed, "Escher/EscherStm"));
+        if (writer._hasTableBounds) diagnostics.Add(Finding("PUB_NATIVE_TABLE_BOUNDS_UNQUALIFIED",
+            "A direct table frame moved or its fixed tracks were proportionally resized. Cell ownership, complete stories and unrelated native records are retained. Native reflow, editing, resave/reopen and repair-free opening remain unassessed.",
+            OfficeConversionLossKind.Unassessed, "Contents/tables"));
         if (writer._quillBytes != null) diagnostics.Add(Finding("PUB_NATIVE_QUILL_TEXT_UNQUALIFIED",
             "The bounded ordinary-story or fixed-cell Quill profile was written from retained source definitions with supported character and paragraph formatting, font and opaque color edits. Empty paragraphs retain source CR typing when no runs are supplied, or apply the supplied empty-run style using native inheritance. Table cells retain their grid and ownership, with relative text endpoints remapped. Paragraph-count changes require uniform source definitions within the ordinary story or edited cell; formatting pages, indexes and directory pages may be allocated or retired. Unrelated logical streams are retained; cached thumbnail invalidation is reported separately. Native opening, editing, resave/reopen and opaque record preservation remain unassessed.",
             OfficeConversionLossKind.Unassessed, "Quill"));

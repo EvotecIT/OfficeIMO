@@ -34,11 +34,7 @@ internal sealed partial class PublisherNativeWriter {
             || !MapEqual(_baseline.Text.ImportedObstacles, _current.Text.ImportedObstacles, (a, b) => Equals(a, b)))
             Reject("Contents", "Native wrap intent or unsupported artwork placement changed.");
         PrepareImages();
-        foreach (var entry in _baseline.Tables) {
-            _token.ThrowIfCancellationRequested();
-            if (!TableEqual(entry.Value, _current.Tables[entry.Key]))
-                Reject("Contents/object/" + entry.Key, "Table placement, tracks, cells or paint changed. Native table rewriting is unavailable.");
-        }
+        foreach (var entry in _baseline.Tables) CompareTable(entry.Value, _current.Tables[entry.Key]);
         foreach (var entry in _baseline.Text.Frames) CompareFrame(entry.Value, _current.Text.Frames[entry.Key]);
         foreach (var entry in _baseline.Pictures) ComparePicture(entry.Value, _current.Pictures[entry.Key]);
         foreach (var entry in _baseline.Shapes) CompareShape(entry.Value, _current.Shapes[entry.Key]);

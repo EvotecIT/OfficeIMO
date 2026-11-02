@@ -31600,5 +31600,496 @@
     ],
     "canClosePUB00": false,
     "canClosePUB04": false
+  },
+  "sourceTableBounds": {
+    "scope": "Public native source-save table movement and proportional fixed-track resizing with shared wrap-relationship admission.",
+    "evidenceDate": "2026-11-02",
+    "baseRevision": "f83ba10b092aad30cfca12ba11b9f502a3abc1b2",
+    "sourceFiles": {
+      "OfficeIMO.Publisher/Internal/PublisherNativeWriter.Tables.cs": "5f579ac9aa02fb61172734472af877ddffbbda2a90a2827a2f67d8b87982cc2a",
+      "OfficeIMO.Publisher/Internal/PublisherNativeWriter.Compare.cs": "3596ae60ed6d2db5fbd4fc63d766f02bee7f8ba04caaa63ec3dfc53cff328fb7",
+      "OfficeIMO.Publisher/Internal/PublisherNativeWriter.FrameLayout.cs": "e5832924303f235c50c28ccb2d7aa4ca1bfa8813644b008cdfc4b88209d378a8",
+      "OfficeIMO.Publisher/Internal/PublisherNativeWriter.cs": "c368d09380f7827da1bfa350363fc9f688894b3aa8be706ea7bfab22328f22a4",
+      "OfficeIMO.Publisher/Internal/PublisherWrapRelationships.cs": "7098f8c437a9f008df40b3ef7203ab5e5804f7d69511da1ac51d3e786c7bc624",
+      "OfficeIMO.Publisher/PublisherDocument.Tables.cs": "7a3d6c0b83f5bd0e3a28c473a63e7b97b74005e63d1d4b78a97d4f79562561be",
+      "OfficeIMO.Publisher.Tests/PublisherTableBoundsWritingTests.cs": "f755666ca97831bc217c4b990b23f1d2a078c87135e4114243ee1196f72a9098",
+      "OfficeIMO.Publisher.Tests/PublisherNativeWritingTests.cs": "b28e37c7f5c6253d009e50068d547a75100073a9cbf5f6f3483ab30a461cadda"
+    },
+    "nativeBinary": {
+      "version": "16.0.20527.20088",
+      "sha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed"
+    },
+    "nativeFonts": {
+      "arial.ttf": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a",
+      "arialbd.ttf": "e8f4e3baf6cc35fed6fcce3a540e8b39e8f6cda1d22a28f2ec8f526fef7a43f5"
+    },
+    "publicContract": {
+      "operations": [
+        "SetTableBounds",
+        "ToPubBytesResult",
+        "Save"
+      ],
+      "movement": "Direct editable table anchors; native track records are retained.",
+      "resize": "Complete direct fixed tracks with matching nominal and laid-out sizes; exact positive signed-EMU dimensions and extents. Repeated model resizes compare native values.",
+      "wrapping": "Placed tables participate in shared geometry-change detection; qualified rectangular relationships are regenerated, including table type201 paired with native kind0x10 and a recovered grid. Unsupported modes/sides are refused.",
+      "fidelityCode": "PUB_NATIVE_TABLE_BOUNDS_UNQUALIFIED",
+      "lossPolicy": "Unassessed edits require explicit Allow; unchanged semantic state retains exact-copy behavior."
+    },
+    "nativeTolerancePoints": 0.001,
+    "nativeSuccessfulSavedOutputs": 10,
+    "nativeCellsCompared": 148,
+    "nativePdfPages": 12,
+    "cases": [
+      {
+        "kind": "generated-move",
+        "sourceSha256": "57aab174591a5b8c31961c229fed5373c8ec4e62db89815ab15bd48397b89bf5",
+        "outputSha256": "71e085f7b33df33a0a502c82960ae3b1d43e588b8d3b5d0aa70d4834b2b4e1fe",
+        "outputBytes": 9216,
+        "requestedBoundsPoints": [
+          72,
+          132,
+          480,
+          144
+        ],
+        "requestedColumnWidthsPoints": [
+          120,
+          120,
+          120,
+          120
+        ],
+        "requestedRowHeightsPoints": [
+          42,
+          48,
+          54
+        ],
+        "native": {
+          "allNativeCellsAndBoundsMatch": true,
+          "trackComparison": "Requested fixed-track model",
+          "cellCount": 12,
+          "pdfSha256": "659c07ca8882b82bf30f4baefe1e3aad6be050c59c48e3927624aaa3dfa96f50",
+          "pdfBytes": 51124,
+          "renderedPages": 1
+        },
+        "strictDefaultRefused": true,
+        "exactCopyAfterSave": true
+      },
+      {
+        "kind": "generated-resize",
+        "sourceSha256": "57aab174591a5b8c31961c229fed5373c8ec4e62db89815ab15bd48397b89bf5",
+        "outputSha256": "3ecc4751b02da85a8b4f199884f247e46dc66255a2462d7da712b5a9027ee735",
+        "outputBytes": 9216,
+        "requestedBoundsPoints": [
+          72,
+          132,
+          432,
+          129.6
+        ],
+        "requestedColumnWidthsPoints": [
+          108,
+          108,
+          108,
+          108
+        ],
+        "requestedRowHeightsPoints": [
+          37.800000000000004,
+          43.199999999999996,
+          48.599999999999994
+        ],
+        "native": {
+          "allNativeCellsAndBoundsMatch": true,
+          "trackComparison": "Requested fixed-track model",
+          "cellCount": 12,
+          "pdfSha256": "a7ec46b81d0e9242acc975dd571d10a6cd1efc407a1e37d5f95cac975e62a9d2",
+          "pdfBytes": 51094,
+          "renderedPages": 1
+        },
+        "strictDefaultRefused": true,
+        "exactCopyAfterSave": true
+      },
+      {
+        "kind": "native-repeat",
+        "sourceSha256": "ed1d3b526f5add13e3f259192c4a5a7284a087c8f3f513584d2298c88e6a8863",
+        "outputSha256": "14654f35cf8f76e8b427602b57b4956f788755fbc7da35d5c2b82432da39f25e",
+        "outputBytes": 39936,
+        "requestedBoundsPoints": [
+          78,
+          156,
+          200,
+          96
+        ],
+        "requestedColumnWidthsPoints": [
+          80.00000000000001,
+          120
+        ],
+        "requestedRowHeightsPoints": [
+          42,
+          54
+        ],
+        "native": {
+          "allNativeCellsAndBoundsMatch": true,
+          "trackComparison": "Requested fixed-track model",
+          "cellCount": 4,
+          "pdfSha256": "09229ed37bfda73e5f144b91c0fa4a73a4997600e354f18cee62ea8652db8c75",
+          "pdfBytes": 111392,
+          "renderedPages": 1
+        },
+        "strictDefaultRefused": true,
+        "exactCopyAfterSave": true
+      },
+      {
+        "kind": "native-wrap-enter",
+        "sourceSha256": "ed1d3b526f5add13e3f259192c4a5a7284a087c8f3f513584d2298c88e6a8863",
+        "outputSha256": "e6324d7cb0573ee6c0eba3132bb0b380345222c439b71eba36165749f38e3f3d",
+        "outputBytes": 39936,
+        "requestedBoundsPoints": [
+          180,
+          78,
+          300,
+          96
+        ],
+        "requestedColumnWidthsPoints": [
+          120,
+          180
+        ],
+        "requestedRowHeightsPoints": [
+          42,
+          54
+        ],
+        "native": {
+          "allNativeCellsAndBoundsMatch": true,
+          "trackComparison": "Requested fixed-track model",
+          "cellCount": 4,
+          "pdfSha256": "57d8ec7fcd252f93e239bf427723952212363dca31b6b375ee7cf67859783a54",
+          "pdfBytes": 111400,
+          "renderedPages": 1
+        },
+        "strictDefaultRefused": true,
+        "exactCopyAfterSave": true
+      },
+      {
+        "kind": "native-move",
+        "sourceSha256": "ed1d3b526f5add13e3f259192c4a5a7284a087c8f3f513584d2298c88e6a8863",
+        "outputSha256": "5aefb13404276fbf39cd3af22a6a7ed84f914841fdea69436de2a5e908ff0dc4",
+        "outputBytes": 39936,
+        "requestedBoundsPoints": [
+          78,
+          156,
+          300,
+          96
+        ],
+        "requestedColumnWidthsPoints": [
+          120,
+          180
+        ],
+        "requestedRowHeightsPoints": [
+          42,
+          54
+        ],
+        "native": {
+          "allNativeCellsAndBoundsMatch": true,
+          "trackComparison": "Requested fixed-track model",
+          "cellCount": 4,
+          "pdfSha256": "1193e47172287d5d2d2ea844d6a25cd0616846a9427710c029e2c029ea1baac1",
+          "pdfBytes": 111391,
+          "renderedPages": 1
+        },
+        "strictDefaultRefused": true,
+        "exactCopyAfterSave": true
+      },
+      {
+        "kind": "native-resize",
+        "sourceSha256": "ed1d3b526f5add13e3f259192c4a5a7284a087c8f3f513584d2298c88e6a8863",
+        "outputSha256": "b228d9665ac72f46ea1c37d69f828ed03104130b3e11e9fa441b67ef72320f00",
+        "outputBytes": 39936,
+        "requestedBoundsPoints": [
+          78,
+          156,
+          270,
+          86.4
+        ],
+        "requestedColumnWidthsPoints": [
+          108,
+          162
+        ],
+        "requestedRowHeightsPoints": [
+          37.800000000000004,
+          48.6
+        ],
+        "native": {
+          "allNativeCellsAndBoundsMatch": true,
+          "trackComparison": "Requested fixed-track model",
+          "cellCount": 4,
+          "pdfSha256": "60d64407a65a58db57cd83d647346375a8b1be232931fc51b550f26ab164405a",
+          "pdfBytes": 111391,
+          "renderedPages": 1
+        },
+        "strictDefaultRefused": true,
+        "exactCopyAfterSave": true
+      },
+      {
+        "kind": "native-combined",
+        "sourceSha256": "ed1d3b526f5add13e3f259192c4a5a7284a087c8f3f513584d2298c88e6a8863",
+        "outputSha256": "8f475dab3241df282eda69305c265f8c6ea474db5b345ad7915c5f5af0deaea8",
+        "outputBytes": 40448,
+        "requestedBoundsPoints": [
+          78,
+          156,
+          270,
+          86.4
+        ],
+        "requestedColumnWidthsPoints": [
+          108,
+          162
+        ],
+        "requestedRowHeightsPoints": [
+          37.800000000000004,
+          48.6
+        ],
+        "native": {
+          "allNativeCellsAndBoundsMatch": true,
+          "trackComparison": "Requested fixed-track model",
+          "cellCount": 4,
+          "pdfSha256": "cff757f186ca57705dbb9fbee2c83241e539bd9c2840566581ff3be7c458ee79",
+          "pdfBytes": 111469,
+          "renderedPages": 1
+        },
+        "strictDefaultRefused": true,
+        "exactCopyAfterSave": true
+      },
+      {
+        "kind": "large-resize",
+        "sourceSha256": "1e4be10e4c2e552ad34c4933aef2b00c36d84b64eb5a66dd83f8cb0791afb19f",
+        "outputSha256": "816a4933144d2af33ab6950e736dbb3387774d0ba04747137bc41fc8cc6b3e27",
+        "outputBytes": 17920,
+        "requestedBoundsPoints": [
+          72,
+          132,
+          432,
+          518.4
+        ],
+        "requestedColumnWidthsPoints": [
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54
+        ],
+        "requestedRowHeightsPoints": [
+          37.800000000000004,
+          43.199999999999996,
+          48.599999999999994,
+          37.800000000000004,
+          43.199999999999996,
+          48.599999999999994,
+          37.800000000000004,
+          43.199999999999996,
+          48.599999999999994,
+          37.800000000000004,
+          43.199999999999996,
+          48.599999999999994
+        ],
+        "native": {
+          "allNativeCellsAndBoundsMatch": true,
+          "trackComparison": "Requested fixed-track model",
+          "cellCount": 96,
+          "pdfSha256": "84b260bd58ff8bc8f79e0a724ad1fad5730355a25f85ead3a8f10d57bd68f4f3",
+          "pdfBytes": 65057,
+          "renderedPages": 1
+        },
+        "strictDefaultRefused": true,
+        "exactCopyAfterSave": true
+      },
+      {
+        "kind": "newsletter-resize",
+        "sourceSha256": "13eac7444db9b2d7ccca2c7a9170572a5300836691bd7b636a3ec53698b9d74c",
+        "outputSha256": "f67afb8c4b19dbc3138c6167e95ac19b7e9fa72d87acc150ad3508c29c4a8f3a",
+        "outputBytes": 14848,
+        "requestedBoundsPoints": [
+          42,
+          372,
+          297,
+          64.8
+        ],
+        "requestedColumnWidthsPoints": [
+          162,
+          135
+        ],
+        "requestedRowHeightsPoints": [
+          27,
+          37.800000000000004
+        ],
+        "native": {
+          "allNativeCellsAndBoundsMatch": true,
+          "trackComparison": "Requested fixed-track model",
+          "cellCount": 4,
+          "pdfSha256": "44e2c45c5fdd242a0a3a042f4bb7697463b03db31a976a45ac2e93563cf2b5db",
+          "pdfBytes": 70914,
+          "renderedPages": 3
+        },
+        "strictDefaultRefused": true,
+        "exactCopyAfterSave": true
+      },
+      {
+        "kind": "expanded-move",
+        "sourceSha256": "37bba9e47e1af3a758a233cad7d7b269b81028b963dbfdf6d423b891eca75479",
+        "outputSha256": "262d2aaf8174fb570e8bca9043efc42998e261e6e0d92f5ab1421113f9e8d882",
+        "outputBytes": 41984,
+        "requestedBoundsPoints": [
+          24,
+          78,
+          180,
+          97.20055118110236
+        ],
+        "requestedColumnWidthsPoints": [
+          90,
+          90
+        ],
+        "requestedRowHeightsPoints": [
+          61.20055118110236,
+          36
+        ],
+        "native": {
+          "allNativeCellsAndBoundsMatch": true,
+          "trackComparison": "Current native original-source control",
+          "cellCount": 4,
+          "pdfSha256": "9603542336849217147129d863fdf4c4f8582a8f29402137fda915246f50c7a1",
+          "pdfBytes": 145262,
+          "renderedPages": 1
+        },
+        "strictDefaultRefused": true,
+        "exactCopyAfterSave": true
+      }
+    ],
+    "expandedRowControl": {
+      "storedModelHeight": 97.20055118110236,
+      "nativeOriginalHeight": 97.49866485595703,
+      "nativeMovedHeight": 97.49866485595703,
+      "meaning": "Original source and moved output reflow to identical track geometry when opened by the current native build."
+    },
+    "preservation": {
+      "allUnrelatedContentsChunksAndTableFieldsRetained": true,
+      "allUnrelatedLogicalStreamsRetained": true,
+      "supportedThumbnailInvalidationExcludedFromRawEquality": true,
+      "combinedCellTextAndFrameAlignmentRelocationVerified": true,
+      "originalEightOutputsByteIdenticalAfterReviewFixes": true,
+      "newsletterPixels": {
+        "renderSize": [
+          850,
+          1100
+        ],
+        "pages": [
+          {
+            "page": 1,
+            "changedPixelBounds": [
+              50,
+              506,
+              367,
+              576
+            ],
+            "allPixelsOutsideTableRegionUnchanged": true
+          },
+          {
+            "page": 2,
+            "changedPixelBounds": null,
+            "allPixelsOutsideTableRegionUnchanged": true
+          },
+          {
+            "page": 3,
+            "changedPixelBounds": null,
+            "allPixelsOutsideTableRegionUnchanged": true
+          }
+        ]
+      }
+    },
+    "validation": {
+      "fullPublisherCorrectness": {
+        "framework": "net10.0",
+        "passed": 1091,
+        "failed": 0,
+        "skipped": 0,
+        "performanceCategoryExcluded": true
+      },
+      "finalCorrectedBoundsTests": {
+        "framework": "net10.0",
+        "passed": 8,
+        "failed": 0,
+        "skipped": 0
+      },
+      "sourceGeometryWrapAndNativeSaveRegressions": {
+        "net8.0": {
+          "passed": 75,
+          "failed": 0,
+          "skipped": 0
+        },
+        "net472": {
+          "passed": 75,
+          "failed": 0,
+          "skipped": 0
+        }
+      },
+      "netstandard2.0": "Clean non-incremental unsigned build passed.",
+      "review": "One full local read-only pass and one targeted confirmation; wrap admission and repeated-resize findings resolved. Two-byte negative fixture correction passes final focused cases.",
+      "powerShellConsumption": {
+        "sourceBuild": "PSWriteOffice net8.0 unsigned source build passed without warnings.",
+        "runtime": "7.6.9",
+        "moduleSha256": "9b1e3ec344e20f6f8582e2ac340846785eb13b570220fb248722b4d34260bf93",
+        "publisherAssemblySha256": "4ae8d4a36fecd3916c4e5dcfe07924949a60acc015711d484bf05a8f77ec3581",
+        "operations": "Load the engine assembly in PowerShell; use existing public SetTableBounds and Save APIs; convert saved PUB files through the existing ConvertTo-OfficeDocument cmdlet.",
+        "cases": [
+          {
+            "kind": "repeat",
+            "pubSha256": "51bc1e64cafc7a8d37e4dc67444a9357bdbead5f6e40eea71a7d5263c0779f31",
+            "pdfSha256": "b2752cbdd1ad1b6f6234c323d2051588f551b4e302d27fd9586834f0408a6f60",
+            "workflowSucceeded": true,
+            "tableExclusions": [],
+            "visibleText": "Independent table label Item Count Alpha",
+            "sourceSaveUnassessed": true
+          },
+          {
+            "kind": "wrap",
+            "pubSha256": "e6324d7cb0573ee6c0eba3132bb0b380345222c439b71eba36165749f38e3f3d",
+            "pdfSha256": "d6b1c7cf83a0aa5ec1064896a5a1fa83a1a72ecf16a608b90b783739cb3517da",
+            "workflowSucceeded": true,
+            "tableExclusions": [
+              294
+            ],
+            "visibleText": "Independent table label Item Count Alpha",
+            "sourceSaveUnassessed": true
+          }
+        ],
+        "visibleSpanVerification": true,
+        "rendering": "Both generated PDF pages visually inspected; text is legible and unclipped. Exact managed/native typography parity is not claimed.",
+        "surfaceLimit": "This does not add dedicated Publisher lifecycle cmdlets."
+      }
+    },
+    "nativeHarness": {
+      "firstRepeatExport": "Overall45-second budget terminated worker during PDF export after startup/open/inspection; no successful export claimed for that attempt. Exact-owned Publisher process stopped.",
+      "resolvedProbe": "45-second stage budgets with progress receipts and180-second total cap; repeated-resize and wrap-entry exports returned in about21seconds and all owned processes closed.",
+      "repairTrustDecision": "No repair or trust recovery is part of this profile."
+    },
+    "reproduction": {
+      "independentInput": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableCreation/native-tablecreation.pub",
+      "example": "Load source; SetTableBounds(table.Id,78,156,270,86.4); Save a fresh path with explicit Allow. Native read-only Open, table geometry/cell inspection and PDF export validate that exact output.",
+      "boundsTests": [
+        "Native_table_bounds_saves_preserve_cells_styles_and_unrelated_storage",
+        "Moving_an_expanded_table_retains_its_nominal_and_laid_out_track_records",
+        "Unqualified_table_scaling_refuses_output_and_preserves_the_destination",
+        "Repeated_table_resizing_accepts_the_final_exact_native_tracks",
+        "Moving_a_rectangular_table_rebuilds_frame_exclusions_and_can_restore_exact_source",
+        "Unqualified_table_wrapping_refuses_geometry_saving"
+      ]
+    },
+    "limits": [
+      "Read-only native opening, object inspection and PDF export do not qualify native editing, resave/reopen, repair-free acceptance or Print dispatch.",
+      "Expanded rows can reflow on native opening. Resizing differentiated nominal/layout tracks remains refused.",
+      "Incomplete or ambiguous fields, nonrepresentable coordinates/tracks, unsupported transformed/graphic or wrap relationships refuse saving.",
+      "No table topology, styling, dynamic row sizing, source-free native creation or additional producer/generation support is established by this cohort."
+    ],
+    "canClosePUB00": false,
+    "canClosePUB03": false,
+    "canClosePUB04": false
   }
 }

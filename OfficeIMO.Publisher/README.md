@@ -651,11 +651,21 @@ These native limits are separate from in-memory cell editing.
 
 `SetTableBounds` uses positive finite frame dimensions and proportionally scales
 column and row tracks. Imported differences between track sums and frame size
-are retained in that ratio. Moving a table recalculates text frames that already
-wrap around it. Hidden, grouped, rotated, reflected, unplaced and unsupported
-graphic representations retain their reading/rendering behavior and reject
+are retained in that ratio. Qualified rectangular wrapping recalculates frame
+exclusions when a table enters or leaves a frame. Hidden, grouped, rotated,
+reflected, unplaced and unsupported graphic representations retain their reading/rendering behavior and reject
 bounds edits. Safe cell text can remain editable independently of those graphics.
 Native individual cell fills, borders and cell-specific padding remain unassessed.
+
+Native source saving supports direct table movement and proportional resizing of
+fixed grids. Coordinates, dimensions and tracks must have an exact signed-EMU
+representation; resizing requires complete native endpoints and nominal sizes
+that agree with the laid-out tracks. Expanded rows can move with their track
+records retained, but resizing them is refused. Supported moves rebuild native
+rectangular wrap references; unqualified wrap relationships refuse saving.
+Edited output reports `PUB_NATIVE_TABLE_BOUNDS_UNQUALIFIED` and requires explicit
+`Allow`. Native opening can reflow a table, so stored bounds do not promise a
+fixed rendered height. See the [qualified source profile](SUPPORT.md#native-table-placement-and-fixed-track-resizing).
 
 `AddTable` copies positive finite column widths and row heights, appends an empty,
 unmerged, borderless table to an existing qualified document or master page and
