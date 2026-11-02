@@ -6,35 +6,35 @@ public sealed partial class PdfDocument {
     /// <summary>Sets the document-wide default style for panel paragraphs.</summary>
     internal PdfDocument DefaultPanelStyle(PdfPanelStyle style) {
         Guard.NotNull(style, nameof(style));
-        _options.DefaultPanelStyle = style;
+        OptionsToChange.DefaultPanelStyle = style;
         return this;
     }
 
     /// <summary>Sets the document-wide default style for horizontal rules.</summary>
     internal PdfDocument DefaultHorizontalRuleStyle(PdfHorizontalRuleStyle style) {
         Guard.NotNull(style, nameof(style));
-        _options.DefaultHorizontalRuleStyle = style;
+        OptionsToChange.DefaultHorizontalRuleStyle = style;
         return this;
     }
 
     /// <summary>Sets the document-wide default image placement style.</summary>
     internal PdfDocument DefaultImageStyle(PdfImageStyle style) {
         Guard.NotNull(style, nameof(style));
-        _options.DefaultImageStyle = style;
+        OptionsToChange.DefaultImageStyle = style;
         return this;
     }
 
     /// <summary>Sets the document-wide default placement style for OfficeIMO.Drawing-backed flow objects.</summary>
     internal PdfDocument DefaultDrawingStyle(PdfDrawingStyle style) {
         Guard.NotNull(style, nameof(style));
-        _options.DefaultDrawingStyle = style;
+        OptionsToChange.DefaultDrawingStyle = style;
         return this;
     }
 
     /// <summary>Sets the document-wide default row/column layout style.</summary>
     internal PdfDocument DefaultRowStyle(PdfRowStyle style) {
         Guard.NotNull(style, nameof(style));
-        _options.DefaultRowStyle = style;
+        OptionsToChange.DefaultRowStyle = style;
         return this;
     }
 }

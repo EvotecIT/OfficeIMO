@@ -219,7 +219,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IOfficeTextShapingProvider provider, bool resolvedDirectionalRun = false) {
         CheckCancellation();
         OfficeTextShapingResult? result = provider.ShapeText(new OfficeTextShapingRequest(
-            logicalText, font.DisplayName ?? fontInfo.FamilyName, font.GetFontDataForShaping(), font.IsOpenTypeCff,
+            logicalText, font.DisplayName ?? fontInfo.FamilyName, font is OfficeTrueTypeFont trueType ? trueType.FontDataForShaping : font.GetFontDataForShaping(), font.IsOpenTypeCff,
             font.UnitsPerEm, direction, _options.TextShapingLanguage ?? style.Language, _cancellationToken, font.CollectionIndex,
             (font as IOfficeVariableFontProgram)?.VariationCoordinatesForShaping, cloneFontData: false,
             fontProgramCacheKey: font, featureSettings: style.TextFeatureSettings,

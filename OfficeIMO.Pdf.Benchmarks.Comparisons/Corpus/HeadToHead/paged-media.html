@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Paged media and margin boxes</title>
+<style>@page{size:A4;margin:18mm}body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;line-height:1.4;color:#1c2230}h1{font-size:20pt;margin:0 0 8pt}h2{font-size:13pt;margin:14pt 0 6pt}</style>
+<style>
+@page{size:A4;margin:26mm 18mm 24mm 18mm;
+ @top-left{content:"Annual Review 2026";font-size:9pt;color:#567}
+ @top-center{content:string(chapter);font-size:9pt;font-weight:bold;color:#123}
+ @top-right{content:"CONFIDENTIAL";font-size:8pt;color:#a22}
+ @bottom-left{content:"Northwind Studio";font-size:9pt;color:#567}
+ @bottom-right{content:"Page " counter(page) " of " counter(pages);font-size:9pt;color:#123;border-top:1px solid #99a}}
+@page:first{margin-top:40mm;@top-left{content:none}@top-center{content:"Title page";color:#086}@top-right{content:none}}
+@page:left{@bottom-center{content:"left page"}}@page:right{@bottom-center{content:"right page"}}
+h2.ch{string-set:chapter content();break-before:page;font-size:18pt;color:#123a6b}
+.toc a{display:block;color:inherit;text-decoration:none}.toc a::after{content:leader(".") target-counter(attr(href),page)}
+.keep{break-inside:avoid;background:#eef3f8;padding:10pt;margin:10pt 0}.fig{counter-increment:fig}.fig::before{content:"Figure " counter(fig) ": ";font-weight:bold}p{orphans:3;widows:3;text-align:justify}</style>
+</head><body><h1 style="font-size:30pt">Annual Review</h1><p>Paged-media features in one short document: running section titles from string-set, page counters in margin boxes, different first and left/right pages, generated tables of contents and keep-together boxes.</p>
+<nav class="toc"><a href="#one">Operations</a><a href="#two">Finance</a><a href="#three">People</a></nav>
+<h2 class="ch" id="one">Operations</h2><p>The year began with the move to the new warehouse, which shortened delivery routes across the north and reduced our average lead time by a fifth. Most of the benefit arrived in the second half, once the new sorting line settled down and staff had finished their retraining.</p><p>Returns fell for the third year in a row. The largest single contribution was a change in packaging, followed by clearer product photography on the website, which cut the number of orders placed by mistake. Further work on packaging is scheduled for next spring.</p><div class="keep"><p class="fig">Lead time by quarter, in days: 6.2, 5.9, 5.1, 4.8.</p></div><p>Plans for next year focus on reliability rather than expansion. We will replace the two oldest vans and introduce a shared schedule with our main carrier, so that peak weeks no longer depend on phone calls on Friday afternoons.</p>
+<h2 class="ch" id="two">Finance</h2><p>Revenue grew by nine percent, ahead of the budget, while operating costs grew by six percent. Cash generation was strong, and we repaid the remaining balance of the warehouse loan three months early.</p><div class="keep"><p class="fig">Revenue by region: North 41%, Midlands 33%, South 26%.</p></div>
+<h2 class="ch" id="three">People</h2><p>Headcount rose from 212 to 231. Staff turnover fell to eleven percent, the lowest since records began, and the annual engagement survey recorded its highest response rate. Two apprentices completed their programmes and joined permanent teams.</p>
+</body>
+</html>

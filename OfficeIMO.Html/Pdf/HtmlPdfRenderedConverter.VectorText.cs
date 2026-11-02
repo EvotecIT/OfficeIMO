@@ -411,7 +411,7 @@ internal static partial class HtmlPdfRenderedConverter {
         try {
             return PdfCore.PdfTextDiagnostics.AnalyzeAdvancedTextLayout(
                 text,
-                face.Data,
+                face.DataSnapshot,
                 source: "OfficeIMO.Html.Pdf",
                 fontName: face.Program.DisplayName).Count > 0;
         } catch (Exception exception) when (!(exception is OutOfMemoryException)) {
@@ -453,7 +453,7 @@ internal static partial class HtmlPdfRenderedConverter {
         OfficeTextShapingResult? shapingResult = provider.ShapeText(new OfficeTextShapingRequest(
             shapedText,
             program.DisplayName ?? run.Face!.FamilyName,
-            program.GetFontDataForShaping(),
+            program is OfficeTrueTypeFont trueType ? trueType.FontDataForShaping : program.GetFontDataForShaping(),
             program.IsOpenTypeCff,
             program.UnitsPerEm,
             OfficeTextElements.ResolveBaseDirection(shapedText),
