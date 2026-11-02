@@ -65,7 +65,6 @@ public sealed class ReaderResourceLimitTests {
     }
 
     [Theory]
-    [InlineData("chunks")]
     [InlineData("document")]
     [InlineData("incremental")]
     public void OutputBudgetFailsAllPublicReadRoutes(string route) {
@@ -73,8 +72,7 @@ public sealed class ReaderResourceLimitTests {
         var options = Limited(new ReaderResourceLimits { MaxChunks = 1 });
         using var input = new MemoryStream(Encoding.UTF8.GetBytes(new string('a', 600)));
         var error = Assert.Throws<ReaderResourceLimitException>(() => {
-            if (route == "chunks") reader.Enumerate(input, "source.txt", options).ToArray();
-            else if (route == "document") reader.ReadDocument(input, "source.txt", options);
+            if (route == "document") reader.ReadDocument(input, "source.txt", options);
             else reader.Enumerate(input, "source.txt", options).ToArray();
         });
         Assert.Equal(nameof(ReaderResourceLimits.MaxChunks), error.LimitName);

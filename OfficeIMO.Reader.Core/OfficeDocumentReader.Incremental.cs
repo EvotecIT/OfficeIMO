@@ -60,8 +60,10 @@ public sealed partial class OfficeDocumentReader {
             incremental = ProcessorPipeline.Count == 0 && options?.DetectionMode != ReaderDetectionMode.PreferContent && DocumentReaderEngine.HasIncrementalHandler(path, true);
         }
         if (!incremental) {
-            var document = await ReadDocumentAsync(path, options, cancellationToken).ConfigureAwait(false);
-            foreach (var chunk in document.Chunks) { cancellationToken.ThrowIfCancellationRequested(); yield return chunk; }
+            var chunks = ProcessorPipeline.Count == 0
+                ? await ExecuteAsync(() => DocumentReaderEngine.ReadAsync(path, options, cancellationToken), cancellationToken).ConfigureAwait(false)
+                : (await ReadDocumentAsync(path, options, cancellationToken).ConfigureAwait(false)).Chunks;
+            foreach (var chunk in chunks) { cancellationToken.ThrowIfCancellationRequested(); yield return chunk; }
             yield break;
         }
         await _asyncGate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -81,8 +83,10 @@ public sealed partial class OfficeDocumentReader {
                 DocumentReaderEngine.HasIncrementalHandler(sourceName, false);
         }
         if (!incremental) {
-            var document = await ReadDocumentAsync(stream, sourceName, options, cancellationToken).ConfigureAwait(false);
-            foreach (var chunk in document.Chunks) { cancellationToken.ThrowIfCancellationRequested(); yield return chunk; }
+            var chunks = ProcessorPipeline.Count == 0
+                ? await ExecuteAsync(() => DocumentReaderEngine.ReadAsync(stream, sourceName, options, cancellationToken), cancellationToken).ConfigureAwait(false)
+                : (await ReadDocumentAsync(stream, sourceName, options, cancellationToken).ConfigureAwait(false)).Chunks;
+            foreach (var chunk in chunks) { cancellationToken.ThrowIfCancellationRequested(); yield return chunk; }
             yield break;
         }
         await _asyncGate.WaitAsync(cancellationToken).ConfigureAwait(false);

@@ -150,7 +150,7 @@ public sealed class ReaderAllSeverityBatch12SecurityTests {
             File.CreateSymbolicLink(
                 Path.Combine(folder, "linked.md"), external);
 
-            ReaderChunk[] chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadFolder(
+            ReaderChunk[] chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.EnumerateFolder(
                 folder,
                 new ReaderFolderOptions {
                     Recurse = false,

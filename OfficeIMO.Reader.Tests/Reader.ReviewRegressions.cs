@@ -26,9 +26,9 @@ public sealed class ReaderReviewRegressionTests {
         try {
             await Assert.ThrowsAsync<ReaderResourceLimitException>(async () => {
                 var options = Options(limits);
-                if (route == "path") (await reader.ReadDocumentAsync(path, options)).Chunks;
-                else if (route == "bytes") (await reader.ReadDocumentAsync(new byte[] { 1 }, "input.native", options)).Chunks;
-                else { using var stream = new MemoryStream(new byte[] { 1 }); (await reader.ReadDocumentAsync(stream, "input.native", options)).Chunks; }
+                if (route == "path") await reader.ReadDocumentAsync(path, options);
+                else if (route == "bytes") await reader.ReadDocumentAsync(new byte[] { 1 }, "input.native", options);
+                else { using var stream = new MemoryStream(new byte[] { 1 }); await reader.ReadDocumentAsync(stream, "input.native", options); }
             });
         } finally { File.Delete(path); }
     }

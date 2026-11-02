@@ -64,7 +64,7 @@ public sealed class ReaderIWorkTests {
             await Assert.ThrowsAsync<InvalidDataException>(() => reader.DetectAsync(link,
                 new ReaderDetectionOptions { Mode = ReaderDetectionMode.PreferContent }));
             Assert.Throws<InvalidDataException>(() => reader.ReadDocument(link, options));
-            Assert.Throws<InvalidDataException>(() => reader.Read(link, options).ToArray());
+            Assert.Throws<InvalidDataException>(() => reader.Enumerate(link, options).ToArray());
             await Assert.ThrowsAsync<InvalidDataException>(() => reader.ReadDocumentAsync(link, options));
         } finally {
             Directory.Delete(root, recursive: true);
