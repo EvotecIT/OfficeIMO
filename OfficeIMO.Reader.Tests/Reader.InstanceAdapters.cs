@@ -109,8 +109,8 @@ public sealed class ReaderInstanceAdapterTests {
         using var visualStream = new MemoryStream(new byte[] { 1 });
         using var assetStream = new MemoryStream(new byte[] { 1 });
 
-        Assert.Equal("OfficeIMO", Assert.Single(reader.ReadDocument(tableStream, "sample" + extension).ExtractTables()).Rows[0][0]);
-        Assert.Equal("graph TD", Assert.Single(reader.ReadDocument(visualStream, "sample" + extension).ExtractVisuals()).Content);
+        Assert.Equal("OfficeIMO", Assert.Single(reader.Enumerate(tableStream, "sample" + extension).ExtractTables()).Rows[0][0]);
+        Assert.Equal("graph TD", Assert.Single(reader.Enumerate(visualStream, "sample" + extension).ExtractVisuals()).Content);
         Assert.Same(asset, Assert.Single(reader.ReadDocument(assetStream, "sample" + extension).ExtractAssets()));
     }
 

@@ -9,9 +9,7 @@ namespace OfficeIMO.Reader.Tests;
 
 public sealed class ReaderDefaultOptionsTests {
     [Theory]
-    [InlineData("chunks-path")]
-    [InlineData("chunks-stream")]
-    [InlineData("chunks-bytes")]
+    [InlineData("incremental-bytes")]
     [InlineData("document-path")]
     [InlineData("document-stream")]
     [InlineData("document-bytes")]
@@ -36,9 +34,7 @@ public sealed class ReaderDefaultOptionsTests {
             async Task Read(ReaderOptions? options) {
                 using var stream = new MemoryStream(bytes);
                 switch (route) {
-                    case "chunks-path": reader.Enumerate(path, options); break;
-                    case "chunks-stream": reader.Enumerate(stream, "source.txt", options); break;
-                    case "chunks-bytes": reader.Enumerate(bytes, "source.txt", options); break;
+                    case "incremental-bytes": reader.Enumerate(bytes, "source.txt", options).ToArray(); break;
                     case "document-path": reader.ReadDocument(path, options); break;
                     case "document-stream": reader.ReadDocument(stream, "source.txt", options); break;
                     case "document-bytes": reader.ReadDocument(bytes, "source.txt", options); break;

@@ -14,9 +14,13 @@ public sealed partial class OfficeDocumentReader {
     /// Dispose the enumerator on early termination.</remarks>
     public IEnumerable<ReaderChunk> Enumerate(string path, ReaderOptions? options = null, CancellationToken cancellationToken = default) {
         var effective = NormalizeReadOptions(options);
-        return Scope(ProcessorPipeline.Count == 0
-            ? DocumentReaderEngine.EnumerateChunks(path, effective, cancellationToken)
-            : EnumerateProcessedChunks(() => ReadDocument(path, effective, cancellationToken), cancellationToken), effective);
+        if (ProcessorPipeline.Count != 0 || Directory.Exists(path) || !HasIncrementalInput(path, pathInput: true, effective)) {
+            return new ReaderMaterializedScopedEnumerable<ReaderChunk>(_handlers,
+                () => ProcessorPipeline.Count == 0
+                    ? DocumentReaderEngine.Read(path, effective, cancellationToken)
+                    : ReadDocument(path, effective, cancellationToken).Chunks, effective, cancellationToken);
+        }
+        return Scope(DocumentReaderEngine.EnumerateChunks(path, effective, cancellationToken), effective);
     }
 
     /// <summary>Pulls chunks from a stable caller-owned stream without a full snapshot when the handler supports it.</summary>
@@ -26,9 +30,21 @@ public sealed partial class OfficeDocumentReader {
     public IEnumerable<ReaderChunk> Enumerate(Stream stream, string? sourceName = null, ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
         var effective = NormalizeReadOptions(options);
-        return Scope(ProcessorPipeline.Count == 0
-            ? DocumentReaderEngine.EnumerateChunks(stream, sourceName, effective, cancellationToken)
-            : EnumerateProcessedChunks(() => ReadDocument(stream, sourceName, effective, cancellationToken), cancellationToken), effective);
+        if (ProcessorPipeline.Count != 0 || !HasIncrementalInput(sourceName, pathInput: false, effective) ||
+            (stream is { CanSeek: false } && effective.ComputeHashes)) {
+            return new ReaderMaterializedScopedEnumerable<ReaderChunk>(_handlers,
+                () => ProcessorPipeline.Count == 0
+                    ? DocumentReaderEngine.Read(stream, sourceName, effective, cancellationToken)
+                    : ReadDocument(stream, sourceName, effective, cancellationToken).Chunks, effective, cancellationToken);
+        }
+        return Scope(DocumentReaderEngine.EnumerateChunks(stream, sourceName, effective, cancellationToken), effective);
+    }
+
+    private bool HasIncrementalInput(string? sourceName, bool pathInput, ReaderOptions options) {
+        using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
+            return options.DetectionMode != ReaderDetectionMode.PreferContent &&
+                DocumentReaderEngine.HasIncrementalHandler(sourceName, pathInput);
+        }
     }
 
     /// <summary>Enumerates chunks from caller-owned bytes.</summary>
@@ -41,13 +57,6 @@ public sealed partial class OfficeDocumentReader {
     private IEnumerable<ReaderChunk> EnumerateBytes(byte[] bytes, string? sourceName, ReaderOptions? options, CancellationToken cancellationToken) {
         using var stream = new MemoryStream(bytes, writable: false);
         foreach (var chunk in Enumerate(stream, sourceName, options, cancellationToken)) yield return chunk;
-    }
-
-    private static IEnumerable<ReaderChunk> EnumerateProcessedChunks(Func<OfficeDocumentReadResult> read, CancellationToken cancellationToken) {
-        foreach (var chunk in read().Chunks) {
-            cancellationToken.ThrowIfCancellationRequested();
-            yield return chunk;
-        }
     }
 
 #if NET8_0_OR_GREATER

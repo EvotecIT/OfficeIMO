@@ -127,7 +127,7 @@ public sealed class ExportOfficeDocumentAssetCommand : OfficeInputCmdlet {
                     }, token), true);
                 }
                 if (_types.Contains(OfficeDocumentAssetType.Table)) {
-                    WriteObject(_reader.ExportTables(document.EnumerateTables(), Indented, token)
+                    WriteObject(document.ExportTables(Indented, token)
                         .WriteTableExportsToDirectory(_directory, new ReaderTableExportMaterializationOptions {
                             Overwrite = !NoClobber,
                             IncludeCsv = _formats.Contains(OfficeTableExportFormat.Csv),
@@ -136,7 +136,7 @@ public sealed class ExportOfficeDocumentAssetCommand : OfficeInputCmdlet {
                         }, token), true);
                 }
                 if (_types.Contains(OfficeDocumentAssetType.Visual)) {
-                    WriteObject(_reader.ExportVisuals(document.EnumerateVisuals(), Indented, token)
+                    WriteObject(document.ExportVisuals(Indented, token)
                         .WriteVisualExportsToDirectory(_directory, new ReaderVisualExportMaterializationOptions {
                             Overwrite = !NoClobber, IncludePayload = !NoPayload, IncludeJson = !NoMetadata
                         }, token), true);
