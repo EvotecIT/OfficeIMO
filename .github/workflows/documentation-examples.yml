@@ -36,7 +36,7 @@ jobs:
           ref: 95c9d689019f8c3cd87f42d4e37bda7d7ef14231
           path: .tools/powerforge-docs
           persist-credentials: false
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: .tools/powerforge-docs/global.json
           dotnet-version: '8.0.x'
