@@ -3183,7 +3183,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Markdown
 
 <details>
-<summary>85 changes</summary>
+<summary>88 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3219,6 +3219,8 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Authoring | `OfficeIMO.Markdown.DefinitionListBlock.AddGroup(DefinitionListGroup group) : void` | Changed | `OfficeIMO.Markdown.DefinitionListBlock.AddGroup(DefinitionListGroup group) : DefinitionListGroup` | Use the returned value to edit the added content. |
 | Authoring | `OfficeIMO.Markdown.MarkdownDocument.Add(IMarkdownBlock block)` | Changed | `OfficeIMO.Markdown.MarkdownDocument.Add<T>(T block) : T where T : IMarkdownBlock` | Authoring Add methods return the attached objects rather than the document or void. |
 | Authoring | `OfficeIMO.Markdown.MarkdownDocument.AddRange(IEnumerable<IMarkdownBlock> blocks)` | Changed | `OfficeIMO.Markdown.MarkdownDocument.AddRange(IEnumerable<IMarkdownBlock> blocks) : IReadOnlyList<IMarkdownBlock>` | Authoring Add methods return the attached objects rather than the document or void. |
+| Authoring | `OfficeIMO.Markdown.MarkdownDocument.H1(string text) ... H6(string text), P, Ul, Ol, Dl, Table, TableAuto` | Changed | `OfficeIMO.Markdown.MarkdownDocument.AddHeading(string text, int level = 1) : HeadingBlock; AddParagraph : ParagraphBlock; AddList : UnorderedListBlock; AddOrderedList : OrderedListBlock; AddDefinitionList : DefinitionListBlock; AddTable : TableBlock` | The abbreviated methods remain as chaining shortcuts. Call the Add methods when you need the created block; AddHeading rejects levels outside 1 to 6 instead of clamping them. |
+| Authoring | `OfficeIMO.Markdown.MarkdownDocument.Image(string path, string? alt, string? title)` | Merged | `OfficeIMO.Markdown.MarkdownDocument.AddImage(string path, string? altText = null, string? title = null, OfficeLength? width = null, OfficeLength? height = null) : ImageBlock` | Call AddImage for the attached ImageBlock, or the Image shortcut with the same parameters to keep chaining. |
 | Authoring | `OfficeIMO.Markdown.MarkdownTable.AddRow(params string[] cells) : void` | Changed | `OfficeIMO.Markdown.MarkdownTable.AddRow(params string[] cells) : string[]` | Use the returned value to edit the added content. |
 | Authoring | `OfficeIMO.Markdown.MarkdownUnorderedList.Add(ListItem item)` | Changed | `OfficeIMO.Markdown.MarkdownUnorderedList.Add(ListItem item) : ListItem` | Authoring Add methods return the attached objects rather than the document or void. |
 | Naming | `OfficeIMO.Markdown.BadgeBuilder` | Renamed | `OfficeIMO.Markdown.MarkdownBadgeBuilder` | Format types start with the format name. |
@@ -3232,6 +3234,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Naming | `OfficeIMO.Markdown.HtmlStyle` | Renamed | `OfficeIMO.Markdown.MarkdownHtmlStyle` | Format types start with the format name. |
 | Naming | `OfficeIMO.Markdown.ListItem` | Renamed | `OfficeIMO.Markdown.MarkdownListItem` | Format types start with the format name. |
 | Naming | `OfficeIMO.Markdown.MarkdownDoc` | Renamed | `OfficeIMO.Markdown.MarkdownDocument` | The Markdown model is MarkdownDocument, loaded with Load or Parse like every other format. |
+| Naming | `OfficeIMO.Markdown.MarkdownDocument.Image(string path, string? alt = null, string? title = null, OfficeLength? width = null, OfficeLength? height = null)` | Changed | `OfficeIMO.Markdown.MarkdownDocument.Image(string path, string? altText = null, string? title = null, OfficeLength? width = null, OfficeLength? height = null)` | Rename the named argument alt: to altText:. Image forwards to AddImage, which returns the ImageBlock. |
 | Naming | `OfficeIMO.Markdown.MarkdownReader` | Removed | &mdash; | OfficeIMO.Markdown.MarkdownDocument.Parse(...) |
 | Naming | `OfficeIMO.Markdown.MarkdownReader.Parse(string markdown, MarkdownReaderOptions options = null)` | Merged | `OfficeIMO.Markdown.MarkdownDocument.Parse(string markdown, MarkdownLoadOptions options = null)` | MarkdownReader.Parse -&gt; MarkdownDocument.Parse/Load. |
 | Naming | `OfficeIMO.Markdown.MarkdownReader.ParseInlineText(string text, MarkdownReaderOptions options = null)` | Moved | `OfficeIMO.Markdown.MarkdownDocument.ParseInline(string text, MarkdownLoadOptions options = null) : InlineSequence` | MarkdownReader.Parse -&gt; MarkdownDocument.Parse/Load. |
