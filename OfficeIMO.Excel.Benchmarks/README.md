@@ -2,6 +2,34 @@
 
 `OfficeIMO.Excel.Benchmarks` is the benchmark harness for `OfficeIMO.Excel`. It measures representative workbook read, write, edit, package-size, and real-world feature workloads. It is not a runtime package.
 
+## Generated tabular comparison
+
+I use `ExcelReaderGeneratedBenchmarks` for 50,000 rows with a unique name,
+integer ID, date and double. OfficeIMO, ExcelReader.NET, Sylvan and ExcelDataReader
+read the same file for each of XLSX, XLSB and XLS. Every read materializes the
+name and consumes the three typed values; the object-parsing methods separately
+compare `RowsAs<T>` with `ExcelParser<T>`. Setup checks every value and header;
+measured reads verify the row count and a checksum over every value.
+
+`ExcelReaderGeneratedXlsxWriteBenchmarks` compares complete in-memory XLSX
+packages from OfficeIMO, ExcelReader.NET and SpreadCheetah.
+`ExcelReaderGeneratedWriteBenchmarks` covers XLSB and XLS. Generation is included
+for each writer, while preflight validation is outside timing: I reopen each
+output with ExcelDataReader and the strict OfficeIMO reader. The XLS lane also
+requires the BIFF8 Index/DBCell structure. A failed preflight stays visible as
+an unavailable timing, without ranking invalid output against a valid package.
+
+The .NET 10 lanes use the published MIT ExcelReader.NET 7.3.4 package. The .NET 8
+comparisons retain their last compatible pin and are a separate version cohort.
+These generated lanes run on .NET 10:
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter "*ExcelReaderGenerated*" --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 4 --unrollFactor 1 --outliers DontRemove
+```
+
+Raw UTF-8 span access is different work from returning owned strings. I compare
+materialized values here; the resulting allocation includes those strings.
+
 ## Text export
 
 `ExcelTextWriteBenchmarks` writes complete XLSX packages containing 1,000
