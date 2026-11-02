@@ -21,28 +21,50 @@ internal sealed partial class PublisherPublicationState {
     }
 
     internal PublisherPublicationState SetTableBorderStyle(uint id, int firstRow, int firstColumn, int lastRow, int lastColumn,
-        OfficeBorderSide side, CancellationToken token) {
+        OfficeBorderSide? side, int maximumSegments, CancellationToken token) {
         PublisherTableState table = Table(id);
         bool horizontal = firstRow == lastRow;
         if (firstRow < 0 || lastRow > table.Rows.Count || firstColumn < 0 || lastColumn > table.Columns.Count
             || (horizontal ? firstColumn >= lastColumn : firstColumn != lastColumn || firstRow >= lastRow))
             throw new ArgumentException("Select an ordered horizontal or vertical range of grid boundaries.");
-        if (side.Color.A != 255 || side.Width <= 0 || side.Width > (horizontal ? table.Height : table.Width)
-            || side.DashStyle != OfficeStrokeDashStyle.Solid || side.LineKind != OfficeBorderLineKind.Single || side.DoubleLineSeparation != 0)
+        if (side.HasValue && (side.Value.Color.A != 255 || side.Value.Width <= 0 || side.Value.Width > (horizontal ? table.Height : table.Width)
+            || side.Value.DashStyle != OfficeStrokeDashStyle.Solid || side.Value.LineKind != OfficeBorderLineKind.Single || side.Value.DoubleLineSeparation != 0))
             throw new ArgumentException("Table borders require an opaque solid single line with positive width within the table's perpendicular extent.", nameof(side));
-        int index = -1;
-        for (int i = 0; i < table.BorderSegments.Count; i++) {
+        foreach (PublisherTableCellSlot cell in table.Cells) {
             token.ThrowIfCancellationRequested();
-            PublisherTableBorderSegment segment = table.BorderSegments[i];
-            if (segment.FirstRow != firstRow || segment.FirstColumn != firstColumn || segment.LastRow != lastRow || segment.LastColumn != lastColumn) continue;
-            if (index >= 0) throw new NotSupportedException("The selected border has ambiguous shared ownership.");
-            index = i;
+            bool interior = horizontal ? firstRow > cell.Row && firstRow < cell.Row + cell.RowSpan
+                && firstColumn < cell.Column + cell.ColumnSpan && lastColumn > cell.Column
+                : firstColumn > cell.Column && firstColumn < cell.Column + cell.ColumnSpan
+                && firstRow < cell.Row + cell.RowSpan && lastRow > cell.Row;
+            if (interior) throw new ArgumentException("The selected border range passes through a merged cell.");
         }
-        if (index < 0) throw new ArgumentException("Select the exact endpoints of one existing shared border.");
-        if (table.BorderSegments[index].Side == side) return this;
-        PublisherTableBorderSegment[] borders = table.BorderSegments.ToArray();
-        borders[index] = new(firstRow, firstColumn, lastRow, lastColumn, side);
+        int start = horizontal ? firstColumn : firstRow, end = horizontal ? lastColumn : lastRow;
+        var borders = new List<PublisherTableBorderSegment>();
+        bool inserted = false;
+        foreach (PublisherTableBorderSegment segment in table.BorderSegments) {
+            token.ThrowIfCancellationRequested();
+            bool aligned = horizontal ? segment.FirstRow == segment.LastRow && segment.FirstRow == firstRow
+                : segment.FirstColumn == segment.LastColumn && segment.FirstColumn == firstColumn;
+            int from = horizontal ? segment.FirstColumn : segment.FirstRow, to = horizontal ? segment.LastColumn : segment.LastRow;
+            if (!aligned || to <= start || from >= end) { Add(segment); continue; }
+            if (from < start) Add(Range(from, start, segment.Side));
+            Insert();
+            if (to > end) Add(Range(end, to, segment.Side));
+        }
+        Insert();
+        if (table.BorderSegments.SequenceEqual(borders)) return this;
         return WithTableDecoration(table.WithDecoration(table.CellFills, borders));
+
+        PublisherTableBorderSegment Range(int from, int to, OfficeBorderSide value) => horizontal
+            ? new(firstRow, from, firstRow, to, value) : new(from, firstColumn, to, firstColumn, value);
+        void Insert() {
+            if (!inserted && side.HasValue) Add(new(firstRow, firstColumn, lastRow, lastColumn, side.Value));
+            inserted = true;
+        }
+        void Add(PublisherTableBorderSegment segment) {
+            if (borders.Count >= maximumSegments) throw new InvalidDataException("Publisher table border segment limit exceeded.");
+            borders.Add(segment);
+        }
     }
 
     private PublisherPublicationState WithTableDecoration(PublisherTableState table) {

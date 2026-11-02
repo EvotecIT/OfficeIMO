@@ -666,8 +666,22 @@ fills and edges; four PDF page pairs match at 100 dpi. The writer guards existin
 local scalar slots and refuses visibility changes, utility-record insertion or
 removal, ambiguous ownership and widths without an exact signed-EMU encoding.
 Restoring original styles before saving returns the exact original PUB bytes.
-This does not qualify decorated template-free generation, native cell editing
-after opening these outputs or repair-free acceptance.
+This does not qualify native source utility insertion/removal, native cell
+editing after opening these outputs or repair-free acceptance.
+
+The `table-decorated` and `table-decorated-edited` specimens add source-free solid
+cell fills and shared borders from public authoring snapshots. `tableDecorationCreation`
+records separate utility drawing allocation, exact native instance prefixes
+`2/1/0`, calculated SPIDs and table/cell/grid bindings. A two-byte prefix control
+distinguishes refused zero-instance framing from successful native opening.
+The qualified rectangular creations and scalar edits of generated/native-resaved
+input complete Full validation: eight cell/grid inventories and eight native PDF
+pairs match independent controls at 100 dpi. Four workflows cover three distinct
+candidate byte sequences; a direct source scalar edit equals fresh edited creation.
+The earlier blank, borderless-table and merged-table bytes remain unchanged.
+Decorated merges, source utility insertion/removal, native visibility changes,
+larger/composed utility drawings, native cell editing and repair-free acceptance
+remain open; public native creation remains gated.
 
 The generated file and a public `SetPictureBounds` edit each match independently
 authored `ImagePages` and `ImagePagesEdited` controls before and after native

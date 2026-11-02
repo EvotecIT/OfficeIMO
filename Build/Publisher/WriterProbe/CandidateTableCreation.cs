@@ -6,6 +6,21 @@ namespace OfficeIMO.Publisher.WriterProbe;
 internal static class CandidateTableCreation {
     internal static CandidatePublicationSpec Create(bool edited) => CandidateModelProjection.Tables(Author(edited));
 
+    internal static CandidatePublicationSpec CreateDecorated(bool edited) {
+        PublisherDocument document = Author(false);
+        uint id = document.Pages[0].Tables[0].Id;
+        document.SetTableCellFillColor(id, 0, 0, edited ? OfficeColor.FromRgb(192, 224, 192) : OfficeColor.FromRgb(255, 224, 160));
+        document.SetTableCellFillColor(id, 0, 1, OfficeColor.FromRgb(160, 224, 255));
+        document.SetTableCellFillColor(id, 1, 1, OfficeColor.FromRgb(180, 240, 180));
+        document.SetTableBorderStyle(id, 0, 0, 1, 0, new OfficeBorderSide(edited ? OfficeColor.FromRgb(0, 128, 0) : OfficeColor.FromRgb(255, 0, 0), edited ? 1 : 2));
+        document.SetTableBorderStyle(id, 0, 0, 0, 1, new OfficeBorderSide(OfficeColor.FromRgb(0, 0, 255), 3));
+        document.SetTableBorderStyle(id, 0, 1, 1, 1, new OfficeBorderSide(OfficeColor.FromRgb(0, 128, 0), 1));
+        document.SetTableBorderStyle(id, 1, 0, 1, 1, new OfficeBorderSide(OfficeColor.FromRgb(128, 0, 128), edited ? 3 : 1));
+        document.SetTableBorderStyle(id, 1, 2, 2, 2, new OfficeBorderSide(OfficeColor.FromRgb(255, 0, 255), 4));
+        document.SetTableBorderStyle(id, 2, 1, 2, 2, new OfficeBorderSide(OfficeColor.FromRgb(0, 255, 255), 2));
+        return CandidateModelProjection.Tables(document);
+    }
+
     internal static CandidatePublicationSpec CreateMerged() {
         PublisherDocument document = PublisherDocument.Create(612, 792);
         PublisherPage master = document.AddMasterPage("Master Page A");

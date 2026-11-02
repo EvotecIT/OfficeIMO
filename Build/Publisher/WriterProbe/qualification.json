@@ -33060,7 +33060,7 @@
   },
   "tableCellDecoration": {
     "sourceBaseCommit": "c7741e78e4cd41985700b85fe4dff90c9a5e1e66",
-    "scope": "Solid cell-fill/shared-border read and render model, plus opaque preservation during public cell-text growth. Existing scalar style edits are qualified separately in tableCellStyleEditing; decorated template-free encoding remains open.",
+    "scope": "Solid cell-fill/shared-border read and render model, plus opaque preservation during public cell-text growth. Existing scalar style edits are qualified separately in tableCellStyleEditing, and rectangular utility creation in tableDecorationCreation.",
     "nativeBinary": {
       "version": "16.0.20527.20112",
       "sha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
@@ -33359,7 +33359,7 @@
     "limits": [
       "PUB00 repair-positive/recovery acceptance remains unresolved.",
       "No public source-free native writer promotion.",
-      "Style edits beyond the tableCellStyleEditing scalar profile, decorated template-free authoring, cell padding and other paint profiles remain open.",
+      "Style/source edits beyond tableCellStyleEditing, creation beyond tableDecorationCreation, cell padding and other paint profiles remain open.",
       "Managed/native pixel parity and native cell editing are not qualified.",
       "Earlier generation codecs remain separate."
     ],
@@ -33568,10 +33568,432 @@
     "limits": [
       "Native repair-positive/recovery and repair-free acceptance remain unresolved; cancelled trust control is not retried.",
       "No public source-free native writer promotion.",
-      "Adding/splitting/removing borders, native fill visibility changes and decorated template-free encoding remain open.",
+      "Native source border insertion/removal and fill visibility changes remain open; rectangular utility creation is qualified separately in tableDecorationCreation.",
       "Native cell editing after opening these output files, cell-specific padding, gradients and broader paint remain unqualified.",
       "Native PDF comparisons are finite independent-control evidence; no general managed/native pixel parity claim.",
       "Earlier generation codecs remain separate."
+    ],
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false
+  },
+  "tableDecorationCreation": {
+    "sourceBaseCommit": "e5310917292627b41a1306cd2137492540dd83b1",
+    "scope": "Public canonical shared-border assignment/clearing and isolated source-free solid-fill/shared-edge utility generation for a rectangular modern table.",
+    "publicModel": {
+      "operation": "SetTableBorderStyle(..., OfficeBorderSide? side, CancellationToken)",
+      "assignment": "Ordered horizontal/vertical grid range; replace/split collinear overlaps, preserving outside fragments and unrelated/perpendicular edges.",
+      "clear": "Null removes paint along the range; clearing absent paint is unchanged.",
+      "transaction": "Immutable snapshots; copied model/projection budgets and cancellation; project before commit.",
+      "mergedCells": "Interior ranges refuse; new merges in bordered tables refuse before story mutation. Existing complete span is unchanged. Anchor fills remain retained.",
+      "nativeSource": "Existing exact-edge color/width scalar saves retain their previous profile. Topology changes remain refused even with Allow."
+    },
+    "creation": {
+      "specimens": [
+        "table-decorated",
+        "table-decorated-edited"
+      ],
+      "sourcePublication": null,
+      "model": "PublisherDocument.Create, AddTable, SetTableCellFillColor and SetTableBorderStyle; unchanged caption and complete cell stories.",
+      "geometry": "2x2; columns120/180 points; rows42/54 points; frame72,144,300,96; three solid fills, one unfilled cell, six shared edges.",
+      "utilityDrawing": {
+        "drawingIds": [
+          3,
+          2,
+          1
+        ],
+        "instancePrefixes": [
+          2,
+          1,
+          0
+        ],
+        "utilityShapeCount": 13,
+        "totalShapeCount": 17,
+        "ownership": "Calculated SPIDs; cell definition index and table ID 0x6802; border kind and grid endpoints. Two explicit defaults, four cell utilities and six border utilities.",
+        "limits": "One SPID cluster per drawing; decorated merged-table generation refused. No production native writer promotion.",
+        "noFill": "Explicit invisible white default matches native control observations."
+      }
+    },
+    "nativeBinary": {
+      "name": "Microsoft Publisher",
+      "version": "16.0",
+      "executableVersion": "16.0.20527.20112",
+      "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+      "powershell": "7.6.9",
+      "automationSecurity": 3
+    },
+    "independentControls": [
+      {
+        "case": "TableDecoration",
+        "publicationSha256": "fdc0b1461ef08592c81586d992dae4fb5021916dbb9473d65e385dcdf7eb84c9",
+        "pdfSha256": "9e45b6f01dbe1d4d05a34468e3ac2d72a5f17aa7291d93f07a952b997ea74ddd"
+      },
+      {
+        "case": "TableDecorationEdited",
+        "publicationSha256": "143b3eba076cdf010804f5da9f7e134f8ce0efb7505b1c083d21fd0aa49b9d83",
+        "pdfSha256": "8f8831f278a7c48fcea4b42d419ee604ac500ae07931beb0fde07d2db9f5612b"
+      }
+    ],
+    "nativeWorkflows": [
+      {
+        "case": "native-final-initial",
+        "candidateSha256": "4386154305b4fa7ff0d97785832fe1e91a012e25891c3e1107159bfa50642900",
+        "stage": "Full",
+        "status": "OpenedExportedResavedAndReopened",
+        "files": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "4386154305b4fa7ff0d97785832fe1e91a012e25891c3e1107159bfa50642900"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "3a85ef6b4cbfe6a9473393fa9063f7b92429375dff7d4f2650d4c793cb053ff7"
+          },
+          {
+            "name": "native-initial.pdf",
+            "sha256": "6337c933602ce07cb045cfcd325aab388f6da3fe223c78d00bb9fe1c4bd3576f"
+          },
+          {
+            "name": "native-resaved-inventory.json",
+            "sha256": "f6a2a5edf6eddfbd319b8726f2469dc91e00c0172a7805a00974bc113062a7fa"
+          },
+          {
+            "name": "native-resaved.pdf",
+            "sha256": "530af5a981f7997d7af47ce3ea67984376071cfb1b509f5d3183caa9bfe91e2d"
+          },
+          {
+            "name": "native-resaved.pub",
+            "sha256": "066b49d04d312d4c9679176678625072cf047b2d62111e22830f04b8a32e3065"
+          },
+          {
+            "name": "native-validation.json",
+            "sha256": "3efbc192efd3a4f3ded4bd6b2f4f76cb61e5ca1d0b18b93a78b34ccbb9fa1aff"
+          }
+        ]
+      },
+      {
+        "case": "native-final-edited",
+        "candidateSha256": "4e43b55045155329ab1c79abab9904e675ee5e1dd5a1aa9c0f7cbcfa66dfbcfe",
+        "stage": "Full",
+        "status": "OpenedExportedResavedAndReopened",
+        "files": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "4e43b55045155329ab1c79abab9904e675ee5e1dd5a1aa9c0f7cbcfa66dfbcfe"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "5221f8aac2c051d400343cb6c12634dedc28250cb39fb73fe73c7853e450cfb1"
+          },
+          {
+            "name": "native-initial.pdf",
+            "sha256": "3a55d4c3732e5d42d4dbbf2dc03234fe63d493bde714c88ada00aad0431e6b37"
+          },
+          {
+            "name": "native-resaved-inventory.json",
+            "sha256": "51b6c0ce044dd6bdaebf2bee862cd424479acbcd870cbaa05efb3e40eadd82b9"
+          },
+          {
+            "name": "native-resaved.pdf",
+            "sha256": "d5f665b4338e4adaac0a5b20d94b79cc6893aedb8dc78972c8c62f12051bbc3e"
+          },
+          {
+            "name": "native-resaved.pub",
+            "sha256": "e9e389e305549634ff2a32ab1268e24f92c307e4f726c94f2a707a31531211c4"
+          },
+          {
+            "name": "native-validation.json",
+            "sha256": "42391384547787054bd0737477095c4e152b7f24dc373deb8c2f4cc445314291"
+          }
+        ]
+      },
+      {
+        "case": "native-source-direct",
+        "candidateSha256": "4e43b55045155329ab1c79abab9904e675ee5e1dd5a1aa9c0f7cbcfa66dfbcfe",
+        "stage": "Full",
+        "status": "OpenedExportedResavedAndReopened",
+        "files": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "4e43b55045155329ab1c79abab9904e675ee5e1dd5a1aa9c0f7cbcfa66dfbcfe"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "5221f8aac2c051d400343cb6c12634dedc28250cb39fb73fe73c7853e450cfb1"
+          },
+          {
+            "name": "native-initial.pdf",
+            "sha256": "48479104d69ed6763cf5ed4580e0eb75cfcb7b7cf30f278ed83f2ce9683278d2"
+          },
+          {
+            "name": "native-resaved-inventory.json",
+            "sha256": "51b6c0ce044dd6bdaebf2bee862cd424479acbcd870cbaa05efb3e40eadd82b9"
+          },
+          {
+            "name": "native-resaved.pdf",
+            "sha256": "dbfad6c24581fc9fe96b3e8a0b5d7b504af6aeef092cff25eb2d49322e7f7b0a"
+          },
+          {
+            "name": "native-resaved.pub",
+            "sha256": "ce9e738acb25a8f6196495085acc5ed239e93db263d202d9229591e005d44c36"
+          },
+          {
+            "name": "native-validation.json",
+            "sha256": "ca295895a7a1dee27c160de75e424a7c075529245b92bbae18c37f3ac2d98133"
+          }
+        ]
+      },
+      {
+        "case": "native-source-normalized",
+        "candidateSha256": "13b9579babfc24c2b4fa43046e671effa0b9ff1d3b3c48aba586a4595c2ed7da",
+        "stage": "Full",
+        "status": "OpenedExportedResavedAndReopened",
+        "files": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "13b9579babfc24c2b4fa43046e671effa0b9ff1d3b3c48aba586a4595c2ed7da"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "5e204c03ffe71e603fbeee815b55c1fd819041a1554652ba0f16fadc348c2b2c"
+          },
+          {
+            "name": "native-initial.pdf",
+            "sha256": "b934b19c8cba83c839bf79cdf3d1cc963a1cf3efa63bf76e0df6408611843142"
+          },
+          {
+            "name": "native-resaved-inventory.json",
+            "sha256": "938dbc3f6ca5d3e9532d7619b950b28e7108fb70cd6c95b7b1e0573bd0f8a59c"
+          },
+          {
+            "name": "native-resaved.pdf",
+            "sha256": "5aa84bebc2a1273e76b15dfc4b7514d7aa7f1c60ecf69452a65bd6ba9e8f9355"
+          },
+          {
+            "name": "native-resaved.pub",
+            "sha256": "dc04c64bc2d587b37cbcdaca0276625d0c103146fbd0e5d0795c1b6d58730497"
+          },
+          {
+            "name": "native-validation.json",
+            "sha256": "b2ff0b1c5a25b44d20fb1f5a9dd6d1fa67fb2fb7c868f7e351dddb9657be0d36"
+          }
+        ]
+      }
+    ],
+    "unchangedSpecimens": [
+      {
+        "case": "blank",
+        "sha256": "65398f523a5bde730dbad13c27b5f7f614a09642fbfe29e06fed7e723358af6d",
+        "unchanged": true
+      },
+      {
+        "case": "table",
+        "sha256": "6025eb5441825c4a4a78ddfbd7221d136c05a6dd5ed8985f8eedc03e32b683ed",
+        "unchanged": true
+      },
+      {
+        "case": "table-merged",
+        "sha256": "21343f85132455613677402a7739d449fe7e854f8a8ff9eecaba0fe232ba9c1e",
+        "unchanged": true
+      }
+    ],
+    "drawingInstanceControl": {
+      "negativeCandidateSha256": "ebdc408c7c9dfe58e5c5ef36e55482db9bb00d9510d8d6d9de06e6f8d66e4d91",
+      "positivePrototypeSha256": "86fb816b70206bcfad12174534da91055f19104b65b27a2b592e5843d2df4341",
+      "byteDifference": {
+        "equalLength": true,
+        "changedBytes": 2,
+        "offsets": [
+          3384,
+          4524
+        ],
+        "values": [
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      },
+      "negativeResult": "Native open refused: Publisher cannot open the file; no consent interaction. Owned worker/native process closure recorded.",
+      "positiveResult": "Full native open/export/SaveAs/reopen completed after correcting only the two instance-prefix bytes."
+    },
+    "proof": {
+      "inventories": [
+        {
+          "cohort": "native-final-initial",
+          "stage": "initial",
+          "independentCase": "TableDecoration",
+          "cells": 4,
+          "completeNativeCellAndGridMatch": true
+        },
+        {
+          "cohort": "native-final-initial",
+          "stage": "resaved",
+          "independentCase": "TableDecoration",
+          "cells": 4,
+          "completeNativeCellAndGridMatch": true
+        },
+        {
+          "cohort": "native-final-edited",
+          "stage": "initial",
+          "independentCase": "TableDecorationEdited",
+          "cells": 4,
+          "completeNativeCellAndGridMatch": true
+        },
+        {
+          "cohort": "native-final-edited",
+          "stage": "resaved",
+          "independentCase": "TableDecorationEdited",
+          "cells": 4,
+          "completeNativeCellAndGridMatch": true
+        },
+        {
+          "cohort": "native-source-direct",
+          "stage": "initial",
+          "independentCase": "TableDecorationEdited",
+          "cells": 4,
+          "completeNativeCellAndGridMatch": true
+        },
+        {
+          "cohort": "native-source-direct",
+          "stage": "resaved",
+          "independentCase": "TableDecorationEdited",
+          "cells": 4,
+          "completeNativeCellAndGridMatch": true
+        },
+        {
+          "cohort": "native-source-normalized",
+          "stage": "initial",
+          "independentCase": "TableDecorationEdited",
+          "cells": 4,
+          "completeNativeCellAndGridMatch": true
+        },
+        {
+          "cohort": "native-source-normalized",
+          "stage": "resaved",
+          "independentCase": "TableDecorationEdited",
+          "cells": 4,
+          "completeNativeCellAndGridMatch": true
+        }
+      ],
+      "nativePdfPixelPairs": [
+        {
+          "cohort": "native-final-initial",
+          "left": "control",
+          "right": "initial",
+          "dpi": 100,
+          "size": [
+            850,
+            1100
+          ],
+          "changedPixels": 0
+        },
+        {
+          "cohort": "native-final-initial",
+          "left": "control",
+          "right": "resaved",
+          "dpi": 100,
+          "size": [
+            850,
+            1100
+          ],
+          "changedPixels": 0
+        },
+        {
+          "cohort": "native-final-edited",
+          "left": "control",
+          "right": "initial",
+          "dpi": 100,
+          "size": [
+            850,
+            1100
+          ],
+          "changedPixels": 0
+        },
+        {
+          "cohort": "native-final-edited",
+          "left": "control",
+          "right": "resaved",
+          "dpi": 100,
+          "size": [
+            850,
+            1100
+          ],
+          "changedPixels": 0
+        },
+        {
+          "cohort": "native-source-direct",
+          "left": "control",
+          "right": "initial",
+          "dpi": 100,
+          "size": [
+            850,
+            1100
+          ],
+          "changedPixels": 0
+        },
+        {
+          "cohort": "native-source-direct",
+          "left": "control",
+          "right": "resaved",
+          "dpi": 100,
+          "size": [
+            850,
+            1100
+          ],
+          "changedPixels": 0
+        },
+        {
+          "cohort": "native-source-normalized",
+          "left": "control",
+          "right": "initial",
+          "dpi": 100,
+          "size": [
+            850,
+            1100
+          ],
+          "changedPixels": 0
+        },
+        {
+          "cohort": "native-source-normalized",
+          "left": "control",
+          "right": "resaved",
+          "dpi": 100,
+          "size": [
+            850,
+            1100
+          ],
+          "changedPixels": 0
+        }
+      ],
+      "directScalarEditEqualsFreshEditedCreation": true,
+      "distinctCandidates": 3,
+      "nativeScope": "Four workflows include repeated bytes for direct scalar editing versus edited creation. Three distinct candidates; finite control/table/layout qualification only."
+    },
+    "verification": {
+      "focusedNet10": 14,
+      "fullPublisherNet10": 1123,
+      "tableNet8": 106,
+      "tableNet472": 106,
+      "skipped": 0,
+      "builds": "Unsigned clean netstandard2.0 Publisher and source-built net8 PSWriteOffice; internal WriterProbe builds.",
+      "powershell": {
+        "modelRangeAssignmentAndClear": true,
+        "sourceEditAndPdfWorkflows": 2,
+        "publicationBytesMatchNativeValidatedCaller": true
+      },
+      "review": "One fresh independent read-only review of new range authoring and internal utility generation; no actionable P0-P3 findings."
+    },
+    "limits": [
+      "PUB00 repair-positive/recovery and repair-free acceptance remain unresolved; cancelled trust/recovery control is untouched.",
+      "Public source-free native writing remains gated.",
+      "Decorated merged creation, composed/larger utility drawings, dynamic rows and broader layouts require qualification.",
+      "Native source utility insertion/removal and fill visibility changes remain refused.",
+      "Native cell editing after opening these outputs remains unqualified.",
+      "No managed/native pixel parity or earlier-generation lifecycle inference."
     ],
     "canClosePUB00": false,
     "canPromotePublicNativeCreation": false

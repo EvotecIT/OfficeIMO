@@ -67,7 +67,7 @@ internal static class Program {
             Console.Error.WriteLine("wrap-order <input.pub> <candidate.pub> <object-order-and-frame-wraps.json>");
             Console.Error.WriteLine("create <object-pages|mixed-object-pages|master-content|newsletter> <candidate.pub> <image-path>");
             Console.Error.WriteLine("create <linked-story|linked-story-overflow> <candidate.pub>");
-            Console.Error.WriteLine("create <table|table-edited|table-merged> <candidate.pub>");
+            Console.Error.WriteLine("create <table|table-edited|table-merged|table-decorated|table-decorated-edited> <candidate.pub>");
             Console.Error.WriteLine("create <table-grid|table-grid-empty|table-grid-edited> <candidate.pub> <rows>x<columns>");
             Console.Error.WriteLine("create <frame-layout|frame-layout-edited> <candidate.pub>");
             Console.Error.WriteLine("create <frame-layout-language|linked-story-language|linked-story-language-overflow> <candidate.pub>");

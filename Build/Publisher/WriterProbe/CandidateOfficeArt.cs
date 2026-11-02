@@ -5,7 +5,7 @@ using static OfficeIMO.Publisher.WriterProbe.NativePublicationGraph;
 namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Constructs the probe's calculated, format-owned OfficeArt drawing topology.</summary>
-internal static class CandidateOfficeArt {
+internal static partial class CandidateOfficeArt {
     internal static IReadOnlyList<ImageBinding> BindImages(Graph graph) {
         var images = new List<ImageBinding>();
         var assets = new Dictionary<int, ImageBinding>();
@@ -30,14 +30,21 @@ internal static class CandidateOfficeArt {
     internal static byte[] Create(Graph graph, IReadOnlyList<ImageBinding> images) {
         uint shapeCount = (uint)graph.Objects.Count + 1;
         uint lastShapeId = RootShapeId + shapeCount - 1;
+        var tableDrawing = TableDrawing(graph);
+        if (tableDrawing.HasValue && shapeCount > 1024)
+            throw new NotSupportedException("The decorated table specimen uses one SPID cluster per drawing.");
         byte[] fdgg = Art(0, 0xF006, Bytes(writer => {
             // Follow the native/PPT allocation convention: one beyond the
             // greatest allocated SPID. No hidden background shape is emitted.
-            writer.Write(lastShapeId + 1); // spidMax
-            writer.Write(2U); // cidcl: one IDCL entry plus one.
-            writer.Write(shapeCount); // cspSaved
-            writer.Write(1U); // cdgSaved
+            writer.Write((tableDrawing?.LastSpid ?? lastShapeId) + 1); // spidMax
+            writer.Write(tableDrawing.HasValue ? 4U : 2U); // IDCL entries plus one.
+            writer.Write(shapeCount + (tableDrawing.HasValue ? tableDrawing.Value.Count + 1 : 0));
+            writer.Write(tableDrawing.HasValue ? 3U : 1U); // cdgSaved
             writer.Write(DrawingId); writer.Write(shapeCount); // IDCL
+            if (tableDrawing.HasValue) {
+                writer.Write(2U); writer.Write(1U);
+                writer.Write(3U); writer.Write(tableDrawing.Value.Count);
+            }
         }));
         var groupRecords = new List<byte[]> { fdgg };
         // Native references follow model asset identity, never byte equality.
@@ -45,18 +52,25 @@ internal static class CandidateOfficeArt {
             images.Select(image => OfficeArtBlipStoreEntryWriter.CreateDelayed(image.Image,
                 ContentType(image.Image), image.Offset, referenceCount: checked((uint)image.ObjectIds.Count))).ToArray()));
         byte[] dgg = Art(15, 0xF000, groupRecords.ToArray());
-        byte[] root = Art(15, 0xF004,
-            Art(1, 0xF009, new byte[16]),
-            Art(2, 0xF00A, Bytes(writer => { writer.Write(RootShapeId); writer.Write(5U); })));
         var imageIndices = images.SelectMany(image => image.ObjectIds.Select(id => (Id: id, image.Index)))
             .ToDictionary(item => item.Id, item => item.Index);
-        byte[][] shapes = new[] { root }.Concat(graph.Objects.Select(item => Leaf(item, graph.Source.WidthEmu,
+        byte[][] shapes = new[] { DrawingRoot(DrawingId) }.Concat(graph.Objects.Select(item => Leaf(item, graph.Source.WidthEmu,
             graph.Source.HeightEmu, imageIndices.TryGetValue(item.Id, out uint index) ? index : null))).ToArray();
-        byte[] drawing = Art(15, 0xF002,
-            Art((ushort)(DrawingId << 4), 0xF008, Bytes(writer => { writer.Write(shapeCount); writer.Write(lastShapeId); })),
-            Art(15, 0xF003, shapes));
-        return Join(dgg, new byte[4], drawing);
+        byte[] drawing = Drawing(DrawingId, shapes, lastShapeId);
+        // The four-byte prefixes select drawing instances, rather than padding.
+        // Native table controls serialize utility instance 2, empty instance 1,
+        // then ordinary instance 0; SPID drawing identifiers remain 3, 2 and 1.
+        return tableDrawing.HasValue ? Join(dgg, Bytes(writer => writer.Write(2U)), tableDrawing.Value.Bytes,
+            Bytes(writer => writer.Write(1U)), Drawing(2, new[] { DrawingRoot(2) }, 2U << 10), new byte[4], drawing)
+            : Join(dgg, new byte[4], drawing);
     }
+
+    private static byte[] DrawingRoot(uint id) => Art(15, 0xF004, Art(1, 0xF009, new byte[16]),
+        Art(2, 0xF00A, Bytes(writer => { writer.Write(id << 10); writer.Write(5U); })));
+
+    private static byte[] Drawing(uint id, byte[][] shapes, uint lastSpid) => Art(15, 0xF002,
+        Art(checked((ushort)(id << 4)), 0xF008, Bytes(writer => { writer.Write((uint)shapes.Length); writer.Write(lastSpid); })),
+        Art(15, 0xF003, shapes));
 
     internal static byte[] CreateImageDelayStream(IReadOnlyList<ImageBinding> images) => Join(images.Select(image => image.Blip).ToArray());
 

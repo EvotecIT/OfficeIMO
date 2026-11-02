@@ -593,13 +593,15 @@ colors through `OfficeBorderSide`. Segment endpoints are row/column boundaries,
 so a shared edge appears once even when it borders two cells. These decorations
 render through qualified rectangular table placement and remain preserved during
 supported cell-text saves. `SetTableCellFillColor` sets or clears an opaque solid
-cell background using its anchor coordinates. `SetTableBorderStyle` changes an
-existing shared edge's solid color and positive point width, selecting the exact
-endpoints from its snapshot. Both operations update rendering transactionally.
+cell background using its anchor coordinates. `SetTableBorderStyle` assigns a
+solid shared edge along an ordered horizontal or vertical grid range, or clears
+that range with `null`. It splits overlapping collinear edges and retains their
+outside fragments, perpendicular edges and unrelated ranges. Ranges through
+merged-cell interiors are rejected. Both operations update rendering transactionally.
 Native source saving supports recoloring existing visible solid fills and changing
 existing shared-border color/width through unambiguous local scalar fields. It
 refuses visibility changes, record insertion/removal and widths without an exact
-signed-EMU representation. Adding, splitting or removing shared edges, gradients,
+signed-EMU representation. Native source insertion/removal of shared edges, gradients,
 cell-specific padding and broader native appearances remain separate profiles.
 Unsupported paint is reported rather than presented as an observed empty style.
 
@@ -632,6 +634,9 @@ publication.ReplaceTableCellParagraphs(addedTable.Id, 0, 0, new[] {
         new OfficeRichTextRun("Item", 10, OfficeColor.Black, fontFamily: "Arial")
     })
 });
+publication.SetTableCellFillColor(addedTable.Id, 0, 0, OfficeColor.FromRgb(192, 224, 192));
+publication.SetTableBorderStyle(addedTable.Id, 0, 0, 0, addedTable.ColumnCount,
+    new OfficeBorderSide(OfficeColor.Black, 1));
 File.WriteAllText("table-edited.svg", publication.ToSvg());
 ```
 
@@ -642,9 +647,10 @@ terminator convention, including when clearing and refilling a cell. Compatible
 tables sharing a story update together. Conflicting cell grids, unresolved
 boundaries and stories also referenced by ordinary text frames reject cell edits.
 `MergeTableCells` joins complete cells in an authored table. It retains their
-styled paragraphs in existing cell-definition order and preserves the grid
-tracks. The requested rectangle must contain every intersecting cell completely;
-partial overlaps and imported native topology are refused. Read and export the
+styled paragraphs in existing cell-definition order, keeps the anchor fill and
+preserves grid tracks. The requested rectangle must contain every intersecting
+cell completely. Partial overlaps, imported native topology and new merges in
+tables with shared borders are refused. Read and export the
 new table snapshot from `Pages` after editing. The public native save path does
 not serialize newly authored tables.
 Complete text remains inspectable when a cell overflows its rendered frame.

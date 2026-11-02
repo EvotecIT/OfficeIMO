@@ -72,7 +72,7 @@ public sealed class PublisherTableDecorationEditingTests {
         Assert.Throws<ArgumentException>(() => document.SetTableCellFillColor(id, 0, 1, anchor));
         Assert.Throws<ArgumentException>(() => document.SetTableCellFillColor(id, 0, 0, new OfficeColor(1, 2, 3, 128)));
         Assert.Throws<OperationCanceledException>(() => document.SetTableCellFillColor(id, 0, 0, null, new CancellationToken(true)));
-        Assert.Throws<ArgumentException>(() => document.SetTableBorderStyle(id, 0, 0, 0, 1, new OfficeBorderSide(anchor, 1)));
+        Assert.Throws<ArgumentException>(() => document.SetTableBorderStyle(id, 0, 0, 1, 1, new OfficeBorderSide(anchor, 1)));
         Assert.Equal(before, document.ToSvg());
         document.SetTableCellFillColor(id, 0, 0, null);
         Assert.Null(document.Pages[0].Tables[0].Cells[0].FillColor);
@@ -86,7 +86,7 @@ public sealed class PublisherTableDecorationEditingTests {
         Assert.Throws<ArgumentException>(() => document.SetTableBorderStyle(id, 0, 0, 1, 0, new OfficeBorderSide(OfficeColor.Black, 0)));
         Assert.Throws<ArgumentException>(() => document.SetTableBorderStyle(id, 0, 0, 1, 0, new OfficeBorderSide(OfficeColor.Black, 1, OfficeStrokeDashStyle.Dash)));
         Assert.Throws<ArgumentException>(() => document.SetTableBorderStyle(id, 0, 0, 1, 1, new OfficeBorderSide(OfficeColor.Black, 1)));
-        Assert.Throws<ArgumentException>(() => document.SetTableBorderStyle(id, 0, 0, 2, 0, new OfficeBorderSide(OfficeColor.Black, 1)));
+        Assert.Throws<ArgumentException>(() => document.SetTableBorderStyle(id, 0, 0, 3, 0, new OfficeBorderSide(OfficeColor.Black, 1)));
         Assert.Throws<OperationCanceledException>(() => document.SetTableBorderStyle(id, 0, 0, 1, 0, new OfficeBorderSide(OfficeColor.Black, 1), new CancellationToken(true)));
         Assert.Equal(source, document.ToPubBytes());
     }

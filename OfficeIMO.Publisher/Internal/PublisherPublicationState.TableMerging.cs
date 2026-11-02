@@ -25,6 +25,8 @@ internal sealed partial class PublisherPublicationState {
             selected.Add(i);
         }
         if (selected.Count == 1) return this;
+        if (table.BorderSegments.Count != 0)
+            throw new NotSupportedException("Merging a table with shared borders requires a separately qualified border-topology edit.");
         uint storyId = table.StoryId!.Value;
         PublisherTableStory original = Text.TableStories[storyId];
         var selectedSet = new HashSet<int>(selected);

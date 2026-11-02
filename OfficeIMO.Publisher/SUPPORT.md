@@ -112,7 +112,7 @@ still consume the image-processing byte budget.
 | Primitive creation | Rectangle, rounded rectangle, ellipse and nondegenerate line descriptors append to qualified document/master pages; shared publication allocator and current SVG/PDF scenes | No native records; unsupported geometry/effects are rejected; new shapes have no story or wrap references |
 | In-memory edits | Document-owned replacement of complete non-table story paragraphs and mapped table-cell paragraphs, bounds changes for qualified frames/tables, and image replacement/bounds changes for supported rectangular PNG/JPEG picture placements; stable IDs and ownership, explicit object order, fresh scenes, text ranges and overflow | Picture and table bounds edits reject unsupported graphic placement. Cell edits reject conflicting grids, unsafe partitions and stories also used by ordinary frames; no imported table topology/styling changes or arbitrary relinking. Native saving accepts only the separate source-edit profile; old references remain snapshots |
 | Object stacking | `PublisherPage.ObjectIds` exposes the mixed back-to-front order; `SetPageObjectOrder` changes an exact permutation on a document/master page, with fresh SVG/PDF scenes and qualified existing-source native saving | Existing IDs, ownership and story links remain fixed. Qualified rectangular wrap relationships regenerate during ordering and bounds edits. Groups, unqualified side/outline/master wrapping and split native sibling scopes remain unsupported; source-free native output remains unavailable |
-| Table creation | Empty borderless grids on qualified document/master pages; `MergeTableCells` joins complete authored cells into rectangular spans while retaining styled paragraphs and tracks; one complete story, shared table/story identifier allocation and current SVG/PDF/Reader projection | Imported native topology, decoration authoring and public native PUB creation remain unsupported; partial span overlaps are refused; text/model/projection limits and transactional failure behavior apply |
+| Table creation | Grids on qualified document/master pages; opaque anchor-cell fills and shared horizontal/vertical border assignment/clearing; `MergeTableCells` joins complete authored cells into rectangular spans while retaining styled paragraphs, anchor fills and tracks; one complete story, shared identifier allocation and current SVG/PDF/Reader projection | Imported native topology and public native PUB creation remain unsupported. Shared borders split on range overwrite; merged-cell interiors and new merges in bordered tables are refused. Text/model/projection limits and transactional failure behavior apply |
 | Page/master authoring | Source-free `Create` with one empty physical page; appended same-size physical pages, centered single masters and atomic left/right master pairs; typed master-side metadata; explicit qualified direct assignment or clearing; existing-source assignment/clearing can save natively | No page resizing, deletion/reordering, cross-page object moves, automatic parity selection or master inheritance; unqualified background/registration/reference/display records reject assignment; new topology cannot save natively |
 | Ordinary text creation | `AddTextFrame` creates a complete independent styled story and resolved one-frame chain on a qualified document/master page; one column, zero gap/insets, top alignment, no paint/transform/wrap; existing continuation API handles document-page chains | Authored ordinary stories have no implicit final terminator; full overflow is retained. Frame/story IDs reserve atomically; master-owned stories cannot continue across physical pages; no native text records are authored |
 | Text-frame layout edits | `SetTextFrameLayout` replaces equal-width columns/full intercolumn gap, Core padding and Top/Center/Bottom alignment on qualified resolved document/master frames, including mixed text artwork. Imported frames can use the bounded native source-save profile; snapshots expose operation-specific eligibility | No table stories/aliases, grouped/transformed/unresolved placement, native balancing, distributed alignment or vertical writing. Unqualified native layout overrides remain read-only for this operation; bounds/read behavior stays separate. Native saving requires exact distances and safely editable local properties/chunk-directory records; fidelity remains Unassessed |
@@ -996,8 +996,8 @@ native inspection and PDF export confirm the result. The 12×8 creation and edit
 use multiple character and paragraph formatting pages. The specimen range is
 not a format maximum; creation retains a single Quill descriptor-directory
 limit. Those read-only operations do not qualify native editing or resave/reopen.
-Styled table authoring, dynamic row sizing, generic public native creation and
-repair-free opening remain unqualified.
+Native styling beyond the rectangular solid utility profile below, dynamic row
+sizing, generic public native creation and repair-free opening remain unqualified.
 
 ### Authored table merges
 
@@ -1005,7 +1005,9 @@ repair-free opening remain unqualified.
 retaining their styled paragraphs in existing definition order in the new
 anchor. Grid tracks, other cells and old snapshots remain intact. Repeating a
 range already occupied by one complete cell makes no semantic change; ranges
-that split a span and changes to imported native topology are refused.
+that split a span and changes to imported native topology are refused. The anchor
+fill is retained. New merges in tables with shared borders remain unsupported;
+requesting an already complete span still makes no change.
 
 The `mergedTableCreation` qualification record covers a source-free three-row,
 four-column borderless table with horizontal, vertical and 2×2 merged owners,
@@ -1045,9 +1047,11 @@ decoration preservation during the listed text edit.
 
 `SetTableCellFillColor` edits an anchor cell's opaque solid background, including
 clearing it in the managed model. Authored merges keep the anchor fill.
-`SetTableBorderStyle` changes the color and positive width of exactly one existing
-shared edge selected by its complete grid-boundary endpoints. Both operations
-retain immutable snapshots and commit only after successful projection.
+`SetTableBorderStyle` assigns a solid shared edge along an ordered grid range, or
+clears it with null. Overlapping collinear edges split around the requested range;
+unrelated and perpendicular edges remain intact. Ranges through merged-cell
+interiors are rejected. Both operations retain immutable snapshots and commit
+only after successful projection, with copied model and projection budgets.
 
 The `tableCellStyleEditing` qualification record covers native source recoloring
 of an existing visible fill and color/width changes to existing shared borders.
@@ -1059,9 +1063,28 @@ exports, separately saves and reopens both edited outputs: all four native cell
 inventories match their controls, and four PDF page pairs match at 100 dpi.
 This profile requires unambiguous existing local color/width fields and exact
 signed-EMU widths. Visibility changes and utility-record insertion/removal refuse
-native output, including under Allow. Decorated template-free authoring, native
-cell editing after opening the generated output, broader paint and repair-free
-opening remain unqualified.
+native output, including under Allow. Native cell editing after opening the
+generated output, broader paint and repair-free opening remain unqualified.
+
+The internal `table-decorated` and `table-decorated-edited` specimens create a
+two-by-two fixed grid with three solid cell fills and six shared edges solely
+from the public authoring model. The `tableDecorationCreation` record qualifies
+fresh utility records in a separate drawing: calculated SPIDs, table/cell bindings,
+grid ranges, colors, widths, drawing-instance prefixes and allocation counts.
+The empty cell retains the independent control's invisible white fill default.
+No native publication supplies seed bytes. The blank, borderless-table and
+merged-table specimens retain their previous complete output bytes.
+
+Both creations and public scalar edits of generated and Publisher-resaved input
+complete native opening, PDF export, SaveAs and reopen. Eight native inventories
+match the independent controls' complete cell/style and grid observations; eight
+native PDF pairs match at 100 dpi. The direct scalar edit produces the same PUB
+bytes as creating the edited model. The four workflows cover three distinct
+candidate byte sequences. This is a bounded unmerged rectangular utility profile,
+with one SPID cluster per drawing. Decorated merged-table creation, native source
+utility-record insertion/removal, visibility changes, broader layouts and the
+general public native writer remain unqualified. Managed/native pixel parity,
+native cell editing and repair-free acceptance remain separate open criteria.
 
 The internal `frame-layout` and `frame-layout-edited` creation specimens carry
 six frames on two pages from public `SetTextFrameLayout` snapshots into the

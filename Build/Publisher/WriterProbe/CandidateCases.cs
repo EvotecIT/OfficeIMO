@@ -22,6 +22,10 @@ internal static class CandidateCases {
             if (value != null || secondValue != null) throw new ArgumentException("The table specimens use fixed cell text.");
             return CandidateTableCreation.Create(kind == "table-edited");
         }
+        if (kind is "table-decorated" or "table-decorated-edited") {
+            if (value != null || secondValue != null) throw new ArgumentException("The decorated table specimens use fixed cell text and paint.");
+            return CandidateTableCreation.CreateDecorated(kind == "table-decorated-edited");
+        }
         if (kind == "table-merged") {
             if (value != null || secondValue != null) throw new ArgumentException("The merged table specimen uses fixed cell text and spans.");
             return CandidateTableCreation.CreateMerged();
