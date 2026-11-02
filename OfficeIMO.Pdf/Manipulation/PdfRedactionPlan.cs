@@ -662,7 +662,9 @@ public sealed partial class PdfRedactionPlan {
         identity.Append(':');
         if (!sourceIdentities.TryGetValue(resource, out string? source)) {
             using var fingerprint = new PdfObjectGraphFingerprint(document.Objects, document.ReadOptions.Limits.MaxObjectNestingDepth,
-                Math.Min(1_000_000, Math.Max(16_384, document.ReadOptions.Limits.MaxIndirectObjects)), includeDictionaryEntry: includeEntry);
+                Math.Min(1_000_000, Math.Max(16_384, document.ReadOptions.Limits.MaxIndirectObjects)),
+                includeDictionaryKey: static key => !string.Equals(key, "Length", StringComparison.Ordinal),
+                includeDictionaryEntry: includeEntry);
             fingerprint.AppendRoot(resource.SourceStream);
             fingerprint.AppendRoot(resource.SourceResources);
             source = Convert.ToBase64String(fingerprint.Complete());

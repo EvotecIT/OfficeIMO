@@ -109,6 +109,8 @@ public partial class PdfRedactionApplierTests {
                     objects[6] = objects[6].Replace("/Resources <<", "/Resources << /Pattern << /P1 41 0 R >>");
                     objects[7] = Stream("", "BT /F1 12 Tf 72 700 Td (Public second) Tj ET /Pattern cs /P1 scn 200 400 50 50 re f");
                     objects[41] = Stream("/Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << >> /Metadata 38 0 R", "1 0 0 rg 0 0 10 10 re f");
+                    objects[41] = objects[41].Replace("/Length 23", "/Length 42 0 R");
+                    objects[42] = "23";
                 }
                 if (variant == "MetadataAppearance") {
                     objects[6] = WithoutDictionaryEnd(objects[6]) + " /Annots [40 0 R] >>";
