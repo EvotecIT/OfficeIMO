@@ -17,7 +17,7 @@ internal static partial class PdfRedactionVerification {
         Guard.NotNull(options, nameof(options));
         options.CancellationToken.ThrowIfCancellationRequested();
 
-        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.Resolve(readOptions);
+        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.WithArtifactText(readOptions);
         string extractedText = PdfReadDocument.Open(redactedPdf, effectiveReadOptions, options.CancellationToken).ExtractText();
         options.CancellationToken.ThrowIfCancellationRequested();
         string rawPdf = options.CheckRawPdfBytes ? PdfEncoding.Latin1GetString(redactedPdf) : string.Empty;
@@ -124,6 +124,7 @@ internal static partial class PdfRedactionVerification {
         PdfLoadOptions? readOptions,
         IReadOnlyList<PdfRedactionMatch> appliedImageMatches) {
         Guard.NotNull(reviewedPlan, nameof(reviewedPlan));
+        readOptions = PdfLoadOptions.WithArtifactText(readOptions);
         options.CancellationToken.ThrowIfCancellationRequested();
         PdfRedactionVerificationReport markerReport = Verify(redactedPdf, options, readOptions);
         PdfDocumentPreflight rewrittenPreflight = PdfInspector.Preflight(redactedPdf, readOptions, options.CancellationToken);
@@ -306,7 +307,7 @@ internal static partial class PdfRedactionVerification {
         IReadOnlyList<PdfRedactionArea> areas,
         PdfLoadOptions? readOptions,
         CancellationToken cancellationToken) {
-        PdfReadDocument document = PdfReadDocument.Open(redactedPdf, readOptions, cancellationToken);
+        PdfReadDocument document = PdfReadDocument.Open(redactedPdf, PdfLoadOptions.WithArtifactText(readOptions), cancellationToken);
         for (int areaIndex = 0; areaIndex < areas.Count; areaIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfRedactionArea area = areas[areaIndex];

@@ -3535,6 +3535,11 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 </details>
 <!-- officeimo-api-map:end -->
 
+Handle `PdfRedactionMatchKind.BookmarkTitle` when switching on match kinds; its `Text` is omitted. Matching bookmark titles are cleared in full, and `CleanupScope.None` does not preserve them. Post-save search verification budget exhaustion now throws `PdfMutationBlockedException` with `FullRewrite.ProofFailed.RedactionResidue` instead of `InvalidDataException`.
+
+Search redaction output for accepted object-stream and cross-reference-stream PDFs is always classic. If your code inspects saved structure, expect no object-stream or cross-reference-stream objects, no `/Prev` trailer entry, and null in place of references to free or missing objects.
+
+
 ## Chart and workbook defaults
 
 New workbooks use the default `OfficeTheme` font and palette: Aptos and the

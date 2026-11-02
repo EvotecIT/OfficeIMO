@@ -398,7 +398,7 @@ internal static partial class PdfAdvancedUnderstandingStages {
                         return baseline != 0 ? baseline : left.XStart.CompareTo(right.XStart);
                     });
                 foreach (PdfUnderstandingLine[] column in SplitSideBySideColumns(context, ordered, depth: 0)) {
-                    AddStructuralSubregions(context, column, pageMedianFontSize, regions);
+                    AddStructuralSubregions(context, column, lines, pageMedianFontSize, regions);
                 }
             }
             return regions.Count == 0 ? Array.Empty<PdfUnderstandingRegion>() : regions.AsReadOnly();
@@ -534,8 +534,10 @@ internal static partial class PdfAdvancedUnderstandingStages {
         private static void AddStructuralSubregions(
             PdfUnderstandingPageContext context,
             PdfUnderstandingLine[] component,
+            IReadOnlyList<PdfUnderstandingLine> pageLines,
             double pageMedianFontSize,
             List<PdfUnderstandingRegion> regions) {
+            double columnWidth = GetBodyColumnWidth(context, component, pageLines, pageMedianFontSize);
             var current = new List<PdfUnderstandingLine>();
             for (int lineIndex = 0; lineIndex < component.Length; lineIndex++) {
                 context.ConsumeWork();
@@ -556,7 +558,7 @@ internal static partial class PdfAdvancedUnderstandingStages {
                     }
                     if (startsHeading || startsListItem || currentIsHeading ||
                         HasMaterialFontTransition(previous, line) ||
-                        (!currentIsListItem && StartsParagraphBoundary(current, line)) ||
+                        (!currentIsListItem && StartsParagraphBoundary(current, line, columnWidth)) ||
                         (currentIsListItem && !continuesListItem)) {
                         AddRegion(current, regions);
                         current = new List<PdfUnderstandingLine>();
@@ -594,13 +596,15 @@ internal static partial class PdfAdvancedUnderstandingStages {
 
         private static bool StartsParagraphBoundary(
             List<PdfUnderstandingLine> current,
-            PdfUnderstandingLine candidate) {
+            PdfUnderstandingLine candidate,
+            double columnWidth) {
             if (HasExplicitParagraphBreak(candidate)) return true;
             if (current.Count == 0) return false;
 
             PdfUnderstandingLine first = current[0];
             PdfUnderstandingLine previous = current[current.Count - 1];
             if (HasProviderHierarchyBoundary(previous, candidate)) return true;
+            if (EndsBeforeColumnWraps(previous, candidate, columnWidth)) return true;
             double verticalGap = previous.BaselineY - candidate.BaselineY;
             if (verticalGap <= 0D) return false;
             double em = Math.Max(1D, Math.Max(previous.FontSize, candidate.FontSize));
@@ -621,6 +625,56 @@ internal static partial class PdfAdvancedUnderstandingStages {
             bool returnsToParagraphMargin = Math.Abs(candidate.XStart - first.XStart) <= indentation * 0.5D &&
                 Math.Abs(previous.XStart - first.XStart) >= indentation;
             return startsIndentedLine || returnsToParagraphMargin;
+        }
+
+        /// <summary>
+        /// Measures the width a block's lines could have used. A block of short lines is often its own component,
+        /// so its measure comes from body text on the same left margin unless something sits beside the block.
+        /// Prominent lines are left out, since a wide title must not make body text beneath it look short.
+        /// A neighbouring column can be staggered, so content beside counts within three lines of the block,
+        /// up to the wider margin lines above and below it. A tall block does not widen that reach.
+        /// </summary>
+        private static double GetBodyColumnWidth(
+            PdfUnderstandingPageContext context,
+            PdfUnderstandingLine[] component,
+            IReadOnlyList<PdfUnderstandingLine> pageLines,
+            double pageMedianFontSize) {
+            PdfUnderstandingLine[] body = component.Where(line => !IsTypographicallyProminent(line, pageMedianFontSize)).ToArray();
+            if (body.Length < 2) return 0D;
+            double left = body.Min(static line => line.XStart);
+            double right = body.Max(static line => line.XEnd);
+            double marginTolerance = pageMedianFontSize * 0.5D;
+            context.ConsumeWork(pageLines.Count);
+            PdfUnderstandingLine[] wider = pageLines
+                .Where(line => !IsTypographicallyProminent(line, pageMedianFontSize) && Math.Abs(line.XStart - left) <= marginTolerance && line.XEnd > right)
+                .ToArray();
+            if (wider.Length == 0) return right - left;
+            double measureRight = wider.Max(static line => line.XEnd);
+            double componentTop = body.Max(static line => line.BaselineY);
+            double componentBottom = body.Min(static line => line.BaselineY);
+            double reach = pageMedianFontSize * 3D;
+            double top = wider.Where(line => line.BaselineY > componentTop).Select(static line => line.BaselineY)
+                .DefaultIfEmpty(double.MaxValue).Min();
+            double bottom = wider.Where(line => line.BaselineY < componentBottom).Select(static line => line.BaselineY)
+                .DefaultIfEmpty(double.MinValue).Max();
+            top = Math.Min(top, componentTop + reach);
+            bottom = Math.Max(bottom, componentBottom - reach);
+            context.ConsumeWork(pageLines.Count);
+            bool hasContentBeside = pageLines.Any(line => line.XStart >= right && line.XStart < measureRight &&
+                line.BaselineY < top && line.BaselineY > bottom);
+            return (hasContentBeside ? right : measureRight) - left;
+        }
+
+        /// <summary>
+        /// Wrapping fills a line, so a line ending in the first quarter of its column with room for the next word
+        /// was broken on purpose. Narrower text can wrap within a wider component, which sets the quarter limit.
+        /// </summary>
+        private static bool EndsBeforeColumnWraps(PdfUnderstandingLine previous, PdfUnderstandingLine candidate, double columnWidth) {
+            double previousWidth = previous.XEnd - previous.XStart;
+            if (previousWidth > columnWidth * 0.25D) return false;
+            PdfUnderstandingWord nextWord = candidate.Words[0];
+            double wordSpace = candidate.FontSize * 0.25D;
+            return previousWidth + wordSpace + (nextWord.XEnd - nextWord.XStart) <= columnWidth;
         }
 
         private static bool HasProviderHierarchyBoundary(

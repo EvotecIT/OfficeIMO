@@ -339,7 +339,8 @@ public sealed class PdfRedactionEvidenceTests {
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             "endobj",
             "7 0 obj",
-            "<< /Length " + retainedCompressed.Length + " /Filter /FlateDecode >>",
+            // An image payload carries no text, so neither the growth estimate nor the residue sweep decodes it.
+            "<< /Type /XObject /Subtype /Image /Width 1024 /Height 1024 /ColorSpace /DeviceGray /BitsPerComponent 8 /Length " + retainedCompressed.Length + " /Filter /FlateDecode >>",
             "stream"
         }) + "\n");
         sourceBuffer.Write(retainedCompressed, 0, retainedCompressed.Length);
