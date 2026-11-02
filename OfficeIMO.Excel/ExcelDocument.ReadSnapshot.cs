@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Creates the reader behind UsedRangeA1, which internal edits also call before they report a
+        /// Creates the reader behind UsedRange, which internal edits also call before they report a
         /// change. They have loaded the worksheet by then, and reading a loaded worksheet costs no load.
         /// </summary>
         internal ExcelDocumentReader CreateUsedRangeReader(ExcelSheet sheet) =>

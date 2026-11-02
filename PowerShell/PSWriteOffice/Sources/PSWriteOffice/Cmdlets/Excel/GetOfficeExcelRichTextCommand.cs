@@ -66,7 +66,7 @@ public sealed class GetOfficeExcelRichTextCommand : PSCmdlet {
         var path = string.Equals(ParameterSetName, ParameterSetPath, System.StringComparison.OrdinalIgnoreCase)
             ? Path
             : null;
-        var runs = sheet.GetRichText(row, column);
+        var runs = sheet.Cell(row, column).GetRichText();
         for (var index = 0; index < runs.Count; index++) {
             WriteObject(ExcelRichTextRunService.CreateRecord(runs[index], index, address, row, column, sheet.Name, path));
         }

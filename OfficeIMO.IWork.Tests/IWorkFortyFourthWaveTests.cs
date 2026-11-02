@@ -20,7 +20,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(cell.FormulaIsComplete);
         Assert.False(result.IsVisualFallback);
         Assert.Null(result.Value.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(1d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(1d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Fact]

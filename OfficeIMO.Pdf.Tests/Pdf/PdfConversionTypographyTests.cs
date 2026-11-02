@@ -251,14 +251,14 @@ public sealed class PdfConversionTypographyTests {
             using ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" });
             ExcelSheet sheet = document.Sheets[0];
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(32));
-            sheet.Cell(1, 1, "Converter typography report");
-            sheet.Cell(2, 1, "Zażółć gęślą jaźń");
-            sheet.Cell(3, 1, "Ελλάδα");
-            sheet.Cell(4, 1, "Київ");
+            sheet.Cell(1, 1).SetValue("Converter typography report");
+            sheet.Cell(2, 1).SetValue("Zażółć gęślą jaźń");
+            sheet.Cell(3, 1).SetValue("Ελλάδα");
+            sheet.Cell(4, 1).SetValue("Київ");
             // This fixture tests font embedding and mapping, independently of default-row clipping.
             for (int row = 1; row <= 4; row++) {
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
-                sheet.CellVerticalAlign(row, 1, ExcelVerticalAlignment.Top);
+                sheet.Cell(row, 1).SetVerticalAlignment(ExcelVerticalAlignment.Top);
             }
             document.Save();
 
@@ -387,8 +387,8 @@ Zażółć gęślą jaźń
         try {
             string workbookPath = Path.Combine(directory, "opentype.xlsx");
             using ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" });
-            document.Sheets[0].Cell(1, 1, "office cafe\u0301");
-            document.Sheets[0].CellAt(1, 1).SetFontName(FamilyName);
+            document.Sheets[0].Cell(1, 1).SetValue("office cafe\u0301");
+            document.Sheets[0].Cell(1, 1).SetFontName(FamilyName);
             document.Save();
 
             var options = new ExcelPdfExportOptions {
@@ -471,7 +471,7 @@ Zażółć gęślą jaźń
         try {
             string workbookPath = Path.Combine(directory, "complex-script.xlsx");
             using ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" });
-            document.Sheets[0].Cell(1, 1, text);
+            document.Sheets[0].Cell(1, 1).SetValue(text);
             document.Save();
 
             var options = new ExcelPdfExportOptions {

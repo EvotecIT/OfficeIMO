@@ -16,9 +16,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("ArrayText");
-                    sheet.CellValue(1, 2, "AB");
+                    sheet.Cell(1, 2).SetValue("AB");
                     sheet.SetArrayFormula("B1:B2", "CONCATENATE(\"A\",\"B\")");
-                    sheet.CellValue(2, 2, "AB");
+                    sheet.Cell(2, 2).SetValue("AB");
 
                     document.Save(xlsOutputPath);
                 }
@@ -57,9 +57,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("ArrayDates");
-                    sheet.CellValue(1, 2, "2026-01-02T00:00:00");
+                    sheet.Cell(1, 2).SetValue("2026-01-02T00:00:00");
                     sheet.SetArrayFormula("B1:B2", "DATE(2026,1,2)");
-                    sheet.CellValue(2, 2, "2026-01-02T00:00:00");
+                    sheet.Cell(2, 2).SetValue("2026-01-02T00:00:00");
 
                     foreach (string reference in new[] { "B1", "B2" }) {
                         OpenXmlCell cell = sheet.WorksheetPart.Worksheet.Descendants<OpenXmlCell>()
@@ -99,9 +99,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("ArrayBoolean");
-                    sheet.CellValue(1, 2, true);
+                    sheet.Cell(1, 2).SetValue(true);
                     sheet.SetArrayFormula("B1:B2", "A1=1");
-                    sheet.CellValue(2, 2, false);
+                    sheet.Cell(2, 2).SetValue(false);
 
                     document.Save(xlsOutputPath);
                 }
@@ -133,9 +133,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("ArrayErrors");
-                    sheet.CellValue(1, 2, "#N/A");
+                    sheet.Cell(1, 2).SetValue("#N/A");
                     sheet.SetArrayFormula("B1:B2", "NA()");
-                    sheet.CellValue(2, 2, "#N/A");
+                    sheet.Cell(2, 2).SetValue("#N/A");
 
                     foreach (string reference in new[] { "B1", "B2" }) {
                         OpenXmlCell cell = sheet.WorksheetPart.Worksheet.Descendants<OpenXmlCell>()

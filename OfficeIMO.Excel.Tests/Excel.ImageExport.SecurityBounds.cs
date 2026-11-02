@@ -30,10 +30,10 @@ namespace OfficeIMO.Tests {
         public void ExcelChart_ImageExportSkipsWorksheetGeometryForOneCellAnchors() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("OneCell");
-            sheet.CellValue(1, 1, "Category");
-            sheet.CellValue(1, 2, "Value");
-            sheet.CellValue(2, 1, "Only");
-            sheet.CellValue(2, 2, 1);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Only");
+            sheet.Cell(2, 2).SetValue(1);
             ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 3 });
             X.Row invalidRow = new X.Row();
             invalidRow.SetAttribute(new OpenXmlAttribute("r", string.Empty, "invalid"));
@@ -48,10 +48,10 @@ namespace OfficeIMO.Tests {
         public void ExcelChart_ImageExportBoundsDuplicateRowDefinitionWork() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("DuplicateRows");
-            sheet.CellValue(1, 1, "Category");
-            sheet.CellValue(1, 2, "Value");
-            sheet.CellValue(2, 1, "Only");
-            sheet.CellValue(2, 2, 1);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Only");
+            sheet.Cell(2, 2).SetValue(1);
             ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 3 });
             ReplaceChartAnchorWithTwoCell(
                 document,

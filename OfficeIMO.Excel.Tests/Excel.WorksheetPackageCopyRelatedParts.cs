@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
             using (var targetDocument = ExcelDocument.Create(targetStream)) {
                 if (targetHasCommentedSheet) {
                     ExcelSheet existing = targetDocument.AddSheet("Existing");
-                    existing.CellValue(1, 1, "Existing");
+                    existing.Cell(1, 1).SetValue("Existing");
                     existing.SetComment("A1", "Existing note", "Target Author");
                     existing.AddThreadedComment("B1", "Existing thread", "Target Author");
                 }
@@ -289,8 +289,8 @@ namespace OfficeIMO.Tests {
             using (var source = ExcelDocument.Load(sourceStream, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
             using (var target = ExcelDocument.Create(targetStream)) {
                 var existing = target.AddSheet("Existing");
-                existing.CellValue(1, 1, "Sales");
-                existing.CellValue(2, 1, 1);
+                existing.Cell(1, 1).SetValue("Sales");
+                existing.Cell(2, 1).SetValue(1);
                 existing.AddTable("A1:A2", true, "SalesTable", ExcelTableStyle.TableStyleMedium2);
                 target.CopyWorksheetFrom(source, "Report", "Copy", ExcelSheetNameValidationMode.Strict,
                     new ExcelWorksheetCopyOptions { CopyMode = ExcelWorksheetCopyMode.Package });
@@ -315,10 +315,10 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "ChartExternalTarget.xlsx");
             using (var source = ExcelDocument.Create(sourcePath)) {
                 var sheet = source.AddSheet("Report");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(2, 1, "Category");
-                sheet.CellValue(1, 2, "Series");
-                sheet.CellValue(2, 2, 1);
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Category");
+                sheet.Cell(1, 2).SetValue("Series");
+                sheet.Cell(2, 2).SetValue(1);
                 sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B2", new ExcelChartOptions { Row = 4, Column = 1 });
                 source.Save();
             }
@@ -395,12 +395,12 @@ namespace OfficeIMO.Tests {
             var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Sales");
-                sheet.CellValue(2, 1, "North");
-                sheet.CellValue(2, 2, 10);
-                sheet.CellValue(3, 1, "South");
-                sheet.CellValue(3, 2, 20);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("North");
+                sheet.Cell(2, 2).SetValue(10);
+                sheet.Cell(3, 1).SetValue("South");
+                sheet.Cell(3, 2).SetValue(20);
                 sheet.AddImage(5, 1, File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png")), new ExcelImageOptions { ContentType = "image/png", Name = "Logo" });
                 sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new ExcelChartOptions { Row = 5, Column = 4, Title = "Sales" });
                 sheet.SetComment("D1", "Check the totals", "Reviewer");

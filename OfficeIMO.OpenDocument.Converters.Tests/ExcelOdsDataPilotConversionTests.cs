@@ -38,8 +38,8 @@ public sealed class ExcelOdsDataPilotConversionTests {
         ExcelSheet sheet = source.AddSheet("Data");
         const int columns = 128;
         for (int column = 1; column <= columns; column++) {
-            sheet.CellValue(1, column, "Field-" + column);
-            sheet.CellValue(2, column, column == columns ? (object)10d : "North");
+            sheet.Cell(1, column).SetValue("Field-" + column);
+            sheet.Cell(2, column).SetValue(column == columns ? (object)10d : "North");
         }
         sheet.AddPivotTable("A1:DX2", "DZ1", options: new ExcelPivotTableOptions {
             Name = "WidePivot",
@@ -66,7 +66,7 @@ public sealed class ExcelOdsDataPilotConversionTests {
         Assert.Equal("Field-128", pivot.Fields[1].SourceFieldName);
         Assert.True(OdsDocument.Load(new MemoryStream(conversion.Value.ToBytes())).Validate().IsValid);
         if (accessMode == OfficeIMO.DocumentAccessMode.ReadWrite) {
-            imported.Sheets.Single().CellAt(1, 1).SetValue("Changed");
+            imported.Sheets.Single().Cell(1, 1).SetValue("Changed");
             Assert.Empty(imported.ToOpenDocumentResult().Value.DataPilotTables);
         }
     }
@@ -75,11 +75,11 @@ public sealed class ExcelOdsDataPilotConversionTests {
     public void ExcelPivotOutputOverMergeIsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellValue(1, 1, "Region");
-        sheet.CellValue(1, 2, "Sales");
-        sheet.CellValue(2, 1, "North");
-        sheet.CellValue(2, 2, 10d);
-        sheet.MergeRange("D1:E1");
+        sheet.Cell(1, 1).SetValue("Region");
+        sheet.Cell(1, 2).SetValue("Sales");
+        sheet.Cell(2, 1).SetValue("North");
+        sheet.Cell(2, 2).SetValue(10d);
+        sheet.Range("D1:E1").Merge();
         sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
             Name = "Pivot",
             RowFields = new[] { "Region" },
@@ -96,10 +96,10 @@ public sealed class ExcelOdsDataPilotConversionTests {
         using ExcelDocument source = ExcelDocument.Create();
         foreach ((string name, string sheetName) in new[] { ("Sales", "FirstData"), ("sales", "SecondData") }) {
             ExcelSheet sheet = source.AddSheet(sheetName);
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "Sales");
-            sheet.CellValue(2, 1, "North");
-            sheet.CellValue(2, 2, 10d);
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Sales");
+            sheet.Cell(2, 1).SetValue("North");
+            sheet.Cell(2, 2).SetValue(10d);
             sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
                 Name = name,
                 RowFields = new[] { "Region" },
@@ -139,12 +139,12 @@ public sealed class ExcelOdsDataPilotConversionTests {
     public void UnusedInvalidExcelSourceHeaderIsExplicitPivotLoss(string unusedHeader) {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellValue(1, 1, "Region");
-        sheet.CellValue(1, 2, unusedHeader);
-        sheet.CellValue(1, 3, "Sales");
-        sheet.CellValue(2, 1, "North");
-        sheet.CellValue(2, 2, "Unused");
-        sheet.CellValue(2, 3, 10d);
+        sheet.Cell(1, 1).SetValue("Region");
+        sheet.Cell(1, 2).SetValue(unusedHeader);
+        sheet.Cell(1, 3).SetValue("Sales");
+        sheet.Cell(2, 1).SetValue("North");
+        sheet.Cell(2, 2).SetValue("Unused");
+        sheet.Cell(2, 3).SetValue(10d);
         sheet.AddPivotTable("A1:C2", "E1", options: new ExcelPivotTableOptions {
             Name = "SalesPivot",
             RowFields = new[] { "Region" },
@@ -162,10 +162,10 @@ public sealed class ExcelOdsDataPilotConversionTests {
     public void ExcelPivotCacheSheetCasingUsesCanonicalOdsSheetName() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellValue(1, 1, "Region");
-        sheet.CellValue(1, 2, "Sales");
-        sheet.CellValue(2, 1, "North");
-        sheet.CellValue(2, 2, 10d);
+        sheet.Cell(1, 1).SetValue("Region");
+        sheet.Cell(1, 2).SetValue("Sales");
+        sheet.Cell(2, 1).SetValue("North");
+        sheet.Cell(2, 2).SetValue(10d);
         sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
             Name = "SalesPivot",
             RowFields = new[] { "Region" },
@@ -215,10 +215,10 @@ public sealed class ExcelOdsDataPilotConversionTests {
     public void BasicExcelPivotBecomesNativeDataPilotAndReopens() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellValue(1, 1, "Region");
-        sheet.CellValue(1, 2, "Sales");
-        sheet.CellValue(2, 1, "North");
-        sheet.CellValue(2, 2, 10d);
+        sheet.Cell(1, 1).SetValue("Region");
+        sheet.Cell(1, 2).SetValue("Sales");
+        sheet.Cell(2, 1).SetValue("North");
+        sheet.Cell(2, 2).SetValue(10d);
         sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
             Name = "SalesPivot",
             RowFields = new[] { "Region" },
@@ -240,10 +240,10 @@ public sealed class ExcelOdsDataPilotConversionTests {
     public void NumericExcelPivotHeaderUsesAuthoredCellText() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellValue(1, 1, 42d);
-        sheet.CellValue(1, 2, "Sales");
-        sheet.CellValue(2, 1, "North");
-        sheet.CellValue(2, 2, 10d);
+        sheet.Cell(1, 1).SetValue(42d);
+        sheet.Cell(1, 2).SetValue("Sales");
+        sheet.Cell(2, 1).SetValue("North");
+        sheet.Cell(2, 2).SetValue(10d);
         Assert.True(sheet.TryGetCellText(1, 1, out string header));
         sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
             Name = "NumericHeader",
@@ -261,10 +261,10 @@ public sealed class ExcelOdsDataPilotConversionTests {
     public void BooleanExcelPivotHeaderReportsLossInsteadOfThrowing() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellValue(1, 1, true);
-        sheet.CellValue(1, 2, "Sales");
-        sheet.CellValue(2, 1, false);
-        sheet.CellValue(2, 2, 10d);
+        sheet.Cell(1, 1).SetValue(true);
+        sheet.Cell(1, 2).SetValue("Sales");
+        sheet.Cell(2, 1).SetValue(false);
+        sheet.Cell(2, 2).SetValue(10d);
         Assert.True(sheet.TryGetCellText(1, 1, out string header));
         sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
             Name = "BooleanHeader",
@@ -460,10 +460,10 @@ public sealed class ExcelOdsDataPilotConversionTests {
     public void DuplicateExcelAxisFieldIndexIsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellValue(1, 1, "Region");
-        sheet.CellValue(1, 2, "Sales");
-        sheet.CellValue(2, 1, "North");
-        sheet.CellValue(2, 2, 10d);
+        sheet.Cell(1, 1).SetValue("Region");
+        sheet.Cell(1, 2).SetValue("Sales");
+        sheet.Cell(2, 1).SetValue("North");
+        sheet.Cell(2, 2).SetValue(10d);
         sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
             Name = "SalesPivot",
             RowFields = new[] { "Region" },
@@ -535,18 +535,18 @@ public sealed class ExcelOdsDataPilotConversionTests {
     public void DuplicateHeaderAddedAfterPivotCreationRemainsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellValue(1, 1, "Region");
-        sheet.CellValue(1, 2, "Sales");
-        sheet.CellValue(1, 3, "Extra");
-        sheet.CellValue(2, 1, "North");
-        sheet.CellValue(2, 2, 10d);
-        sheet.CellValue(2, 3, "Note");
+        sheet.Cell(1, 1).SetValue("Region");
+        sheet.Cell(1, 2).SetValue("Sales");
+        sheet.Cell(1, 3).SetValue("Extra");
+        sheet.Cell(2, 1).SetValue("North");
+        sheet.Cell(2, 2).SetValue(10d);
+        sheet.Cell(2, 3).SetValue("Note");
         sheet.AddPivotTable("A1:C2", "E1", options: new ExcelPivotTableOptions {
             Name = "SalesPivot",
             RowFields = new[] { "Region" },
             DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) }
         });
-        sheet.CellValue(1, 3, "Region");
+        sheet.Cell(1, 3).SetValue("Region");
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
         Assert.Empty(conversion.Value.DataPilotTables);
@@ -559,10 +559,10 @@ public sealed class ExcelOdsDataPilotConversionTests {
         using ExcelDocument source = ExcelDocument.Create();
         foreach (string name in new[] { "North", "South" }) {
             ExcelSheet sheet = source.AddSheet(name);
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "Sales");
-            sheet.CellValue(2, 1, name);
-            sheet.CellValue(2, 2, 10d);
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Sales");
+            sheet.Cell(2, 1).SetValue(name);
+            sheet.Cell(2, 2).SetValue(10d);
             sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
                 Name = "SharedName",
                 RowFields = new[] { "Region" },
@@ -624,16 +624,16 @@ public sealed class ExcelOdsDataPilotConversionTests {
     public void PivotWithStaleCacheHeaderCasingRemainsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellValue(1, 1, "Region");
-        sheet.CellValue(1, 2, "Sales");
-        sheet.CellValue(2, 1, "North");
-        sheet.CellValue(2, 2, 10d);
+        sheet.Cell(1, 1).SetValue("Region");
+        sheet.Cell(1, 2).SetValue("Sales");
+        sheet.Cell(2, 1).SetValue("North");
+        sheet.Cell(2, 2).SetValue(10d);
         sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
             Name = "SalesPivot",
             RowFields = new[] { "Region" },
             DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) }
         });
-        sheet.CellValue(1, 1, "region");
+        sheet.Cell(1, 1).SetValue("region");
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
         Assert.Empty(conversion.Value.DataPilotTables);
@@ -647,10 +647,10 @@ public sealed class ExcelOdsDataPilotConversionTests {
     public void PivotAndNamedRangeKeepOdfSpreadsheetChildOrder() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellValue(1, 1, "Region");
-        sheet.CellValue(1, 2, "Sales");
-        sheet.CellValue(2, 1, "North");
-        sheet.CellValue(2, 2, 10d);
+        sheet.Cell(1, 1).SetValue("Region");
+        sheet.Cell(1, 2).SetValue("Sales");
+        sheet.Cell(2, 1).SetValue("North");
+        sheet.Cell(2, 2).SetValue(10d);
         sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
             Name = "SalesPivot",
             RowFields = new[] { "Region" },
@@ -817,10 +817,10 @@ public sealed class ExcelOdsDataPilotConversionTests {
     public void ExcelValuesAxisSentinelRemainsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellValue(1, 1, "Region");
-        sheet.CellValue(1, 2, "Sales");
-        sheet.CellValue(2, 1, "North");
-        sheet.CellValue(2, 2, 10d);
+        sheet.Cell(1, 1).SetValue("Region");
+        sheet.Cell(1, 2).SetValue("Sales");
+        sheet.Cell(2, 1).SetValue("North");
+        sheet.Cell(2, 2).SetValue(10d);
         sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
             Name = "SalesPivot",
             RowFields = new[] { "Region" },
@@ -850,10 +850,10 @@ public sealed class ExcelOdsDataPilotConversionTests {
     public void RealHeaderNamedLikeValuesSentinelStillConverts() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellValue(1, 1, "Field-1");
-        sheet.CellValue(1, 2, "Sales");
-        sheet.CellValue(2, 1, "North");
-        sheet.CellValue(2, 2, 10d);
+        sheet.Cell(1, 1).SetValue("Field-1");
+        sheet.Cell(1, 2).SetValue("Sales");
+        sheet.Cell(2, 1).SetValue("North");
+        sheet.Cell(2, 2).SetValue(10d);
         sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions {
             Name = "SalesPivot",
             RowFields = new[] { "Field-1" },

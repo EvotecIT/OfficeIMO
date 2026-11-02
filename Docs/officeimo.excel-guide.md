@@ -131,7 +131,7 @@ rows. Formula calculation, dynamic arrays, and pivot materialization are
 operations on that workbook model when a report needs them; they are not
 alternate ways to open a workbook.
 
-Set selected cell edges with `sheet.CellBorder(1, 1, ExcelCellBorders.Bottom, ExcelBorderStyle.Thick, "FF0000")` or the cell wrapper's `SetBorder(...)`. The other edges, font, fill and number format remain intact. `ExcelBorderStyle.None` explicitly clears the selected edges; the existing `CellBorder(row, column, style, color)` overload applies to all four sides. Cell coordinates are one-based.
+Set selected cell edges with `sheet.Cell(1, 1).SetBorder(ExcelCellBorders.Bottom, ExcelBorderStyle.Thick, "FF0000")`, or every cell of a block with `sheet.Range("A1:D1").SetBorder(...)`. The other edges, font, fill and number format remain intact. `ExcelBorderStyle.None` explicitly clears the selected edges; `SetBorder(style, color)` without edges applies to all four sides. Cell coordinates are one-based.
 
 Write typed rows into editable native tables, or stack report content on a worksheet:
 
@@ -183,7 +183,7 @@ Automatic date and duration formatting uses the current named-style definition, 
 
 Header lookups and text searches share their cache state across wrappers for the same worksheet, including when `SheetCachingEnabled` is false. Header names follow the current number format and date-reading options; custom value converters run for each requested header read.
 
-`WrapCells`, `CellWrapText` and automatic wrapping for multiline values preserve existing alignment and other formatting. Styled hyperlinks preserve the cell's alignment, protection and other font details while applying blue text and an underline. `ExcelSaveOptions.ValidateOpenXml` validates the encoded package before writing the destination, including when a fast package writer is used. Fast writers favor write throughput over ZIP size; set `DisableFastPackageWriter = true` when the standard packaging path is preferred.
+`SetWrapText` on cells and ranges and automatic wrapping for multiline values preserve existing alignment and other formatting. Styled hyperlinks preserve the cell's alignment, protection and other font details while applying blue text and an underline. `ExcelSaveOptions.ValidateOpenXml` validates the encoded package before writing the destination, including when a fast package writer is used. Fast writers favor write throughput over ZIP size; set `DisableFastPackageWriter = true` when the standard packaging path is preferred.
 
 OfficeIMO.Excel is optimized for fast tabular reads and writes, but it is not
 only a streaming data pipe. The same first-party model authors and edits styles,
@@ -420,7 +420,7 @@ using var document = ExcelDocument.Load(
         MaxCells = 2_000_000
     });
 
-document["Data"].CellValue(2, 2, 1250m);
+document["Data"].Cell(2, 2).SetValue(1250m);
 document.Save("edited.xlsb");
 
 OfficeIMO.OfficeConverter.Convert("source.xlsb", "editable.xlsx");
@@ -555,7 +555,7 @@ extension. For a stream, select the physical format explicitly:
 
 ```csharp
 using var document = ExcelDocument.Create();
-document.AddSheet("Data").CellValue(1, 1, "Protected workbook");
+document.AddSheet("Data").Cell(1, 1).SetValue("Protected workbook");
 document.Save("protected.xlsb", new ExcelSaveOptions { Password = password });
 using var output = new MemoryStream();
 document.Save(output, new ExcelSaveOptions { Password = password, Format = ExcelFileFormat.Xls });
@@ -818,6 +818,8 @@ Console.WriteLine($"{plan.AffectedCells} cells; {plan.Impacts.Count} impact grou
 ExcelMutationResult result = plan.Apply();
 
 sheet.InsertRowsTransactional(firstRow: 5, count: 2);
+sheet.DeleteColumnsTransactional(firstColumn: 8);
+sheet.InsertColumns(firstColumn: 3);
 sheet.Range("A2:C20").CopyTo("E2");
 sheet.Range("E2:G20").MoveTo("I2");
 sheet.Range("A2:C20").TransposeTo("M2");
@@ -829,8 +831,9 @@ Transactional row, column, and cell-shift edits update workbook-owned formulas
 and names, tables and filters, validations, conditional formatting, merges,
 links, comments, drawings, charts, sparklines, pivot sources, print definitions,
 allowed-edit ranges, and ignored-error regions. Copy, move, and transpose use the
-same bounded dry-run and diagnostic contract. Existing direct row and column
-methods remain available for callers that have already performed their own gate.
+same bounded dry-run and diagnostic contract. The plain `InsertRows`, `DeleteRows`,
+`InsertColumns` and `DeleteColumns` calls remap the same references and run the
+same safety checks, without the plan, snapshot rollback or package diagnostics.
 Formula results are marked dirty and the workbook requests recalculation on
 open. Shared formulas are materialized into equivalent normal formulas before
 the edit so that each member can be rewritten independently.
@@ -887,7 +890,7 @@ using var document = ExcelDocument.Load(
     new ExcelLoadOptions { FileBacked = true, MaxInputBytes = packageBudget },
     cancellationToken);
 
-document["Data"].CellValue(2, 2, "Updated");
+document["Data"].Cell(2, 2).SetValue("Updated");
 document.Save(new ExcelSaveOptions { MaxTemporaryPackageBytes = packageBudget });
 ```
 
@@ -1039,16 +1042,16 @@ using OfficeIMO.Excel;
 using var document = ExcelDocument.Create("dashboard.xlsx");
 var sheet = document.AddSheet("Summary");
 
-sheet.CellValue(1, 1, "Quarter");
-sheet.CellValue(1, 2, "Revenue");
-sheet.CellValue(2, 1, "Q1");
-sheet.CellValue(2, 2, 10);
-sheet.CellValue(3, 1, "Q2");
-sheet.CellValue(3, 2, 18);
-sheet.CellValue(4, 1, "Q3");
-sheet.CellValue(4, 2, 24);
-sheet.CellValue(5, 1, "Q4");
-sheet.CellValue(5, 2, 30);
+sheet.Cell(1, 1).SetValue("Quarter");
+sheet.Cell(1, 2).SetValue("Revenue");
+sheet.Cell(2, 1).SetValue("Q1");
+sheet.Cell(2, 2).SetValue(10);
+sheet.Cell(3, 1).SetValue("Q2");
+sheet.Cell(3, 2).SetValue(18);
+sheet.Cell(4, 1).SetValue("Q3");
+sheet.Cell(4, 2).SetValue(24);
+sheet.Cell(5, 1).SetValue("Q4");
+sheet.Cell(5, 2).SetValue(30);
 
 sheet.AddTable("A1:B5", hasHeader: true, name: "RevenueTable", style: ExcelTableStyle.TableStyleMedium2);
 sheet.AddRevenueTrendChart("A1:B5", row: 1, column: 5, title: "Revenue trend",
@@ -1116,22 +1119,22 @@ using System.Linq;
 using var document = ExcelDocument.Create("pivot-report.xlsx");
 var sheet = document.AddSheet("Sales");
 
-sheet.CellValue(1, 1, "Region");
-sheet.CellValue(1, 2, "Product");
-sheet.CellValue(1, 3, "Quarter");
-sheet.CellValue(1, 4, "Revenue");
-sheet.CellValue(2, 1, "EMEA");
-sheet.CellValue(2, 2, "Alpha");
-sheet.CellValue(2, 3, "Q1");
-sheet.CellValue(2, 4, 125000);
-sheet.CellValue(3, 1, "EMEA");
-sheet.CellValue(3, 2, "Beta");
-sheet.CellValue(3, 3, "Q1");
-sheet.CellValue(3, 4, 94000);
-sheet.CellValue(4, 1, "APAC");
-sheet.CellValue(4, 2, "Alpha");
-sheet.CellValue(4, 3, "Q2");
-sheet.CellValue(4, 4, 141000);
+sheet.Cell(1, 1).SetValue("Region");
+sheet.Cell(1, 2).SetValue("Product");
+sheet.Cell(1, 3).SetValue("Quarter");
+sheet.Cell(1, 4).SetValue("Revenue");
+sheet.Cell(2, 1).SetValue("EMEA");
+sheet.Cell(2, 2).SetValue("Alpha");
+sheet.Cell(2, 3).SetValue("Q1");
+sheet.Cell(2, 4).SetValue(125000);
+sheet.Cell(3, 1).SetValue("EMEA");
+sheet.Cell(3, 2).SetValue("Beta");
+sheet.Cell(3, 3).SetValue("Q1");
+sheet.Cell(3, 4).SetValue(94000);
+sheet.Cell(4, 1).SetValue("APAC");
+sheet.Cell(4, 2).SetValue("Alpha");
+sheet.Cell(4, 3).SetValue("Q2");
+sheet.Cell(4, 4).SetValue(141000);
 sheet.AddTable("A1:D4", hasHeader: true, name: "SalesTable", style: ExcelTableStyle.TableStyleMedium4);
 
 sheet.Pivot("A1:D4")
@@ -1144,10 +1147,10 @@ sheet.Pivot("A1:D4")
     .Captions(rowHeader: "Region", columnHeader: "Quarter", grandTotal: "Total")
     .At("F2", "SalesPivot");
 
-sheet.CellValue(5, 1, "APAC");
-sheet.CellValue(5, 2, "Beta");
-sheet.CellValue(5, 3, "Q2");
-sheet.CellValue(5, 4, 87000);
+sheet.Cell(5, 1).SetValue("APAC");
+sheet.Cell(5, 2).SetValue("Beta");
+sheet.Cell(5, 3).SetValue("Q2");
+sheet.Cell(5, 4).SetValue(87000);
 sheet.UpdatePivotTableSource("SalesPivot", sheet, "A1:D5");
 document.AddPivotSlicer(
     "SalesPivot",
@@ -1647,11 +1650,11 @@ in the selected scope. For example:
 ```csharp
 using var document = ExcelDocument.Create();
 var data = document.AddSheet("Data");
-data.CellValue(2, 2, 100d);
-data.CellValue(3, 2, 150d);
+data.Cell(2, 2).SetValue(100d);
+data.Cell(3, 2).SetValue(150d);
 document.SetNamedFormula("NetTotal", "SUM(Data!B2:B3)*0.8", save: false);
 data.SetNamedFormula("TaxRate", "0.2", save: false);
-data.CellFormula(5, 2, "NetTotal*(1+TaxRate)");
+data.Cell(5, 2).SetFormula("NetTotal*(1+TaxRate)");
 data.SetDynamicArrayFormula("D2", "INDEX(B2:B3,0)");
 document.Calculate(); // B5 = 240; D2:D3 = 100, 150.
 ```
@@ -1679,7 +1682,7 @@ Use `SetDynamicArrayFormula` when the result shape may change:
 ```csharp
 using var document = ExcelDocument.Create("dynamic-report.xlsx");
 var sheet = document.AddSheet("Results");
-sheet.CellValue(1, 1, 3);
+sheet.Cell(1, 1).SetValue(3);
 sheet.SetDynamicArrayFormula("G2", "SEQUENCE(A1,2)");
 document.Calculate(); // G2:H4 contains 1 through 6
 document.Save();
@@ -1732,7 +1735,7 @@ to 16 MiB per part and 100,000 entries per collection; readers also honor a
 smaller configured metadata limit. Repeated calculation reuses error records,
 and images and other rich values keep their existing metadata and relationships.
 
-`CellAt(...).GetValue().Value` preserves the native cached result type, including
+`sheet.Cell(...).GetValue().Value` preserves the native cached result type, including
 Boolean values and text that looks numeric, such as the result of `="12"`.
 
 Calculation honors the workbook's 1900 or 1904 date system. In the 1900 system,
@@ -1954,14 +1957,16 @@ Manually assigned widths do not mark a column as already auto-fitted. A later
 `AutoFitColumns` or `AutoFitColumnsFor` can resize them, including after reopening
 the workbook.
 
-For sparse cells, `CellWrapTextFor` applies wrapping together and saves the
-stylesheet once while preserving each cell's other formatting:
+Wrap a block with `sheet.Range("A1:A20").SetWrapText()`. For sparse cells, style
+them inside `Batch`, which saves the stylesheet once while preserving each cell's
+other formatting:
 
 ```csharp
-sheet.CellWrapTextFor(new[] { (Row: 1, Column: 1), (Row: 3, Column: 2) });
+sheet.Batch(batch => {
+    batch.Cell(1, 1).SetWrapText();
+    batch.Cell(3, 2).SetWrapText();
+});
 ```
-
-Coordinates are 1-based and the complete selection is validated before editing.
 Pass `wrapText: false` to clear wrapping for the selected cells.
 
 ### Tune larger exports

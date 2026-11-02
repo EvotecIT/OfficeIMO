@@ -55,7 +55,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(new[] { 1 }, table.HiddenColumns);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         saved.Position = 0;
         using var archive = new ZipArchive(saved, ZipArchiveMode.Read, leaveOpen: true);
         using Stream xml = archive.GetEntry("xl/worksheets/sheet1.xml")!.Open();

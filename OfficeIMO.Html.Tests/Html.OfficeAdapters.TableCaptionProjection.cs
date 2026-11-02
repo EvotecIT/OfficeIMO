@@ -80,9 +80,9 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(artifact.ToArray()));
 
         ExcelSheet table = Assert.Single(reopened.Sheets);
-        Assert.Equal("Contaminant", table.CellAt(1, 1).GetValue<string>());
-        Assert.Equal("Fluoride", table.CellAt(2, 1).GetValue<string>());
-        Assert.Equal(RegulatoryTableCaption, table.CellAt(4, 1).GetValue<string>());
+        Assert.Equal("Contaminant", table.Cell(1, 1).GetValue<string>());
+        Assert.Equal("Fluoride", table.Cell(2, 1).GetValue<string>());
+        Assert.Equal(RegulatoryTableCaption, table.Cell(4, 1).GetValue<string>());
         Assert.Equal(RegulatoryTableLink, table.GetHyperlinks()["A4"].Target);
         Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated

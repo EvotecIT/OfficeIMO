@@ -542,12 +542,12 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Filters");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 1d);
-                sheet.CellValue(3, 1, "B");
-                sheet.CellValue(3, 2, 2d);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(1d);
+                sheet.Cell(3, 1).SetValue("B");
+                sheet.Cell(3, 2).SetValue(2d);
                 sheet.AddTable("A1:B3", hasHeader: true, name: "FilterTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -585,14 +585,14 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Filters");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 1d);
-                sheet.CellValue(3, 1, "B");
-                sheet.CellValue(3, 2, 2d);
-                sheet.CellValue(4, 1, "C");
-                sheet.CellValue(4, 2, 3d);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(1d);
+                sheet.Cell(3, 1).SetValue("B");
+                sheet.Cell(3, 2).SetValue(2d);
+                sheet.Cell(4, 1).SetValue("C");
+                sheet.Cell(4, 2).SetValue(3d);
                 sheet.AddTable("A1:B3", hasHeader: true, name: "FilterTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -666,12 +666,12 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Filters");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 1d);
-                sheet.CellValue(3, 1, "B");
-                sheet.CellValue(3, 2, 2d);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(1d);
+                sheet.Cell(3, 1).SetValue("B");
+                sheet.Cell(3, 2).SetValue(2d);
                 sheet.AddTable("A1:B3", hasHeader: true, name: "FilterTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -719,12 +719,12 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Tables");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 1d);
-                sheet.CellValue(3, 1, "B");
-                sheet.CellValue(3, 2, 2d);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(1d);
+                sheet.Cell(3, 1).SetValue("B");
+                sheet.Cell(3, 2).SetValue(2d);
                 sheet.AddTable("A1:B3", hasHeader: true, name: "RepairTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -760,12 +760,12 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Tables");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 1d);
-                sheet.CellValue(3, 1, "B");
-                sheet.CellValue(3, 2, 2d);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(1d);
+                sheet.Cell(3, 1).SetValue("B");
+                sheet.Cell(3, 2).SetValue(2d);
                 sheet.AddTable("A1:B3", hasHeader: true, name: "RepairTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -799,15 +799,15 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Tables");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(1, 3, "Note");
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 1d);
-                sheet.CellValue(2, 3, "One");
-                sheet.CellValue(3, 1, "B");
-                sheet.CellValue(3, 2, 2d);
-                sheet.CellValue(3, 3, "Two");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(1, 3).SetValue("Note");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(1d);
+                sheet.Cell(2, 3).SetValue("One");
+                sheet.Cell(3, 1).SetValue("B");
+                sheet.Cell(3, 2).SetValue(2d);
+                sheet.Cell(3, 3).SetValue("Two");
                 sheet.AddTable("A1:C3", hasHeader: true, name: "RepairTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -1098,9 +1098,9 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Calc");
-                sheet.CellValue(1, 1, 1d);
-                sheet.CellValue(2, 1, 2d);
-                sheet.CellFormula(3, 1, "SUM(A1:A2)");
+                sheet.Cell(1, 1).SetValue(1d);
+                sheet.Cell(2, 1).SetValue(2d);
+                sheet.Cell(3, 1).SetFormula("SUM(A1:A2)");
 
                 var workbookPart = doc._spreadSheetDocument.WorkbookPart!;
                 var chainPart = workbookPart.AddNewPart<CalculationChainPart>();
@@ -1141,7 +1141,7 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Calc");
-                sheet.CellValue(1, 1, "Value");
+                sheet.Cell(1, 1).SetValue("Value");
 
                 var workbookPart = doc._spreadSheetDocument.WorkbookPart!;
                 var chainPart = workbookPart.AddNewPart<CalculationChainPart>();
@@ -1172,7 +1172,7 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Styles");
-                sheet.CellValue(1, 1, "Value");
+                sheet.Cell(1, 1).SetValue("Value");
 
                 var workbookPart = doc._spreadSheetDocument.WorkbookPart!;
                 var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
@@ -1234,8 +1234,8 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Strings");
-                sheet.CellValue(1, 1, "Alpha");
-                sheet.CellValue(2, 1, "Beta");
+                sheet.Cell(1, 1).SetValue("Alpha");
+                sheet.Cell(2, 1).SetValue("Beta");
 
                 var workbookPart = doc._spreadSheetDocument.WorkbookPart!;
                 var sharedStringTable = workbookPart.SharedStringTablePart!.SharedStringTable!;
@@ -1273,8 +1273,8 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Strings");
-                sheet.CellValue(1, 1, "Alpha");
-                sheet.CellValue(2, 1, "Beta");
+                sheet.Cell(1, 1).SetValue("Alpha");
+                sheet.Cell(2, 1).SetValue("Beta");
 
                 var workbookPart = doc._spreadSheetDocument.WorkbookPart!;
                 var sharedStringTable = workbookPart.SharedStringTablePart!.SharedStringTable!;
@@ -1311,7 +1311,7 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Strings");
-                sheet.CellValue(1, 1, "Alpha");
+                sheet.Cell(1, 1).SetValue("Alpha");
                 doc.Save(path);
             }
 
@@ -1350,7 +1350,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                doc.AddSheet("Strings").CellValue(1, 1, "Alpha");
+                doc.AddSheet("Strings").Cell(1, 1).SetValue("Alpha");
                 doc.Save(path);
             }
 
@@ -1532,7 +1532,7 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Print");
-                sheet.CellValue(1, 1, "Value");
+                sheet.Cell(1, 1).SetValue("Value");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -1596,7 +1596,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Print");
-                sheet.CellValue(1, 1, "Value");
+                sheet.Cell(1, 1).SetValue("Value");
 
                 Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddManualRowPageBreak(ExcelA1.MaxRows + 1, save: false));
                 Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddManualColumnPageBreak(ExcelA1.MaxColumns + 1, save: false));
@@ -1641,7 +1641,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Print");
-                sheet.CellValue(1, 1, "Value");
+                sheet.Cell(1, 1).SetValue("Value");
                 sheet.AddManualRowPageBreak(3, save: false);
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -1676,7 +1676,7 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Print");
-                sheet.CellValue(1, 1, "Value");
+                sheet.Cell(1, 1).SetValue("Value");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -1733,8 +1733,8 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Dimension");
-                sheet.CellValue(2, 2, "Value");
-                sheet.CellValue(4, 3, "Other");
+                sheet.Cell(2, 2).SetValue("Value");
+                sheet.Cell(4, 3).SetValue("Other");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -1805,7 +1805,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var reopenedForRead = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                Assert.Equal("A3:B3", reopenedForRead.Sheets.First().UsedRangeA1);
+                Assert.Equal("A3:B3", reopenedForRead.Sheets.First().UsedRange.Address);
             }
 
             File.Delete(path);

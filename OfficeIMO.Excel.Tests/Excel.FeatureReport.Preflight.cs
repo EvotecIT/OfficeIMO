@@ -21,12 +21,12 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Score");
-                sheet.CellValue(2, 1, "Alpha");
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellValue(3, 1, "Beta");
-                sheet.CellValue(3, 2, 20d);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Score");
+                sheet.Cell(2, 1).SetValue("Alpha");
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.Cell(3, 1).SetValue("Beta");
+                sheet.Cell(3, 2).SetValue(20d);
                 sheet.AddTable("A1:B3", hasHeader: true, name: "Scores", style: ExcelTableStyle.TableStyleMedium4);
                 document.Save();
             }
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Metadata");
-                sheet.CellValue(1, 1, "Resource");
+                sheet.Cell(1, 1).SetValue("Resource");
                 document.Save();
             }
 
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.PivotMetadata.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddSheet("Metadata").CellValue(1, 1, "Resource");
+                document.AddSheet("Metadata").Cell(1, 1).SetValue("Resource");
                 document.AddWorkbookSlicerCache(new ExcelSlicerCacheOptions {
                     Name = "RegionSlicer",
                     SourceName = "Region",
@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Links");
-                sheet.CellValue(1, 1, "Resource");
+                sheet.Cell(1, 1).SetValue("Resource");
                 sheet.SetHyperlink(2, 1, "https://example.org/spec", display: "Spec");
                 document.Save();
             }
@@ -136,8 +136,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Links");
-                sheet.CellValue(1, 1, "Resource");
-                sheet.CellValue(2, 1, "Spec");
+                sheet.Cell(1, 1).SetValue("Resource");
+                sheet.Cell(2, 1).SetValue("Spec");
                 document.Save();
             }
 
@@ -162,11 +162,11 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet summary = document.AddSheet("Summary");
-                summary.CellValue(1, 1, "Resource");
-                summary.CellValue(2, 1, "Hidden target");
+                summary.Cell(1, 1).SetValue("Resource");
+                summary.Cell(2, 1).SetValue("Hidden target");
 
                 ExcelSheet hidden = document.AddSheet("Hidden Details");
-                hidden.CellValue(1, 1, "Target");
+                hidden.Cell(1, 1).SetValue("Target");
                 hidden.SetHidden(true);
                 document.Save();
             }
@@ -193,10 +193,10 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Calc");
-                sheet.CellValue(1, 1, "A");
-                sheet.CellValue(2, 1, "B");
-                sheet.CellFormula(1, 2, "UNIQUE(A1:A2)");
-                sheet.CellFormula(2, 2, "B1+1");
+                sheet.Cell(1, 1).SetValue("A");
+                sheet.Cell(2, 1).SetValue("B");
+                sheet.Cell(1, 2).SetFormula("UNIQUE(A1:A2)");
+                sheet.Cell(2, 2).SetFormula("B1+1");
                 document.Save();
             }
 
@@ -228,9 +228,9 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Calc");
-                sheet.CellValue(1, 1, "A");
-                sheet.CellFormula(1, 2, "UNIQUE(A1:A1)");
-                sheet.CellFormula(1, 3, "B1+1");
+                sheet.Cell(1, 1).SetValue("A");
+                sheet.Cell(1, 2).SetFormula("UNIQUE(A1:A1)");
+                sheet.Cell(1, 3).SetFormula("B1+1");
                 document.Save();
             }
 
@@ -255,8 +255,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Calc");
-                sheet.CellValue(1, 1, 2d);
-                sheet.CellFormula(1, 2, "A1+1");
+                sheet.Cell(1, 1).SetValue(2d);
+                sheet.Cell(1, 2).SetFormula("A1+1");
                 Assert.Equal(1, document.Calculate());
                 document.ConfigureFullCalculationOnOpen();
                 document.Save();
@@ -281,8 +281,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Calc");
-                sheet.CellValue(1, 1, 2d);
-                sheet.CellFormula(1, 2, "A1+1");
+                sheet.Cell(1, 1).SetValue(2d);
+                sheet.Cell(1, 2).SetFormula("A1+1");
                 document.ConfigureFullCalculationOnOpen();
                 document.Save();
             }
@@ -307,11 +307,11 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet visible = document.AddSheet("Report");
-                visible.CellValue(1, 1, "Ready");
+                visible.Cell(1, 1).SetValue("Ready");
 
                 ExcelSheet hidden = document.AddSheet("Scratch");
-                hidden.CellValue(1, 1, 2d);
-                hidden.CellFormula(1, 2, "A1+1");
+                hidden.Cell(1, 1).SetValue(2d);
+                hidden.Cell(1, 2).SetFormula("A1+1");
                 hidden.SetHidden(true);
                 document.Save();
             }
@@ -333,7 +333,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Ready");
+                sheet.Cell(1, 1).SetValue("Ready");
                 document.ConfigureFullCalculationOnOpen();
                 document.Save();
             }
@@ -354,8 +354,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Signed");
-                sheet.CellValue(1, 1, "Status");
-                sheet.CellValue(2, 1, "Ready");
+                sheet.Cell(1, 1).SetValue("Status");
+                sheet.Cell(2, 1).SetValue("Ready");
                 document.Save();
             }
 
@@ -380,8 +380,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Calc");
-                sheet.CellValue(1, 1, 2d);
-                sheet.CellFormula(1, 2, "A1+1");
+                sheet.Cell(1, 1).SetValue(2d);
+                sheet.Cell(1, 2).SetFormula("A1+1");
                 Assert.Equal(1, document.Calculate());
                 document.InvalidateFormulas();
                 document.Save();
@@ -407,10 +407,10 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Calc");
-                sheet.CellValue(1, 1, 2d);
-                sheet.CellFormula(1, 2, "A1+1");
-                sheet.CellFormula(1, 3, "B1+1");
-                sheet.CellFormula(1, 4, "C1+1");
+                sheet.Cell(1, 1).SetValue(2d);
+                sheet.Cell(1, 2).SetFormula("A1+1");
+                sheet.Cell(1, 3).SetFormula("B1+1");
+                sheet.Cell(1, 4).SetFormula("C1+1");
                 document.Save();
             }
 
@@ -430,8 +430,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Calc");
-                sheet.CellFormula(1, 1, "B1+1");
-                sheet.CellFormula(1, 2, "A1+1");
+                sheet.Cell(1, 1).SetFormula("B1+1");
+                sheet.Cell(1, 2).SetFormula("A1+1");
                 document.Save();
             }
 
@@ -462,9 +462,9 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Calc");
-                sheet.CellValue(1, 1, 2d);
-                sheet.CellFormula(1, 2, "A1+1");
-                sheet.CellFormula(1, 3, formula);
+                sheet.Cell(1, 1).SetValue(2d);
+                sheet.Cell(1, 2).SetFormula("A1+1");
+                sheet.Cell(1, 3).SetFormula(formula);
                 document.Save();
             }
 
@@ -490,9 +490,9 @@ namespace OfficeIMO.Tests
         public void FeatureReport_Preflight_AllowsNestedArrayResultsBeforeDependencyCachesExist(string formula, string expected) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Calc");
-            sheet.CellValue(1, 1, 2d);
-            sheet.CellFormula(1, 2, "A1+1");
-            sheet.CellFormula(1, 3, formula);
+            sheet.Cell(1, 1).SetValue(2d);
+            sheet.Cell(1, 2).SetFormula("A1+1");
+            sheet.Cell(1, 3).SetFormula(formula);
             var report = document.InspectFeatures();
             Assert.False(report.Can(ExcelPreflightCapability.UseCachedFormulaValues));
             Assert.True(report.Can(ExcelPreflightCapability.CalculateFormulas));
@@ -507,9 +507,9 @@ namespace OfficeIMO.Tests
         public void FeatureReport_Preflight_IgnoresArrayNamesInsideStringLiterals(string formula) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Calc");
-            sheet.CellValue(1, 1, 2d);
-            sheet.CellFormula(1, 2, "A1+1");
-            sheet.CellFormula(1, 3, formula);
+            sheet.Cell(1, 1).SetValue(2d);
+            sheet.Cell(1, 2).SetFormula("A1+1");
+            sheet.Cell(1, 3).SetFormula(formula);
             Assert.True(document.InspectFeatures().Can(ExcelPreflightCapability.CalculateFormulas));
             Assert.Equal(2, document.Calculate());
         }
@@ -520,8 +520,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Calc");
-                sheet.CellValue(1, 1, 7d);
-                sheet.CellFormula(1, 2, "UNIQUE(A1:A1)");
+                sheet.Cell(1, 1).SetValue(7d);
+                sheet.Cell(1, 2).SetFormula("UNIQUE(A1:A1)");
                 document.Save();
             }
 
@@ -629,12 +629,12 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Charts");
-                sheet.CellValue(1, 1, "Zone");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "North");
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellValue(3, 1, "South");
-                sheet.CellValue(3, 2, 12d);
+                sheet.Cell(1, 1).SetValue("Zone");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("North");
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.Cell(3, 1).SetValue("South");
+                sheet.Cell(3, 2).SetValue(12d);
                 sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), Title = "Literal Chart" });
                 document.Save();
             }
@@ -659,12 +659,12 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Charts");
-                sheet.CellValue(1, 1, "Zone");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "North");
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellValue(3, 1, "South");
-                sheet.CellValue(3, 2, 12d);
+                sheet.Cell(1, 1).SetValue("Zone");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("North");
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.Cell(3, 1).SetValue("South");
+                sheet.Cell(3, 2).SetValue(12d);
                 ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), Title = "Dangling Chart" });
                 chart.Name = "Dangling chart frame";
                 document.Save();
@@ -690,7 +690,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Images");
-                sheet.CellValue(1, 1, "Image");
+                sheet.Cell(1, 1).SetValue("Image");
                 sheet.AddImage(2, 1, CreateFeatureReportGif(), new OfficeIMO.Excel.ExcelImageOptions {
                     ContentType = "image/gif",
                     Width = OfficeIMO.OfficeLength.Pixels(12),
@@ -714,7 +714,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Images");
-                sheet.CellValue(1, 1, "Image");
+                sheet.Cell(1, 1).SetValue("Image");
                 sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateFeatureReportGif(), "image/gif",
                     width: OfficeLength.Points(24), height: OfficeLength.Points(24));
                 document.Save();
@@ -737,7 +737,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Headers");
-                sheet.CellValue(1, 1, "Report");
+                sheet.Cell(1, 1).SetValue("Report");
                 sheet.SetHeaderFooter(headerCenter: "&UConfidential");
                 document.Save();
             }
@@ -760,10 +760,10 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, "Top");
-                sheet.CellValue(2, 2, "Area one");
-                sheet.CellValue(2, 4, "Area two");
-                sheet.CellValue(5, 5, "Bottom");
+                sheet.Cell(1, 1).SetValue("Top");
+                sheet.Cell(2, 2).SetValue("Area one");
+                sheet.Cell(2, 4).SetValue("Area two");
+                sheet.Cell(5, 5).SetValue("Bottom");
                 document.Save();
             }
 
@@ -787,12 +787,12 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Sales");
-                sheet.CellValue(2, 1, "North");
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellValue(3, 1, "South");
-                sheet.CellValue(3, 2, 12d);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("North");
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.Cell(3, 1).SetValue("South");
+                sheet.Cell(3, 2).SetValue(12d);
                 sheet.AddPivotTable("A1:B3", "D1", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") }, PivotStyleName = "PivotStyleMedium9" });
                 sheet.AddSparklines("B2:B3", "C2:C3");
                 document.Save();
@@ -816,14 +816,14 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
                 ExcelSheet visible = document.AddSheet("Report");
-                visible.CellValue(1, 1, "Ready");
+                visible.Cell(1, 1).SetValue("Ready");
                 ExcelSheet hidden = document.AddSheet("Analysis");
-                hidden.CellValue(1, 1, "Region");
-                hidden.CellValue(1, 2, "Sales");
-                hidden.CellValue(2, 1, "North");
-                hidden.CellValue(2, 2, 10d);
-                hidden.CellValue(3, 1, "South");
-                hidden.CellValue(3, 2, 12d);
+                hidden.Cell(1, 1).SetValue("Region");
+                hidden.Cell(1, 2).SetValue("Sales");
+                hidden.Cell(2, 1).SetValue("North");
+                hidden.Cell(2, 2).SetValue(10d);
+                hidden.Cell(3, 1).SetValue("South");
+                hidden.Cell(3, 2).SetValue(12d);
                 hidden.AddPivotTable("A1:B3", "D1", options: new ExcelPivotTableOptions { Name = "HiddenPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") } });
                 hidden.AddSparklines("B2:B3", "C2:C3");
                 hidden.SetHidden(true);
@@ -847,7 +847,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Shapes");
-                sheet.CellValue(1, 1, "Callout");
+                sheet.Cell(1, 1).SetValue("Callout");
                 document.Save();
             }
 
@@ -874,7 +874,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Shapes");
-                sheet.CellValue(1, 1, "Box");
+                sheet.Cell(1, 1).SetValue("Box");
                 document.Save();
             }
 
@@ -896,8 +896,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(2, 1, 10d);
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetValue(10d);
                 document.Save();
             }
 

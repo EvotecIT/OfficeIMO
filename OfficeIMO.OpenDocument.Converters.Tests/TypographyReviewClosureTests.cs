@@ -17,7 +17,7 @@ public sealed class TypographyReviewClosureTests {
 
         using ExcelDocument target = source.ToExcelDocumentResult().Value;
 
-        Assert.Equal("İ", target.Sheets.Single().CellAt(1, 1).GetValue().Value);
+        Assert.Equal("İ", target.Sheets.Single().Cell(1, 1).GetValue().Value);
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public sealed class TypographyReviewClosureTests {
 
         using ExcelDocument target = source.ToExcelDocumentResult().Value;
 
-        Assert.Equal("I", target.Sheets.Single().CellAt(1, 1).GetValue().Value);
+        Assert.Equal("I", target.Sheets.Single().Cell(1, 1).GetValue().Value);
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public sealed class TypographyReviewClosureTests {
 
         OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
-        ExcelCellData converted = target.Sheets.Single().CellAt(1, 1).GetValue();
+        ExcelCellData converted = target.Sheets.Single().Cell(1, 1).GetValue();
 
         Assert.True(converted.HasFormula);
         Assert.Equal("IF(1=1,\"MiXeD\",\"other\")", converted.Formula);

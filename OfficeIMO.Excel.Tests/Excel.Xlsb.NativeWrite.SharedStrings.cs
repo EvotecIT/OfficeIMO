@@ -62,29 +62,29 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create();
             document.DateSystem = ExcelDateSystem.NineteenFour;
             ExcelSheet first = document.AddSheet("First");
-            first.CellValue(1, 1, "Alpha");
-            first.CellBold(1, 1);
-            first.CellValue(2, 1, date);
-            first.CellValue(3, 1, 12.5m);
-            first.FormatCell(3, 1, "0.0000");
-            first.CellFormula(4, 1, "\"Alpha\"");
+            first.Cell(1, 1).SetValue("Alpha");
+            first.Cell(1, 1).SetBold();
+            first.Cell(2, 1).SetValue(date);
+            first.Cell(3, 1).SetValue(12.5m);
+            first.Cell(3, 1).SetNumberFormat("0.0000");
+            first.Cell(4, 1).SetFormula("\"Alpha\"");
             Cell formula = first.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "A4");
             formula.DataType = CellValues.String;
             formula.CellValue = new CellValue("Alpha");
             ExcelSheet second = document.AddSheet("Second");
-            second.CellValue(1, 1, "Alpha");
-            second.CellValue(2, 1, "alpha");
+            second.Cell(1, 1).SetValue("Alpha");
+            second.Cell(2, 1).SetValue("alpha");
 
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = true });
 
             AssertXlsbStringStorage(package, true, 3, new[] { "Alpha", "alpha" });
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
             Assert.Equal(ExcelDateSystem.NineteenFour, reloaded.DateSystem);
-            Assert.True(reloaded.Sheets[0].GetCellStyle(1, 1).Bold);
+            Assert.True(reloaded.Sheets[0].Cell(1, 1).GetStyle().Bold);
             Assert.Equal(date, AssertCellValue(reloaded.Sheets[0], 2, 1).DateTimeValue);
-            Assert.Equal("0.0000", reloaded.Sheets[0].GetCellStyle(3, 1).NumberFormatCode);
-            Assert.Equal("\"Alpha\"", reloaded.Sheets[0].CellAt(4, 1).GetValue().Formula);
+            Assert.Equal("0.0000", reloaded.Sheets[0].Cell(3, 1).GetStyle().NumberFormatCode);
+            Assert.Equal("\"Alpha\"", reloaded.Sheets[0].Cell(4, 1).GetValue().Formula);
             Assert.True(reloaded.Sheets[0].TryGetCellText(4, 1, out string? cached));
             Assert.Equal("Alpha", cached);
             Assert.True(reloaded.Sheets[1].TryGetCellText(2, 1, out string? lowercase));
@@ -97,8 +97,8 @@ namespace OfficeIMO.Tests {
             try {
                 using ExcelDocument document = ExcelDocument.Create();
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(2, 1, "Alpha");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Alpha");
                 await document.SaveAsync(path, new ExcelSaveOptions { XlsbUseSharedStrings = true });
                 byte[] original = File.ReadAllBytes(path);
                 byte[] originalTable = ReadXlsbPackagePart(original, "xl/sharedStrings.bin");
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
                 document.Save(unchanged, ExcelFileFormat.Xlsb);
                 Assert.Equal(original, unchanged.ToArray());
 
-                sheet.CellValue(2, 1, "Beta");
+                sheet.Cell(2, 1).SetValue("Beta");
                 document.Save();
 
                 byte[] rewritten = File.ReadAllBytes(path);
@@ -128,10 +128,10 @@ namespace OfficeIMO.Tests {
         [InlineData(false, true)]
         public async Task Xlsb_StringStorage_RejectsImportedOverridesBeforeMutatingStreamOrFile(bool sharedStrings, bool asynchronous) {
             using ExcelDocument source = ExcelDocument.Create();
-            source.AddSheet("Data").CellValue(1, 1, "Alpha");
+            source.AddSheet("Data").Cell(1, 1).SetValue("Alpha");
             byte[] package = source.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = true });
             using ExcelDocument imported = ExcelDocument.Load(new MemoryStream(package, writable: false));
-            if (!sharedStrings) imported.Sheets[0].CellValue(1, 1, "Edited");
+            if (!sharedStrings) imported.Sheets[0].Cell(1, 1).SetValue("Edited");
             var options = new ExcelSaveOptions { XlsbUseSharedStrings = sharedStrings };
             byte[] sentinel = { 1, 2, 3, 4 };
             using var destination = new MemoryStream();
@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests {
         [InlineData(false)]
         public async Task Xlsb_StringStorage_RejectsOtherOutputFormatsAndEncryptedOutput(bool sharedStrings) {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddSheet("Data").CellValue(1, 1, "Alpha");
+            document.AddSheet("Data").Cell(1, 1).SetValue("Alpha");
             var options = new ExcelSaveOptions { XlsbUseSharedStrings = sharedStrings };
             using var destination = new MemoryStream();
             destination.WriteByte(42);
@@ -179,8 +179,8 @@ namespace OfficeIMO.Tests {
             string text = new string('A', 2_047) + char.ConvertFromUtf32(0x1F680) + new string('Z', 32_767 - 2_049);
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Value");
-            sheet.CellValue(2, 1, text);
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(2, 1).SetValue(text);
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = true });
             AssertXlsbStringStorage(package, true, 2, new[] { "Value", text });
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package);
@@ -192,7 +192,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_SharedStrings_AllowAnEmptyTableForNumericOnlyWorkbooks() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddSheet("Numbers").CellValue(1, 1, 42);
+            document.AddSheet("Numbers").Cell(1, 1).SetValue(42);
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = true });
             AssertXlsbStringStorage(package, true, 0, Array.Empty<string>());
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
@@ -213,13 +213,13 @@ namespace OfficeIMO.Tests {
             try {
                 using ExcelDocument document = ExcelDocument.Create();
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Text");
-                sheet.CellValue(2, 1, "Alpha");
-                sheet.CellValue(3, 1, "Alpha");
-                sheet.CellValue(4, 1, "alpha");
+                sheet.Cell(1, 1).SetValue("Text");
+                sheet.Cell(2, 1).SetValue("Alpha");
+                sheet.Cell(3, 1).SetValue("Alpha");
+                sheet.Cell(4, 1).SetValue("alpha");
                 if (standardWriter) {
-                    sheet.CellBold(1, 1);
-                    sheet.CellFormula(5, 1, "\"Alpha\"");
+                    sheet.Cell(1, 1).SetBold();
+                    sheet.Cell(5, 1).SetFormula("\"Alpha\"");
                 }
                 document.Save(path, new ExcelSaveOptions { XlsbUseSharedStrings = true, DisableFastPackageWriter = standardWriter });
                 AssertWorkbookOpensViaExcelComWhenAvailable(path,
@@ -239,9 +239,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument source = ExcelDocument.Create()) {
                     ExcelSheet sheet = source.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Text");
-                    sheet.CellValue(2, 1, "Alpha");
-                    sheet.CellValue(3, 1, "Alpha");
+                    sheet.Cell(1, 1).SetValue("Text");
+                    sheet.Cell(2, 1).SetValue("Alpha");
+                    sheet.Cell(3, 1).SetValue("Alpha");
                     source.Save(sourcePath);
                 }
                 ExcelDocument.Convert(sourcePath, destinationPath, new ExcelDocumentConversionOptions {

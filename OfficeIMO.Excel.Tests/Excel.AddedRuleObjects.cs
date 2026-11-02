@@ -12,8 +12,8 @@ public sealed class ExcelAddedRuleObjectTests {
     public void ReturnedConditionalRulesRetainTheirOwnIdentityThroughLaterAddsAndUpdates() {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Values");
-        sheet.CellValue(1, 1, "Amount");
-        sheet.CellValue(2, 1, 10);
+        sheet.Cell(1, 1).SetValue("Amount");
+        sheet.Cell(2, 1).SetValue(10);
         var first = sheet.AddConditionalRule("A2:A4", ExcelConditionalFormattingOperator.GreaterThan, "5");
         var second = sheet.AddConditionalFormulaRule("A2:A4", "A2<2");
         var scale = sheet.AddConditionalColorScale("B2:B4", "FF0000", "00FF00");
@@ -45,8 +45,8 @@ public sealed class ExcelAddedRuleObjectTests {
     public void AutoFilterHandleTracksTableOwnershipAndTocReturnsItsCreatedSheet() {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Values");
-        sheet.CellValue(1, 1, "Name");
-        sheet.CellValue(2, 1, "Alpha");
+        sheet.Cell(1, 1).SetValue("Name");
+        sheet.Cell(2, 1).SetValue("Alpha");
         var filter = sheet.AddAutoFilter("A1:A2");
         Assert.Same(sheet, filter.Sheet);
         Assert.False(filter.Inspect()!.IsTableFilter);
@@ -54,7 +54,7 @@ public sealed class ExcelAddedRuleObjectTests {
         Assert.Equal("ValuesTable", filter.Inspect()!.TableName);
         var contents = document.AddTableOfContents(styled: false);
         Assert.Equal(contents.Name, document.Sheets[0].Name);
-        contents.CellValue(1, 1, "Edited navigation");
+        contents.Cell(1, 1).SetValue("Edited navigation");
         using var output = new MemoryStream();
         document.Save(output);
         output.Position = 0;

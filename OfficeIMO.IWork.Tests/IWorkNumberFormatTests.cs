@@ -166,7 +166,7 @@ public sealed partial class IWorkBoundaryTests {
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = global::OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal("0.00%", reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode);
+        Assert.Equal("0.00%", reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
         Assert.Equal("", Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
     }
 

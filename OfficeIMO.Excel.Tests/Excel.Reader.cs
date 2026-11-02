@@ -18,8 +18,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(2, 2, "B2");
-                    sheet.CellValue(3, 4, "D3");
+                    sheet.Cell(2, 2).SetValue("B2");
+                    sheet.Cell(3, 4).SetValue("D3");
                     document.Save();
                 }
 
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Header");
+                    sheet.Cell(1, 1).SetValue("Header");
                     document.Save();
                 }
 
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Value");
+                    sheet.Cell(1, 1).SetValue("Value");
                     document.Save();
                 }
 
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Value");
+                    sheet.Cell(1, 1).SetValue("Value");
                     document.Save();
                 }
 
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Value");
+                    sheet.Cell(1, 1).SetValue("Value");
                     document.Save();
                 }
 
@@ -164,8 +164,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, 1d);
-                    sheet.CellValue(1, 2, 2d);
+                    sheet.Cell(1, 1).SetValue(1d);
+                    sheet.Cell(1, 2).SetValue(2d);
                     document.Save();
                 }
 
@@ -201,8 +201,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(2, 2, "Inside");
-                    sheet.CellValue(2, 4, "Outside");
+                    sheet.Cell(2, 2).SetValue("Inside");
+                    sheet.Cell(2, 4).SetValue("Outside");
                     document.Save();
                 }
 
@@ -225,8 +225,8 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Alpha");
-                sheet.CellValue(ExcelA1.MaxRows, ExcelA1.MaxColumns, "Omega");
+                sheet.Cell(1, 1).SetValue("Alpha");
+                sheet.Cell(ExcelA1.MaxRows, ExcelA1.MaxColumns).SetValue("Omega");
                 document.Save(memory);
             }
 
@@ -257,9 +257,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Header");
-                    sheet.CellValue(2, 1, "InRange");
-                    sheet.CellValue(5, 1, "Outside");
+                    sheet.Cell(1, 1).SetValue("Header");
+                    sheet.Cell(2, 1).SetValue("InRange");
+                    sheet.Cell(5, 1).SetValue("Outside");
                     document.Save();
                 }
 
@@ -292,9 +292,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Header");
-                    sheet.CellValue(2, 1, "Old");
-                    sheet.CellValue(5, 1, "Outside");
+                    sheet.Cell(1, 1).SetValue("Header");
+                    sheet.Cell(2, 1).SetValue("Old");
+                    sheet.Cell(5, 1).SetValue("Outside");
                     document.Save();
                 }
 
@@ -321,7 +321,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Header");
+                    sheet.Cell(1, 1).SetValue("Header");
                     document.Save();
                 }
 
@@ -359,7 +359,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, 42);
+                    sheet.Cell(1, 1).SetValue(42);
                     document.Save();
                 }
 
@@ -387,9 +387,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, 42);
-                    sheet.CellValue(1, 2, 43);
-                    sheet.CellValue(1, 3, "blank");
+                    sheet.Cell(1, 1).SetValue(42);
+                    sheet.Cell(1, 2).SetValue(43);
+                    sheet.Cell(1, 3).SetValue("blank");
                     document.Save();
                 }
 
@@ -420,9 +420,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Header");
-                    sheet.CellValue(2, 1, "InRange");
-                    sheet.CellValue(5, 1, "Outside");
+                    sheet.Cell(1, 1).SetValue("Header");
+                    sheet.Cell(2, 1).SetValue("InRange");
+                    sheet.Cell(5, 1).SetValue("Outside");
                     document.Save();
                 }
 
@@ -464,9 +464,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Header");
-                    sheet.CellValue(2, 1, "InRange");
-                    sheet.CellValue(5, 1, "Outside");
+                    sheet.Cell(1, 1).SetValue("Header");
+                    sheet.Cell(2, 1).SetValue("InRange");
+                    sheet.Cell(5, 1).SetValue("Outside");
                     document.Save();
                 }
 
@@ -507,10 +507,10 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "A");
-                    sheet.CellValue(1, 2, "B");
-                    sheet.CellValue(1, 3, "C");
-                    sheet.CellValue(1, 4, "Outside");
+                    sheet.Cell(1, 1).SetValue("A");
+                    sheet.Cell(1, 2).SetValue("B");
+                    sheet.Cell(1, 3).SetValue("C");
+                    sheet.Cell(1, 4).SetValue("Outside");
                     document.Save();
                 }
 
@@ -559,11 +559,11 @@ namespace OfficeIMO.Tests {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
                     for (int column = 1; column <= 8; column++) {
-                        sheet.CellValue(1, column, "R1C" + column.ToString(CultureInfo.InvariantCulture));
+                        sheet.Cell(1, column).SetValue("R1C" + column.ToString(CultureInfo.InvariantCulture));
                     }
 
-                    sheet.CellValue(2, 1, "R2C1");
-                    sheet.CellValue(2, 8, "R2C8");
+                    sheet.Cell(2, 1).SetValue("R2C1");
+                    sheet.Cell(2, 8).SetValue("R2C8");
                     document.Save();
                 }
 
@@ -594,10 +594,10 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Name");
-                    sheet.CellValue(1, 2, "Count");
-                    sheet.CellValue(2, 1, "Alpha");
-                    sheet.CellValue(2, 2, 42);
+                    sheet.Cell(1, 1).SetValue("Name");
+                    sheet.Cell(1, 2).SetValue("Count");
+                    sheet.Cell(2, 1).SetValue("Alpha");
+                    sheet.Cell(2, 2).SetValue(42);
                     document.Save();
                 }
 
@@ -625,12 +625,12 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Name");
-                    sheet.CellValue(1, 2, "Count");
-                    sheet.CellValue(2, 1, "Alpha");
-                    sheet.CellValue(2, 2, 42);
-                    sheet.CellValue(3, 1, "Beta");
-                    sheet.CellValue(3, 2, 7);
+                    sheet.Cell(1, 1).SetValue("Name");
+                    sheet.Cell(1, 2).SetValue("Count");
+                    sheet.Cell(2, 1).SetValue("Alpha");
+                    sheet.Cell(2, 2).SetValue(42);
+                    sheet.Cell(3, 1).SetValue("Beta");
+                    sheet.Cell(3, 2).SetValue(7);
                     document.Save();
                 }
 
@@ -659,12 +659,12 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Key");
-                    sheet.CellValue(1, 2, "Value");
-                    sheet.CellValue(2, 1, 1);
-                    sheet.CellValue(2, 2, "Open");
-                    sheet.CellValue(3, 1, "Two");
-                    sheet.CellValue(3, 2, 7);
+                    sheet.Cell(1, 1).SetValue("Key");
+                    sheet.Cell(1, 2).SetValue("Value");
+                    sheet.Cell(2, 1).SetValue(1);
+                    sheet.Cell(2, 2).SetValue("Open");
+                    sheet.Cell(3, 1).SetValue("Two");
+                    sheet.Cell(3, 2).SetValue(7);
                     document.Save();
                 }
 
@@ -692,9 +692,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Header");
-                    sheet.CellValue(2, 2, "OutsideRequestedColumn");
-                    sheet.CellValue(100001, 1, "Tail");
+                    sheet.Cell(1, 1).SetValue("Header");
+                    sheet.Cell(2, 2).SetValue("OutsideRequestedColumn");
+                    sheet.Cell(100001, 1).SetValue("Tail");
                     document.Save();
                 }
 
@@ -726,9 +726,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Header");
-                    sheet.CellValue(2, 2, "OutsideRequestedColumn");
-                    sheet.CellValue(100001, 1, "Tail");
+                    sheet.Cell(1, 1).SetValue("Header");
+                    sheet.Cell(2, 2).SetValue("OutsideRequestedColumn");
+                    sheet.Cell(100001, 1).SetValue("Tail");
                     document.Save();
                 }
 
@@ -761,8 +761,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Old");
-                    sheet.CellValue(100001, 1, "Tail");
+                    sheet.Cell(1, 1).SetValue("Old");
+                    sheet.Cell(100001, 1).SetValue("Tail");
                     document.Save();
                 }
 
@@ -793,9 +793,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Old");
-                    sheet.CellValue(1, 2, "Other");
-                    sheet.CellValue(100001, 1, "Tail");
+                    sheet.Cell(1, 1).SetValue("Old");
+                    sheet.Cell(1, 2).SetValue("Other");
+                    sheet.Cell(100001, 1).SetValue("Tail");
                     document.Save();
                 }
 
@@ -831,8 +831,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Old");
-                    sheet.CellValue(100001, 1, "Tail");
+                    sheet.Cell(1, 1).SetValue("Old");
+                    sheet.Cell(100001, 1).SetValue("Tail");
                     document.Save();
                 }
 
@@ -869,12 +869,12 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Name");
-                    sheet.CellValue(1, 2, "Count");
-                    sheet.CellValue(2, 1, "Alpha");
-                    sheet.CellValue(2, 2, 42);
-                    sheet.CellValue(4, 1, "Omega");
-                    sheet.CellValue(4, 2, 99);
+                    sheet.Cell(1, 1).SetValue("Name");
+                    sheet.Cell(1, 2).SetValue("Count");
+                    sheet.Cell(2, 1).SetValue("Alpha");
+                    sheet.Cell(2, 2).SetValue(42);
+                    sheet.Cell(4, 1).SetValue("Omega");
+                    sheet.Cell(4, 2).SetValue(99);
                     document.Save();
                 }
 
@@ -904,10 +904,10 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Name");
-                    sheet.CellValue(1, 2, "Count");
-                    sheet.CellValue(2, 1, "Alpha");
-                    sheet.CellValue(2, 2, 42);
+                    sheet.Cell(1, 1).SetValue("Name");
+                    sheet.Cell(1, 2).SetValue("Count");
+                    sheet.Cell(2, 1).SetValue("Alpha");
+                    sheet.Cell(2, 2).SetValue(42);
                     document.Save();
                 }
 
@@ -933,10 +933,10 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Name");
-                    sheet.CellValue(1, 2, "Count");
-                    sheet.CellValue(2, 1, "Alpha");
-                    sheet.CellValue(2, 2, 42);
+                    sheet.Cell(1, 1).SetValue("Name");
+                    sheet.Cell(1, 2).SetValue("Count");
+                    sheet.Cell(2, 1).SetValue("Alpha");
+                    sheet.Cell(2, 2).SetValue(42);
                     document.Save();
                 }
 
@@ -962,8 +962,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Name");
-                    sheet.CellValue(2, 1, 42);
+                    sheet.Cell(1, 1).SetValue("Name");
+                    sheet.Cell(2, 1).SetValue(42);
                     document.Save();
                 }
 
@@ -989,8 +989,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, 1d);
-                    sheet.CellValue(2, 1, 2d);
+                    sheet.Cell(1, 1).SetValue(1d);
+                    sheet.Cell(2, 1).SetValue(2d);
                     document.Save();
                 }
 
@@ -1026,8 +1026,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, 1d);
-                    sheet.CellValue(2, 1, 2d);
+                    sheet.Cell(1, 1).SetValue(1d);
+                    sheet.Cell(2, 1).SetValue(2d);
                     document.Save();
                 }
 
@@ -1063,10 +1063,10 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Name");
-                    sheet.CellValue(1, 2, "Count");
-                    sheet.CellValue(2, 1, "Alpha");
-                    sheet.CellValue(2, 2, 42);
+                    sheet.Cell(1, 1).SetValue("Name");
+                    sheet.Cell(1, 2).SetValue("Count");
+                    sheet.Cell(2, 1).SetValue("Alpha");
+                    sheet.Cell(2, 2).SetValue(42);
                     document.Save();
                 }
 
@@ -1093,8 +1093,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, 1d);
-                    sheet.CellValue(2, 1, 2d);
+                    sheet.Cell(1, 1).SetValue(1d);
+                    sheet.Cell(2, 1).SetValue(2d);
                     document.Save();
                 }
 
@@ -1130,12 +1130,12 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Name");
-                    sheet.CellValue(1, 2, "Count");
-                    sheet.CellValue(2, 1, "Alpha");
-                    sheet.CellValue(2, 2, 42);
-                    sheet.CellValue(3, 1, "Beta");
-                    sheet.CellValue(3, 2, 7);
+                    sheet.Cell(1, 1).SetValue("Name");
+                    sheet.Cell(1, 2).SetValue("Count");
+                    sheet.Cell(2, 1).SetValue("Alpha");
+                    sheet.Cell(2, 2).SetValue(42);
+                    sheet.Cell(3, 1).SetValue("Beta");
+                    sheet.Cell(3, 2).SetValue(7);
                     document.Save();
                 }
 
@@ -1163,9 +1163,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Amount");
-                    sheet.CellValue(2, 1, 1d);
-                    sheet.CellValue(3, 1, 2d);
+                    sheet.Cell(1, 1).SetValue("Amount");
+                    sheet.Cell(2, 1).SetValue(1d);
+                    sheet.Cell(3, 1).SetValue(2d);
                     document.Save();
                 }
 
@@ -1260,9 +1260,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, 2);
-                    sheet.CellValue(2, 1, 3);
-                    sheet.CellFormula(3, 1, "=SUM(A1:A2)");
+                    sheet.Cell(1, 1).SetValue(2);
+                    sheet.Cell(2, 1).SetValue(3);
+                    sheet.Cell(3, 1).SetFormula("=SUM(A1:A2)");
                     document.Save();
                 }
 
@@ -1284,9 +1284,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, 2);
-                    sheet.CellValue(2, 1, 3);
-                    sheet.CellFormula(3, 1, "=SUM(A1:A2)");
+                    sheet.Cell(1, 1).SetValue(2);
+                    sheet.Cell(2, 1).SetValue(3);
+                    sheet.Cell(3, 1).SetFormula("=SUM(A1:A2)");
                     document.Save();
                 }
 
@@ -1308,9 +1308,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, 2);
-                    sheet.CellValue(2, 1, 3);
-                    sheet.CellFormula(3, 1, "=SUM(A1:A2)");
+                    sheet.Cell(1, 1).SetValue(2);
+                    sheet.Cell(2, 1).SetValue(3);
+                    sheet.Cell(3, 1).SetFormula("=SUM(A1:A2)");
                     document.Save();
                 }
 
@@ -1332,9 +1332,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, 2);
-                    sheet.CellValue(2, 1, 3);
-                    sheet.CellFormula(3, 1, "=SUM(A1:A2)");
+                    sheet.Cell(1, 1).SetValue(2);
+                    sheet.Cell(2, 1).SetValue(3);
+                    sheet.Cell(3, 1).SetFormula("=SUM(A1:A2)");
                     document.Save();
                 }
 
@@ -1358,9 +1358,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, 2);
-                    sheet.CellValue(2, 1, 3);
-                    sheet.CellFormula(3, 1, "=SUM(A1:A2)");
+                    sheet.Cell(1, 1).SetValue(2);
+                    sheet.Cell(2, 1).SetValue(3);
+                    sheet.Cell(3, 1).SetFormula("=SUM(A1:A2)");
                     document.Save();
                 }
 
@@ -1392,7 +1392,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Value");
+                    sheet.Cell(1, 1).SetValue("Value");
                     document.Save();
                 }
 
@@ -1416,7 +1416,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, 42);
+                    sheet.Cell(1, 1).SetValue(42);
                     document.Save();
                 }
 
@@ -1440,8 +1440,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, 42);
-                    sheet.CellValue(1, 2, 43);
+                    sheet.Cell(1, 1).SetValue(42);
+                    sheet.Cell(1, 2).SetValue(43);
                     document.Save();
                 }
 
@@ -1465,7 +1465,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, 42);
+                    sheet.Cell(1, 1).SetValue(42);
                     document.Save();
                 }
 
@@ -1489,8 +1489,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, 42);
-                    sheet.CellValue(1, 2, 43);
+                    sheet.Cell(1, 1).SetValue(42);
+                    sheet.Cell(1, 2).SetValue(43);
                     document.Save();
                 }
 
@@ -1514,7 +1514,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, 42);
+                    sheet.Cell(1, 1).SetValue(42);
                     document.Save();
                 }
 
@@ -1537,7 +1537,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    document.AddSheet("Data").CellValue(1, 1, 42);
+                    document.AddSheet("Data").Cell(1, 1).SetValue(42);
                     document.Save();
                 }
 
@@ -1560,8 +1560,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "A");
-                    sheet.CellValue(1, 2, "B");
+                    sheet.Cell(1, 1).SetValue("A");
+                    sheet.Cell(1, 2).SetValue("B");
                     document.Save();
                 }
 
@@ -1593,8 +1593,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Header");
-                    sheet.CellValue(2, 1, "Value");
+                    sheet.Cell(1, 1).SetValue("Header");
+                    sheet.Cell(2, 1).SetValue("Value");
                     document.Save();
                 }
 
@@ -1625,10 +1625,10 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Id");
-                    sheet.CellValue(1, 2, "Name");
-                    sheet.CellValue(2, 1, 1);
-                    sheet.CellValue(2, 2, "One");
+                    sheet.Cell(1, 1).SetValue("Id");
+                    sheet.Cell(1, 2).SetValue("Name");
+                    sheet.Cell(2, 1).SetValue(1);
+                    sheet.Cell(2, 2).SetValue("One");
                     document.Save();
                 }
 
@@ -1662,10 +1662,10 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Id");
-                    sheet.CellValue(1, 2, "Name");
-                    sheet.CellValue(2, 1, 1);
-                    sheet.CellValue(2, 2, "One");
+                    sheet.Cell(1, 1).SetValue("Id");
+                    sheet.Cell(1, 2).SetValue("Name");
+                    sheet.Cell(2, 1).SetValue(1);
+                    sheet.Cell(2, 2).SetValue("One");
                     document.Save();
                 }
 
@@ -1715,10 +1715,10 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "A");
-                    sheet.CellValue(1, 2, 10);
-                    sheet.CellValue(2, 1, "B");
-                    sheet.CellValue(2, 2, 20);
+                    sheet.Cell(1, 1).SetValue("A");
+                    sheet.Cell(1, 2).SetValue(10);
+                    sheet.Cell(2, 1).SetValue("B");
+                    sheet.Cell(2, 2).SetValue(20);
                     document.Save();
                 }
 
@@ -1751,8 +1751,8 @@ namespace OfficeIMO.Tests {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
                     for (int row = 1; row <= 5; row++) {
-                        sheet.CellValue(row, 1, $"R{row}");
-                        sheet.CellValue(row, 2, row * 10D);
+                        sheet.Cell(row, 1).SetValue($"R{row}");
+                        sheet.Cell(row, 2).SetValue(row * 10D);
                     }
                     document.Save();
                 }
@@ -1785,9 +1785,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Header");
-                    sheet.CellValue(2, 1, "InRange");
-                    sheet.CellValue(3, 1, "Tail");
+                    sheet.Cell(1, 1).SetValue("Header");
+                    sheet.Cell(2, 1).SetValue("InRange");
+                    sheet.Cell(3, 1).SetValue("Tail");
                     document.Save();
                 }
 
@@ -1825,9 +1825,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "One");
-                    sheet.CellValue(2, 1, "Two");
-                    sheet.CellValue(3, 1, "Three");
+                    sheet.Cell(1, 1).SetValue("One");
+                    sheet.Cell(2, 1).SetValue("Two");
+                    sheet.Cell(3, 1).SetValue("Three");
                     document.Save();
                 }
 
@@ -1861,9 +1861,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "One");
-                    sheet.CellValue(2049, 1, "Middle");
-                    sheet.CellValue(4097, 1, "Last");
+                    sheet.Cell(1, 1).SetValue("One");
+                    sheet.Cell(2049, 1).SetValue("Middle");
+                    sheet.Cell(4097, 1).SetValue("Last");
                     document.Save();
                 }
 
@@ -1897,9 +1897,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "One");
-                    sheet.CellValue(2049, 1, "Middle");
-                    sheet.CellValue(4097, 1, "Last");
+                    sheet.Cell(1, 1).SetValue("One");
+                    sheet.Cell(2049, 1).SetValue("Middle");
+                    sheet.Cell(4097, 1).SetValue("Last");
                     document.Save();
                 }
 
@@ -1926,8 +1926,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "First");
-                    sheet.CellValue(10, 1, "Tenth");
+                    sheet.Cell(1, 1).SetValue("First");
+                    sheet.Cell(10, 1).SetValue("Tenth");
                     document.Save();
                 }
 
@@ -1957,7 +1957,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, new DateTime(2024, 1, 1));
+                    sheet.Cell(1, 1).SetValue(new DateTime(2024, 1, 1));
                     document.Save();
                 }
 

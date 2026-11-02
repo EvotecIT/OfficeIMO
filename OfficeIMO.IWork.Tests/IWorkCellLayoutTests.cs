@@ -107,8 +107,8 @@ public sealed partial class IWorkBoundaryTests {
             Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-            Assert.Equal("center", reopened.Sheets[0].GetCellStyle(1, 1).VerticalAlignment);
-            Assert.Equal("center", reopened.Sheets[0].GetCellStyle(1, 2).VerticalAlignment);
+            Assert.Equal("center", reopened.Sheets[0].Cell(1, 1).GetStyle().VerticalAlignment);
+            Assert.Equal("center", reopened.Sheets[0].Cell(1, 2).GetStyle().VerticalAlignment);
             Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED"
                 && diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission);
             Assert.True(result.Report.IsPartialEditableReconstruction);

@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                     ExcelSheet sheet = document.AddSheet("Rich Text");
-                    sheet.CellValue(1, 1, "placeholder");
+                    sheet.Cell(1, 1).SetValue("placeholder");
                     document.Save();
                 }
 
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using ExcelDocument loaded = ExcelDocument.Load(filePath);
-                IReadOnlyList<ExcelRichTextRun> runs = loaded.Sheets[0].CellAt(1, 1).GetRichText();
+                IReadOnlyList<ExcelRichTextRun> runs = loaded.Sheets[0].Cell(1, 1).GetRichText();
 
                 Assert.Equal(2, runs.Count);
                 Assert.Equal("Shared ", runs[0].Text);

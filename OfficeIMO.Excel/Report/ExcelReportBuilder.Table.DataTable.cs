@@ -38,7 +38,7 @@ namespace OfficeIMO.Excel {
 
             if (table.Rows.Count == 0) {
                 if (!string.IsNullOrWhiteSpace(title)) Section(title!);
-                Sheet.Cell(_row, 1, "(no data)");
+                Sheet.Cell(_row, 1).SetValue("(no data)");
                 _row++;
                 return Sheet.AddTable($"A{_row - 1}:A{_row - 1}", hasHeader: false, name: title ?? "Table", style: style, includeAutoFilter: false);
             }
@@ -87,7 +87,7 @@ namespace OfficeIMO.Excel {
             }
             if (paths.Count == 0) {
                 if (!string.IsNullOrWhiteSpace(title)) Section(title!);
-                Sheet.Cell(_row, 1, "(no tabular columns for the DataTable schema)");
+                Sheet.Cell(_row, 1).SetValue("(no tabular columns for the DataTable schema)");
                 _row++;
                 return Sheet.AddTable($"A{_row - 1}:A{_row - 1}", hasHeader: false, name: title ?? "Table", style: style, includeAutoFilter: false);
             }

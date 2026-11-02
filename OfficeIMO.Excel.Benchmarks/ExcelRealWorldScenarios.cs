@@ -560,7 +560,7 @@ internal static partial class ExcelLibraryComparisonRunner {
             }
 
             if (options.PostMutation) {
-                sheet.CellValue(rows.Count + 4, 1, "Manual note after report features");
+                sheet.Cell(rows.Count + 4, 1).SetValue("Manual note after report features");
             }
 
             document.Save(stream);

@@ -17,13 +17,71 @@ namespace OfficeIMO.Excel {
         public ExcelStructuralMutationPlan PlanDeleteColumns(int firstColumn, int count = 1, ExcelMutationPlanOptions? options = null) =>
             PlanColumnMutation(firstColumn, count, deleting: true, options);
 
-        /// <summary>Transactionally inserts complete columns and returns post-edit package diagnostics.</summary>
-        public ExcelMutationResult InsertColumns(int firstColumn, int count = 1, ExcelMutationPlanOptions? options = null, CancellationToken cancellationToken = default) =>
+        /// <summary>
+        /// Inserts blank worksheet columns immediately before <paramref name="firstColumn"/> and shifts existing
+        /// columns right. Formulas, defined names, tables, merges, comments, hyperlinks, validations, conditional
+        /// formatting, drawings, page breaks and connection parameters are adjusted where supported. Use
+        /// <see cref="InsertColumnsTransactional"/> for rollback and post-edit diagnostics.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">The requested columns fall outside the worksheet column limit.</exception>
+        /// <exception cref="InvalidOperationException">
+        /// Content or a dependent reference would exceed the column limit, or the insertion would split an array
+        /// formula, data table or PivotTable output range, or the worksheet contains unsupported controls.
+        /// </exception>
+        public void InsertColumns(int firstColumn, int count = 1) =>
+            ApplyColumnMutationWithoutTransaction(firstColumn, count, deleting: false);
+
+        /// <summary>
+        /// Deletes worksheet columns starting at <paramref name="firstColumn"/> and shifts following columns left.
+        /// Formula references to cells fully removed by the operation become <c>#REF!</c>; partially overlapping
+        /// ranges are reduced to the surviving cells. Use <see cref="DeleteColumnsTransactional"/> for rollback and
+        /// post-edit diagnostics.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">The requested columns fall outside the worksheet column limit.</exception>
+        /// <exception cref="InvalidOperationException">
+        /// The deletion would remove every column of a table, or intersect an array formula, data table or PivotTable
+        /// output range, or the worksheet contains unsupported controls.
+        /// </exception>
+        public void DeleteColumns(int firstColumn, int count = 1) =>
+            ApplyColumnMutationWithoutTransaction(firstColumn, count, deleting: true);
+
+        /// <summary>Plans and transactionally inserts columns with bounded rollback and post-edit diagnostics.</summary>
+        public ExcelMutationResult InsertColumnsTransactional(
+            int firstColumn,
+            int count = 1,
+            ExcelMutationPlanOptions? options = null,
+            CancellationToken cancellationToken = default) =>
             ApplyColumnMutationDirectly(firstColumn, count, deleting: false, options, cancellationToken);
 
-        /// <summary>Transactionally deletes complete columns and returns post-edit package diagnostics.</summary>
-        public ExcelMutationResult DeleteColumns(int firstColumn, int count = 1, ExcelMutationPlanOptions? options = null, CancellationToken cancellationToken = default) =>
+        /// <summary>Plans and transactionally deletes columns with bounded rollback and post-edit diagnostics.</summary>
+        public ExcelMutationResult DeleteColumnsTransactional(
+            int firstColumn,
+            int count = 1,
+            ExcelMutationPlanOptions? options = null,
+            CancellationToken cancellationToken = default) =>
             ApplyColumnMutationDirectly(firstColumn, count, deleting: true, options, cancellationToken);
+
+        /// <summary>
+        /// Runs the same safety checks and reference remapping as the transactional route, like the plain row calls:
+        /// no plan budget, snapshot or package validation.
+        /// </summary>
+        private void ApplyColumnMutationWithoutTransaction(int firstColumn, int count, bool deleting) {
+            ValidateStructuralColumnArguments(firstColumn, count);
+            WriteLockConditional(() => {
+                MaterializeDeferredDataSetImportIfNeeded();
+                int maximumCellColumn = 0, gridCells = 0;
+                if (!deleting) {
+                    foreach (var item in EnumerateCellsWithEffectiveCoordinates()) {
+                        gridCells++;
+                        if (item.Column > maximumCellColumn) maximumCellColumn = item.Column;
+                    }
+                }
+                var unbounded = new MutationPlanScanBudget(int.MaxValue, long.MaxValue);
+                PreflightColumnMutation(firstColumn, firstColumn + count - 1, count, deleting, unbounded, maximumCellColumn, gridCells);
+                ApplyColumnMutation(firstColumn, count, deleting, CancellationToken.None);
+                MarkRequiresSavePreparation();
+            });
+        }
 
         /// <summary>Plans inside the write lock, because a plan applied at once would otherwise be built and checked twice.</summary>
         private ExcelMutationResult ApplyColumnMutationDirectly(

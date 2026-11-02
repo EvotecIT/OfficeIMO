@@ -121,7 +121,7 @@ internal sealed partial class ExcelObjectTableProjection {
             } else {
                 var cells = new List<(int Row, int Column, object Value)>((dataRows + HeaderRows) * Math.Max(1, headers.Count));
                 AddRowsFromCellValues(cells, startRow, headers, rowValues);
-                Sheet.CellValues(cells);
+                Sheet.SetValues(cells);
             }
 
             _currentRow = startRow + dataRows + HeaderRows;

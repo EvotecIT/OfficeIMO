@@ -22,8 +22,8 @@ public partial class Excel {
     public void SaveAsPdf_PrintsRuleBasedConditionalFills() {
         using ExcelDocument document = ExcelDocument.Create(Path.Combine(_directoryWithFiles, "ExcelPdfRuleConditionalFills.xlsx"));
         ExcelSheet sheet = document.AddSheet("Rota");
-        sheet.Cell(1, 1, "Maya"); sheet.Cell(1, 2, "D");
-        sheet.Cell(2, 1, "Leon"); sheet.Cell(2, 2, "R");
+        sheet.Cell(1, 1).SetValue("Maya"); sheet.Cell(1, 2).SetValue("D");
+        sheet.Cell(2, 1).SetValue("Leon"); sheet.Cell(2, 2).SetValue("R");
         sheet.Range("B1:B2").ConditionalFormatting.ContainsText("D", "DCFCE7");
 
         PdfCore.PdfTableStyle style = ExportFlowTableStyle(document);
@@ -37,9 +37,9 @@ public partial class Excel {
     public void SaveAsPdf_PrintsPivotTablesWithTheirPivotStyle() {
         using ExcelDocument document = ExcelDocument.Create(Path.Combine(_directoryWithFiles, "ExcelPdfPivotStyle.xlsx"));
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Sales");
-        sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, 10d);
-        sheet.CellValue(3, 1, "South"); sheet.CellValue(3, 2, 12d);
+        sheet.Cell(1, 1).SetValue("Region"); sheet.Cell(1, 2).SetValue("Sales");
+        sheet.Cell(2, 1).SetValue("North"); sheet.Cell(2, 2).SetValue(10d);
+        sheet.Cell(3, 1).SetValue("South"); sheet.Cell(3, 2).SetValue(12d);
         sheet.AddPivotTable(sourceRange: "A1:B3", destinationCell: "D1", new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") }, PivotStyleName = "PivotStyleMedium9" });
 
         PdfCore.PdfTableStyle style = ExportFlowTableStyle(document);
@@ -56,7 +56,7 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Report" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Body");
+            sheet.Cell(1, 1).SetValue("Body");
             sheet.SetHeaderFooter(headerCenter: "Scan&G");
             sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateMinimalRgbPng(), width: OfficeLength.Points(24), height: OfficeLength.Points(18));
             document.Save();
@@ -78,11 +78,11 @@ public partial class Excel {
     public void SaveAsPdf_KeepsShortCategoryLabelsThatFitTheirSlots() {
         using ExcelDocument document = ExcelDocument.Create(Path.Combine(_directoryWithFiles, "ExcelPdfCategoryLabels.xlsx"));
         ExcelSheet sheet = document.AddSheet("Chart");
-        sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Revenue");
+        sheet.Cell(1, 1).SetValue("Region"); sheet.Cell(1, 2).SetValue("Revenue");
         string[] regions = { "North", "South", "East", "West" };
         for (int index = 0; index < regions.Length; index++) {
-            sheet.CellValue(index + 2, 1, regions[index]);
-            sheet.CellValue(index + 2, 2, 100d + index * 10d);
+            sheet.Cell(index + 2, 1).SetValue(regions[index]);
+            sheet.Cell(index + 2, 2).SetValue(100d + index * 10d);
         }
 
         sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B5", new ExcelChartOptions { Row = 7, Column = 1, Width = OfficeLength.Pixels(300), Height = OfficeLength.Pixels(200), Title = "Revenue" });

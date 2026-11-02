@@ -124,7 +124,7 @@ public sealed partial class IWorkBoundaryTests {
             partial.Value.Save(saved);
             saved.Position = 0;
             using ExcelDocument reopened = ExcelDocument.Load(saved);
-            Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue().Value);
+            Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue().Value);
         } else {
             using var automatic = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);

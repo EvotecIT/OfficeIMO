@@ -15,12 +15,12 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "Product");
-            sheet.CellValue(1, 3, "Amount");
-            sheet.CellValue(2, 1, "North");
-            sheet.CellValue(2, 2, "A");
-            sheet.CellValue(2, 3, 10d);
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Product");
+            sheet.Cell(1, 3).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue("North");
+            sheet.Cell(2, 2).SetValue("A");
+            sheet.Cell(2, 3).SetValue(10d);
             var fields = new[]
             {
                 "Region",
@@ -46,10 +46,10 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Values");
-            sheet.CellValue(1, 2, "Amount");
-            sheet.CellValue(2, 1, "North");
-            sheet.CellValue(2, 2, 10d);
+            sheet.Cell(1, 1).SetValue("Values");
+            sheet.Cell(1, 2).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue("North");
+            sheet.Cell(2, 2).SetValue(10d);
             sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions { Name = "Pivot", RowFields = new[] { "Values" }, DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue"), new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Count, "Entries") }, DataOnRows = valuesOnRows });
             var metadata = Assert.Single(sheet.GetPivotTables());
             Assert.Equal(new[] { "Values" }, metadata.RowSourceFields);

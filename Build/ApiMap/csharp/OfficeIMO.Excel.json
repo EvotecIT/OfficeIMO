@@ -10397,7 +10397,7 @@
       "old": "OfficeIMO.Excel.ExcelSheet.WrapCells(int fromRow, int toRow, int column, double targetColumnWidth)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.WrapCells(int fromRow, int toRow, int column, ExcelColumnWidth targetColumnWidth)",
+      "new": "OfficeIMO.Excel.ExcelSheet.Range(fromRow, column, toRow, column).SetWrapText(); SetColumnWidth(column, ExcelColumnWidth)",
       "reason": "Worksheet column widths and row heights use ExcelColumnWidth. Characters preserve native stored column units; physical lengths resolve through the workbook default font. Row lengths retain points and character heights use unpadded digit advances.",
       "file": "OfficeIMO.Excel/ExcelSheet.CellValue.Styles.cs",
       "category": "units",
@@ -10711,7 +10711,7 @@
       "note": "Adds the previously unmapped return-contract change; statement callers retain their behavior."
     },
     {
-      "old": "OfficeIMO.Excel.ExcelDocument.AddBackLinksToToc(string tocSheetName = \"TOC\", int row = 2, int col = 1, string text = \"\u2190 TOC\") : void",
+      "old": "OfficeIMO.Excel.ExcelDocument.AddBackLinksToToc(string tocSheetName = \"TOC\", int row = 2, int col = 1, string text = \"← TOC\") : void",
       "new": "OfficeIMO.Excel.ExcelDocument.AddBackLinksToToc(...) : IReadOnlyDictionary<ExcelSheet, ExcelHyperlinkInfo>",
       "kind": "method",
       "action": "change",
@@ -10835,6 +10835,486 @@
       "category": "naming",
       "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellAt(int row, int column)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(int row, int column) : ExcelCell",
+      "reason": "sheet.Cell(...) returns the cell handle; CellAt is gone.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellAt(string reference)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(string reference) : ExcelCell",
+      "reason": "sheet.Cell(...) returns the cell handle; CellAt is gone.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRange.CellAt(int rowOffset, int columnOffset)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelRange.Cell(int rowOffset, int columnOffset) : ExcelCell",
+      "reason": "Same name as sheet.Cell.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelCell",
+      "kind": "type",
+      "action": "change",
+      "new": "readonly struct OfficeIMO.Excel.ExcelCell",
+      "reason": "A cell handle is a view (sheet, row, column); a struct makes sheet.Cell(r, c).SetValue(v) allocation-free in loops.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.Cell(int row, int column, object value = null, string formula = null, string numberFormat = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetValue(value).SetFormula(formula).SetNumberFormat(numberFormat)",
+      "reason": "One setter vocabulary on the cell handle.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellValue(int row, int column, T value)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetValue(value)",
+      "reason": "Typed SetValue overloads on the handle write without boxing, like the sheet overloads did.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellFormula(int row, int column, string formula)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetFormula(formula)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.FormatCell(int row, int column, string numberFormat)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetNumberFormat(numberFormat)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellError(int row, int column, string errorText)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetError(errorText)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellBold(int row, int column, bool bold = true)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetBold(bold)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellItalic(int row, int column, bool italic = true)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetItalic(italic)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellUnderline(int row, int column, ...)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetUnderline(...)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellStrikethrough(int row, int column, bool strikethrough = true)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetStrikethrough(strikethrough)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellVerticalTextAlignment(int row, int column, ExcelVerticalTextAlignment alignment)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetVerticalTextAlignment(alignment)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellWrapText(int row, int column, bool wrapText = true)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetWrapText(wrapText)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellFontName(int row, int column, string fontName)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetFontName(fontName)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellFontSize(int row, int column, OfficeLength fontSize)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetFontSize(fontSize)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellFontColor(int row, int column, string hexColor)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetFontColor(hexColor)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellBackground(int row, int column, string hexColor | OfficeColor color)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetFillColor(hexColor | color)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellGradientBackground(int row, int column, string fromHexColor, string toHexColor, double degree = 0)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetGradientFill(fromHexColor, toHexColor, degree)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellBorder(int row, int column, [ExcelCellBorders borders,] ExcelBorderStyle style, string hexColor = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetBorder([borders,] style, hexColor)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellDiagonalBorder(int row, int column, ExcelBorderStyle style, string hexColor = null, bool diagonalUp = true, bool diagonalDown = true)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetDiagonalBorder(style, hexColor, diagonalUp, diagonalDown)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellAlign(int row, int column, ExcelHorizontalAlignment alignment)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetHorizontalAlignment(alignment)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellVerticalAlign(int row, int column, ExcelVerticalAlignment alignment)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetVerticalAlignment(alignment)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellShrinkToFit(int row, int column, bool shrinkToFit = true)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetShrinkToFit(shrinkToFit)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellTextRotation(int row, int column, int rotation)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetTextRotation(rotation)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.TransformCellTextCase(int row, int column, OfficeTextCase textCase, CultureInfo culture = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).TransformTextCase(textCase, culture)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.SetRichText(int row, int column, IEnumerable<ExcelRichTextRun> runs)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetRichText(runs)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.GetRichText(int row, int column)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).GetRichText()",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.GetCellStyle(int row, int column)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).GetStyle()",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellValues(IEnumerable<(int Row, int Column, object Value)> cells, ExcelExecutionMode? mode = null, CancellationToken ct = default)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelSheet.SetValues(IEnumerable<(int Row, int Column, object Value)> cells, ExcelExecutionMode? mode = null, CancellationToken ct = default)",
+      "reason": "The measured bulk path keeps the setter vocabulary: SetValues, like ExcelRange.SetValues.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CellWrapTextFor(IEnumerable<(int Row, int Column)> cells, bool wrapText = true)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Batch(s => { foreach (...) s.Cell(row, column).SetWrapText(); }) or Range(...).SetWrapText()",
+      "reason": "Batch already styles under one lock and saves the stylesheet once.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.WrapCells(int fromRow, int toRow, int column[, ExcelColumnWidth targetColumnWidth])",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Range(fromRow, column, toRow, column).SetWrapText(); SetColumnWidth(column, width)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.MergeRange(string a1Range)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Range(a1Range).Merge()",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.UnmergeRange(string a1Range)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Range(a1Range).Unmerge()",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.ClearRange(string a1Range, ExcelClearOptions options = All)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Range(a1Range).Clear(options)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.CopyRange(string sourceRange, string destinationTopLeft, ...)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Range(a1Range).CopyTo(destinationTopLeft, ...)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.MoveRange(string sourceRange, string destinationTopLeft, ...)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Range(a1Range).MoveTo(destinationTopLeft, ...)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.TransposeRange(string sourceRange, string destinationTopLeft, ...)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Range(a1Range).TransposeTo(destinationTopLeft, ...)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.SortRangeByColumn(string a1Range, int columnOffset, bool ascending = true, bool hasHeader = true)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Range(a1Range).SortByColumn(columnOffset, ascending, hasHeader)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.FillRange(string a1Range, string hexColor)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Range(a1Range).SetFillColor(hexColor)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.FillRangeGradient(string a1Range, string fromHexColor, string toHexColor, double degree = 0)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Range(a1Range).SetGradientFill(fromHexColor, toHexColor, degree)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.FormatRange(string a1Range, string numberFormat)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.Range(a1Range).SetNumberFormat(numberFormat)",
+      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.UsedRangeA1",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.UsedRange : ExcelRange (A1:A1 on an empty sheet; .Address for the text)",
+      "reason": "The used range is a range object.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.GetNamedRange(string name, ExcelSheet scope = null) : string",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelDocument.GetNamedRange(string name, ExcelSheet scope = null) : ExcelRange?",
+      "reason": "A defined name resolves to its range on the target sheet, so doc.GetNamedRange(\"Total\")!.FirstCell writes without parsing. ListNamedRanges keeps the stored text.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.GetNamedRange(string name) : string",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.GetNamedRange(string name) : ExcelRange?",
+      "reason": "Same contract as ExcelDocument.GetNamedRange.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.InsertColumns(int firstColumn, int count = 1, ExcelMutationPlanOptions options = null, CancellationToken cancellationToken = default) : ExcelMutationResult",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.InsertColumns(int firstColumn, int count = 1) : void; InsertColumnsTransactional(int firstColumn, int count = 1, ExcelMutationPlanOptions options = null, CancellationToken cancellationToken = default) : ExcelMutationResult",
+      "reason": "Columns match rows: the plain call remaps references without a plan, snapshot or package validation; the Transactional call keeps rollback and diagnostics.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.DeleteColumns(int firstColumn, int count = 1, ExcelMutationPlanOptions options = null, CancellationToken cancellationToken = default) : ExcelMutationResult",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.DeleteColumns(int firstColumn, int count = 1) : void; DeleteColumnsTransactional(int firstColumn, int count = 1, ExcelMutationPlanOptions options = null, CancellationToken cancellationToken = default) : ExcelMutationResult",
+      "reason": "Columns match rows: the plain call remaps references without a plan, snapshot or package validation; the Transactional call keeps rollback and diagnostics.",
+      "category": "authoring",
+      "phase": "3.6-g2",
+      "applied": "applied"
     }
   ],
   "packageMoves": [
@@ -11006,7 +11486,7 @@
       "subject": "Local worksheet addresses",
       "status": "applied",
       "phase": "B",
-      "note": "CellAt(string) and native ExcelRange preserve the removed builders\u2019 rejection of worksheet-qualified addresses. Cross-sheet addresses remain explicit in operations that support them."
+      "note": "CellAt(string) and native ExcelRange preserve the removed builders’ rejection of worksheet-qualified addresses. Cross-sheet addresses remain explicit in operations that support them."
     },
     {
       "subject": "Excel report AddTable(DataTable) target correction",
@@ -11807,7 +12287,7 @@
         "OfficeIMO.OpenDocument.Converters.Tests/SpreadsheetConditionalFormattingLossTests.cs",
         "OfficeIMO.Excel.Tests/Pdf/Excel.SaveAsPdf.PageSetupPrintAreaTests.cs"
       ],
-      "note": "Nullable inheritance, 1\u2013409-point differential-format guards and numeric provider/native wire values are preserved. The five authoring APIs and four font models now use one physical length contract. Compiler consumer closure preserves nullable expected rich-run sizes and sums typed PDF minimum row heights after the existing nonnull assertion, retaining all saved-value expectations.",
+      "note": "Nullable inheritance, 1–409-point differential-format guards and numeric provider/native wire values are preserved. The five authoring APIs and four font models now use one physical length contract. Compiler consumer closure preserves nullable expected rich-run sizes and sums typed PDF minimum row heights after the existing nonnull assertion, retaining all saved-value expectations.",
       "phase": "B",
       "action": "change",
       "old": "ExcelCellStyleInfo.FontSize, ExcelVisualTextRun.FontSize, ExcelVisualDrawingObject.TextFontSize, ExcelConditionalFormattingInfo.DifferentialFontSize",
@@ -11840,6 +12320,15 @@
       "reason": "Captures native import policies, resource limits and an independent worksheet-name list for reusable merge settings.",
       "file": "OfficeIMO.Excel/ExcelWorkbookMergeOptions.cs",
       "applied": "implemented"
+    },
+    {
+      "phase": "3.6-g2",
+      "action": "change",
+      "old": "A cell created in a row or column with a style started unstyled, and writing a date or time always applied the built-in format 14 or 46.",
+      "new": "A new cell takes its row style (when the row has customFormat) or else its column style, as Excel does; a date or time written into a cell that already has a matching date or time format keeps that format.",
+      "reason": "Values written into a template kept losing its column number formats (XLBench template scenario: A2005 got format 14, E2005 got General).",
+      "category": "authoring",
+      "applied": "applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

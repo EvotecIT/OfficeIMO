@@ -81,7 +81,7 @@ public sealed class HtmlExcelNamedTableLossTests {
         var orders = AddTableSheet(workbook, "Orders", "OrderItems");
         orders.SetHidden(true);
         var plain = workbook.AddSheet("Plain");
-        plain.CellValue(1, 1, "Selected plain value");
+        plain.Cell(1, 1).SetValue("Selected plain value");
         var result = workbook.ToHtmlResult(new ExcelHtmlSaveOptions {
             ExportProfile = ExcelHtmlExportProfile.VisualReview,
             VisualOptions = new ExcelImageExportOptions {
@@ -123,7 +123,7 @@ public sealed class HtmlExcelNamedTableLossTests {
         using var workbook = ExcelDocument.Create();
         AddTableSheet(workbook, "Orders", "OrderItems");
         var plain = workbook.AddSheet("Plain");
-        plain.CellValue(1, 1, "Preserved plain value");
+        plain.Cell(1, 1).SetValue("Preserved plain value");
         var result = plain.ToHtmlResult();
         Assert.False(result.Report.HasLoss);
         Assert.DoesNotContain(result.Report.NativeDiagnostics, d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true);
@@ -142,17 +142,17 @@ public sealed class HtmlExcelNamedTableLossTests {
         restored.Save(bytes);
         using var reopened = ExcelDocument.Load(new MemoryStream(bytes.ToArray()));
         Assert.Empty(reopened.GetTables());
-        Assert.Equal("Item", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
-        Assert.Equal("Alpha", reopened.Sheets[0].CellAt(2, 1).GetValue<string>());
-        Assert.Equal(2, reopened.Sheets[0].CellAt(2, 2).GetValue<int>());
+        Assert.Equal("Item", reopened.Sheets[0].Cell(1, 1).GetValue<string>());
+        Assert.Equal("Alpha", reopened.Sheets[0].Cell(2, 1).GetValue<string>());
+        Assert.Equal(2, reopened.Sheets[0].Cell(2, 2).GetValue<int>());
     }
 
     private static ExcelSheet AddTableSheet(ExcelDocument workbook, string sheetName, string tableName) {
         var sheet = workbook.AddSheet(sheetName);
-        sheet.CellValue(1, 1, "Item");
-        sheet.CellValue(1, 2, "Count");
-        sheet.CellValue(2, 1, "Alpha");
-        sheet.CellValue(2, 2, 2);
+        sheet.Cell(1, 1).SetValue("Item");
+        sheet.Cell(1, 2).SetValue("Count");
+        sheet.Cell(2, 1).SetValue("Alpha");
+        sheet.Cell(2, 2).SetValue(2);
         sheet.AddTable("A1:B2", true, tableName, ExcelTableStyle.TableStyleMedium9);
         return sheet;
     }

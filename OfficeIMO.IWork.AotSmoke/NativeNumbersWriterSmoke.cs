@@ -41,9 +41,9 @@ internal static class NativeNumbersWriterSmoke {
             && empty.GetPadding(2, 3)?.BottomPoints == 4, "Native Numbers region padding was silently discarded.");
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
-        Require(reopened.Sheets.Count == 3 && reopened.Sheets[0].CellAt(2, 2).GetValue<double>() == 12.5
-            && reopened.Sheets[0].CellAt(2, 3).GetValue<bool>() && !reopened.Sheets[0].CellAt(3, 3).GetValue<bool>()
-            && reopened.Sheets[0].CellAt(3, 4).GetValue<string>() == "=literal"
+        Require(reopened.Sheets.Count == 3 && reopened.Sheets[0].Cell(2, 2).GetValue<double>() == 12.5
+            && reopened.Sheets[0].Cell(2, 3).GetValue<bool>() && !reopened.Sheets[0].Cell(3, 3).GetValue<bool>()
+            && reopened.Sheets[0].Cell(3, 4).GetValue<string>() == "=literal"
             && string.IsNullOrEmpty(reopened.Sheets[0].GetFormulaText(3, 4))
             && !reopened.ValidateOpenXml().Any(), "Saved Numbers XLSX loses typed scalar values or literal text.");
         byte[] before = destination.ToArray();

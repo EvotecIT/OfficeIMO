@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(filePath)) {
                 var sheet = doc.AddSheet("Data");
-                sheet.Cell(1, 1, "Present");
+                sheet.Cell(1, 1).SetValue("Present");
 
                 sheet.SetByHeader(2, "Missing", "value");
 
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(filePath)) {
                 var sheet = doc.AddSheet("Data");
-                sheet.CellValue(1, 1, "Name");
+                sheet.Cell(1, 1).SetValue("Name");
                 sheet.SetByHeader(2, "Name", null);
 
                 Assert.True(sheet.TryGetCellText(2, 1, out string text));
@@ -67,8 +67,8 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(filePath)) {
                 var sheet = doc.AddSheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "Alice");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue("Alice");
 
                 sheet.AutoFilterByHeaderEquals("Missing", new[] { "Alice" });
                 doc.Save();
@@ -89,8 +89,8 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(filePath)) {
                 var sheet = doc.AddSheet("Summary");
-                sheet.Cell(1, 1, "Existing");
-                sheet.Cell(2, 1, "value");
+                sheet.Cell(1, 1).SetValue("Existing");
+                sheet.Cell(2, 1).SetValue("value");
 
                 sheet.LinkByHeaderToUrls("Missing", rowFrom: 2, rowTo: 2, urlForCellText: _ => "https://example.com");
                 doc.Save();
@@ -111,8 +111,8 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(filePath)) {
                 var sheet = doc.AddSheet("Data");
-                sheet.Cell(1, 1, "Existing");
-                sheet.CellValue(2, 1, 10);
+                sheet.Cell(1, 1).SetValue("Existing");
+                sheet.Cell(2, 1).SetValue(10);
 
                 sheet.ColumnStyleByHeader("Missing").Bold().Number();
                 doc.Save();

@@ -22,7 +22,7 @@ public sealed class ExcelAllSeverityBatch13SecurityTests
     public void SaveRejectsPackageMaterializationBeyondConfiguredLimit() {
         using var source = new MemoryStream();
         using ExcelDocument document = ExcelDocument.Create(source);
-        document.AddSheet("Data").CellValue(1, 1, new string('x', 1024));
+        document.AddSheet("Data").Cell(1, 1).SetValue(new string('x', 1024));
         using var destination = new MemoryStream();
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
@@ -39,7 +39,7 @@ public sealed class ExcelAllSeverityBatch13SecurityTests
         byte[] package;
         using (var source = new MemoryStream())
         using (ExcelDocument created = ExcelDocument.Create(source)) {
-            created.AddSheet("Data").CellValue(1, 1, "value");
+            created.AddSheet("Data").Cell(1, 1).SetValue("value");
             package = created.ToBytes();
         }
 
@@ -57,7 +57,7 @@ public sealed class ExcelAllSeverityBatch13SecurityTests
     public void SimpleFastSaveChecksLimitBeforeGrowingToBytesMemoryStream() {
         using var backing = new MemoryStream();
         using ExcelDocument document = ExcelDocument.Create(backing);
-        document.AddSheet("Data").CellValue(1, 1, new string('x', 1024));
+        document.AddSheet("Data").Cell(1, 1).SetValue(new string('x', 1024));
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             document.ToBytes(options: new ExcelSaveOptions { MaxInMemoryPackageBytes = 64 }));

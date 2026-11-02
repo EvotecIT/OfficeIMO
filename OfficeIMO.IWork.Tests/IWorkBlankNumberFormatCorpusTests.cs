@@ -67,7 +67,7 @@ public sealed partial class IWorkBoundaryTests {
             var mapping = result.WorksheetMappings.Single(m => m.SourceSheetName == "Main Sheet" && m.SourceTableName == "Extra Headers");
             using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-            var target = reopened.Sheets.Single(s => s.Name == mapping.DestinationName).CellAt(8, 1);
+            var target = reopened.Sheets.Single(s => s.Name == mapping.DestinationName).Cell(8, 1);
             Assert.Null(target.GetValue<string>());
             Assert.Equal(explicitlySelected, target.GetStyle().NumberFormatCode?.Contains('%') == true);
         }
@@ -87,11 +87,11 @@ public sealed partial class IWorkBoundaryTests {
         var sheet = reopened.Sheets.Single(s => s.Name == mapping.DestinationName);
         var reference = native.Sheets.Single(s => s.Name == "Main Sheet - Extra Headers");
         for (int row = 9; row <= 17; row++) {
-            Assert.Equal("@", reference.CellAt(row + 1, 1).GetStyle().NumberFormatCode);
-            Assert.Equal(reference.CellAt(row + 1, 1).GetStyle().NumberFormatCode,
-                sheet.CellAt(row, 1).GetStyle().NumberFormatCode);
-            Assert.Null(reference.CellAt(row + 1, 1).GetValue<string>());
-            Assert.Null(sheet.CellAt(row, 1).GetValue<string>());
+            Assert.Equal("@", reference.Cell(row + 1, 1).GetStyle().NumberFormatCode);
+            Assert.Equal(reference.Cell(row + 1, 1).GetStyle().NumberFormatCode,
+                sheet.Cell(row, 1).GetStyle().NumberFormatCode);
+            Assert.Null(reference.Cell(row + 1, 1).GetValue<string>());
+            Assert.Null(sheet.Cell(row, 1).GetValue<string>());
             Assert.False(sheet.TryGetCellValueSnapshot(row, 1, out _));
         }
         Assert.Empty(reopened.ValidateOpenXml());
@@ -134,8 +134,8 @@ public sealed partial class IWorkBoundaryTests {
         var blanks = table.Cells.Where(cell => cell.Kind == IWorkCellKind.Empty && cell.NumberFormat != null).ToArray();
         Assert.Equal(21, blanks.Length);
         foreach (var cell in blanks) {
-            Assert.Equal("#,##0.###############", sheet.CellAt(cell.Row, cell.Column).GetStyle().NumberFormatCode);
-            Assert.Null(sheet.CellAt(cell.Row, cell.Column).GetValue<string>());
+            Assert.Equal("#,##0.###############", sheet.Cell(cell.Row, cell.Column).GetStyle().NumberFormatCode);
+            Assert.Null(sheet.Cell(cell.Row, cell.Column).GetValue<string>());
             Assert.False(sheet.TryGetCellValueSnapshot(cell.Row, cell.Column, out _));
         }
         Assert.Empty(reopened.ValidateOpenXml());

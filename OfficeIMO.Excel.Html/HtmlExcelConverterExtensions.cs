@@ -261,7 +261,7 @@ public static partial class HtmlExcelConverterExtensions {
                 continue;
             }
 
-            sheet.CellFormula(row, column, formula);
+            sheet.Cell(row, column).SetFormula(formula);
             importedFormulaCells.Add(cellKey);
             result.Formulas++;
         }
@@ -313,7 +313,7 @@ public static partial class HtmlExcelConverterExtensions {
             }
         }
 
-        string range = section.GetAttribute("data-officeimo-range") ?? sheet.UsedRangeA1;
+        string range = section.GetAttribute("data-officeimo-range") ?? sheet.UsedRange.Address;
         int chartIndex = 0;
         foreach (ExcelDrawingImportItem drawing in drawings.OrderBy(item => item.LayerIndex ?? item.FallbackOrder).ThenBy(item => item.FallbackOrder)) {
             if (drawing.Kind == ExcelDrawingImportKind.Image) {
@@ -898,7 +898,7 @@ public static partial class HtmlExcelConverterExtensions {
             return false;
         }
 
-        sheet.CellValue(row, column, text);
+        sheet.Cell(row, column).SetValue(text);
         return true;
     }
 

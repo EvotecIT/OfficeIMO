@@ -119,15 +119,15 @@ internal static class ReaderBenchmarkCorpus {
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.Cell(1, 1, "Id");
-                sheet.Cell(1, 2, "Name");
-                sheet.Cell(1, 3, "Amount");
-                sheet.Cell(1, 4, "Active");
+                sheet.Cell(1, 1).SetValue("Id");
+                sheet.Cell(1, 2).SetValue("Name");
+                sheet.Cell(1, 3).SetValue("Amount");
+                sheet.Cell(1, 4).SetValue("Active");
                 for (int row = 2; row <= 2501; row++) {
-                    sheet.Cell(row, 1, row - 1);
-                    sheet.Cell(row, 2, "Item " + (row - 1));
-                    sheet.Cell(row, 3, (row - 1) * 1.25m);
-                    sheet.Cell(row, 4, row % 2 == 0);
+                    sheet.Cell(row, 1).SetValue(row - 1);
+                    sheet.Cell(row, 2).SetValue("Item " + (row - 1));
+                    sheet.Cell(row, 3).SetValue((row - 1) * 1.25m);
+                    sheet.Cell(row, 4).SetValue(row % 2 == 0);
                 }
                 document.Save();
             }

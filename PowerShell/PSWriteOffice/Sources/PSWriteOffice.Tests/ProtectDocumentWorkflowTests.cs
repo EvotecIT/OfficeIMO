@@ -581,7 +581,7 @@ public sealed class ProtectDocumentWorkflowTests {
             using var document = NewDocument(System.IO.Path.GetExtension(path));
             switch (document) {
                 case WordDocument word: word.AddParagraph("MARKER"); word.Save(path); break;
-                case ExcelDocument excel: excel.AddSheet("Data").CellValue(1, 1, "MARKER"); excel.Save(path); break;
+                case ExcelDocument excel: excel.AddSheet("Data").Cell(1, 1).SetValue("MARKER"); excel.Save(path); break;
                 case PowerPointDocument presentation: presentation.AddSlide(); presentation.Save(path); break;
                 case PdfDocument pdf: pdf.Content.Paragraph(paragraph => paragraph.Text("MARKER")); pdf.Save(path); break;
             }

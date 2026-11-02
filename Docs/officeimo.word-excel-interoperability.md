@@ -108,7 +108,7 @@ using ExcelDocument workbook = ExcelDocument.Load(
         MaxSharedStrings = 500_000
     });
 
-workbook["Data"].CellValue(2, 2, 1250m);
+workbook["Data"].Cell(2, 2).SetValue(1250m);
 workbook.Save("edited.xlsb");
 
 OfficeConverter.Convert("source.xlsb", "editable.xlsx");

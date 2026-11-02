@@ -34,16 +34,16 @@ public sealed partial class IWorkBoundaryTests {
         using var bytesOut = new MemoryStream(); result.Value.Save(bytesOut); bytesOut.Position = 0;
         using var reopened = ExcelDocument.Load(bytesOut);
         Assert.Equal(new[] { "Inputs", "Checks" }, reopened.Sheets.Select(s => s.Name));
-        Assert.Equal(changed ? "18" : "12", reopened.Sheets[0].CellAt(4, 2).GetValue<string>());
+        Assert.Equal(changed ? "18" : "12", reopened.Sheets[0].Cell(4, 2).GetValue<string>());
         Verify(changed ? "changedCells" : "cells", true);
         Assert.Equal(10, reopened.Calculate()); Verify(changed ? "changedCells" : "cells", false);
-        reopened.Sheets[0].CellValue(4, 2, "18");
+        reopened.Sheets[0].Cell(4, 2).SetValue("18");
         Assert.Equal(10, reopened.Calculate()); Verify("changedCells", false);
         using var finalBytes = new MemoryStream(); reopened.Save(finalBytes); finalBytes.Position = 0;
         using var final = ExcelDocument.Load(finalBytes);
-        Assert.Equal("18", final.Sheets[0].CellAt(4, 2).GetValue<string>());
-        Assert.Equal(18d, final.Sheets[1].CellAt(4, 3).GetValue<double>());
-        Assert.Equal(18d, final.Sheets[1].CellAt(7, 2).GetValue<double>());
+        Assert.Equal("18", final.Sheets[0].Cell(4, 2).GetValue<string>());
+        Assert.Equal(18d, final.Sheets[1].Cell(4, 3).GetValue<double>());
+        Assert.Equal(18d, final.Sheets[1].Cell(7, 2).GetValue<double>());
         Assert.Empty(final.ValidateOpenXml());
 
         void Verify(string field, bool sourceToo) {
@@ -55,7 +55,7 @@ public sealed partial class IWorkBoundaryTests {
                     Assert.Equal(expected.GetProperty("nativeValue").GetDouble(), cell.Value);
                 }
                 Assert.Equal(expected.GetProperty("excelFormula").GetString(), reopened.Sheets[1].GetFormulaText(row, column));
-                Assert.Equal(expected.GetProperty("nativeValue").GetDouble(), reopened.Sheets[1].CellAt(row, column).GetValue<double>());
+                Assert.Equal(expected.GetProperty("nativeValue").GetDouble(), reopened.Sheets[1].Cell(row, column).GetValue<double>());
             }
         }
     }

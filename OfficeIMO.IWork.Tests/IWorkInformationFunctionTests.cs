@@ -33,9 +33,9 @@ public sealed partial class IWorkBoundaryTests {
         using var reopened = ExcelDocument.Load(saved);
         string argument = operand switch { "error" => "1/0", "number" => "123", "boolean" => "TRUE", "empty" => "\"\"", _ => "\"123\"" };
         Assert.Equal(name + "(" + argument + ")", reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(!expected, reopened.Sheets[0].CellAt(1, 1).GetValue<bool>());
+        Assert.Equal(!expected, reopened.Sheets[0].Cell(1, 1).GetValue<bool>());
         Assert.Equal(1, reopened.Calculate());
-        Assert.Equal(expected, reopened.Sheets[0].CellAt(1, 1).GetValue<bool>());
+        Assert.Equal(expected, reopened.Sheets[0].Cell(1, 1).GetValue<bool>());
         IWorkFormulaCacheAssertions.HasType(reopened, 0, "A1", "b");
         Assert.Empty(reopened.ValidateOpenXml());
     }
@@ -54,16 +54,16 @@ public sealed partial class IWorkBoundaryTests {
         using var reopened = ExcelDocument.Load(saved);
         string target = result.WorksheetMappings[1].DestinationName.Replace("'", "''");
         Assert.Equal(name + "('" + target + "'!$A$1)", reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(13d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
-        reopened.Sheets[1].CellValue(1, 1, 123d);
+        Assert.Equal(13d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
+        reopened.Sheets[1].Cell(1, 1).SetValue(123d);
         Assert.True(reopened.Calculate() > 0);
-        Assert.Equal(numberResult, reopened.Sheets[0].CellAt(1, 1).GetValue<bool>());
-        reopened.Sheets[1].CellValue(1, 1, "123");
+        Assert.Equal(numberResult, reopened.Sheets[0].Cell(1, 1).GetValue<bool>());
+        reopened.Sheets[1].Cell(1, 1).SetValue("123");
         Assert.True(reopened.Calculate() > 0);
-        Assert.Equal(textResult, reopened.Sheets[0].CellAt(1, 1).GetValue<bool>());
-        reopened.Sheets[1].CellAt(1, 1).Clear();
+        Assert.Equal(textResult, reopened.Sheets[0].Cell(1, 1).GetValue<bool>());
+        reopened.Sheets[1].Cell(1, 1).Clear();
         Assert.True(reopened.Calculate() > 0);
-        Assert.Equal(blankResult, reopened.Sheets[0].CellAt(1, 1).GetValue<bool>());
+        Assert.Equal(blankResult, reopened.Sheets[0].Cell(1, 1).GetValue<bool>());
         IWorkFormulaCacheAssertions.HasType(reopened, 0, "A1", "b");
     }
 
@@ -79,9 +79,9 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal("CONCATENATE(\"A\"\"😀\",\" B\")", reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal("old", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("old", reopened.Sheets[0].Cell(1, 1).GetValue<string>());
         Assert.Equal(1, reopened.Calculate());
-        Assert.Equal(first + " B", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal(first + " B", reopened.Sheets[0].Cell(1, 1).GetValue<string>());
         IWorkFormulaCacheAssertions.HasType(reopened, 0, "A1", "str");
         Assert.False(RenderFunction(25, 0).IsComplete);
         Assert.True(RenderFunction(25, 1).IsComplete);

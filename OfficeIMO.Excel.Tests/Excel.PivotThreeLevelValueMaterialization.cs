@@ -212,16 +212,16 @@ namespace OfficeIMO.Tests
 
         private static void PopulateThreeLevelPivotSource(ExcelSheet source,
             (string Region, string Product, string Channel, double Sales)[] rows) {
-            source.CellValue(1, 1, "Region");
-            source.CellValue(1, 2, "Product");
-            source.CellValue(1, 3, "Channel");
-            source.CellValue(1, 4, "Sales");
+            source.Cell(1, 1).SetValue("Region");
+            source.Cell(1, 2).SetValue("Product");
+            source.Cell(1, 3).SetValue("Channel");
+            source.Cell(1, 4).SetValue("Sales");
             for (int index = 0; index < rows.Length; index++) {
                 var row = rows[index];
-                source.CellValue(index + 2, 1, row.Region);
-                source.CellValue(index + 2, 2, row.Product);
-                source.CellValue(index + 2, 3, row.Channel);
-                source.CellValue(index + 2, 4, row.Sales);
+                source.Cell(index + 2, 1).SetValue(row.Region);
+                source.Cell(index + 2, 2).SetValue(row.Product);
+                source.Cell(index + 2, 3).SetValue(row.Channel);
+                source.Cell(index + 2, 4).SetValue(row.Sales);
             }
         }
 

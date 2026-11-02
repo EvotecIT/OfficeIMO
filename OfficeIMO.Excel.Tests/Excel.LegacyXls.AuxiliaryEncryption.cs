@@ -19,7 +19,7 @@ public sealed class ExcelLegacyAuxiliaryEncryptionTests {
         byte[] source = AddAuxiliaryStreams(pivot, revisions, bookAlias);
         if (cryptoApi) source = ExcelLegacyCryptoApiStorageTests.EncryptWithSummary(source, out _, out _);
         using var document = cryptoApi ? ExcelDocument.LoadEncrypted(new MemoryStream(source), "test-password") : ExcelDocument.Load(new MemoryStream(source));
-        document.Sheets[0].CellValue(1, 1, "Encrypted auxiliary preservation");
+        document.Sheets[0].Cell(1, 1).SetValue("Encrypted auxiliary preservation");
         using var output = new MemoryStream(); document.SaveEncrypted(output, "test-password", ExcelFileFormat.Xls);
         Assert.True(OfficeCompoundFileReader.TryRead(output.ToArray(), out OfficeCompoundFile? encrypted, out string? error), error);
         Assert.True(OfficeCompoundFileReader.TryRead(source, out OfficeCompoundFile? original, out error), error);
@@ -38,13 +38,13 @@ public sealed class ExcelLegacyAuxiliaryEncryptionTests {
         foreach (var stream in original!.Streams.Where(item => item.Key != main && item.Key != "_SX_DB_CUR/0001" && item.Key != "Revision Log" && item.Key != "encryption"))
             Assert.Equal(stream.Value, encrypted.Streams[stream.Key]);
         using var loaded = ExcelDocument.LoadEncrypted(output, "test-password");
-        Assert.Equal("Encrypted auxiliary preservation", loaded.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Encrypted auxiliary preservation", loaded.Sheets[0].Cell(1, 1).GetValue<string>());
         byte[] unencryptedBytes = loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         Assert.True(OfficeCompoundFileReader.TryRead(unencryptedBytes, out OfficeCompoundFile? plaintextCompound, out error), error);
         Assert.Equal(pivot, plaintextCompound!.Streams["_SX_DB_CUR/0001"]);
         Assert.Equal(revisions, plaintextCompound.Streams["Revision Log"]);
         Assert.DoesNotContain(BiffRecordReader.ReadRecords(plaintextCompound.Streams[main], new()), record => record.Type == 0x002f);
-        loaded.Sheets[0].CellValue(1, 1, "Rotated auxiliary preservation");
+        loaded.Sheets[0].Cell(1, 1).SetValue("Rotated auxiliary preservation");
         using var rotated = new MemoryStream(); loaded.SaveEncrypted(rotated, "new-password", ExcelFileFormat.Xls);
         if (cryptoApi) {
             Assert.True(OfficeCompoundFileReader.TryRead(rotated.ToArray(), out OfficeCompoundFile? protectedOutput, out error), error);
@@ -52,7 +52,7 @@ public sealed class ExcelLegacyAuxiliaryEncryptionTests {
             Assert.DoesNotContain(protectedOutput.Streams.Keys, name => name.StartsWith("ProofStorage/", StringComparison.OrdinalIgnoreCase));
         }
         using var reloaded = ExcelDocument.LoadEncrypted(rotated, "new-password");
-        Assert.Equal("Rotated auxiliary preservation", reloaded.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Rotated auxiliary preservation", reloaded.Sheets[0].Cell(1, 1).GetValue<string>());
         Assert.Equal(4, reloaded.LegacyXlsChartSheets.Count);
         rotated.Position = 0; Assert.ThrowsAny<Exception>(() => ExcelDocument.LoadEncrypted(rotated, "test-password"));
     }

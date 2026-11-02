@@ -15,7 +15,7 @@ public partial class Excel {
     public void SaveAsPdf_TitleBlockRepeatsOnlyColumnsBeforeTheCurrentBodySegment(ExcelPdfWorksheetLayoutMode layout, int firstBreak) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
-        for (int column = 1; column <= 8; column++) sheet.Cell(1, column, "Column" + column);
+        for (int column = 1; column <= 8; column++) sheet.Cell(1, column).SetValue("Column" + column);
         document.SetPrintArea(sheet, "A1:H2");
         document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 3, lastCol: 4);
         sheet.AddManualColumnPageBreak(firstBreak); sheet.AddManualColumnPageBreak(6);
@@ -41,8 +41,8 @@ public partial class Excel {
     public void ToPdfDocument_GeneralAlignmentUsesCellTypesAndRetainsExplicitAlignment() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
-        sheet.Cell(1, 1, 123.45D); sheet.Cell(1, 2, "123.45"); sheet.Cell(1, 3, true);
-        sheet.Cell(1, 4, 123.45D); sheet.CellAlign(1, 4, ExcelHorizontalAlignment.Left);
+        sheet.Cell(1, 1).SetValue(123.45D); sheet.Cell(1, 2).SetValue("123.45"); sheet.Cell(1, 3).SetValue(true);
+        sheet.Cell(1, 4).SetValue(123.45D); sheet.Cell(1, 4).SetHorizontalAlignment(ExcelHorizontalAlignment.Left);
         PdfCore.PdfDocument pdf = document.ToPdf(new ExcelPdfExportOptions {
             HeaderRowCount = 0, WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable
         });
@@ -58,9 +58,9 @@ public partial class Excel {
     public void SaveAsPdf_CanvasUsesDefaultBottomAlignmentAndRetainsExplicitTopAlignment() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
-        sheet.Cell(1, 1, "DefaultBottom"); sheet.Cell(1, 2, "ExplicitTop");
+        sheet.Cell(1, 1).SetValue("DefaultBottom"); sheet.Cell(1, 2).SetValue("ExplicitTop");
         sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(40D)));
-        sheet.CellVerticalAlign(1, 2, ExcelVerticalAlignment.Top);
+        sheet.Cell(1, 2).SetVerticalAlignment(ExcelVerticalAlignment.Top);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions { HeaderRowCount = 0 }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
         var bottom = Assert.Single(words, word => word.Text == "DefaultBottom");
@@ -75,8 +75,8 @@ public partial class Excel {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 80; row++) {
-            sheet.Cell(row, 1, "Row" + row.ToString("D3") + (multiline ? "\nDetail" + row.ToString("D3") : ""));
-            sheet.CellFontSize(row, 1, global::OfficeIMO.OfficeLength.Points(fontSize));
+            sheet.Cell(row, 1).SetValue("Row" + row.ToString("D3") + (multiline ? "\nDetail" + row.ToString("D3") : ""));
+            sheet.Cell(row, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(fontSize));
             sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20D)));
         }
         sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 2);
@@ -96,10 +96,10 @@ public partial class Excel {
     public void ToPdfDocument_RepeatedColumnsPreserveMergedTitleFormattingAndWidths() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
-        sheet.Cell(1, 1, "Merged title");
+        sheet.Cell(1, 1).SetValue("Merged title");
         sheet.Range("A1:B1").Merge();
-        sheet.CellAt(1, 1).SetBold().SetFillColor("DDEEFF").SetFontColor("112233");
-        sheet.Cell(1, 3, "First page"); sheet.Cell(1, 5, "Second page");
+        sheet.Cell(1, 1).SetBold().SetFillColor("DDEEFF").SetFontColor("112233");
+        sheet.Cell(1, 3).SetValue("First page"); sheet.Cell(1, 5).SetValue("Second page");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(10)); sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(20));
         document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 1, lastCol: 2);
         document.SetPrintArea(sheet, "A1:F2");
@@ -128,8 +128,8 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, "AutomaticPageGrid-" + order + "-" + fit + ".xlsx");
         using ExcelDocument document = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Report" });
         ExcelSheet sheet = document.Sheets[0];
-        sheet.Cell(1, 1, "TopLeft"); sheet.Cell(1, 3, "TopRight");
-        sheet.Cell(3, 1, "BottomLeft"); sheet.Cell(3, 3, "BottomRight");
+        sheet.Cell(1, 1).SetValue("TopLeft"); sheet.Cell(1, 3).SetValue("TopRight");
+        sheet.Cell(3, 1).SetValue("BottomLeft"); sheet.Cell(3, 3).SetValue("BottomRight");
         for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(20));
         for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
         sheet.SetPageSetup(pageOrder: order, fitToWidth: fit ? 2U : null, fitToHeight: fit ? 2U : null);
@@ -155,11 +155,11 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, "RepeatedColumns-" + layout + "-" + titlesOutsideArea + ".xlsx");
         using ExcelDocument document = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Report" });
         ExcelSheet sheet = document.Sheets[0];
-        sheet.Cell(1, 1, "Corner");
-        sheet.Cell(2, 1, "Row label");
-        sheet.Cell(1, 3, "First heading");
-        sheet.Cell(2, 3, "First value");
-        sheet.Cell(1, 5, "Second heading");
+        sheet.Cell(1, 1).SetValue("Corner");
+        sheet.Cell(2, 1).SetValue("Row label");
+        sheet.Cell(1, 3).SetValue("First heading");
+        sheet.Cell(2, 3).SetValue("First value");
+        sheet.Cell(1, 5).SetValue("Second heading");
         sheet.SetInternalLink(2, 5, "A2", display: "Back to row label");
         document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: 1, lastCol: 1);
         sheet.AddManualColumnPageBreak(3);

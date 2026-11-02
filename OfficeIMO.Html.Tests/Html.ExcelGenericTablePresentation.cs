@@ -41,11 +41,11 @@ public partial class HtmlOfficeAdapters {
 
         using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(bytes));
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
-        Assert.Equal(label, sheet.CellAt(2, 1).GetValue<string>());
+        Assert.Equal(label, sheet.Cell(2, 1).GetValue<string>());
         Assert.Equal("https://example.test/satellites", sheet.GetHyperlinks()["A2"].Target);
-        Assert.True(sheet.GetCellStyle(1, 1).Bold);
+        Assert.True(sheet.Cell(1, 1).GetStyle().Bold);
         for (int column = 2; column <= columnCount; column++) {
-            Assert.Equal((60 + column).ToString(), sheet.CellAt(2, column).GetValue<string>());
+            Assert.Equal((60 + column).ToString(), sheet.Cell(2, column).GetValue<string>());
         }
     }
 
@@ -61,12 +61,12 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
         Assert.Equal("A4:E4", Assert.Single(sheet.GetMergedRanges()).A1Range);
-        Assert.Equal(note, sheet.CellAt(4, 1).GetValue<string>());
-        Assert.Equal("Known natural satellites as of January 2013", sheet.CellAt(3, 1).GetValue<string>());
-        Assert.Equal("2", sheet.CellAt(3, 5).GetValue<string>());
+        Assert.Equal(note, sheet.Cell(4, 1).GetValue<string>());
+        Assert.Equal("Known natural satellites as of January 2013", sheet.Cell(3, 1).GetValue<string>());
+        Assert.Equal("2", sheet.Cell(3, 5).GetValue<string>());
         Assert.DoesNotContain(sheet.EnumerateCells(), cell => cell.Row == 2);
-        Assert.True(sheet.GetCellStyle(3, 1).WrapText);
-        Assert.True(sheet.GetCellStyle(4, 1).WrapText);
+        Assert.True(sheet.Cell(3, 1).GetStyle().WrapText);
+        Assert.True(sheet.Cell(4, 1).GetStyle().WrapText);
     }
 }
 

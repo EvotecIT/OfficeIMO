@@ -257,19 +257,19 @@ namespace OfficeIMO.Tests {
         public void StandaloneDefinitionsAreUsableNamedStylesAndReplacementPreservesOtherStyles() {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, 12.5); sheet.CellValue(1, 2, "Other");
+            sheet.Cell(1, 1).SetValue(12.5); sheet.Cell(1, 2).SetValue("Other");
             var definition = new ExcelStyleDefinition { Bold = true, BackgroundColor = OfficeColor.Yellow, NumberFormat = "0.00" };
             document.DefineNamedStyle(" Highlight ", definition);
             definition.Bold = false;
             sheet.ApplyNamedStyle("highlight", "A1:A1");
-            Assert.True(sheet.GetCellStyle(1, 1).Bold);
-            Assert.Equal("0.00", sheet.GetCellStyle(1, 1).NumberFormatCode);
-            Assert.False(sheet.GetCellStyle(1, 2).Bold);
+            Assert.True(sheet.Cell(1, 1).GetStyle().Bold);
+            Assert.Equal("0.00", sheet.Cell(1, 1).GetStyle().NumberFormatCode);
+            Assert.False(sheet.Cell(1, 2).GetStyle().Bold);
             document.DefineNamedStyle("Highlight", new ExcelStyleDefinition { Italic = true });
-            Assert.False(sheet.GetCellStyle(1, 1).Bold);
-            Assert.True(sheet.GetCellStyle(1, 1).Italic);
+            Assert.False(sheet.Cell(1, 1).GetStyle().Bold);
+            Assert.True(sheet.Cell(1, 1).GetStyle().Italic);
             using var loaded = ExcelDocument.Load(new MemoryStream(document.ToBytes()));
-            Assert.True(loaded.Sheets[0].GetCellStyle(1, 1).Italic);
+            Assert.True(loaded.Sheets[0].Cell(1, 1).GetStyle().Italic);
         }
 
         [Theory]

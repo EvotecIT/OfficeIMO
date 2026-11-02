@@ -9,35 +9,35 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             var sheet = document.AddSheet("Evaluation");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(29));
             for (int column = 2; column <= 5; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(22));
-            sheet.MergeRange("A1:E1"); sheet.Cell(1, 1, "Vendor evaluation scorecard");
-            sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(22)); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
-            sheet.MergeRange("A2:E2"); sheet.Cell(2, 1, "Weighted scoring / higher scores are better / synthetic offers");
+            sheet.Range("A1:E1").Merge(); sheet.Cell(1, 1).SetValue("Vendor evaluation scorecard");
+            sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(22)); sheet.Cell(1, 1).SetBold(true); sheet.Cell(1, 1).SetFontColor("17365D");
+            sheet.Range("A2:E2").Merge(); sheet.Cell(2, 1).SetValue("Weighted scoring / higher scores are better / synthetic offers");
             string[] headers = { "Vendor", "Quality (50%)", "Delivery (30%)", "Support (20%)", "Weighted score" };
-            for (int column = 1; column <= 5; column++) sheet.Cell(4, column, headers[column - 1]);
+            for (int column = 1; column <= 5; column++) sheet.Cell(4, column).SetValue(headers[column - 1]);
             string[] vendors = { "Cedar Services", "Harbour Systems", "Juniper Partners" };
             int[,] scores = { { 4, 3, 5 }, { 3, 5, 4 }, { 5, 4, 3 } };
             for (int index = 0; index < vendors.Length; index++) {
-                int row = index + 5; sheet.Cell(row, 1, vendors[index]);
-                for (int column = 2; column <= 4; column++) sheet.Cell(row, column, scores[index, column - 2]);
-                sheet.CellFormula(row, 5, $"B{row}*0.5+C{row}*0.3+D{row}*0.2"); sheet.FormatCell(row, 5, "0.00");
+                int row = index + 5; sheet.Cell(row, 1).SetValue(vendors[index]);
+                for (int column = 2; column <= 4; column++) sheet.Cell(row, column).SetValue(scores[index, column - 2]);
+                sheet.Cell(row, 5).SetFormula($"B{row}*0.5+C{row}*0.3+D{row}*0.2"); sheet.Cell(row, 5).SetNumberFormat("0.00");
             }
             sheet.AddTable("A4:E7", true, "VendorScores", ExcelTableStyle.TableStyleMedium2);
             sheet.ValidationWholeNumber("B5:D7", ExcelDataValidationOperator.Between, 1, 5);
-            sheet.MergeRange("A10:E10"); sheet.Cell(10, 1, "Scoring guide: 1 = limited evidence; 3 = meets need; 5 = strong evidence.");
-            sheet.MergeRange("A12:E12"); sheet.Cell(12, 1, "Weights sum to 100%. Keep evidence and conflicts of interest in the review record.");
-            sheet.MergeRange("A13:E13"); sheet.Cell(13, 1, "Scores support review; they do not approve a purchase.");
+            sheet.Range("A10:E10").Merge(); sheet.Cell(10, 1).SetValue("Scoring guide: 1 = limited evidence; 3 = meets need; 5 = strong evidence.");
+            sheet.Range("A12:E12").Merge(); sheet.Cell(12, 1).SetValue("Weights sum to 100%. Keep evidence and conflicts of interest in the review record.");
+            sheet.Range("A13:E13").Merge(); sheet.Cell(13, 1).SetValue("Scores support review; they do not approve a purchase.");
             sheet.SetGridlinesVisible(false);
             for (int row = 1; row <= 16; row++) {
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(row == 1 ? 34 : row == 3 ? 12 : 25)));
                 for (int column = 1; column <= 5; column++) {
-                    if (row > 1) sheet.CellFontSize(row, column, global::OfficeIMO.OfficeLength.Points(11));
+                    if (row > 1) sheet.Cell(row, column).SetFontSize(global::OfficeIMO.OfficeLength.Points(11));
                 }
             }
             sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             for (int column = 1; column <= 5; column++) {
-                sheet.CellFontColor(4, column, "FFFFFF");
-                sheet.CellBold(4, column, true);
-                sheet.CellBackground(4, column, "17365D");
+                sheet.Cell(4, column).SetFontColor("FFFFFF");
+                sheet.Cell(4, column).SetBold(true);
+                sheet.Cell(4, column).SetFillColor("17365D");
             }
             document.Calculate();
             document.InspectFormulas().EnsureAllSupported().EnsureAllHaveCachedResults().EnsureNoDependencyIssues();

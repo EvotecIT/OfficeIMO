@@ -12,9 +12,9 @@ public sealed partial class ConversionCmdletWorkflowTests {
     public void GoogleSheetsFactoryFeedsNativeFormulaPropertyAndProtectionRequestsWithoutASession(bool domainUsersCanEdit) {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Forecast");
-        sheet.CellValue(1, 1, 3);
-        sheet.CellValue(2, 1, 7);
-        sheet.CellFormula(3, 1, "MYTOTAL(A1:A2)");
+        sheet.Cell(1, 1).SetValue(3);
+        sheet.Cell(2, 1).SetValue(7);
+        sheet.Cell(3, 1).SetFormula("MYTOTAL(A1:A2)");
         sheet.Protect();
         using var runspace = OpenRunspace();
         runspace.SessionStateProxy.SetVariable("document", document);

@@ -19,15 +19,15 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_ExportsSemanticWorksheetRichContent() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Sales");
-        sheet.CellValue(1, 1, "Region");
-        sheet.CellValue(1, 2, "Amount");
-        sheet.CellValue(2, 1, "North");
-        sheet.CellValue(2, 2, 123.45);
-        sheet.CellValue(3, 1, "South");
-        sheet.CellValue(3, 2, 98.20);
-        sheet.CellValue(4, 1, "West");
-        sheet.CellValue(4, 2, 140.00);
-        sheet.CellFormula(5, 2, "SUM(B2:B4)");
+        sheet.Cell(1, 1).SetValue("Region");
+        sheet.Cell(1, 2).SetValue("Amount");
+        sheet.Cell(2, 1).SetValue("North");
+        sheet.Cell(2, 2).SetValue(123.45);
+        sheet.Cell(3, 1).SetValue("South");
+        sheet.Cell(3, 2).SetValue(98.20);
+        sheet.Cell(4, 1).SetValue("West");
+        sheet.Cell(4, 2).SetValue(140.00);
+        sheet.Cell(5, 2).SetFormula("SUM(B2:B4)");
         sheet.SetComment(2, 2, "Reviewed with finance", "OfficeIMO");
         sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(280), Height = OfficeLength.Pixels(180), Title = "Revenue Trend" });
         sheet.AddImage(7, 1, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
@@ -78,12 +78,12 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_ExportsVisualReviewFromSharedSvgRenderer() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Visual");
-        sheet.CellValue(1, 1, "Metric");
-        sheet.CellValue(1, 2, "Score");
-        sheet.CellValue(2, 1, "Ready");
-        sheet.CellValue(2, 2, 12);
-        sheet.CellValue(3, 1, "Done");
-        sheet.CellValue(3, 2, 18);
+        sheet.Cell(1, 1).SetValue("Metric");
+        sheet.Cell(1, 2).SetValue("Score");
+        sheet.Cell(2, 1).SetValue("Ready");
+        sheet.Cell(2, 2).SetValue(12);
+        sheet.Cell(3, 1).SetValue("Done");
+        sheet.Cell(3, 2).SetValue(18);
         sheet.SetComment(2, 2, "Visual comment proof", "OfficeIMO");
         sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(150), Title = "Visual Chart" });
         sheet.AddImage(3, 3, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
@@ -111,11 +111,11 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_VisualWorkbookNamespacesEmbeddedSvgIdsPerWorksheet() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet first = workbook.AddSheet("One");
-        first.CellValue(1, 1, "Shared label");
+        first.Cell(1, 1).SetValue("Shared label");
         first.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
 
         ExcelSheet second = workbook.AddSheet("Two");
-        second.CellValue(1, 1, "Shared label");
+        second.Cell(1, 1).SetValue("Shared label");
         second.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
@@ -134,13 +134,13 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_CapabilityGalleryWritesSharedManifestForRichWorkbook() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Gallery");
-        sheet.CellValue(1, 1, "Region");
-        sheet.CellValue(1, 2, "Amount");
-        sheet.CellValue(2, 1, "North");
-        sheet.CellValue(2, 2, 42);
-        sheet.CellValue(3, 1, "South");
-        sheet.CellValue(3, 2, 57);
-        sheet.CellFormula(4, 2, "SUM(B2:B3)");
+        sheet.Cell(1, 1).SetValue("Region");
+        sheet.Cell(1, 2).SetValue("Amount");
+        sheet.Cell(2, 1).SetValue("North");
+        sheet.Cell(2, 2).SetValue(42);
+        sheet.Cell(3, 1).SetValue("South");
+        sheet.Cell(3, 2).SetValue(57);
+        sheet.Cell(4, 2).SetFormula("SUM(B2:B3)");
         sheet.SetComment(2, 2, "Gallery comment", "OfficeIMO");
         sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(150), Title = "Gallery Chart" });
         sheet.AddImage(6, 1, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
@@ -208,15 +208,15 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_LoadsSemanticRichWorkbookBackToNativeWorkbook() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Roundtrip");
-        sheet.CellValue(1, 1, "Region");
-        sheet.CellValue(1, 2, "Amount");
-        sheet.CellValue(2, 1, "North");
-        sheet.CellValue(2, 2, 123.45);
-        sheet.CellValue(3, 1, "South");
-        sheet.CellValue(3, 2, 98.20);
-        sheet.CellValue(4, 1, "West");
-        sheet.CellValue(4, 2, 140.00);
-        sheet.CellFormula(5, 2, "SUM(B2:B4)");
+        sheet.Cell(1, 1).SetValue("Region");
+        sheet.Cell(1, 2).SetValue("Amount");
+        sheet.Cell(2, 1).SetValue("North");
+        sheet.Cell(2, 2).SetValue(123.45);
+        sheet.Cell(3, 1).SetValue("South");
+        sheet.Cell(3, 2).SetValue(98.20);
+        sheet.Cell(4, 1).SetValue("West");
+        sheet.Cell(4, 2).SetValue(140.00);
+        sheet.Cell(5, 2).SetFormula("SUM(B2:B4)");
         sheet.SetComment(2, 2, "Reviewed with finance", "OfficeIMO");
         sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(280), Height = OfficeLength.Pixels(180), Title = "Revenue Trend" });
         sheet.AddImage(7, 1, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
@@ -291,12 +291,12 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_RoundTripsImageTransformsAbsoluteAnchorAndDrawingOrder() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Drawings");
-        sheet.CellValue(1, 1, "Category");
-        sheet.CellValue(1, 2, "Value");
-        sheet.CellValue(2, 1, "A");
-        sheet.CellValue(2, 2, 10);
-        sheet.CellValue(3, 1, "B");
-        sheet.CellValue(3, 2, 20);
+        sheet.Cell(1, 1).SetValue("Category");
+        sheet.Cell(1, 2).SetValue("Value");
+        sheet.Cell(2, 1).SetValue("A");
+        sheet.Cell(2, 2).SetValue(10);
+        sheet.Cell(3, 1).SetValue("B");
+        sheet.Cell(3, 2).SetValue(20);
         sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(140), Title = "Layer base" });
         ExcelImage image = sheet.AddImage(OfficeIMO.OfficeLength.Pixels(33), OfficeIMO.OfficeLength.Pixels(44), OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
             Width = OfficeIMO.OfficeLength.Pixels(52),
@@ -344,7 +344,7 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_RejectsCropPairsThatConsumeTheWholeImage() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Drawings");
-        sheet.CellValue(1, 1, "Seed");
+        sheet.Cell(1, 1).SetValue("Seed");
         sheet.AddImage(OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10), OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
             Width = OfficeIMO.OfficeLength.Pixels(40),
             Height = OfficeIMO.OfficeLength.Pixels(30)
@@ -372,7 +372,7 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_RoundTripsTwoCellImageAnchors() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Anchors");
-        sheet.CellValue(1, 1, "Seed");
+        sheet.Cell(1, 1).SetValue("Seed");
         ExcelImage image = sheet.AddImage("B2:D5", OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
             ContentType = "image/png",
             OffsetX = OfficeIMO.OfficeLength.Pixels(7),
@@ -417,7 +417,7 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_RoundTripsSameCellTwoCellImageMarkers() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("SameCellAnchor");
-        sheet.CellValue(1, 1, "Seed");
+        sheet.Cell(1, 1).SetValue("Seed");
         sheet.AddImage("B2:B2", OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions { ContentType = "image/png", Name = "Same-cell image", Description = "Same-cell anchor" })
             .SetTwoCellEndingMarker(2, 2, OfficeIMO.OfficeLength.Pixels(3), OfficeIMO.OfficeLength.Pixels(4));
 
@@ -445,10 +445,10 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_LoadHonorsSemanticRangeOrigin() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Offset");
-        sheet.CellValue(2, 2, "Region");
-        sheet.CellValue(2, 3, "Amount");
-        sheet.CellValue(3, 2, "North");
-        sheet.CellValue(3, 3, 123);
+        sheet.Cell(2, 2).SetValue("Region");
+        sheet.Cell(2, 3).SetValue("Amount");
+        sheet.Cell(3, 2).SetValue("North");
+        sheet.Cell(3, 3).SetValue(123);
         sheet.SetComment(3, 3, "Aligned comment", "OfficeIMO");
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
@@ -493,8 +493,8 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_ReportsTruncationWhenRetainedWindowContainsNoUsedCells() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Sparse");
-        sheet.CellValue(1, ExcelA1.MaxColumns, "Far column");
-        sheet.CellValue(ExcelA1.MaxRows, 1, "Far row");
+        sheet.Cell(1, ExcelA1.MaxColumns).SetValue("Far column");
+        sheet.Cell(ExcelA1.MaxRows, 1).SetValue("Far row");
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
@@ -514,9 +514,9 @@ public partial class HtmlOfficeAdapters {
         ExcelSheet visible = workbook.AddSheet("Visible");
         ExcelSheet hidden = workbook.AddSheet("Hidden");
         ExcelSheet veryHidden = workbook.AddSheet("VeryHidden");
-        visible.CellValue(1, 1, "Visible");
-        hidden.CellValue(1, 1, "Hidden");
-        veryHidden.CellValue(1, 1, "Very hidden");
+        visible.Cell(1, 1).SetValue("Visible");
+        hidden.Cell(1, 1).SetValue("Hidden");
+        veryHidden.Cell(1, 1).SetValue("Very hidden");
         hidden.SetHidden(true);
         veryHidden.SetVeryHidden(true);
 
@@ -544,8 +544,8 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_DoesNotImportEmptyCellTextPlaceholdersAsValues() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Placeholders");
-        sheet.CellValue(1, 1, "Left");
-        sheet.CellValue(1, 3, "Right");
+        sheet.Cell(1, 1).SetValue("Left");
+        sheet.Cell(1, 3).SetValue("Right");
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
@@ -641,14 +641,14 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_RoundTripsSemanticCellValueKinds() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Typed");
-        sheet.CellValue(1, 1, "Label");
-        sheet.CellValue(1, 2, "Value");
-        sheet.CellValue(2, 1, "Numeric text");
-        sheet.CellValue(2, 2, "123");
-        sheet.CellValue(3, 1, "Amount");
-        sheet.CellValue(3, 2, 123.45D);
-        sheet.CellValue(4, 1, "Flag");
-        sheet.CellValue(4, 2, true);
+        sheet.Cell(1, 1).SetValue("Label");
+        sheet.Cell(1, 2).SetValue("Value");
+        sheet.Cell(2, 1).SetValue("Numeric text");
+        sheet.Cell(2, 2).SetValue("123");
+        sheet.Cell(3, 1).SetValue("Amount");
+        sheet.Cell(3, 2).SetValue(123.45D);
+        sheet.Cell(4, 1).SetValue("Flag");
+        sheet.Cell(4, 2).SetValue(true);
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
@@ -675,8 +675,8 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_RoundTripsSemanticErrorCellValueKind() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Errors");
-        sheet.CellValue(1, 1, "Error");
-        sheet.CellError(2, 1, "#DIV/0!");
+        sheet.Cell(1, 1).SetValue("Error");
+        sheet.Cell(2, 1).SetError("#DIV/0!");
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
@@ -697,10 +697,10 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_MaxRowsPerSheetFiltersFeatureInventoryToExportedRows() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Limited");
-        sheet.CellValue(1, 1, "Name");
-        sheet.CellValue(1, 2, "Amount");
-        sheet.CellValue(2, 1, "Visible");
-        sheet.CellFormula(2, 2, "1+1");
+        sheet.Cell(1, 1).SetValue("Name");
+        sheet.Cell(1, 2).SetValue("Amount");
+        sheet.Cell(2, 1).SetValue("Visible");
+        sheet.Cell(2, 2).SetFormula("1+1");
         sheet.SetComment(2, 1, "Visible comment", "OfficeIMO");
         sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Width = OfficeLength.Pixels(160), Height = OfficeLength.Pixels(90), Title = "Visible Chart" });
         sheet.AddImage(2, 3, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
@@ -709,10 +709,10 @@ public partial class HtmlOfficeAdapters {
             Name = "Visible Image",
             Description = "Visible image"
         });
-        sheet.CellValue(4, 1, "Truncated");
-        sheet.CellFormula(4, 2, "99+1");
-        sheet.CellValue(5, 1, "Also truncated");
-        sheet.CellValue(5, 2, 25);
+        sheet.Cell(4, 1).SetValue("Truncated");
+        sheet.Cell(4, 2).SetFormula("99+1");
+        sheet.Cell(5, 1).SetValue("Also truncated");
+        sheet.Cell(5, 2).SetValue(25);
         sheet.SetComment(4, 1, "Truncated comment", "OfficeIMO");
         sheet.AddChart(OfficeChartType.ColumnClustered, "A4:B5", new OfficeIMO.Excel.ExcelChartOptions { Row = 4, Column = 4, Width = OfficeLength.Pixels(160), Height = OfficeLength.Pixels(90), Title = "Truncated Chart" });
         sheet.AddImage(4, 3, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
@@ -860,10 +860,10 @@ public partial class HtmlOfficeAdapters {
         ExcelChartDataRange range = chart.DataRange!;
         ExcelSheet dataSheet = workbook[range.SheetName];
 
-        dataSheet.CellValue(range.CategoryStartRow, range.CategoryStartColumn, 3D);
-        dataSheet.CellValue(range.CategoryStartRow + 1, range.CategoryStartColumn, 4D);
-        dataSheet.CellValue(range.SeriesStartRow, range.SeriesStartColumn, 30D);
-        dataSheet.CellValue(range.SeriesStartRow + 1, range.SeriesStartColumn, 40D);
+        dataSheet.Cell(range.CategoryStartRow, range.CategoryStartColumn).SetValue(3D);
+        dataSheet.Cell(range.CategoryStartRow + 1, range.CategoryStartColumn).SetValue(4D);
+        dataSheet.Cell(range.SeriesStartRow, range.SeriesStartColumn).SetValue(30D);
+        dataSheet.Cell(range.SeriesStartRow + 1, range.SeriesStartColumn).SetValue(40D);
 
         Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         ExcelChartSeries series = Assert.Single(snapshot.Data.Series);

@@ -50,7 +50,7 @@ public sealed class IWorkCurrencyFormatCorpusTests {
         ExcelRangeVisualInfo snapshot = sheet.Range("B1:B11").CreateVisualSnapshot();
         foreach (JsonElement expected in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
             int row = expected.GetProperty("row").GetInt32();
-            ExcelCellData cell = sheet.CellAt(row, 2).GetValue();
+            ExcelCellData cell = sheet.Cell(row, 2).GetValue();
             Assert.Equal(ExcelCellDataKind.Number, cell.Kind);
             Assert.Equal(expected.GetProperty("value").GetDouble(), Assert.IsType<double>(cell.Value), 12);
             var visual = Assert.Single(snapshot.Cells, c => c.Row == row);

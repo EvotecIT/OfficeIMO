@@ -30,32 +30,32 @@ namespace OfficeIMO.Tests {
         public void Test_TableResize_RelocatesTotalsCellsToTheNewBottomRow() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "Amount");
-            sheet.CellValue(2, 1, "East");
-            sheet.CellValue(2, 2, 10d);
-            sheet.CellValue(3, 1, "West");
-            sheet.CellValue(3, 2, 20d);
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue("East");
+            sheet.Cell(2, 2).SetValue(10d);
+            sheet.Cell(3, 1).SetValue("West");
+            sheet.Cell(3, 2).SetValue(20d);
             sheet.AddTable("A1:B4", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table!;
             table.TotalsRowShown = true;
             table.TotalsRowCount = 1U;
             table.AutoFilter!.Reference = "A1:B3";
-            sheet.CellValue(4, 1, "Total");
-            sheet.CellAt(4, 2).SetFormula("SUBTOTAL(109,Sales[Amount])");
+            sheet.Cell(4, 1).SetValue("Total");
+            sheet.Cell(4, 2).SetFormula("SUBTOTAL(109,Sales[Amount])");
             table.Save();
 
             sheet.ResizeTable("Sales", "A1:B6");
 
-            Assert.True(sheet.CellAt(4, 1).GetValue().IsBlank);
-            Assert.Equal("Total", sheet.CellAt(6, 1).GetValue<string>());
+            Assert.True(sheet.Cell(4, 1).GetValue().IsBlank);
+            Assert.Equal("Total", sheet.Cell(6, 1).GetValue<string>());
             Assert.Equal("SUBTOTAL(109,Sales[Amount])", sheet.GetFormulaText(6, 2));
 
             sheet.ResizeTable("Sales", "A1:B3");
 
-            Assert.Equal("Total", sheet.CellAt(3, 1).GetValue<string>());
+            Assert.Equal("Total", sheet.Cell(3, 1).GetValue<string>());
             Assert.Equal("SUBTOTAL(109,Sales[Amount])", sheet.GetFormulaText(3, 2));
-            Assert.True(sheet.CellAt(6, 1).GetValue().IsBlank);
+            Assert.True(sheet.Cell(6, 1).GetValue().IsBlank);
             Assert.Empty(document.ValidateOpenXml());
         }
 
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("B4", image.CellReference);
             Assert.Equal("Preserved total", image.AltText);
             Assert.Equal(TinyPng, image.Bytes);
-            Assert.Equal("Region", sheet.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Region", sheet.Cell(1, 1).GetValue<string>());
             Assert.Empty(document.ValidateOpenXml());
         }
     }

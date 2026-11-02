@@ -77,7 +77,7 @@ public sealed class IWorkNumericFormatNativeExportTests {
                 Assert.Equal(row.GetProperty("excelFormatCode").GetString(), codes[formatId]);
             }
             output.Position = 0; using var reopened = ExcelDocument.Load(output);
-            Assert.Equal(edited ? -9876d : 1234.5, reopened.Sheets[0].CellAt(4, 2).GetValue<double>());
+            Assert.Equal(edited ? -9876d : 1234.5, reopened.Sheets[0].Cell(4, 2).GetValue<double>());
         } else if (kind == IWorkDocumentKind.Pages) {
             using var converted = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
             converted.RequireCompleteEditableReconstruction(); converted.Value.Save(output); output.Position = 0;
@@ -108,7 +108,7 @@ public sealed class IWorkNumericFormatNativeExportTests {
                 using var workbook = ExcelDocument.Load(file);
                 foreach (JsonElement row in root.GetProperty("expectedRows").EnumerateArray())
                     Assert.Equal(row.GetProperty("editedValue").GetDouble(),
-                        workbook.Sheets[0].CellAt(row.GetProperty("row").GetInt32() + 1, 3).GetValue<double>());
+                        workbook.Sheets[0].Cell(row.GetProperty("row").GetInt32() + 1, 3).GetValue<double>());
             } else {
                 string[] values;
                 if (file.EndsWith("docx", StringComparison.Ordinal)) {

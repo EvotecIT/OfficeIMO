@@ -131,7 +131,7 @@ public static partial class ExcelHtmlConverterExtensions {
         int rowLimit = options.MaxRowsPerSheet ?? ExcelHtmlSaveOptions.DefaultMaxRowsPerSheet;
         int columnLimit = options.MaxColumnsPerSheet ?? ExcelHtmlSaveOptions.DefaultMaxColumnsPerSheet;
         IReadOnlyList<ExcelMergedRangeInfo> mergedRanges = sheet.GetMergedRanges(options.MaxMergedRangesPerSheet);
-        string reportedUsedRange = sheet.UsedRangeA1;
+        string reportedUsedRange = sheet.UsedRange.Address;
         bool isEmptyDefaultRange = mergedRanges.Count == 0
             && (string.Equals(reportedUsedRange, "A1", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(reportedUsedRange, "A1:A1", StringComparison.OrdinalIgnoreCase))
@@ -250,9 +250,9 @@ public static partial class ExcelHtmlConverterExtensions {
                     // so a worksheet title row does not turn into a grey bar.
                     if (tag == "th" && !hasFill && firstRowIsStyledBySheet) boxCss = boxCss == null ? "background-color:transparent" : boxCss + ";background-color:transparent";
                 } else {
-                    cellStyle = sheet.GetCellStyle(cellRow, cellColumn);
+                    cellStyle = sheet.Cell(cellRow, cellColumn).GetStyle();
                 }
-                IReadOnlyList<ExcelRichTextRun> richTextRuns = sheet.GetRichText(cellRow, cellColumn);
+                IReadOnlyList<ExcelRichTextRun> richTextRuns = sheet.Cell(cellRow, cellColumn).GetRichText();
                 body.Append('<').Append(tag)
                     .Append(" data-officeimo-cell=\"")
                     .Append(OfficeHtmlText.EscapeAttribute(ExcelA1.CellReference(cellRow, cellColumn)))
@@ -355,7 +355,7 @@ public static partial class ExcelHtmlConverterExtensions {
         if (SheetHasUsedCells(sheet, firstRow, firstColumn, rowCount, columnCount)) return false;
         for (int row = 0; row < rowCount; row++) {
             for (int column = 0; column < columnCount; column++) {
-                if (sheet.GetCellStyle(firstRow + row, firstColumn + column).StyleIndex != 0U) return false;
+                if (sheet.Cell(firstRow + row, firstColumn + column).GetStyle().StyleIndex != 0U) return false;
             }
         }
 

@@ -18,7 +18,7 @@ public sealed class ImageExportConformanceContracts {
         using (var excelStream = new MemoryStream())
         using (ExcelDocument workbook = ExcelDocument.Create(excelStream)) {
             ExcelSheet sheet = workbook.AddSheet("Budget");
-            sheet.CellValue(1, 1, "Excel");
+            sheet.Cell(1, 1).SetValue("Excel");
             results.Add(sheet.Range("A1:D8").ExportImage(
                 OfficeImageExportFormat.Webp,
                 new ExcelImageExportOptions {

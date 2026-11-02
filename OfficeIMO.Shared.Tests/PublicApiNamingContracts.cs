@@ -133,7 +133,7 @@ public sealed class PublicApiNamingContracts {
                 parameter.ParameterType.GetGenericTypeDefinition() == typeof(Action<>)));
         Assert.DoesNotContain(sheetMethods, static method => method.Name == "RowsAsStream");
         Assert.DoesNotContain(sheetMethods, static method => method.Name == "GetUsedRangeA1");
-        Assert.Contains(sheetProperties, static property => property.Name == "UsedRangeA1");
+        Assert.Contains(sheetProperties, static property => property.Name == "UsedRange");
         Assert.All(
             sheetMethods.Where(static method =>
                 method.Name is "RowsAs" or "EnumerateCells" or "EnumerateRange" &&

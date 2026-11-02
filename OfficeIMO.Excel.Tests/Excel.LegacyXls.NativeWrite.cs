@@ -32,12 +32,12 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(xlsPath)) {
                     ExcelSheet sheet = document.AddSheet("SamePath");
-                    sheet.CellValue(1, 1, "Native XLS");
+                    sheet.Cell(1, 1).SetValue("Native XLS");
 
                     document.Save();
 
                     sheet = document.Sheets.Single(candidate => candidate.Name == "SamePath");
-                    sheet.CellValue(1, 2, "After reopen");
+                    sheet.Cell(1, 2).SetValue("After reopen");
                     document.Save();
                 }
 
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Biff");
-                    sheet.CellValue(1, 1, "BIFF8 BOF");
+                    sheet.Cell(1, 1).SetValue("BIFF8 BOF");
 
                     document.Save(xlsOutputPath);
                 }
@@ -105,13 +105,13 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("CopyBack");
-                    sheet.CellValue(1, 1, "OpenXML source");
+                    sheet.Cell(1, 1).SetValue("OpenXML source");
                     document.Save();
                 }
 
                 using (ExcelDocument document = ExcelDocument.Load(openXmlPath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                     ExcelSheet sheet = document.Sheets.Single();
-                    sheet.CellValue(1, 1, "Native XLS target");
+                    sheet.Cell(1, 1).SetValue("Native XLS target");
                     document.Save(xlsOutputPath);
                 }
 
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(stream, new OfficeIMO.Excel.ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 ExcelSheet sheet = document.AddSheet("StreamXls");
-                sheet.CellValue(1, 1, "Native stream XLS");
+                sheet.Cell(1, 1).SetValue("Native stream XLS");
 
                 document.Save(stream, ExcelFileFormat.Xls);
             }
@@ -186,7 +186,7 @@ namespace OfficeIMO.Tests {
             LegacyXlsCompoundFeatureRecord feature = Assert.Single(document.LegacyXlsCompoundFeatures);
             Assert.Equal(LegacyXlsCompoundFeatureRecordKind.VbaProject, feature.Kind);
             ExcelSheet sheet = Assert.Single(document.Sheets);
-            sheet.CellValue(1, 1, "Edited with VBA preserved");
+            sheet.Cell(1, 1).SetValue("Edited with VBA preserved");
 
             using var conversionOutput = new MemoryStream(new byte[] { 7, 8, 9 }, writable: true);
             NotSupportedException conversionException = Assert.Throws<NotSupportedException>(() =>
@@ -272,10 +272,10 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Layout");
-                    sheet.CellValue(1, 1, "Merged header");
-                    sheet.CellValue(2, 2, 12.5d);
-                    sheet.CellValue(3, 1, "Hidden row marker");
-                    sheet.MergeRange("A1:C1");
+                    sheet.Cell(1, 1).SetValue("Merged header");
+                    sheet.Cell(2, 2).SetValue(12.5d);
+                    sheet.Cell(3, 1).SetValue("Hidden row marker");
+                    sheet.Range("A1:C1").Merge();
                     sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(11d));
                     sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18.5d)),hidden: true);
                     sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12.5d));
@@ -374,7 +374,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("PageLayout");
-                    sheet.CellValue(1, 1, "Page layout view");
+                    sheet.Cell(1, 1).SetValue("Page layout view");
                     sheet.SetViewOptions(zoomScale: 115, zoomScaleNormal: 100, view: ExcelWorksheetViewKind.PageLayout);
                     document.Save(xlsOutputPath);
                 }
@@ -415,7 +415,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("TabColor");
-                    sheet.CellValue(1, 1, "Tab color");
+                    sheet.Cell(1, 1).SetValue("Tab color");
                     DocumentFormat.OpenXml.Spreadsheet.Worksheet worksheet = sheet.WorksheetPart.Worksheet;
                     DocumentFormat.OpenXml.Spreadsheet.SheetProperties sheetProperties =
                         worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetProperties>()
@@ -465,7 +465,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Split");
-                    sheet.CellValue(1, 1, "Split pane");
+                    sheet.Cell(1, 1).SetValue("Split pane");
 
                     DocumentFormat.OpenXml.Spreadsheet.Worksheet worksheet = sheet.WorksheetPart.Worksheet;
                     DocumentFormat.OpenXml.Spreadsheet.SheetViews sheetViews = worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetViews>() ?? worksheet.InsertAt(new DocumentFormat.OpenXml.Spreadsheet.SheetViews(), 0);
@@ -526,7 +526,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("CodeNames");
-                    sheet.CellValue(1, 1, "Code name metadata");
+                    sheet.Cell(1, 1).SetValue("Code name metadata");
 
                     DocumentFormat.OpenXml.Spreadsheet.WorkbookProperties workbookProperties =
                         document.WorkbookRoot.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.WorkbookProperties>()
@@ -582,8 +582,8 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet summary = document.AddSheet("Summary");
                     ExcelSheet data = document.AddSheet("Data");
-                    summary.CellValue(1, 1, "Tab id source");
-                    data.CellValue(1, 1, 42d);
+                    summary.Cell(1, 1).SetValue("Tab id source");
+                    data.Cell(1, 1).SetValue(42d);
 
                     DocumentFormat.OpenXml.Spreadsheet.Sheet[] sheets =
                         document.WorkbookRoot.Sheets!.Elements<DocumentFormat.OpenXml.Spreadsheet.Sheet>().ToArray();
@@ -616,7 +616,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Calc");
-                    sheet.CellValue(1, 1, "Calculation settings");
+                    sheet.Cell(1, 1).SetValue("Calculation settings");
                     document.WorkbookRoot.Append(new DocumentFormat.OpenXml.Spreadsheet.CalculationProperties {
                         CalculationMode = DocumentFormat.OpenXml.Spreadsheet.CalculateModeValues.AutoNoTable,
                         IterateCount = 42U,
@@ -663,7 +663,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("SheetCalc");
-                    sheet.CellValue(1, 1, "Sheet recalc");
+                    sheet.Cell(1, 1).SetValue("Sheet recalc");
                     sheet.WorksheetPart.Worksheet.Append(new DocumentFormat.OpenXml.Spreadsheet.SheetCalculationProperties {
                         FullCalculationOnLoad = true
                     });
@@ -696,7 +696,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Phonetic");
-                    sheet.CellValue(1, 1, "Worksheet phonetic defaults");
+                    sheet.Cell(1, 1).SetValue("Worksheet phonetic defaults");
                     sheet.WorksheetPart.Worksheet.Append(new DocumentFormat.OpenXml.Spreadsheet.PhoneticProperties {
                         FontId = 0U,
                         Type = DocumentFormat.OpenXml.Spreadsheet.PhoneticValues.Hiragana,
@@ -740,7 +740,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Options");
-                    sheet.CellValue(1, 1, "Workbook options");
+                    sheet.Cell(1, 1).SetValue("Workbook options");
 
                     DocumentFormat.OpenXml.Spreadsheet.WorkbookProperties workbookProperties =
                         document.WorkbookRoot.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.WorkbookProperties>()
@@ -791,8 +791,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Print");
-                    sheet.CellValue(1, 1, "Printable sheet");
-                    sheet.CellValue(20, 5, 42d);
+                    sheet.Cell(1, 1).SetValue("Printable sheet");
+                    sheet.Cell(20, 5).SetValue(42d);
                     sheet.SetMargins(OfficeLength.Inches(0.25d), OfficeLength.Inches(0.35d), OfficeLength.Inches(0.45d), OfficeLength.Inches(0.55d), OfficeLength.Inches(0.2d), OfficeLength.Inches(0.25d));
                     sheet.SetOrientation(OfficePageOrientation.Landscape);
                     sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U, scale: 90U, pageOrder: ExcelPageOrder.OverThenDown);
@@ -848,7 +848,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksManualRowPageBreaksOutsideBiff8LimitsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("manual row page breaks outside BIFF8 worksheet limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Out-of-range row break");
+                sheet.Cell(1, 1).SetValue("Out-of-range row break");
                 sheet.WorksheetPart.Worksheet.AppendChild(new OpenXmlRowBreaks(
                     new OpenXmlBreak {
                         Id = 65536U,
@@ -866,7 +866,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksManualColumnPageBreaksOutsideBiff8LimitsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("manual column page breaks outside BIFF8 worksheet limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Out-of-range column break");
+                sheet.Cell(1, 1).SetValue("Out-of-range column break");
                 sheet.WorksheetPart.Worksheet.AppendChild(new OpenXmlColumnBreaks(
                     new OpenXmlBreak {
                         Id = 257U,
@@ -884,7 +884,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksTerminalManualColumnPageBreakBeforeWriting() {
             AssertNativeXlsSaveNotSupported("manual column page breaks outside BIFF8 worksheet limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Terminal column break");
+                sheet.Cell(1, 1).SetValue("Terminal column break");
                 sheet.WorksheetPart.Worksheet.AppendChild(new OpenXmlColumnBreaks(
                     new OpenXmlBreak {
                         Id = 256U,
@@ -907,7 +907,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Options");
-                    sheet.CellValue(1, 1, "Worksheet options");
+                    sheet.Cell(1, 1).SetValue("Worksheet options");
 
                     DocumentFormat.OpenXml.Spreadsheet.Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
                     DocumentFormat.OpenXml.Spreadsheet.SheetProperties? sheetProperties = worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetProperties>();
@@ -980,7 +980,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Variants");
-                    sheet.CellValue(1, 1, "Header/footer variants");
+                    sheet.Cell(1, 1).SetValue("Header/footer variants");
                     sheet.SetHeaderFooter(
                         headerCenter: "Odd header",
                         footerRight: "Odd footer",
@@ -1031,14 +1031,14 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet visible = document.AddSheet("Visible");
-                    visible.CellValue(1, 1, "Visible");
+                    visible.Cell(1, 1).SetValue("Visible");
 
                     ExcelSheet hidden = document.AddSheet("Hidden");
-                    hidden.CellValue(1, 1, "Hidden");
+                    hidden.Cell(1, 1).SetValue("Hidden");
                     hidden.SetHidden(true);
 
                     ExcelSheet veryHidden = document.AddSheet("VeryHidden");
-                    veryHidden.CellValue(1, 1, "VeryHidden");
+                    veryHidden.Cell(1, 1).SetValue("VeryHidden");
                     veryHidden.SetVeryHidden(true);
 
                     document.Save(xlsOutputPath);
@@ -1069,9 +1069,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    document.AddSheet("First").CellValue(1, 1, "First");
-                    document.AddSheet("Second").CellValue(1, 1, "Second");
-                    document.AddSheet("Third").CellValue(1, 1, "Third");
+                    document.AddSheet("First").Cell(1, 1).SetValue("First");
+                    document.AddSheet("Second").Cell(1, 1).SetValue("Second");
+                    document.AddSheet("Third").Cell(1, 1).SetValue("Third");
                     document.SetActiveWorksheet("Third");
                     DocumentFormat.OpenXml.Spreadsheet.WorkbookView workbookView = document.WorkbookRoot
                         .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.BookViews>()!
@@ -1148,9 +1148,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Formats");
-                    sheet.CellValue(1, 1, 44562d);
-                    sheet.CellAt(1, 1).SetNumberFormat("yyyy-mm-dd");
-                    sheet.CellValue(2, 1, new DateTime(2026, 1, 2));
+                    sheet.Cell(1, 1).SetValue(44562d);
+                    sheet.Cell(1, 1).SetNumberFormat("yyyy-mm-dd");
+                    sheet.Cell(2, 1).SetValue(new DateTime(2026, 1, 2));
 
                     document.Save(xlsOutputPath);
                 }
@@ -1186,8 +1186,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Fonts");
-                    sheet.CellValue(1, 1, 12.345d);
-                    sheet.CellAt(1, 1)
+                    sheet.Cell(1, 1).SetValue(12.345d);
+                    sheet.Cell(1, 1)
                         .SetNumberFormat("0.00")
                         .SetBold()
                         .SetItalic()
@@ -1217,7 +1217,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(workbook.TryResolveColor(font.ColorIndex, out string? fontColor));
                 Assert.Equal("FF123456", fontColor);
 
-                ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
+                ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].Cell(1, 1).GetStyle();
                 Assert.True(projectedStyle.Bold);
                 Assert.True(projectedStyle.Italic);
                 Assert.True(projectedStyle.Underline);
@@ -1238,8 +1238,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("FontBytes");
-                    sheet.CellValue(1, 1, "Font bytes");
-                    sheet.CellAt(1, 1).SetFontName("Arial");
+                    sheet.Cell(1, 1).SetValue("Font bytes");
+                    sheet.Cell(1, 1).SetFontName("Arial");
 
                     DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1291,8 +1291,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("FontEscapement");
-                    sheet.CellValue(1, 1, "Superscript");
-                    sheet.CellAt(1, 1).SetFontName("Arial");
+                    sheet.Cell(1, 1).SetValue("Superscript");
+                    sheet.Cell(1, 1).SetFontName("Arial");
 
                     DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1346,8 +1346,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("FontOptionFlags");
-                    sheet.CellValue(1, 1, "Option flags");
-                    sheet.CellAt(1, 1).SetFontName("Arial");
+                    sheet.Cell(1, 1).SetValue("Option flags");
+                    sheet.Cell(1, 1).SetFontName("Arial");
 
                     DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1410,8 +1410,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("UnderlineStyle");
-                    sheet.CellValue(1, 1, "Double underline");
-                    sheet.CellAt(1, 1).SetFontName("Arial");
+                    sheet.Cell(1, 1).SetValue("Double underline");
+                    sheet.Cell(1, 1).SetFontName("Arial");
 
                     DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1465,8 +1465,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Fills");
-                    sheet.CellValue(1, 1, "Filled");
-                    sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
+                    sheet.Cell(1, 1).SetValue("Filled");
+                    sheet.Cell(1, 1).SetFillColor("#ABCDEF");
 
                     document.Save(xlsOutputPath);
                 }
@@ -1486,7 +1486,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(workbook.TryResolveColor(cellFormat.FillBackgroundColorIndex, out string? backgroundColor));
                 Assert.Equal("FFABCDEF", backgroundColor);
 
-                ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
+                ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].Cell(1, 1).GetStyle();
                 Assert.Equal("FFABCDEF", projectedStyle.FillColorArgb);
             } finally {
                 TryDelete(openXmlPath);
@@ -1502,8 +1502,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("PatternFills");
-                    sheet.CellValue(1, 1, "Patterned");
-                    sheet.CellAt(1, 1).SetFillColor("#EEEEEE");
+                    sheet.Cell(1, 1).SetValue("Patterned");
+                    sheet.Cell(1, 1).SetFillColor("#EEEEEE");
 
                     DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1563,12 +1563,12 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Alignment");
-                    sheet.CellValue(1, 1, "Wrapped text");
-                    sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center);
-                    sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Bottom);
-                    sheet.CellWrapText(1, 1);
-                    sheet.CellValue(2, 1, "Top aligned text");
-                    sheet.CellVerticalAlign(2, 1, ExcelVerticalAlignment.Top);
+                    sheet.Cell(1, 1).SetValue("Wrapped text");
+                    sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
+                    sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Bottom);
+                    sheet.Cell(1, 1).SetWrapText();
+                    sheet.Cell(2, 1).SetValue("Top aligned text");
+                    sheet.Cell(2, 1).SetVerticalAlignment(ExcelVerticalAlignment.Top);
 
                     document.Save(xlsOutputPath);
                 }
@@ -1590,11 +1590,11 @@ namespace OfficeIMO.Tests {
                 Assert.True(topAlignedCellFormat.ApplyAlignment);
                 Assert.Equal((byte)0, topAlignedCellFormat.VerticalAlignment);
 
-                ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
+                ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].Cell(1, 1).GetStyle();
                 Assert.Equal("center", projectedStyle.HorizontalAlignment);
                 Assert.Equal("bottom", projectedStyle.VerticalAlignment);
                 Assert.True(projectedStyle.WrapText);
-                ExcelCellStyleInfo topProjectedStyle = result.Document.Sheets[0].GetCellStyle(2, 1);
+                ExcelCellStyleInfo topProjectedStyle = result.Document.Sheets[0].Cell(2, 1).GetStyle();
                 Assert.Equal("top", topProjectedStyle.VerticalAlignment);
             } finally {
                 TryDelete(openXmlPath);
@@ -1610,8 +1610,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Alignment");
-                    sheet.CellValue(1, 1, "Extended alignment");
-                    sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Right);
+                    sheet.Cell(1, 1).SetValue("Extended alignment");
+                    sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Right);
 
                     DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1676,8 +1676,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Borders");
-                    sheet.CellValue(1, 1, "Bordered");
-                    sheet.CellAt(1, 1)
+                    sheet.Cell(1, 1).SetValue("Bordered");
+                    sheet.Cell(1, 1)
                         .SetFillColor("#ABCDEF")
                         .SetBorder(ExcelBorderStyle.Thin, "#654321")
                         .SetDiagonalBorder(ExcelBorderStyle.Dotted, "#123456", diagonalUp: true, diagonalDown: true);
@@ -1718,7 +1718,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(workbook.TryResolveColor(border.DiagonalColorIndex, out string? diagonalColor));
                 Assert.Equal("FF123456", diagonalColor);
 
-                ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
+                ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].Cell(1, 1).GetStyle();
                 Assert.Equal("FFABCDEF", projectedStyle.FillColorArgb);
                 Assert.NotNull(projectedStyle.Border);
                 Assert.Equal("thin", projectedStyle.Border!.Left!.Style);
@@ -1747,8 +1747,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("AutoBorder");
-                    sheet.CellValue(1, 1, "Automatic border");
-                    sheet.CellAt(1, 1).SetBorder(ExcelBorderStyle.Thin);
+                    sheet.Cell(1, 1).SetValue("Automatic border");
+                    sheet.Cell(1, 1).SetBorder(ExcelBorderStyle.Thin);
 
                     document.Save(xlsOutputPath);
                 }
@@ -1784,8 +1784,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Protection");
-                    sheet.CellValue(1, 1, "Unlocked hidden formula");
-                    sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
+                    sheet.Cell(1, 1).SetValue("Unlocked hidden formula");
+                    sheet.Cell(1, 1).SetFillColor("#ABCDEF");
 
                     DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1840,8 +1840,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("QuotePrefix");
-                    sheet.CellValue(1, 1, "00123");
-                    sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
+                    sheet.Cell(1, 1).SetValue("00123");
+                    sheet.Cell(1, 1).SetFillColor("#ABCDEF");
 
                     DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1883,8 +1883,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksGradientFillBeforeWriting() {
             AssertNativeXlsSaveNotSupported("gradient fills", (document, sheet) => {
-                sheet.CellValue(1, 1, "Gradient");
-                sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
+                sheet.Cell(1, 1).SetValue("Gradient");
+                sheet.Cell(1, 1).SetFillColor("#ABCDEF");
 
                 DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                 DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1917,8 +1917,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("ThemeColor");
-                    sheet.CellValue(1, 1, "Theme color");
-                    sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
+                    sheet.Cell(1, 1).SetValue("Theme color");
+                    sheet.Cell(1, 1).SetFillColor("#ABCDEF");
 
                     DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -1961,7 +1961,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(workbook.TryResolveColor(cellFormat.FillForegroundColorIndex, out string? foregroundColor));
                 Assert.Equal("FF5774A4", foregroundColor);
 
-                ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
+                ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].Cell(1, 1).GetStyle();
                 Assert.Equal("FF5774A4", projectedStyle.FillColorArgb);
             } finally {
                 TryDelete(openXmlPath);
@@ -1972,8 +1972,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksStyleExtensionPayloadsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("cell-format style extension payloads", (document, sheet) => {
-                sheet.CellValue(1, 1, "Style extension");
-                sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
+                sheet.Cell(1, 1).SetValue("Style extension");
+                sheet.Cell(1, 1).SetFillColor("#ABCDEF");
 
                 DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                 DocumentFormat.OpenXml.Spreadsheet.Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
@@ -2001,165 +2001,165 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Formulas");
-                    sheet.CellValue(1, 1, 2d);
-                    sheet.CellValue(2, 1, 3d);
-                    sheet.CellValue(1, 3, 2d);
-                    sheet.CellValue(1, 4, 20d);
-                    sheet.CellValue(2, 3, 3d);
-                    sheet.CellValue(2, 4, 30d);
-                    sheet.CellValue(4, 3, 2d);
-                    sheet.CellValue(4, 4, 3d);
-                    sheet.CellValue(5, 3, 200d);
-                    sheet.CellValue(5, 4, 300d);
-                    sheet.CellFormula(3, 1, "SUM(A1:A2)");
-                    sheet.CellFormula(4, 1, "A1+A2");
-                    sheet.CellFormula(5, 1, "$A$1+2");
-                    sheet.CellValue(6, 1, 7d);
-                    sheet.CellFormula(6, 1, "SUM(A1,A2,2)");
-                    sheet.CellValue(7, 1, 2.5d);
-                    sheet.CellFormula(7, 1, "AVERAGE(A1,A2)");
-                    sheet.CellValue(8, 1, 2d);
-                    sheet.CellFormula(8, 1, "MIN(A1,A2)");
-                    sheet.CellValue(9, 1, 3d);
-                    sheet.CellFormula(9, 1, "MAX(A1,A2)");
-                    sheet.CellValue(10, 1, 3d);
-                    sheet.CellFormula(10, 1, "COUNT(A1,A2,2)");
-                    sheet.CellValue(11, 1, 3d);
-                    sheet.CellFormula(11, 1, "ABS(-3)");
-                    sheet.CellValue(12, 1, 2d);
-                    sheet.CellFormula(12, 1, "INT(2.9)");
-                    sheet.CellValue(13, 1, 3d);
-                    sheet.CellFormula(13, 1, "ROUND(2.6,0)");
-                    sheet.CellValue(14, 1, 4d);
-                    sheet.CellFormula(14, 1, "SQRT(16)");
-                    sheet.CellValue(15, 1, Math.PI);
-                    sheet.CellFormula(15, 1, "PI()");
-                    sheet.CellValue(16, 1, 0.02d);
-                    sheet.CellFormula(16, 1, "A1%");
-                    sheet.CellValue(17, 1, 2.03d);
-                    sheet.CellFormula(17, 1, "A1+A2%");
-                    sheet.CellValue(18, 1, -2d);
-                    sheet.CellFormula(18, 1, "-A1");
-                    sheet.CellValue(19, 1, -1d);
-                    sheet.CellFormula(19, 1, "A1+-A2");
-                    sheet.CellValue(20, 1, 1d);
-                    sheet.CellFormula(20, 1, "SUM(-A1,+A2)");
-                    sheet.CellValue(21, 1, 5d);
-                    sheet.CellFormula(21, 1, "(A1+A2)");
-                    sheet.CellValue(22, 1, 10d);
-                    sheet.CellFormula(22, 1, "A1*(A2+A1)");
-                    sheet.CellValue(23, 1, -5d);
-                    sheet.CellFormula(23, 1, "-(A1+A2)");
-                    sheet.CellValue(24, 1, 0.05d);
-                    sheet.CellFormula(24, 1, "(A1+A2)%");
-                    sheet.CellValue(25, 1, 0d);
-                    sheet.CellFormula(25, 1, "SIN(0)");
-                    sheet.CellValue(26, 1, 1d);
-                    sheet.CellFormula(26, 1, "COS(0)");
-                    sheet.CellValue(27, 1, 0d);
-                    sheet.CellFormula(27, 1, "TAN(0)");
-                    sheet.CellValue(28, 1, Math.E);
-                    sheet.CellFormula(28, 1, "EXP(1)");
-                    sheet.CellValue(29, 1, Math.Log(2d));
-                    sheet.CellFormula(29, 1, "LN(2)");
-                    sheet.CellValue(30, 1, 2d);
-                    sheet.CellFormula(30, 1, "LOG10(100)");
-                    sheet.CellValue(31, 1, -1d);
-                    sheet.CellFormula(31, 1, "SIGN(-2)");
-                    sheet.CellValue(32, 1, 1d);
-                    sheet.CellFormula(32, 1, "MOD(7,3)");
-                    sheet.CellValue(33, 1, 3d);
-                    sheet.CellFormula(33, 1, "ROUNDUP(2.1,0)");
-                    sheet.CellValue(34, 1, 2d);
-                    sheet.CellFormula(34, 1, "ROUNDDOWN(2.9,0)");
-                    sheet.CellValue(35, 1, 8d);
-                    sheet.CellFormula(35, 1, "POWER(2,3)");
-                    sheet.CellValue(36, 1, 3d);
-                    sheet.CellFormula(36, 1, "COUNTA(A1,A2,\"x\")");
-                    sheet.CellValue(37, 1, 24d);
-                    sheet.CellFormula(37, 1, "PRODUCT(A1,A2,4)");
-                    sheet.CellValue(38, 1, 3d);
-                    sheet.CellFormula(38, 1, "MEDIAN(A1,A2,4)");
-                    sheet.CellValue(39, 1, 13d);
-                    sheet.CellFormula(39, 1, "SUMPRODUCT(A1:A2,A1:A2)");
-                    sheet.CellValue(40, 1, dateSerial);
-                    sheet.CellFormula(40, 1, "DATE(2026,1,2)");
-                    sheet.CellValue(41, 1, TimeSpan.FromHours(12).TotalDays);
-                    sheet.CellFormula(41, 1, "TIME(12,0,0)");
-                    sheet.CellValue(42, 1, 2026d);
-                    sheet.CellFormula(42, 1, $"YEAR({dateSerialText})");
-                    sheet.CellValue(43, 1, 1d);
-                    sheet.CellFormula(43, 1, $"MONTH({dateSerialText})");
-                    sheet.CellValue(44, 1, 2d);
-                    sheet.CellFormula(44, 1, $"DAY({dateSerialText})");
-                    sheet.CellValue(45, 1, 12d);
-                    sheet.CellFormula(45, 1, "HOUR(0.5)");
-                    sheet.CellValue(46, 1, 0d);
-                    sheet.CellFormula(46, 1, "MINUTE(0.5)");
-                    sheet.CellValue(47, 1, 0d);
-                    sheet.CellFormula(47, 1, "SECOND(0.5)");
-                    sheet.CellValue(48, 1, 1d);
-                    sheet.CellFormula(48, 1, "ROW(A1)");
-                    sheet.CellValue(49, 1, 2d);
-                    sheet.CellFormula(49, 1, "COLUMN(B1)");
-                    sheet.CellValue(50, 1, Math.Atan(1d));
-                    sheet.CellFormula(50, 1, "ATAN(1)");
-                    sheet.CellValue(51, 1, 2d);
-                    sheet.CellFormula(51, 1, "ROWS(A1:A2)");
-                    sheet.CellValue(52, 1, 2d);
-                    sheet.CellFormula(52, 1, "COLUMNS(A1:B1)");
-                    sheet.CellValue(53, 1, Math.Sqrt(0.5d));
-                    sheet.CellFormula(53, 1, "STDEV(A1:A2)");
-                    sheet.CellValue(54, 1, 3d);
-                    sheet.CellFormula(54, 1, "LARGE(A1:A2,1)");
-                    sheet.CellValue(55, 1, 2d);
-                    sheet.CellFormula(55, 1, "COUNTBLANK(B1:B2)");
-                    sheet.CellValue(56, 1, 1d);
-                    sheet.CellFormula(56, 1, "COUNTIF(A1:A2,\">2\")");
-                    sheet.CellValue(57, 1, 1d);
-                    sheet.CellFormula(57, 1, "RSQ(A1:A2,A1:A2)");
-                    sheet.CellValue(58, 1, dateSerial);
-                    sheet.CellFormula(58, 1, "DATEVALUE(\"1/2/2026\")");
-                    sheet.CellValue(59, 1, 0.5d);
-                    sheet.CellFormula(59, 1, "VAR(A1:A2)");
-                    sheet.CellValue(60, 1, 2d / 1.1d + 3d / (1.1d * 1.1d));
-                    sheet.CellFormula(60, 1, "NPV(0.1,A1:A2)");
-                    sheet.CellValue(61, 1, 30d);
-                    sheet.CellFormula(61, 1, "INDEX(C1:D2,2,2)");
-                    sheet.CellValue(62, 1, 2d);
-                    sheet.CellFormula(62, 1, "MATCH(3,A1:A2,0)");
-                    sheet.CellValue(63, 1, 30d);
-                    sheet.CellFormula(63, 1, "VLOOKUP(3,C1:D2,2,FALSE)");
-                    sheet.CellValue(64, 1, 300d);
-                    sheet.CellFormula(64, 1, "HLOOKUP(3,C4:D5,2,FALSE)");
-                    sheet.CellValue(65, 1, 5d);
-                    sheet.CellFormula(65, 1, "SUBTOTAL(9,A1:A2)");
-                    sheet.CellValue(66, 1, 3d);
-                    sheet.CellFormula(66, 1, "SUMIF(A1:A2,\">2\")");
-                    sheet.CellValue(67, 1, 20d);
-                    sheet.CellFormula(67, 1, "IF(A1>2,10,20)");
-                    sheet.CellValue(68, 1, 5d);
-                    sheet.CellFormula(68, 1, "IF(A2>=3,A1+A2,0)");
-                    sheet.CellValue(69, 1, 5d);
-                    sheet.CellFormula(69, 1, "ROUND(A1+A2,0)");
-                    sheet.CellValue(70, 1, 9d);
-                    sheet.CellFormula(70, 1, "SUM(A1+A2,4)");
-                    sheet.CellValue(71, 1, 20d);
-                    sheet.CellFormula(71, 1, "CHOOSE(A1,10,20,30)");
-                    sheet.CellValue(72, 1, 5d);
-                    sheet.CellFormula(72, 1, "CHOOSE(1,A1+A2,10)");
-                    sheet.CellValue(73, 1, 3d);
-                    sheet.CellFormula(73, 1, "OFFSET(A1,1,0)");
-                    sheet.CellValue(74, 1, 5d);
-                    sheet.CellFormula(74, 1, "SUM(OFFSET(A1,0,0,2,1))");
-                    sheet.CellValue(75, 1, 8d);
-                    sheet.CellFormula(75, 1, "A1^A2");
-                    sheet.CellValue(76, 1, 25d);
-                    sheet.CellFormula(76, 1, "(A1+A2)^2");
-                    sheet.CellValue(77, 1, 10d);
-                    sheet.CellFormula(77, 1, "IF(A1>2,10,)");
-                    sheet.CellValue(78, 1, 2d);
-                    sheet.CellFormula(78, 1, "COUNT(A1,,A2)");
+                    sheet.Cell(1, 1).SetValue(2d);
+                    sheet.Cell(2, 1).SetValue(3d);
+                    sheet.Cell(1, 3).SetValue(2d);
+                    sheet.Cell(1, 4).SetValue(20d);
+                    sheet.Cell(2, 3).SetValue(3d);
+                    sheet.Cell(2, 4).SetValue(30d);
+                    sheet.Cell(4, 3).SetValue(2d);
+                    sheet.Cell(4, 4).SetValue(3d);
+                    sheet.Cell(5, 3).SetValue(200d);
+                    sheet.Cell(5, 4).SetValue(300d);
+                    sheet.Cell(3, 1).SetFormula("SUM(A1:A2)");
+                    sheet.Cell(4, 1).SetFormula("A1+A2");
+                    sheet.Cell(5, 1).SetFormula("$A$1+2");
+                    sheet.Cell(6, 1).SetValue(7d);
+                    sheet.Cell(6, 1).SetFormula("SUM(A1,A2,2)");
+                    sheet.Cell(7, 1).SetValue(2.5d);
+                    sheet.Cell(7, 1).SetFormula("AVERAGE(A1,A2)");
+                    sheet.Cell(8, 1).SetValue(2d);
+                    sheet.Cell(8, 1).SetFormula("MIN(A1,A2)");
+                    sheet.Cell(9, 1).SetValue(3d);
+                    sheet.Cell(9, 1).SetFormula("MAX(A1,A2)");
+                    sheet.Cell(10, 1).SetValue(3d);
+                    sheet.Cell(10, 1).SetFormula("COUNT(A1,A2,2)");
+                    sheet.Cell(11, 1).SetValue(3d);
+                    sheet.Cell(11, 1).SetFormula("ABS(-3)");
+                    sheet.Cell(12, 1).SetValue(2d);
+                    sheet.Cell(12, 1).SetFormula("INT(2.9)");
+                    sheet.Cell(13, 1).SetValue(3d);
+                    sheet.Cell(13, 1).SetFormula("ROUND(2.6,0)");
+                    sheet.Cell(14, 1).SetValue(4d);
+                    sheet.Cell(14, 1).SetFormula("SQRT(16)");
+                    sheet.Cell(15, 1).SetValue(Math.PI);
+                    sheet.Cell(15, 1).SetFormula("PI()");
+                    sheet.Cell(16, 1).SetValue(0.02d);
+                    sheet.Cell(16, 1).SetFormula("A1%");
+                    sheet.Cell(17, 1).SetValue(2.03d);
+                    sheet.Cell(17, 1).SetFormula("A1+A2%");
+                    sheet.Cell(18, 1).SetValue(-2d);
+                    sheet.Cell(18, 1).SetFormula("-A1");
+                    sheet.Cell(19, 1).SetValue(-1d);
+                    sheet.Cell(19, 1).SetFormula("A1+-A2");
+                    sheet.Cell(20, 1).SetValue(1d);
+                    sheet.Cell(20, 1).SetFormula("SUM(-A1,+A2)");
+                    sheet.Cell(21, 1).SetValue(5d);
+                    sheet.Cell(21, 1).SetFormula("(A1+A2)");
+                    sheet.Cell(22, 1).SetValue(10d);
+                    sheet.Cell(22, 1).SetFormula("A1*(A2+A1)");
+                    sheet.Cell(23, 1).SetValue(-5d);
+                    sheet.Cell(23, 1).SetFormula("-(A1+A2)");
+                    sheet.Cell(24, 1).SetValue(0.05d);
+                    sheet.Cell(24, 1).SetFormula("(A1+A2)%");
+                    sheet.Cell(25, 1).SetValue(0d);
+                    sheet.Cell(25, 1).SetFormula("SIN(0)");
+                    sheet.Cell(26, 1).SetValue(1d);
+                    sheet.Cell(26, 1).SetFormula("COS(0)");
+                    sheet.Cell(27, 1).SetValue(0d);
+                    sheet.Cell(27, 1).SetFormula("TAN(0)");
+                    sheet.Cell(28, 1).SetValue(Math.E);
+                    sheet.Cell(28, 1).SetFormula("EXP(1)");
+                    sheet.Cell(29, 1).SetValue(Math.Log(2d));
+                    sheet.Cell(29, 1).SetFormula("LN(2)");
+                    sheet.Cell(30, 1).SetValue(2d);
+                    sheet.Cell(30, 1).SetFormula("LOG10(100)");
+                    sheet.Cell(31, 1).SetValue(-1d);
+                    sheet.Cell(31, 1).SetFormula("SIGN(-2)");
+                    sheet.Cell(32, 1).SetValue(1d);
+                    sheet.Cell(32, 1).SetFormula("MOD(7,3)");
+                    sheet.Cell(33, 1).SetValue(3d);
+                    sheet.Cell(33, 1).SetFormula("ROUNDUP(2.1,0)");
+                    sheet.Cell(34, 1).SetValue(2d);
+                    sheet.Cell(34, 1).SetFormula("ROUNDDOWN(2.9,0)");
+                    sheet.Cell(35, 1).SetValue(8d);
+                    sheet.Cell(35, 1).SetFormula("POWER(2,3)");
+                    sheet.Cell(36, 1).SetValue(3d);
+                    sheet.Cell(36, 1).SetFormula("COUNTA(A1,A2,\"x\")");
+                    sheet.Cell(37, 1).SetValue(24d);
+                    sheet.Cell(37, 1).SetFormula("PRODUCT(A1,A2,4)");
+                    sheet.Cell(38, 1).SetValue(3d);
+                    sheet.Cell(38, 1).SetFormula("MEDIAN(A1,A2,4)");
+                    sheet.Cell(39, 1).SetValue(13d);
+                    sheet.Cell(39, 1).SetFormula("SUMPRODUCT(A1:A2,A1:A2)");
+                    sheet.Cell(40, 1).SetValue(dateSerial);
+                    sheet.Cell(40, 1).SetFormula("DATE(2026,1,2)");
+                    sheet.Cell(41, 1).SetValue(TimeSpan.FromHours(12).TotalDays);
+                    sheet.Cell(41, 1).SetFormula("TIME(12,0,0)");
+                    sheet.Cell(42, 1).SetValue(2026d);
+                    sheet.Cell(42, 1).SetFormula($"YEAR({dateSerialText})");
+                    sheet.Cell(43, 1).SetValue(1d);
+                    sheet.Cell(43, 1).SetFormula($"MONTH({dateSerialText})");
+                    sheet.Cell(44, 1).SetValue(2d);
+                    sheet.Cell(44, 1).SetFormula($"DAY({dateSerialText})");
+                    sheet.Cell(45, 1).SetValue(12d);
+                    sheet.Cell(45, 1).SetFormula("HOUR(0.5)");
+                    sheet.Cell(46, 1).SetValue(0d);
+                    sheet.Cell(46, 1).SetFormula("MINUTE(0.5)");
+                    sheet.Cell(47, 1).SetValue(0d);
+                    sheet.Cell(47, 1).SetFormula("SECOND(0.5)");
+                    sheet.Cell(48, 1).SetValue(1d);
+                    sheet.Cell(48, 1).SetFormula("ROW(A1)");
+                    sheet.Cell(49, 1).SetValue(2d);
+                    sheet.Cell(49, 1).SetFormula("COLUMN(B1)");
+                    sheet.Cell(50, 1).SetValue(Math.Atan(1d));
+                    sheet.Cell(50, 1).SetFormula("ATAN(1)");
+                    sheet.Cell(51, 1).SetValue(2d);
+                    sheet.Cell(51, 1).SetFormula("ROWS(A1:A2)");
+                    sheet.Cell(52, 1).SetValue(2d);
+                    sheet.Cell(52, 1).SetFormula("COLUMNS(A1:B1)");
+                    sheet.Cell(53, 1).SetValue(Math.Sqrt(0.5d));
+                    sheet.Cell(53, 1).SetFormula("STDEV(A1:A2)");
+                    sheet.Cell(54, 1).SetValue(3d);
+                    sheet.Cell(54, 1).SetFormula("LARGE(A1:A2,1)");
+                    sheet.Cell(55, 1).SetValue(2d);
+                    sheet.Cell(55, 1).SetFormula("COUNTBLANK(B1:B2)");
+                    sheet.Cell(56, 1).SetValue(1d);
+                    sheet.Cell(56, 1).SetFormula("COUNTIF(A1:A2,\">2\")");
+                    sheet.Cell(57, 1).SetValue(1d);
+                    sheet.Cell(57, 1).SetFormula("RSQ(A1:A2,A1:A2)");
+                    sheet.Cell(58, 1).SetValue(dateSerial);
+                    sheet.Cell(58, 1).SetFormula("DATEVALUE(\"1/2/2026\")");
+                    sheet.Cell(59, 1).SetValue(0.5d);
+                    sheet.Cell(59, 1).SetFormula("VAR(A1:A2)");
+                    sheet.Cell(60, 1).SetValue(2d / 1.1d + 3d / (1.1d * 1.1d));
+                    sheet.Cell(60, 1).SetFormula("NPV(0.1,A1:A2)");
+                    sheet.Cell(61, 1).SetValue(30d);
+                    sheet.Cell(61, 1).SetFormula("INDEX(C1:D2,2,2)");
+                    sheet.Cell(62, 1).SetValue(2d);
+                    sheet.Cell(62, 1).SetFormula("MATCH(3,A1:A2,0)");
+                    sheet.Cell(63, 1).SetValue(30d);
+                    sheet.Cell(63, 1).SetFormula("VLOOKUP(3,C1:D2,2,FALSE)");
+                    sheet.Cell(64, 1).SetValue(300d);
+                    sheet.Cell(64, 1).SetFormula("HLOOKUP(3,C4:D5,2,FALSE)");
+                    sheet.Cell(65, 1).SetValue(5d);
+                    sheet.Cell(65, 1).SetFormula("SUBTOTAL(9,A1:A2)");
+                    sheet.Cell(66, 1).SetValue(3d);
+                    sheet.Cell(66, 1).SetFormula("SUMIF(A1:A2,\">2\")");
+                    sheet.Cell(67, 1).SetValue(20d);
+                    sheet.Cell(67, 1).SetFormula("IF(A1>2,10,20)");
+                    sheet.Cell(68, 1).SetValue(5d);
+                    sheet.Cell(68, 1).SetFormula("IF(A2>=3,A1+A2,0)");
+                    sheet.Cell(69, 1).SetValue(5d);
+                    sheet.Cell(69, 1).SetFormula("ROUND(A1+A2,0)");
+                    sheet.Cell(70, 1).SetValue(9d);
+                    sheet.Cell(70, 1).SetFormula("SUM(A1+A2,4)");
+                    sheet.Cell(71, 1).SetValue(20d);
+                    sheet.Cell(71, 1).SetFormula("CHOOSE(A1,10,20,30)");
+                    sheet.Cell(72, 1).SetValue(5d);
+                    sheet.Cell(72, 1).SetFormula("CHOOSE(1,A1+A2,10)");
+                    sheet.Cell(73, 1).SetValue(3d);
+                    sheet.Cell(73, 1).SetFormula("OFFSET(A1,1,0)");
+                    sheet.Cell(74, 1).SetValue(5d);
+                    sheet.Cell(74, 1).SetFormula("SUM(OFFSET(A1,0,0,2,1))");
+                    sheet.Cell(75, 1).SetValue(8d);
+                    sheet.Cell(75, 1).SetFormula("A1^A2");
+                    sheet.Cell(76, 1).SetValue(25d);
+                    sheet.Cell(76, 1).SetFormula("(A1+A2)^2");
+                    sheet.Cell(77, 1).SetValue(10d);
+                    sheet.Cell(77, 1).SetFormula("IF(A1>2,10,)");
+                    sheet.Cell(78, 1).SetValue(2d);
+                    sheet.Cell(78, 1).SetFormula("COUNT(A1,,A2)");
                     document.Calculation.EvaluateFormulasBeforeSave = true;
 
                     document.Save(xlsOutputPath);
@@ -2347,17 +2347,17 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("NamedFormulas");
-                    sheet.CellValue(1, 1, 2d);
-                    sheet.CellValue(2, 1, 3d);
-                    sheet.CellValue(1, 2, 9d);
+                    sheet.Cell(1, 1).SetValue(2d);
+                    sheet.Cell(2, 1).SetValue(3d);
+                    sheet.Cell(1, 2).SetValue(9d);
 
                     document.SetNamedRange("SalesBlock", "'NamedFormulas'!A1:A2", save: false);
                     document.SetNamedRange("LocalBase", "B1", sheet, save: false);
 
-                    sheet.CellValue(3, 1, 5d);
-                    sheet.CellFormula(3, 1, "SUM(SalesBlock)");
-                    sheet.CellValue(4, 1, 10d);
-                    sheet.CellFormula(4, 1, "LocalBase+1");
+                    sheet.Cell(3, 1).SetValue(5d);
+                    sheet.Cell(3, 1).SetFormula("SUM(SalesBlock)");
+                    sheet.Cell(4, 1).SetValue(10d);
+                    sheet.Cell(4, 1).SetFormula("LocalBase+1");
 
                     document.Save(xlsOutputPath);
                 }
@@ -2390,28 +2390,28 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet data = document.AddSheet("Data Sheet");
-                    data.CellValue(1, 1, 2d);
-                    data.CellValue(2, 1, 3d);
+                    data.Cell(1, 1).SetValue(2d);
+                    data.Cell(2, 1).SetValue(3d);
 
                     ExcelSheet region1 = document.AddSheet("Region 1");
-                    region1.CellValue(1, 1, 2d);
-                    region1.CellValue(2, 1, 4d);
+                    region1.Cell(1, 1).SetValue(2d);
+                    region1.Cell(2, 1).SetValue(4d);
 
                     ExcelSheet region2 = document.AddSheet("Region 2");
-                    region2.CellValue(1, 1, 3d);
-                    region2.CellValue(2, 1, 6d);
+                    region2.Cell(1, 1).SetValue(3d);
+                    region2.Cell(2, 1).SetValue(6d);
 
                     ExcelSheet calc = document.AddSheet("Calc");
-                    calc.CellValue(1, 1, 5d);
-                    calc.CellFormula(1, 1, "'Data Sheet'!A1+'Data Sheet'!A2");
-                    calc.CellValue(2, 1, 5d);
-                    calc.CellFormula(2, 1, "SUM('Data Sheet'!A1:A2)");
-                    calc.CellValue(3, 1, 2d);
-                    calc.CellFormula(3, 1, "'Data Sheet'!$A$1");
-                    calc.CellValue(4, 1, 5d);
-                    calc.CellFormula(4, 1, "SUM('Region 1:Region 2'!A1)");
-                    calc.CellValue(5, 1, 15d);
-                    calc.CellFormula(5, 1, "SUM('Region 1:Region 2'!A1:A2)");
+                    calc.Cell(1, 1).SetValue(5d);
+                    calc.Cell(1, 1).SetFormula("'Data Sheet'!A1+'Data Sheet'!A2");
+                    calc.Cell(2, 1).SetValue(5d);
+                    calc.Cell(2, 1).SetFormula("SUM('Data Sheet'!A1:A2)");
+                    calc.Cell(3, 1).SetValue(2d);
+                    calc.Cell(3, 1).SetFormula("'Data Sheet'!$A$1");
+                    calc.Cell(4, 1).SetValue(5d);
+                    calc.Cell(4, 1).SetFormula("SUM('Region 1:Region 2'!A1)");
+                    calc.Cell(5, 1).SetValue(15d);
+                    calc.Cell(5, 1).SetFormula("SUM('Region 1:Region 2'!A1:A2)");
 
                     document.Save(xlsOutputPath);
                 }
@@ -2440,70 +2440,70 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("FormulaKinds");
-                    sheet.CellValue(1, 1, 2d);
-                    sheet.CellValue(2, 1, 3d);
-                    sheet.CellValue(3, 1, true);
-                    sheet.CellFormula(3, 1, "A2>A1");
-                    sheet.CellValue(4, 1, "AlphaBeta");
-                    sheet.CellFormula(4, 1, "\"Alpha\"&\"Beta\"");
-                    sheet.CellValue(5, 1, true);
-                    sheet.CellFormula(5, 1, "TRUE()");
-                    sheet.CellValue(6, 1, false);
-                    sheet.CellFormula(6, 1, "FALSE()");
-                    sheet.CellValue(7, 1, false);
-                    sheet.CellFormula(7, 1, "AND(TRUE,FALSE)");
-                    sheet.CellValue(8, 1, true);
-                    sheet.CellFormula(8, 1, "OR(FALSE,TRUE)");
-                    sheet.CellValue(9, 1, true);
-                    sheet.CellFormula(9, 1, "NOT(FALSE)");
-                    sheet.CellValue(10, 1, "AlphaBeta");
-                    sheet.CellFormula(10, 1, "CONCATENATE(\"Alpha\",\"Beta\")");
-                    sheet.CellValue(11, 1, "Al");
-                    sheet.CellFormula(11, 1, "LEFT(\"Alpha\",2)");
-                    sheet.CellValue(12, 1, "ta");
-                    sheet.CellFormula(12, 1, "RIGHT(\"Beta\",2)");
-                    sheet.CellValue(13, 1, "lph");
-                    sheet.CellFormula(13, 1, "MID(\"Alpha\",2,3)");
-                    sheet.CellValue(14, 1, "HaHa");
-                    sheet.CellFormula(14, 1, "REPT(\"Ha\",2)");
-                    sheet.CellValue(15, 1, "2.5");
-                    sheet.CellFormula(15, 1, "TEXT(2.5,\"0.0\")");
-                    sheet.CellValue(16, 1, 5d);
-                    sheet.CellFormula(16, 1, "LEN(\"Alpha\")");
-                    sheet.CellValue(17, 1, 42d);
-                    sheet.CellFormula(17, 1, "VALUE(\"42\")");
-                    sheet.CellValue(18, 1, "alpha");
-                    sheet.CellFormula(18, 1, "LOWER(\"Alpha\")");
-                    sheet.CellValue(19, 1, "ALPHA");
-                    sheet.CellFormula(19, 1, "UPPER(\"Alpha\")");
-                    sheet.CellValue(20, 1, "Alpha Beta");
-                    sheet.CellFormula(20, 1, "PROPER(\"alpha beta\")");
-                    sheet.CellValue(21, 1, "Alpha Beta");
-                    sheet.CellFormula(21, 1, "TRIM(\" Alpha  Beta \")");
-                    sheet.CellValue(22, 1, "AlZZa");
-                    sheet.CellFormula(22, 1, "REPLACE(\"Alpha\",3,2,\"ZZ\")");
-                    sheet.CellValue(23, 1, 3d);
-                    sheet.CellFormula(23, 1, "SEARCH(\"ph\",\"Alpha\")");
-                    sheet.CellValue(24, 1, 3d);
-                    sheet.CellFormula(24, 1, "FIND(\"ph\",\"Alpha\")");
-                    sheet.CellValue(25, 1, "AlXXa");
-                    sheet.CellFormula(25, 1, "SUBSTITUTE(\"Alpha\",\"ph\",\"XX\")");
-                    sheet.CellValue(26, 1, true);
-                    sheet.CellFormula(26, 1, "ISBLANK(B1)");
-                    sheet.CellValue(27, 1, true);
-                    sheet.CellFormula(27, 1, "ISNUMBER(A1)");
-                    sheet.CellValue(28, 1, true);
-                    sheet.CellFormula(28, 1, "ISTEXT(A10)");
-                    sheet.CellValue(29, 1, true);
-                    sheet.CellFormula(29, 1, "ISLOGICAL(A3)");
-                    sheet.CellValue(30, 1, true);
-                    sheet.CellFormula(30, 1, "ISNONTEXT(A1)");
-                    sheet.CellValue(31, 1, true);
-                    sheet.CellFormula(31, 1, "ISREF(A1)");
-                    sheet.CellValue(32, 1, true);
-                    sheet.CellFormula(32, 1, "ISNA(#N/A)");
-                    sheet.CellValue(33, 1, true);
-                    sheet.CellFormula(33, 1, "ISERR(#VALUE!)");
+                    sheet.Cell(1, 1).SetValue(2d);
+                    sheet.Cell(2, 1).SetValue(3d);
+                    sheet.Cell(3, 1).SetValue(true);
+                    sheet.Cell(3, 1).SetFormula("A2>A1");
+                    sheet.Cell(4, 1).SetValue("AlphaBeta");
+                    sheet.Cell(4, 1).SetFormula("\"Alpha\"&\"Beta\"");
+                    sheet.Cell(5, 1).SetValue(true);
+                    sheet.Cell(5, 1).SetFormula("TRUE()");
+                    sheet.Cell(6, 1).SetValue(false);
+                    sheet.Cell(6, 1).SetFormula("FALSE()");
+                    sheet.Cell(7, 1).SetValue(false);
+                    sheet.Cell(7, 1).SetFormula("AND(TRUE,FALSE)");
+                    sheet.Cell(8, 1).SetValue(true);
+                    sheet.Cell(8, 1).SetFormula("OR(FALSE,TRUE)");
+                    sheet.Cell(9, 1).SetValue(true);
+                    sheet.Cell(9, 1).SetFormula("NOT(FALSE)");
+                    sheet.Cell(10, 1).SetValue("AlphaBeta");
+                    sheet.Cell(10, 1).SetFormula("CONCATENATE(\"Alpha\",\"Beta\")");
+                    sheet.Cell(11, 1).SetValue("Al");
+                    sheet.Cell(11, 1).SetFormula("LEFT(\"Alpha\",2)");
+                    sheet.Cell(12, 1).SetValue("ta");
+                    sheet.Cell(12, 1).SetFormula("RIGHT(\"Beta\",2)");
+                    sheet.Cell(13, 1).SetValue("lph");
+                    sheet.Cell(13, 1).SetFormula("MID(\"Alpha\",2,3)");
+                    sheet.Cell(14, 1).SetValue("HaHa");
+                    sheet.Cell(14, 1).SetFormula("REPT(\"Ha\",2)");
+                    sheet.Cell(15, 1).SetValue("2.5");
+                    sheet.Cell(15, 1).SetFormula("TEXT(2.5,\"0.0\")");
+                    sheet.Cell(16, 1).SetValue(5d);
+                    sheet.Cell(16, 1).SetFormula("LEN(\"Alpha\")");
+                    sheet.Cell(17, 1).SetValue(42d);
+                    sheet.Cell(17, 1).SetFormula("VALUE(\"42\")");
+                    sheet.Cell(18, 1).SetValue("alpha");
+                    sheet.Cell(18, 1).SetFormula("LOWER(\"Alpha\")");
+                    sheet.Cell(19, 1).SetValue("ALPHA");
+                    sheet.Cell(19, 1).SetFormula("UPPER(\"Alpha\")");
+                    sheet.Cell(20, 1).SetValue("Alpha Beta");
+                    sheet.Cell(20, 1).SetFormula("PROPER(\"alpha beta\")");
+                    sheet.Cell(21, 1).SetValue("Alpha Beta");
+                    sheet.Cell(21, 1).SetFormula("TRIM(\" Alpha  Beta \")");
+                    sheet.Cell(22, 1).SetValue("AlZZa");
+                    sheet.Cell(22, 1).SetFormula("REPLACE(\"Alpha\",3,2,\"ZZ\")");
+                    sheet.Cell(23, 1).SetValue(3d);
+                    sheet.Cell(23, 1).SetFormula("SEARCH(\"ph\",\"Alpha\")");
+                    sheet.Cell(24, 1).SetValue(3d);
+                    sheet.Cell(24, 1).SetFormula("FIND(\"ph\",\"Alpha\")");
+                    sheet.Cell(25, 1).SetValue("AlXXa");
+                    sheet.Cell(25, 1).SetFormula("SUBSTITUTE(\"Alpha\",\"ph\",\"XX\")");
+                    sheet.Cell(26, 1).SetValue(true);
+                    sheet.Cell(26, 1).SetFormula("ISBLANK(B1)");
+                    sheet.Cell(27, 1).SetValue(true);
+                    sheet.Cell(27, 1).SetFormula("ISNUMBER(A1)");
+                    sheet.Cell(28, 1).SetValue(true);
+                    sheet.Cell(28, 1).SetFormula("ISTEXT(A10)");
+                    sheet.Cell(29, 1).SetValue(true);
+                    sheet.Cell(29, 1).SetFormula("ISLOGICAL(A3)");
+                    sheet.Cell(30, 1).SetValue(true);
+                    sheet.Cell(30, 1).SetFormula("ISNONTEXT(A1)");
+                    sheet.Cell(31, 1).SetValue(true);
+                    sheet.Cell(31, 1).SetFormula("ISREF(A1)");
+                    sheet.Cell(32, 1).SetValue(true);
+                    sheet.Cell(32, 1).SetFormula("ISNA(#N/A)");
+                    sheet.Cell(33, 1).SetValue(true);
+                    sheet.Cell(33, 1).SetFormula("ISERR(#VALUE!)");
 
                     document.Save(xlsOutputPath);
                 }
@@ -2586,19 +2586,19 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Errors");
-                    sheet.CellValue(1, 1, 1d);
+                    sheet.Cell(1, 1).SetValue(1d);
 
-                    sheet.CellValue(2, 1, "#N/A");
+                    sheet.Cell(2, 1).SetValue("#N/A");
                     SetOpenXmlErrorCell(sheet, "A2", "#N/A");
 
-                    sheet.CellValue(3, 1, "#DIV/0!");
-                    sheet.CellFormula(3, 1, "A1/0");
+                    sheet.Cell(3, 1).SetValue("#DIV/0!");
+                    sheet.Cell(3, 1).SetFormula("A1/0");
                     SetOpenXmlErrorCell(sheet, "A3", "#DIV/0!");
-                    sheet.CellValue(4, 1, "#N/A");
-                    sheet.CellFormula(4, 1, "NA()");
+                    sheet.Cell(4, 1).SetValue("#N/A");
+                    sheet.Cell(4, 1).SetFormula("NA()");
                     SetOpenXmlErrorCell(sheet, "A4", "#N/A");
-                    sheet.CellValue(5, 1, true);
-                    sheet.CellFormula(5, 1, "ISERROR(#N/A)");
+                    sheet.Cell(5, 1).SetValue(true);
+                    sheet.Cell(5, 1).SetFormula("ISERROR(#N/A)");
 
                     document.Save(xlsOutputPath);
                 }
@@ -2644,12 +2644,12 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Volatile");
-                    sheet.CellValue(1, 1, 0.42d);
-                    sheet.CellFormula(1, 1, "RAND()");
-                    sheet.CellValue(2, 1, todaySerial);
-                    sheet.CellFormula(2, 1, "TODAY()");
-                    sheet.CellValue(3, 1, nowSerial);
-                    sheet.CellFormula(3, 1, "NOW()");
+                    sheet.Cell(1, 1).SetValue(0.42d);
+                    sheet.Cell(1, 1).SetFormula("RAND()");
+                    sheet.Cell(2, 1).SetValue(todaySerial);
+                    sheet.Cell(2, 1).SetFormula("TODAY()");
+                    sheet.Cell(3, 1).SetValue(nowSerial);
+                    sheet.Cell(3, 1).SetFormula("NOW()");
 
                     document.Save(xlsOutputPath);
                 }
@@ -2676,8 +2676,8 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     document.DateSystem = ExcelDateSystem.NineteenFour;
                     ExcelSheet sheet = document.AddSheet("Dates");
-                    sheet.CellValue(1, 1, date.ToString("O", CultureInfo.InvariantCulture));
-                    sheet.CellAt(1, 1).SetNumberFormat("yyyy-mm-dd");
+                    sheet.Cell(1, 1).SetValue(date.ToString("O", CultureInfo.InvariantCulture));
+                    sheet.Cell(1, 1).SetNumberFormat("yyyy-mm-dd");
                     SetOpenXmlDateCell(sheet, "A1", date.ToString("O", CultureInfo.InvariantCulture));
 
                     document.Save(xlsOutputPath);
@@ -2705,15 +2705,15 @@ namespace OfficeIMO.Tests {
             try {
                 using ExcelDocument document = ExcelDocument.Create(openXmlPath);
                 ExcelSheet sheet = document.AddSheet("Streamed");
-                sheet.CellValue(1, 1, "Sync");
-                sheet.CellValue(2, 1, 42d);
+                sheet.Cell(1, 1).SetValue("Sync");
+                sheet.Cell(2, 1).SetValue(42d);
                 var options = new ExcelSaveOptions();
 
                 using var syncStream = new MemoryStream();
                 document.Save(syncStream, ExcelFileFormat.Xls, options);
                 AssertLegacyXlsStreamCell(syncStream, 1, 1, "Sync");
 
-                sheet.CellValue(1, 1, "Async");
+                sheet.Cell(1, 1).SetValue("Async");
                 using var asyncStream = new MemoryStream();
                 await document.SaveAsync(asyncStream, ExcelFileFormat.Xls, options);
                 AssertLegacyXlsStreamCell(asyncStream, 1, 1, "Async");
@@ -2734,7 +2734,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Metadata");
-                    sheet.CellValue(1, 1, "Document metadata");
+                    sheet.Cell(1, 1).SetValue("Document metadata");
                     document.Properties.Title = "Native Metadata Workbook";
                     document.Properties.Subject = "Native XLS metadata parity";
                     document.Properties.Creator = "OfficeIMO Native Writer";
@@ -2811,7 +2811,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Protected");
-                    sheet.CellValue(1, 1, "Protected content");
+                    sheet.Cell(1, 1).SetValue("Protected content");
                     document.ProtectWorkbook(new ExcelWorkbookProtectionOptions {
                         ProtectStructure = true,
                         ProtectWindows = true,
@@ -2860,7 +2860,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("PasswordOnly");
-                    sheet.CellValue(1, 1, "Password-only workbook protection metadata");
+                    sheet.Cell(1, 1).SetValue("Password-only workbook protection metadata");
                     document.WorkbookRoot.Append(new DocumentFormat.OpenXml.Spreadsheet.WorkbookProtection {
                         WorkbookPassword = "CAFE"
                     });
@@ -2898,7 +2898,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Protected");
-                    sheet.CellValue(1, 1, "Protected table editing");
+                    sheet.Cell(1, 1).SetValue("Protected table editing");
                     sheet.ProtectTableEditing();
 
                     document.Save(xlsOutputPath);
@@ -2940,7 +2940,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Revision");
-                    sheet.CellValue(1, 1, "Revision protection");
+                    sheet.Cell(1, 1).SetValue("Revision protection");
                     document.ProtectWorkbook(new ExcelWorkbookProtectionOptions {
                         ProtectStructure = true,
                         LegacyPasswordHash = "CAFE"
@@ -2986,7 +2986,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Reservation");
-                    sheet.CellValue(1, 1, "Write reservation");
+                    sheet.Cell(1, 1).SetValue("Write reservation");
                     document.SetWriteReservation(new ExcelWorkbookWriteReservationOptions {
                         ReadOnlyRecommended = true,
                         UserName = "Native Writer",
@@ -3024,7 +3024,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Reservation");
-                    sheet.CellValue(1, 1, "Write access");
+                    sheet.Cell(1, 1).SetValue("Write access");
                     document.SetWriteReservation(new ExcelWorkbookWriteReservationOptions {
                         ReadOnlyRecommended = true,
                         UserName = "Reservation Owner"
@@ -3065,12 +3065,12 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet links = document.AddSheet("Links");
                     ExcelSheet target = document.AddSheet("Target");
-                    target.CellValue(2, 2, "Target cell");
+                    target.Cell(2, 2).SetValue("Target cell");
                     links.SetHyperlink(1, 1, "https://evotec.xyz/xls", "Evotec", style: false);
                     links.SetInternalLink(2, 1, target, "B2", "Jump", style: false);
-                    links.CellValue(3, 1, "Spec");
+                    links.Cell(3, 1).SetValue("Spec");
                     AddExternalHyperlink(links, "A3", "../docs/spec.pdf", UriKind.Relative);
-                    links.CellValue(4, 1, "Unicode Spec");
+                    links.Cell(4, 1).SetValue("Unicode Spec");
                     AddExternalHyperlink(links, "A4", "../docs/zażółć.xlsx", UriKind.Relative);
                     links.SetHyperlink(5, 1, "mailto:support@officeimo.net", "Support", style: false);
 
@@ -3181,18 +3181,18 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Filtered");
-                    sheet.CellValue(1, 1, "Status");
-                    sheet.CellValue(1, 2, "Amount");
-                    sheet.CellValue(1, 3, "Notes");
-                    sheet.CellValue(2, 1, "Open");
-                    sheet.CellValue(2, 2, 12d);
-                    sheet.CellValue(2, 3, "Ready");
-                    sheet.CellValue(3, 1, "Pending");
-                    sheet.CellValue(3, 2, 18d);
-                    sheet.CellValue(3, 3, "Review");
-                    sheet.CellValue(4, 1, "Closed");
-                    sheet.CellValue(4, 2, 25d);
-                    sheet.CellValue(4, 3, "Done");
+                    sheet.Cell(1, 1).SetValue("Status");
+                    sheet.Cell(1, 2).SetValue("Amount");
+                    sheet.Cell(1, 3).SetValue("Notes");
+                    sheet.Cell(2, 1).SetValue("Open");
+                    sheet.Cell(2, 2).SetValue(12d);
+                    sheet.Cell(2, 3).SetValue("Ready");
+                    sheet.Cell(3, 1).SetValue("Pending");
+                    sheet.Cell(3, 2).SetValue(18d);
+                    sheet.Cell(3, 3).SetValue("Review");
+                    sheet.Cell(4, 1).SetValue("Closed");
+                    sheet.Cell(4, 2).SetValue(25d);
+                    sheet.Cell(4, 3).SetValue("Done");
                     sheet.AutoFilterAdd("A1:C4");
                     sheet.AutoFilterByHeadersEquals(("Status", new[] { "Open", "Pending" }));
                     sheet.AutoFilterByHeaderBetween("Amount", 10d, 20d);
@@ -3254,10 +3254,10 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Validation");
-                    sheet.CellValue(1, 2, "Status");
-                    sheet.CellValue(1, 3, "Quantity");
-                    sheet.CellValue(1, 4, "Discount");
-                    sheet.CellValue(1, 5, "Start");
+                    sheet.Cell(1, 2).SetValue("Status");
+                    sheet.Cell(1, 3).SetValue("Quantity");
+                    sheet.Cell(1, 4).SetValue("Discount");
+                    sheet.Cell(1, 5).SetValue("Start");
 
                     sheet.ValidationList("B2:B5", new[] { "Open", "Closed", "Pending" });
                     sheet.SetDataValidationMessages("B2:B5", new ExcelDataValidationMessageOptions {
@@ -3346,8 +3346,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Validation");
-                    sheet.CellValue(1, 1, "Header");
-                    sheet.CellValue(2, 1, 1d);
+                    sheet.Cell(1, 1).SetValue("Header");
+                    sheet.Cell(2, 1).SetValue(1d);
                     sheet.ValidationCustomFormula("A2:A5", "A2>0");
 
                     document.Save(xlsOutputPath);
@@ -3376,15 +3376,15 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Conditions");
-                    sheet.CellValue(1, 2, "Amount");
-                    sheet.CellValue(2, 2, 8d);
-                    sheet.CellValue(3, 2, 12d);
-                    sheet.CellValue(1, 3, "Band");
-                    sheet.CellValue(2, 3, 3d);
-                    sheet.CellValue(3, 3, 7d);
-                    sheet.CellValue(1, 4, "Formula");
-                    sheet.CellValue(2, 4, 1d);
-                    sheet.CellValue(3, 4, -1d);
+                    sheet.Cell(1, 2).SetValue("Amount");
+                    sheet.Cell(2, 2).SetValue(8d);
+                    sheet.Cell(3, 2).SetValue(12d);
+                    sheet.Cell(1, 3).SetValue("Band");
+                    sheet.Cell(2, 3).SetValue(3d);
+                    sheet.Cell(3, 3).SetValue(7d);
+                    sheet.Cell(1, 4).SetValue("Formula");
+                    sheet.Cell(2, 4).SetValue(1d);
+                    sheet.Cell(3, 4).SetValue(-1d);
 
                     sheet.AddConditionalRule("B2:B5", ExcelConditionalFormattingOperator.GreaterThan, "10");
                     sheet.AddConditionalRule("C2:C5", ExcelConditionalFormattingOperator.Between, "1", "5");
@@ -3447,7 +3447,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Conditions");
-                    sheet.CellValue(2, 1, 1d);
+                    sheet.Cell(2, 1).SetValue(1d);
                     sheet.AddConditionalFormulaRule("A2:A5", "A2>0");
 
                     document.Save(xlsOutputPath);
@@ -3476,8 +3476,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Comments");
-                    sheet.CellValue(1, 1, "Review");
-                    sheet.CellValue(2, 2, "Unicode");
+                    sheet.Cell(1, 1).SetValue("Review");
+                    sheet.Cell(2, 2).SetValue("Unicode");
                     sheet.SetComment(1, 1, "Review this cell", author: "Alice", initials: "AK");
                     sheet.SetComment(2, 2, "Zażółć note", author: "Żaneta");
 
@@ -3536,7 +3536,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Rich Comments");
-                    sheet.CellValue(1, 1, "Review");
+                    sheet.Cell(1, 1).SetValue("Review");
                     sheet.SetCommentRichText(
                         1,
                         1,
@@ -3605,9 +3605,9 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet names = document.AddSheet("Names");
                     ExcelSheet scoped = document.AddSheet("Scoped");
-                    names.CellValue(1, 1, "North");
-                    names.CellValue(2, 2, 125d);
-                    scoped.CellValue(3, 3, "Local");
+                    names.Cell(1, 1).SetValue("North");
+                    names.Cell(2, 2).SetValue(125d);
+                    scoped.Cell(3, 3).SetValue("Local");
 
                     document.SetNamedRange("SalesBlock", "'Names'!A1:B2", save: false);
                     document.SetNamedRange("LocalCell", "C3", scoped, save: false, hidden: true);
@@ -3645,8 +3645,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(printTitles.BuiltIn);
                 Assert.Equal("'Names'!$1:$2,'Names'!$A:$B", printTitles.Reference);
 
-                Assert.Equal("'Names'!$A$1:$B$2", result.Document.GetNamedRange("SalesBlock"));
-                Assert.Equal("$C$3", result.Document.GetNamedRange("LocalCell", result.Document.Sheets[1]));
+                Assert.Equal("'Names'!$A$1:$B$2", result.Document.GetNamedRangeText("SalesBlock"));
+                Assert.Equal("$C$3", result.Document.GetNamedRangeText("LocalCell", result.Document.Sheets[1]));
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);
@@ -3661,10 +3661,10 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("ExternalRefs");
-                    sheet.CellValue(1, 1, 2d);
-                    sheet.CellFormula(1, 1, "'[Budget.xls]Other'!$A$1");
-                    sheet.CellValue(2, 1, 5d);
-                    sheet.CellFormula(2, 1, "SUM('[Budget.xls]Other'!$A$1:$B$2)");
+                    sheet.Cell(1, 1).SetValue(2d);
+                    sheet.Cell(1, 1).SetFormula("'[Budget.xls]Other'!$A$1");
+                    sheet.Cell(2, 1).SetValue(5d);
+                    sheet.Cell(2, 1).SetFormula("SUM('[Budget.xls]Other'!$A$1:$B$2)");
 
                     document.Save(xlsOutputPath);
                 }
@@ -3694,8 +3694,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("ExternalNames");
-                    sheet.CellValue(1, 1, 0.25d);
-                    sheet.CellFormula(1, 1, "[Budget.xls]TaxRate");
+                    sheet.Cell(1, 1).SetValue(0.25d);
+                    sheet.Cell(1, 1).SetFormula("[Budget.xls]TaxRate");
 
                     document.Save(xlsOutputPath);
                 }
@@ -3731,9 +3731,9 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet first = document.AddSheet("First");
                     ExcelSheet second = document.AddSheet("Second");
-                    second.CellValue(1, 1, 42d);
-                    first.CellValue(1, 1, 42d);
-                    first.CellFormula(1, 1, "Second!A1");
+                    second.Cell(1, 1).SetValue(42d);
+                    first.Cell(1, 1).SetValue(42d);
+                    first.Cell(1, 1).SetFormula("Second!A1");
 
                     document.Save(xlsOutputPath);
                 }
@@ -3816,11 +3816,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksFutureFunctionAliasesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("future-function aliases", (document, sheet) => {
-                sheet.CellValue(1, 1, "North");
-                sheet.CellValue(2, 1, "South");
-                sheet.CellValue(1, 2, 10d);
-                sheet.CellValue(2, 2, 20d);
-                sheet.CellFormula(1, 3, "_xlfn.XLOOKUP(A1,A1:A2,B1:B2)");
+                sheet.Cell(1, 1).SetValue("North");
+                sheet.Cell(2, 1).SetValue("South");
+                sheet.Cell(1, 2).SetValue(10d);
+                sheet.Cell(2, 2).SetValue(20d);
+                sheet.Cell(1, 3).SetFormula("_xlfn.XLOOKUP(A1,A1:A2,B1:B2)");
             });
         }
 
@@ -3830,7 +3830,7 @@ namespace OfficeIMO.Tests {
                 string longLiteral = "\"" + new string('A', 255) + "\"";
                 string formula = string.Join("&", Enumerable.Repeat(longLiteral, 260));
 
-                sheet.CellValue(1, 1, "cached text");
+                sheet.Cell(1, 1).SetValue("cached text");
                 OpenXmlCell cell = sheet.WorksheetPart.Worksheet!.Descendants<OpenXmlCell>().Single(item => item.CellReference?.Value == "A1");
                 cell.CellFormula = new DocumentFormat.OpenXml.Spreadsheet.CellFormula(formula);
                 sheet.WorksheetPart.Worksheet.Save();
@@ -3845,9 +3845,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Array Formula");
-                    sheet.CellValue(1, 1, 2d);
-                    sheet.CellValue(2, 1, 3d);
-                    sheet.CellValue(3, 1, 5d);
+                    sheet.Cell(1, 1).SetValue(2d);
+                    sheet.Cell(2, 1).SetValue(3d);
+                    sheet.Cell(3, 1).SetValue(5d);
                     sheet.SetArrayFormula("A3:A3", "A1+A2");
 
                     document.Save(xlsOutputPath);
@@ -3877,11 +3877,11 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Array Formula");
-                    sheet.CellValue(1, 1, 2d);
-                    sheet.CellValue(2, 1, 3d);
-                    sheet.CellValue(1, 2, 5d);
+                    sheet.Cell(1, 1).SetValue(2d);
+                    sheet.Cell(2, 1).SetValue(3d);
+                    sheet.Cell(1, 2).SetValue(5d);
                     sheet.SetArrayFormula("B1:B2", "SUM(A1:A2)");
-                    sheet.CellValue(2, 2, 5d);
+                    sheet.Cell(2, 2).SetValue(5d);
 
                     document.Save(xlsOutputPath);
                 }
@@ -3909,15 +3909,15 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Shared Formula");
-                    sheet.CellValue(1, 1, 10d);
-                    sheet.CellValue(2, 1, 20d);
-                    sheet.CellValue(3, 1, 30d);
-                    sheet.CellValue(1, 2, 15d);
-                    sheet.CellValue(2, 2, 25d);
-                    sheet.CellValue(3, 2, 35d);
-                    sheet.CellFormula(1, 2, "A1+5");
-                    sheet.CellFormula(2, 2, "A2+5");
-                    sheet.CellFormula(3, 2, "A3+5");
+                    sheet.Cell(1, 1).SetValue(10d);
+                    sheet.Cell(2, 1).SetValue(20d);
+                    sheet.Cell(3, 1).SetValue(30d);
+                    sheet.Cell(1, 2).SetValue(15d);
+                    sheet.Cell(2, 2).SetValue(25d);
+                    sheet.Cell(3, 2).SetValue(35d);
+                    sheet.Cell(1, 2).SetFormula("A1+5");
+                    sheet.Cell(2, 2).SetFormula("A2+5");
+                    sheet.Cell(3, 2).SetFormula("A3+5");
 
                     OpenXmlCell sharedRoot = sheet.WorksheetPart.Worksheet.Descendants<OpenXmlCell>()
                         .Single(cell => string.Equals(cell.CellReference?.Value, "B1", StringComparison.OrdinalIgnoreCase));
@@ -3957,14 +3957,14 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet data = document.AddSheet("Data");
-                    data.CellValue(1, 1, 10d);
-                    data.CellValue(2, 1, 20d);
+                    data.Cell(1, 1).SetValue(10d);
+                    data.Cell(2, 1).SetValue(20d);
 
                     ExcelSheet sheet = document.AddSheet("Shared Formula");
-                    sheet.CellValue(1, 2, 15d);
-                    sheet.CellValue(2, 2, 25d);
-                    sheet.CellFormula(1, 2, "Data!A1+5");
-                    sheet.CellFormula(2, 2, "Data!A2+5");
+                    sheet.Cell(1, 2).SetValue(15d);
+                    sheet.Cell(2, 2).SetValue(25d);
+                    sheet.Cell(1, 2).SetFormula("Data!A1+5");
+                    sheet.Cell(2, 2).SetFormula("Data!A2+5");
 
                     OpenXmlCell sharedRoot = sheet.WorksheetPart.Worksheet.Descendants<OpenXmlCell>()
                         .Single(cell => string.Equals(cell.CellReference?.Value, "B1", StringComparison.OrdinalIgnoreCase));
@@ -3987,8 +3987,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("'Data'!A1+5", formulas.GetFormulaText(1, 2));
                 Assert.Equal("'Data'!A2+5", formulas.GetFormulaText(2, 2));
                 formulas.RecalculateSupportedFormulas();
-                Assert.Equal(15D, formulas.CellAt(1, 2).GetValue<double>());
-                Assert.Equal(25D, formulas.CellAt(2, 2).GetValue<double>());
+                Assert.Equal(15D, formulas.Cell(1, 2).GetValue<double>());
+                Assert.Equal(25D, formulas.Cell(2, 2).GetValue<double>());
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);
@@ -4003,13 +4003,13 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Shared Formula");
-                    sheet.CellValue(1, 1, 10d);
-                    sheet.CellValue(2, 1, 20d);
+                    sheet.Cell(1, 1).SetValue(10d);
+                    sheet.Cell(2, 1).SetValue(20d);
 
                     int[,] sharedCells = { { 1, 2 }, { 1, 3 }, { 2, 2 }, { 2, 3 } };
                     for (int i = 0; i < sharedCells.GetLength(0); i++) {
-                        sheet.CellValue(sharedCells[i, 0], sharedCells[i, 1], 15d);
-                        sheet.CellFormula(sharedCells[i, 0], sharedCells[i, 1], "A1+5");
+                        sheet.Cell(sharedCells[i, 0], sharedCells[i, 1]).SetValue(15d);
+                        sheet.Cell(sharedCells[i, 0], sharedCells[i, 1]).SetFormula("A1+5");
                     }
 
                     OpenXmlCell sharedRoot = sheet.WorksheetPart.Worksheet.Descendants<OpenXmlCell>()
@@ -4041,9 +4041,9 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksSharedFormulaRangesAboveBiffUseLimitBeforeWriting() {
             AssertNativeXlsSaveNotSupported("shared formula ranges with more than 255 cells", (document, sheet) => {
                 for (int row = 1; row <= 256; row++) {
-                    sheet.CellValue(row, 1, row);
-                    sheet.CellValue(row, 2, row + 5);
-                    sheet.CellFormula(row, 2, $"A{row}+5");
+                    sheet.Cell(row, 1).SetValue(row);
+                    sheet.Cell(row, 2).SetValue(row + 5);
+                    sheet.Cell(row, 2).SetFormula($"A{row}+5");
                 }
 
                 OpenXmlCell sharedRoot = sheet.WorksheetPart.Worksheet.Descendants<OpenXmlCell>()
@@ -4067,9 +4067,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksSharedFormulaWithoutDefinitionBeforeWriting() {
             AssertNativeXlsSaveNotSupported("shared formula definition", (document, sheet) => {
-                sheet.CellValue(1, 1, 10d);
-                sheet.CellValue(1, 2, 15d);
-                sheet.CellFormula(1, 2, "A1+5");
+                sheet.Cell(1, 1).SetValue(10d);
+                sheet.Cell(1, 2).SetValue(15d);
+                sheet.Cell(1, 2).SetFormula("A1+5");
 
                 OpenXmlCell sharedFollower = sheet.WorksheetPart.Worksheet.Descendants<OpenXmlCell>()
                     .Single(cell => string.Equals(cell.CellReference?.Value, "B1", StringComparison.OrdinalIgnoreCase));
@@ -4082,28 +4082,28 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksUnsupportedFeatureFamiliesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("AutoFilter equality lists with more than two values", (document, sheet) => {
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "Alpha");
-                sheet.CellValue(3, 1, "Beta");
-                sheet.CellValue(4, 1, "Gamma");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue("Alpha");
+                sheet.Cell(3, 1).SetValue("Beta");
+                sheet.Cell(4, 1).SetValue("Gamma");
                 sheet.AddAutoFilter("A1:A2");
                 sheet.AutoFilterByHeaderEquals("Name", new[] { "Alpha", "Beta", "Gamma" });
             });
 
             AssertNativeXlsSaveNotSupported("conditional formatting visual or extension payloads", (document, sheet) => {
-                sheet.CellValue(1, 1, 1d);
-                sheet.CellValue(2, 1, 2d);
-                sheet.CellValue(3, 1, 3d);
+                sheet.Cell(1, 1).SetValue(1d);
+                sheet.Cell(2, 1).SetValue(2d);
+                sheet.Cell(3, 1).SetValue(3d);
                 sheet.AddConditionalColorScale("A1:A3", "FFFF0000", "FF00FF00");
             });
 
             AssertNativeXlsSaveNotSupported("unsupported external hyperlink targets", (document, sheet) => {
-                sheet.CellValue(1, 1, "Script");
+                sheet.Cell(1, 1).SetValue("Script");
                 AddExternalHyperlink(sheet, "A1", "javascript:alert(1)", UriKind.Absolute);
             });
 
             AssertNativeXlsSaveNotSupported("defined-name formulas outside the supported native XLS formula subset", (document, sheet) => {
-                sheet.CellValue(1, 1, "Named");
+                sheet.Cell(1, 1).SetValue("Named");
                 document.WorkbookRoot.DefinedNames ??= new DocumentFormat.OpenXml.Spreadsheet.DefinedNames();
                 document.WorkbookRoot.DefinedNames.Append(new DocumentFormat.OpenXml.Spreadsheet.DefinedName {
                     Name = "FormulaName",
@@ -4112,8 +4112,8 @@ namespace OfficeIMO.Tests {
             });
 
             AssertNativeXlsSaveNotSupported("tables", (document, sheet) => {
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "Alpha");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue("Alpha");
                 sheet.AddTable("A1:A2", hasHeader: true, name: "UnsupportedTable", ExcelTableStyle.TableStyleMedium2);
             });
         }

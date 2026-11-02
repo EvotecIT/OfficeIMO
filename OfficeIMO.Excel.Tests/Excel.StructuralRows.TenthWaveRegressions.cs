@@ -13,10 +13,10 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_TracksTableFormulaTargetsIndependentlyFromTableMovement() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(5, 1).SetValue("Value");
-            sheet.CellAt(5, 2).SetValue("Result");
-            sheet.CellAt(6, 1).SetValue(10);
-            sheet.CellAt(7, 1).SetValue(20);
+            sheet.Cell(5, 1).SetValue("Value");
+            sheet.Cell(5, 2).SetValue("Result");
+            sheet.Cell(6, 1).SetValue(10);
+            sheet.Cell(7, 1).SetValue(20);
             sheet.AddTable(
                 "A5:B7",
                 hasHeader: true,
@@ -39,9 +39,9 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_ShrinksPartiallyDeletedRelativeAnchoredRanges() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 2).SetValue(1);
-            sheet.CellAt(2, 1).SetValue(2);
-            sheet.CellAt(3, 1).SetValue(3);
+            sheet.Cell(1, 2).SetValue(1);
+            sheet.Cell(2, 1).SetValue(2);
+            sheet.Cell(3, 1).SetValue(3);
             var validation = new DataValidation(
                 new Formula1("SUM(A2:A3)>0"),
                 new Formula2("SUM($A2:A$3)>0")) {
@@ -60,8 +60,8 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_RenumbersScenarioViewIndicesAfterRemoval() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(2, 1).SetValue(1);
-            sheet.CellAt(3, 1).SetValue(2);
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(3, 1).SetValue(2);
             var removed = new Scenario(
                 new InputCells { CellReference = "A2", Val = "1" }) {
                 Name = "Removed",
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_RejectsVmlOnlyFormControlsAtomically() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(2, 1).SetValue("Keep");
+            sheet.Cell(2, 1).SetValue("Keep");
             VmlDrawingPart vmlPart = sheet.WorksheetPart.AddNewPart<VmlDrawingPart>();
             string relationshipId = sheet.WorksheetPart.GetIdOfPart(vmlPart);
             sheet.WorksheetPart.Worksheet.Append(new LegacyDrawing { Id = relationshipId });
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
                 () => sheet.DeleteRows(2));
 
             Assert.Contains("form controls", exception.Message);
-            Assert.Equal("Keep", sheet.CellAt(2, 1).GetValue<string>());
+            Assert.Equal("Keep", sheet.Cell(2, 1).GetValue<string>());
             Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
         }
 
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_RemapsNormalAndCustomViewSelections() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(5, 1).SetValue(1);
+            sheet.Cell(5, 1).SetValue(1);
             var normalSelection = new Selection {
                 ActiveCell = "A5",
                 SequenceOfReferences = new ListValue<StringValue> { InnerText = "A5:B6" }
@@ -160,7 +160,7 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_PreflightsSavedViewSelections() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Keep");
+            sheet.Cell(1, 1).SetValue("Keep");
             var selection = new Selection {
                 ActiveCell = $"A{ExcelA1.MaxRows}",
                 SequenceOfReferences = new ListValue<StringValue> {
@@ -178,7 +178,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("row limit", exception.Message);
             Assert.Equal($"A{ExcelA1.MaxRows}", selection.ActiveCell!.Value);
-            Assert.Equal("Keep", sheet.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Keep", sheet.Cell(1, 1).GetValue<string>());
         }
     }
 }

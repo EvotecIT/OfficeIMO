@@ -14,8 +14,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("PatternFills");
-                    sheet.CellValue(1, 1, "Gray125");
-                    sheet.CellAt(1, 1).SetFillColor("#EEEEEE");
+                    sheet.Cell(1, 1).SetValue("Gray125");
+                    sheet.Cell(1, 1).SetFillColor("#EEEEEE");
 
                     Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single();

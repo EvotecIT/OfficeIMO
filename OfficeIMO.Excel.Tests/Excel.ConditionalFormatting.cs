@@ -14,8 +14,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ConditionalRule.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, 5d);
-                sheet.CellValue(2, 1, 15d);
+                sheet.Cell(1, 1).SetValue(5d);
+                sheet.Cell(2, 1).SetValue(15d);
                 sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.GreaterThan, "10");
                 document.Save();
             }
@@ -46,9 +46,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ConditionalRangeFluent.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, 1d);
-                sheet.CellValue(2, 1, 2d);
-                sheet.CellValue(3, 1, 3d);
+                sheet.Cell(1, 1).SetValue(1d);
+                sheet.Cell(2, 1).SetValue(2d);
+                sheet.Cell(3, 1).SetValue(3d);
                 sheet.Range("A1:A3").ConditionalFormatting
                     .ColorScale(OfficeColor.Red, OfficeColor.Lime)
                     .ConditionalFormatting
@@ -120,14 +120,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ConditionalAdditionalRuleTypes.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Ready");
-                sheet.CellValue(2, 1, "Blocked");
-                sheet.CellValue(3, 1, "Ready");
-                sheet.CellValue(1, 2, 1d);
-                sheet.CellValue(2, 2, 2d);
-                sheet.CellValue(3, 2, 3d);
-                sheet.CellValue(1, 3, new System.DateTime(2026, 6, 22));
-                sheet.CellValue(2, 3, new System.DateTime(2026, 6, 21));
+                sheet.Cell(1, 1).SetValue("Ready");
+                sheet.Cell(2, 1).SetValue("Blocked");
+                sheet.Cell(3, 1).SetValue("Ready");
+                sheet.Cell(1, 2).SetValue(1d);
+                sheet.Cell(2, 2).SetValue(2d);
+                sheet.Cell(3, 2).SetValue(3d);
+                sheet.Cell(1, 3).SetValue(new System.DateTime(2026, 6, 22));
+                sheet.Cell(2, 3).SetValue(new System.DateTime(2026, 6, 21));
 
                 sheet.AddConditionalUniqueValuesRule("A1:A3");
                 sheet.AddConditionalTextRule("A1:A3", ExcelConditionalFormatType.ContainsText, "Ready");
@@ -168,9 +168,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ConditionalColorScale.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, 1d);
-                sheet.CellValue(2, 1, 2d);
-                sheet.CellValue(3, 1, 3d);
+                sheet.Cell(1, 1).SetValue(1d);
+                sheet.Cell(2, 1).SetValue(2d);
+                sheet.Cell(3, 1).SetValue(3d);
                 sheet.AddConditionalColorScale("A1:A3", OfficeColor.Red, OfficeColor.Lime);
                 document.Save();
             }
@@ -199,9 +199,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ConditionalDataBar.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, 1d);
-                sheet.CellValue(2, 1, 2d);
-                sheet.CellValue(3, 1, 3d);
+                sheet.Cell(1, 1).SetValue(1d);
+                sheet.Cell(2, 1).SetValue(2d);
+                sheet.Cell(3, 1).SetValue(3d);
                 sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
                 document.Save();
             }
@@ -229,9 +229,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ConditionalIconSet.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, 1d);
-                sheet.CellValue(2, 1, 2d);
-                sheet.CellValue(3, 1, 3d);
+                sheet.Cell(1, 1).SetValue(1d);
+                sheet.Cell(2, 1).SetValue(2d);
+                sheet.Cell(3, 1).SetValue(3d);
                 sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeTrafficLights1, showValue: false, reverseIconOrder: true);
                 document.Save();
             }
@@ -271,9 +271,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ConditionalConcurrent.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, 1d);
-                sheet.CellValue(2, 1, 2d);
-                sheet.CellValue(3, 1, 3d);
+                sheet.Cell(1, 1).SetValue(1d);
+                sheet.Cell(2, 1).SetValue(2d);
+                sheet.Cell(3, 1).SetValue(3d);
 
                 var tasks = new Task[] {
                     Task.Run(() => sheet.AddConditionalRule("A1:A3", ExcelConditionalFormattingOperator.GreaterThan, "2")),

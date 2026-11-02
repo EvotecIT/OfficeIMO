@@ -35,8 +35,8 @@ namespace OfficeIMO.Examples.Excel {
                 Console.WriteLine($"Logo file not found: {logoPath}");
             }
 
-            sheet.Cell(1, 1, "Hello");
-            sheet.Cell(2, 1, "World");
+            sheet.Cell(1, 1).SetValue("Hello");
+            sheet.Cell(2, 1).SetValue("World");
 
             doc.Save();
             if (openExcel) doc.OpenInApplication();

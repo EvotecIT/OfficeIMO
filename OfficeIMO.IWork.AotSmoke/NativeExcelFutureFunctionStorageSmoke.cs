@@ -17,7 +17,7 @@ internal static class NativeExcelFutureFunctionStorageSmoke {
         bytes.Position = 0;
         using var reopened = ExcelDocument.Load(bytes);
         Verify(reopened.Sheets[0], reference.Sheets[0]);
-        reopened.Sheets[0].CellValue(2, 2, 50d);
+        reopened.Sheets[0].Cell(2, 2).SetValue(50d);
         Require(reopened.Calculate() == 32, "Future functions did not recalculate after the operand edit.");
         Verify(reopened.Sheets[0], changedReference.Sheets[0]);
         using var saved = new MemoryStream(); reopened.Save(saved); VerifySavedKinds(saved);
@@ -39,13 +39,13 @@ internal static class NativeExcelFutureFunctionStorageSmoke {
         foreach (bool dynamic in new[] { false, true }) {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Limit");
-            sheet.CellValue(1, 1, 17d); sheet.CellFormula(1, 1, "42");
-            sheet.CellValue(2, 1, "keep");
+            sheet.Cell(1, 1).SetValue(17d); sheet.Cell(1, 1).SetFormula("42");
+            sheet.Cell(2, 1).SetValue("keep");
             bool rejected = false;
             try { Set(oversized); } catch (ArgumentException) { rejected = true; }
             Require(rejected && sheet.GetFormulaText(1, 1) == "42"
                 && sheet.TryGetCachedFormulaValue(1, 1, out string? value) && value == "17"
-                && sheet.CellAt(2, 1).GetValue<string>() == "keep", "Oversized array changed existing cells.");
+                && sheet.Cell(2, 1).GetValue<string>() == "keep", "Oversized array changed existing cells.");
             Set(atLimit);
             string stored = sheet.GetFormulaText(1, 1)!;
             Require(stored.Length == 8192 && stored.StartsWith("_xlfn.IFNA(_xlfn.SEQUENCE(1),\"", StringComparison.Ordinal),

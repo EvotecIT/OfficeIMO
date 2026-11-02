@@ -449,10 +449,10 @@ namespace OfficeIMO.Tests {
 
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Value");
-            sheet.CellValue(2, 1, "x");
-            sheet.CellValue(1, 3, "Value");
-            sheet.CellValue(2, 3, "x");
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("x");
+            sheet.Cell(1, 3).SetValue("Value");
+            sheet.Cell(2, 3).SetValue("x");
             Assert.Equal(expected, sheet.AddTable("A1:A2", name: requested).NameOrRange);
             if (expected != requested) {
                 Assert.Throws<ArgumentException>(() => sheet.AddTable("C1:C2", name: requested, validationMode: ExcelTableNameValidationMode.Strict));
@@ -464,8 +464,8 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
             foreach (int column in new[] { 1, 3 }) {
-                sheet.CellValue(1, column, "Value");
-                sheet.CellValue(2, column, "x");
+                sheet.Cell(1, column).SetValue("Value");
+                sheet.Cell(2, column).SetValue("x");
             }
 
             Assert.Equal("T", sheet.AddTable("A1:A2", name: "T").NameOrRange);

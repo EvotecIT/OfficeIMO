@@ -322,8 +322,8 @@ public sealed class BrowserConversionServiceTests {
     public void ExcelBrowserReadPlan_AutomaticallyBoundsSparseWorksheetBeyondBrowserCellBudget() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "First");
-        sheet.CellValue(300, 200, "Last");
+        sheet.Cell(1, 1).SetValue("First");
+        sheet.Cell(300, 200).SetValue("Last");
 
         BrowserConversionService.ExcelBrowserReadPlan plan =
             BrowserConversionService.CreateExcelBrowserReadPlan(document, previewRequested: false);
@@ -337,8 +337,8 @@ public sealed class BrowserConversionServiceTests {
     public void ExcelBrowserReadPlan_LeavesNormalWorksheetUnboundedUnlessPreviewIsRequested() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "Name");
-        sheet.CellValue(2, 2, "Value");
+        sheet.Cell(1, 1).SetValue("Name");
+        sheet.Cell(2, 2).SetValue("Value");
 
         BrowserConversionService.ExcelBrowserReadPlan fullPlan =
             BrowserConversionService.CreateExcelBrowserReadPlan(document, previewRequested: false);
@@ -647,16 +647,16 @@ public sealed class BrowserConversionServiceTests {
     public void ExcelConversion_UsesThePortableTaggedPdfProfile() {
         using ExcelDocument workbook = ExcelDocument.Create();
         var sheet = workbook.AddSheet("Delivery");
-        sheet.CellAt(1, 1).SetValue("Workstream").SetFontName("Calibri Light");
-        sheet.CellValue(1, 2, "Status");
-        sheet.CellValue(2, 1, "Platform");
-        sheet.CellValue(2, 2, "Ready");
-        Assert.Equal("Calibri Light", sheet.CellAt(1, 1).GetStyle().FontName);
-        Assert.True(sheet.CellAt(1, 1).GetStyle().IsFontFamilyExplicit);
+        sheet.Cell(1, 1).SetValue("Workstream").SetFontName("Calibri Light");
+        sheet.Cell(1, 2).SetValue("Status");
+        sheet.Cell(2, 1).SetValue("Platform");
+        sheet.Cell(2, 2).SetValue("Ready");
+        Assert.Equal("Calibri Light", sheet.Cell(1, 1).GetStyle().FontName);
+        Assert.True(sheet.Cell(1, 1).GetStyle().IsFontFamilyExplicit);
         byte[] bytes = workbook.ToBytes();
         using (ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(bytes))) {
-            Assert.Equal("Calibri Light", reloaded.Sheets[0].CellAt(1, 1).GetStyle().FontName);
-            Assert.True(reloaded.Sheets[0].CellAt(1, 1).GetStyle().IsFontFamilyExplicit);
+            Assert.Equal("Calibri Light", reloaded.Sheets[0].Cell(1, 1).GetStyle().FontName);
+            Assert.True(reloaded.Sheets[0].Cell(1, 1).GetStyle().IsFontFamilyExplicit);
         }
         var document = new SelectedDocument("delivery.xlsx", ".xlsx", "XLSX", bytes.LongLength, bytes);
 

@@ -19,9 +19,9 @@ namespace OfficeIMO.Tests {
             using (var created = ExcelDocument.Create(stream)) {
                 ExcelSheet source = created.AddSheet("Data");
                 for (int row = 1; row <= 40; row++) {
-                    source.CellValue(row, 1, row);
-                    source.CellFormula(row, 2, "A" + row + "*2");
-                    source.CellValue(row, 3, "Text");
+                    source.Cell(row, 1).SetValue(row);
+                    source.Cell(row, 2).SetFormula("A" + row + "*2");
+                    source.Cell(row, 3).SetValue("Text");
                 }
                 created.Save(stream);
             }
@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
                 case "row": last.RowIndex = 2_000_000U; break;
             }
 
-            ExcelMutationResult result = sheet.InsertColumns(2);
+            ExcelMutationResult result = sheet.InsertColumnsTransactional(2);
 
             string[] expected = new OpenXmlValidator(DocumentFormat.OpenXml.FileFormatVersions.Microsoft365)
                 .Validate(document.OpenXmlDocument).Select(error => error.Description ?? string.Empty).ToArray();

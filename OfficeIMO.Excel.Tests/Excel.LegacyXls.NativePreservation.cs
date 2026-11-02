@@ -19,7 +19,7 @@ public sealed class ExcelLegacyNativePreservationTests {
         byte[] original = File.ReadAllBytes(Fixture);
         using var document = ExcelDocument.Load(new MemoryStream(original));
         string value = continuedUnicode ? string.Concat(Enumerable.Repeat("Łódź 🧪", 3000)) : "Edited inert preservation value";
-        document.Sheets[0].CellValue(1, 1, value);
+        document.Sheets[0].Cell(1, 1).SetValue(value);
         using var output = new MemoryStream();
         if (asynchronous) await document.SaveAsync(output, ExcelFileFormat.Xls);
         else document.Save(output, ExcelFileFormat.Xls);
@@ -37,10 +37,10 @@ public sealed class ExcelLegacyNativePreservationTests {
         for (int index = 0; index < beforeBook.ChartSheets.Count; index++)
             Assert.Equal(Substream(before.Streams["Workbook"], beforeBook.ChartSheets[index].StreamOffset), Substream(after.Streams["Workbook"], afterBook.ChartSheets[index].StreamOffset));
         using var reloaded = ExcelDocument.Load(new MemoryStream(saved));
-        Assert.Equal(value, reloaded.Sheets[0].CellAt(1, 1).GetValue<string>());
-        document.Sheets[0].CellValue(1, 1, "Second preserving edit");
+        Assert.Equal(value, reloaded.Sheets[0].Cell(1, 1).GetValue<string>());
+        document.Sheets[0].Cell(1, 1).SetValue("Second preserving edit");
         using var second = ExcelDocument.Load(new MemoryStream(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls })));
-        Assert.Equal("Second preserving edit", second.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Second preserving edit", second.Sheets[0].Cell(1, 1).GetValue<string>());
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public sealed class ExcelLegacyNativePreservationTests {
         var nativeSheet = source.Worksheets.First(sheet => sheet.Cells.Any(cell => cell.Kind == LegacyXlsCellValueKind.Number && !cell.IsFormula));
         var nativeCell = nativeSheet.Cells.First(cell => cell.Kind == LegacyXlsCellValueKind.Number && !cell.IsFormula);
         using var document = ExcelDocument.Load(Fixture);
-        document.Sheets.First(sheet => sheet.Name == nativeSheet.Name).CellValue(nativeCell.Row, nativeCell.Column, 1.25D);
+        document.Sheets.First(sheet => sheet.Name == nativeSheet.Name).Cell(nativeCell.Row, nativeCell.Column).SetValue(1.25D);
         using var saved = ExcelDocument.Load(new MemoryStream(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls })));
         Assert.True(saved.Sheets.First(sheet => sheet.Name == nativeSheet.Name).TryGetCellText(nativeCell.Row, nativeCell.Column, out string text));
         Assert.Equal("1.25", text);
@@ -60,10 +60,10 @@ public sealed class ExcelLegacyNativePreservationTests {
         using var document = ExcelDocument.Load(Fixture);
         var source = LegacyXlsWorkbook.Load(Fixture);
         string value = (string)source.Worksheets.SelectMany(sheet => sheet.Cells).First(cell => cell.Kind == LegacyXlsCellValueKind.Text && !cell.IsFormula && cell.TextFormattingRuns.Count == 0 && cell.Value is string text && text.Length > 0 && text != "Inert preservation control").Value!;
-        document.Sheets[0].CellValue(1, 1, value);
+        document.Sheets[0].Cell(1, 1).SetValue(value);
         byte[] bytes = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         using var saved = ExcelDocument.Load(new MemoryStream(bytes));
-        Assert.Equal(value, saved.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal(value, saved.Sheets[0].Cell(1, 1).GetValue<string>());
         Assert.True(OfficeCompoundFileReader.TryRead(File.ReadAllBytes(Fixture), out OfficeCompoundFile? before, out string? error), error);
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? after, out error), error);
         var oldSst = Assert.Single(BiffRecordReader.ReadRecords(before!.Streams["Workbook"], new()), record => record.Type == 0x00fc);
@@ -75,10 +75,10 @@ public sealed class ExcelLegacyNativePreservationTests {
     public void Encrypted_literal_edit_retains_VBA_streams_and_chart_sheet_records() {
         byte[] original = File.ReadAllBytes(Fixture);
         using var document = ExcelDocument.Load(Fixture);
-        document.Sheets[0].CellValue(1, 1, "Encrypted preserving edit");
+        document.Sheets[0].Cell(1, 1).SetValue("Encrypted preserving edit");
         using var output = new MemoryStream(); document.SaveEncrypted(output, "test-password", ExcelFileFormat.Xls);
         using var saved = ExcelDocument.LoadEncrypted(output, "test-password");
-        Assert.Equal("Encrypted preserving edit", saved.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Encrypted preserving edit", saved.Sheets[0].Cell(1, 1).GetValue<string>());
         Assert.Equal(4, saved.LegacyXlsChartSheets.Count);
         Assert.True(OfficeCompoundFileReader.TryRead(original, out OfficeCompoundFile? before, out string? error), error);
         Assert.True(OfficeCompoundFileReader.TryRead(output.ToArray(), out OfficeCompoundFile? after, out error), error);
@@ -89,7 +89,7 @@ public sealed class ExcelLegacyNativePreservationTests {
 
     [Fact]
     public async Task Limits_and_cancellation_leave_the_destination_bytes_untouched() {
-        using var document = ExcelDocument.Load(Fixture); document.Sheets[0].CellValue(1, 1, "Bounded edit");
+        using var document = ExcelDocument.Load(Fixture); document.Sheets[0].Cell(1, 1).SetValue("Bounded edit");
         using var output = new MemoryStream(); output.WriteByte(42);
         Assert.Throws<InvalidDataException>(() => document.Save(output, ExcelFileFormat.Xls, new ExcelSaveOptions { MaxInMemoryPackageBytes = 1 }));
         Assert.Equal(new byte[] { 42 }, output.ToArray());
@@ -108,8 +108,8 @@ public sealed class ExcelLegacyNativePreservationTests {
         item.Append(new DocumentFormat.OpenXml.Spreadsheet.Run(new DocumentFormat.OpenXml.Spreadsheet.RunProperties(new DocumentFormat.OpenXml.Spreadsheet.Bold()), new DocumentFormat.OpenXml.Spreadsheet.Text(text)));
         using var output = new MemoryStream(); document.Save(output, ExcelFileFormat.Xls);
         using var reloaded = ExcelDocument.Load(new MemoryStream(output.ToArray()));
-        Assert.Equal(text, reloaded.Sheets[0].CellAt(1, 1).GetValue<string>());
-        Assert.All(reloaded.Sheets[0].CellAt(1, 1).GetRichText(), run => Assert.True(run.Bold));
+        Assert.Equal(text, reloaded.Sheets[0].Cell(1, 1).GetValue<string>());
+        Assert.All(reloaded.Sheets[0].Cell(1, 1).GetRichText(), run => Assert.True(run.Bold));
     }
 
     [Theory]
@@ -120,13 +120,13 @@ public sealed class ExcelLegacyNativePreservationTests {
         try {
             File.Copy(Fixture, path);
             using (var document = ExcelDocument.Load(path)) {
-                document.Sheets[0].CellValue(1, 1, "First file edit");
+                document.Sheets[0].Cell(1, 1).SetValue("First file edit");
                 if (asynchronous) await document.SaveAsync(); else document.Save();
-                document.Sheets[0].CellValue(1, 1, "Second file edit");
+                document.Sheets[0].Cell(1, 1).SetValue("Second file edit");
                 if (asynchronous) await document.SaveAsync(); else document.Save();
             }
             using var saved = ExcelDocument.Load(path);
-            Assert.Equal("Second file edit", saved.Sheets[0].CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Second file edit", saved.Sheets[0].Cell(1, 1).GetValue<string>());
             Assert.Equal(4, saved.LegacyXlsChartSheets.Count);
             Assert.Contains(saved.LegacyXlsCompoundFeatures, feature => feature.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject);
         } finally { if (File.Exists(path)) File.Delete(path); }
@@ -139,7 +139,7 @@ public sealed class ExcelLegacyNativePreservationTests {
     [InlineData(5, true)]
     public void Pending_save_work_cannot_be_silently_skipped(int pendingWork, bool encrypted) {
         using var document = ExcelDocument.Load(Fixture);
-        document.Sheets[0].CellValue(1, 1, "Pending work edit");
+        document.Sheets[0].Cell(1, 1).SetValue("Pending work edit");
         switch (pendingWork) {
             case 4: document.SetCustomDocumentProperty("PreservationNote", "Requested metadata"); break;
             case 5: document.Properties.Title = "Requested title"; break;

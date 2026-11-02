@@ -15,7 +15,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
         try {
             string path = Path.Combine(root, "source.xlsx");
             using var document = ExcelDocument.Create();
-            document.AddSheet("Data").CellValue(1, 1, "Original");
+            document.AddSheet("Data").Cell(1, 1).SetValue("Original");
             document.Save(path);
             using var runspace = OpenRunspace();
             runspace.SessionStateProxy.SetVariable("document", document);

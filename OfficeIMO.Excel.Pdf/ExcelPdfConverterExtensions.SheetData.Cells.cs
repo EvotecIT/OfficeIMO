@@ -125,7 +125,7 @@ namespace OfficeIMO.Excel.Pdf {
 
                     ExcelCellStyleInfo style = useStreamedStyleIndexes
                         ? workbookSheet.GetCellStyleByIndex(styleIndex!.Value)
-                        : workbookSheet.GetCellStyle(firstRow + sourceRow, firstColumn + sourceColumn);
+                        : workbookSheet.Cell(firstRow + sourceRow, firstColumn + sourceColumn).GetStyle();
                     if (HasPdfExportStyle(style, defaultFontFamily)) {
                         styles[row, column] = style;
                         hasAnyStyle = true;

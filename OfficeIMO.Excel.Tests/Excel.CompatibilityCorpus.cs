@@ -54,15 +54,15 @@ namespace OfficeIMO.Tests {
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Region");
-                    sheet.CellValue(1, 2, "Amount");
-                    sheet.CellValue(1, 3, "Status");
-                    sheet.CellValue(2, 1, "North");
-                    sheet.CellValue(2, 2, 10d);
-                    sheet.CellValue(2, 3, "Open");
-                    sheet.CellValue(3, 1, "South");
-                    sheet.CellValue(3, 2, 20d);
-                    sheet.CellValue(3, 3, "Closed");
+                    sheet.Cell(1, 1).SetValue("Region");
+                    sheet.Cell(1, 2).SetValue("Amount");
+                    sheet.Cell(1, 3).SetValue("Status");
+                    sheet.Cell(2, 1).SetValue("North");
+                    sheet.Cell(2, 2).SetValue(10d);
+                    sheet.Cell(2, 3).SetValue("Open");
+                    sheet.Cell(3, 1).SetValue("South");
+                    sheet.Cell(3, 2).SetValue(20d);
+                    sheet.Cell(3, 3).SetValue("Closed");
                 }, rewriteAppContentTypeToXml: true);
 
                 byte[] workbookBytes = File.ReadAllBytes(filePath);
@@ -99,18 +99,18 @@ namespace OfficeIMO.Tests {
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Value");
-                    sheet.CellValue(1, 2, "  Value  ");
-                    sheet.CellValue(1, 3, "");
-                    sheet.CellValue(1, 4, "value");
-                    sheet.CellValue(1, 5, "Value_2");
-                    sheet.CellValue(1, 6, "Value_2");
-                    sheet.CellValue(2, 1, "A");
-                    sheet.CellValue(2, 2, "B");
-                    sheet.CellValue(2, 3, "C");
-                    sheet.CellValue(2, 4, "D");
-                    sheet.CellValue(2, 5, "E");
-                    sheet.CellValue(2, 6, "F");
+                    sheet.Cell(1, 1).SetValue("Value");
+                    sheet.Cell(1, 2).SetValue("  Value  ");
+                    sheet.Cell(1, 3).SetValue("");
+                    sheet.Cell(1, 4).SetValue("value");
+                    sheet.Cell(1, 5).SetValue("Value_2");
+                    sheet.Cell(1, 6).SetValue("Value_2");
+                    sheet.Cell(2, 1).SetValue("A");
+                    sheet.Cell(2, 2).SetValue("B");
+                    sheet.Cell(2, 3).SetValue("C");
+                    sheet.Cell(2, 4).SetValue("D");
+                    sheet.Cell(2, 5).SetValue("E");
+                    sheet.Cell(2, 6).SetValue("F");
                 });
 
                 using var reader = ExcelDocumentReader.Open(filePath);
@@ -152,12 +152,12 @@ namespace OfficeIMO.Tests {
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "");
-                    sheet.CellValue(1, 2, "Column1");
-                    sheet.CellValue(1, 3, "");
-                    sheet.CellValue(2, 1, "GeneratedLeft");
-                    sheet.CellValue(2, 2, "Explicit");
-                    sheet.CellValue(2, 3, "GeneratedRight");
+                    sheet.Cell(1, 1).SetValue("");
+                    sheet.Cell(1, 2).SetValue("Column1");
+                    sheet.Cell(1, 3).SetValue("");
+                    sheet.Cell(2, 1).SetValue("GeneratedLeft");
+                    sheet.Cell(2, 2).SetValue("Explicit");
+                    sheet.Cell(2, 3).SetValue("GeneratedRight");
                 });
 
                 using var reader = ExcelDocumentReader.Open(filePath);
@@ -190,12 +190,12 @@ namespace OfficeIMO.Tests {
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "");
-                    sheet.CellValue(1, 2, "Column1");
-                    sheet.CellValue(1, 3, "Column1_2");
-                    sheet.CellValue(2, 1, "Generated");
-                    sheet.CellValue(2, 2, "ExplicitBase");
-                    sheet.CellValue(2, 3, "ExplicitSuffix");
+                    sheet.Cell(1, 1).SetValue("");
+                    sheet.Cell(1, 2).SetValue("Column1");
+                    sheet.Cell(1, 3).SetValue("Column1_2");
+                    sheet.Cell(2, 1).SetValue("Generated");
+                    sheet.Cell(2, 2).SetValue("ExplicitBase");
+                    sheet.Cell(2, 3).SetValue("ExplicitSuffix");
                 });
 
                 using var reader = ExcelDocumentReader.Open(filePath);
@@ -228,12 +228,12 @@ namespace OfficeIMO.Tests {
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(2, 2, "");
-                    sheet.CellValue(2, 3, "Column1");
-                    sheet.CellValue(2, 4, "Column1_2");
-                    sheet.CellValue(3, 2, "Generated");
-                    sheet.CellValue(3, 3, "ExplicitBase");
-                    sheet.CellValue(3, 4, "ExplicitSuffix");
+                    sheet.Cell(2, 2).SetValue("");
+                    sheet.Cell(2, 3).SetValue("Column1");
+                    sheet.Cell(2, 4).SetValue("Column1_2");
+                    sheet.Cell(3, 2).SetValue("Generated");
+                    sheet.Cell(3, 3).SetValue("ExplicitBase");
+                    sheet.Cell(3, 4).SetValue("ExplicitSuffix");
                 });
 
                 using var reader = ExcelDocumentReader.Open(filePath);
@@ -260,12 +260,12 @@ namespace OfficeIMO.Tests {
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Value");
-                    sheet.CellValue(1, 2, "  Value  ");
-                    sheet.CellValue(1, 3, "");
-                    sheet.CellValue(2, 1, "A");
-                    sheet.CellValue(2, 2, "B");
-                    sheet.CellValue(2, 3, "C");
+                    sheet.Cell(1, 1).SetValue("Value");
+                    sheet.Cell(1, 2).SetValue("  Value  ");
+                    sheet.Cell(1, 3).SetValue("");
+                    sheet.Cell(2, 1).SetValue("A");
+                    sheet.Cell(2, 2).SetValue("B");
+                    sheet.Cell(2, 3).SetValue("C");
                 });
 
                 var options = new ExcelReaderOptions { NormalizeHeaders = false };
@@ -300,12 +300,12 @@ namespace OfficeIMO.Tests {
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "First Name");
-                    sheet.CellValue(1, 2, "First Name");
-                    sheet.CellValue(1, 3, "Total Amount 2");
-                    sheet.CellValue(2, 1, "Alice");
-                    sheet.CellValue(2, 2, "Bob");
-                    sheet.CellValue(2, 3, 42);
+                    sheet.Cell(1, 1).SetValue("First Name");
+                    sheet.Cell(1, 2).SetValue("First Name");
+                    sheet.Cell(1, 3).SetValue("Total Amount 2");
+                    sheet.Cell(2, 1).SetValue("Alice");
+                    sheet.Cell(2, 2).SetValue("Bob");
+                    sheet.Cell(2, 3).SetValue(42);
                 });
 
                 using var reader = ExcelDocumentReader.Open(filePath);
@@ -336,12 +336,12 @@ namespace OfficeIMO.Tests {
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "First Name");
-                    sheet.CellValue(1, 2, "Status Code");
-                    sheet.CellValue(1, 3, "Total %");
-                    sheet.CellValue(2, 1, "Alice");
-                    sheet.CellValue(2, 2, "OK");
-                    sheet.CellValue(2, 3, 97);
+                    sheet.Cell(1, 1).SetValue("First Name");
+                    sheet.Cell(1, 2).SetValue("Status Code");
+                    sheet.Cell(1, 3).SetValue("Total %");
+                    sheet.Cell(2, 1).SetValue("Alice");
+                    sheet.Cell(2, 2).SetValue("OK");
+                    sheet.Cell(2, 3).SetValue(97);
                 });
 
                 using var reader = ExcelDocumentReader.Open(filePath);
@@ -374,8 +374,8 @@ namespace OfficeIMO.Tests {
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, header);
-                    sheet.CellValue(2, 1, 97);
+                    sheet.Cell(1, 1).SetValue(header);
+                    sheet.Cell(2, 1).SetValue(97);
                 });
 
                 using var reader = ExcelDocumentReader.Open(filePath);
@@ -401,12 +401,12 @@ namespace OfficeIMO.Tests {
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "QuotedDays");
-                    sheet.CellValue(1, 2, "Duration");
-                    sheet.CellValue(1, 3, "EscapedHours");
-                    sheet.CellValue(2, 1, 3d);
-                    sheet.CellValue(2, 2, 1.5d);
-                    sheet.CellValue(2, 3, 7d);
+                    sheet.Cell(1, 1).SetValue("QuotedDays");
+                    sheet.Cell(1, 2).SetValue("Duration");
+                    sheet.Cell(1, 3).SetValue("EscapedHours");
+                    sheet.Cell(2, 1).SetValue(3d);
+                    sheet.Cell(2, 2).SetValue(1.5d);
+                    sheet.Cell(2, 3).SetValue(7d);
                     sheet.ColumnStyleByHeader("QuotedDays").NumberFormat("0 \"days\"");
                     sheet.ColumnStyleByHeader("Duration").NumberFormat("[h]:mm");
                     sheet.ColumnStyleByHeader("EscapedHours").NumberFormat("0\\h");
@@ -437,12 +437,12 @@ namespace OfficeIMO.Tests {
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Name");
-                    sheet.CellValue(1, 2, "Score");
-                    sheet.CellValue(2, 1, "First");
-                    sheet.CellValue(2, 2, 10);
-                    sheet.CellValue(3, 1, "Second");
-                    sheet.CellValue(3, 2, 20);
+                    sheet.Cell(1, 1).SetValue("Name");
+                    sheet.Cell(1, 2).SetValue("Score");
+                    sheet.Cell(2, 1).SetValue("First");
+                    sheet.Cell(2, 2).SetValue(10);
+                    sheet.Cell(3, 1).SetValue("Second");
+                    sheet.Cell(3, 2).SetValue(20);
                 });
 
                 ExcelCompatibilityCorpusBuilder.RewriteWorksheetXml(filePath, "xl/worksheets/sheet1.xml", worksheet => {
@@ -499,7 +499,7 @@ namespace OfficeIMO.Tests {
                         (row, 2, (object)("Distinct " + row)),
                         (row, 3, (object)("Long " + new string((char)('A' + row % 26), 80)))
                     }).ToArray();
-                    sheet.CellValues(cells, ExcelExecutionMode.Parallel);
+                    sheet.SetValues(cells, ExcelExecutionMode.Parallel);
                     sheet.AutoFitColumns();
                     document.Save();
 

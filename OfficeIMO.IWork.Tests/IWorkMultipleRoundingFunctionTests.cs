@@ -23,9 +23,9 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal(expression, reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Equal(1, reopened.Calculate());
-        Assert.Equal(expected, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(expected, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         IWorkFormulaCacheAssertions.HasType(reopened, 0, "A1", "n");
         Assert.Empty(reopened.ValidateOpenXml());
     }

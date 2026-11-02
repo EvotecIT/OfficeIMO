@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_IgnoresMalformedImplicitCellsWithoutSharedFormulas() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet edited = document.AddSheet("Edited");
-            edited.CellAt(1, 1).SetValue("Keep");
+            edited.Cell(1, 1).SetValue("Keep");
             ExcelSheet malformed = document.AddSheet("Malformed");
             malformed.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Append(
                 new Row(new Cell { CellValue = new CellValue("value") }) {
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
 
             edited.InsertRows(1);
 
-            Assert.Equal("Keep", edited.CellAt(2, 1).GetValue<string>());
+            Assert.Equal("Keep", edited.Cell(2, 1).GetValue<string>());
         }
 
         [Fact]

@@ -20,9 +20,9 @@ public partial class Excel {
         using (var document = ExcelDocument.Create(path)) {
             document.DateSystem = system;
             var sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Value");
-            sheet.CellValue(2, 1, 1.5d);
-            sheet.CellFormula(3, 1, "1+0.5");
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(2, 1).SetValue(1.5d);
+            sheet.Cell(3, 1).SetFormula("1+0.5");
             sheet.ColumnStyleByHeader("Value").NumberFormat(format);
             Assert.Equal(1, document.RecalculateSupportedFormulas());
             document.Save();
@@ -83,8 +83,8 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, "NumericConverterFailure.xlsx");
         using (var document = ExcelDocument.Create(path)) {
             var sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Value");
-            sheet.CellValue(2, 1, 1.5d);
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(2, 1).SetValue(1.5d);
             sheet.ColumnStyleByHeader("Value").NumberFormat("[h]:mm");
             document.Save();
         }
@@ -122,8 +122,8 @@ public partial class Excel {
         using (var document = ExcelDocument.Create(path)) {
             document.DateSystem = system;
             var sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Value");
-            for (int row = 2; row <= 4100; row++) sheet.CellValue(row, 1, row % 2 == 0 ? 1.5d : 60.5d);
+            sheet.Cell(1, 1).SetValue("Value");
+            for (int row = 2; row <= 4100; row++) sheet.Cell(row, 1).SetValue(row % 2 == 0 ? 1.5d : 60.5d);
             sheet.ColumnStyleByHeader("Value").NumberFormat(format);
             document.Save();
         }

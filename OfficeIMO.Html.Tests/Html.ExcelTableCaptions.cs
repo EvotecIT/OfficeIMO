@@ -16,7 +16,7 @@ public sealed class HtmlExcelTableCaptionTests {
         using var document = HtmlConversionDocument.Parse(html).ToExcelDocument(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
         var sheet = Assert.Single(document.Sheets);
         Assert.Equal(5, Assert.Single(sheet.GetMergedRanges()).EndRow);
-        Assert.Equal("Caption", sheet.CellAt(7, 1).GetValue<string>());
+        Assert.Equal("Caption", sheet.Cell(7, 1).GetValue<string>());
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public sealed class HtmlExcelTableCaptionTests {
         var result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using var document = result.RequireValue();
         Assert.Empty(Assert.Single(document.Sheets).GetHyperlinks());
-        Assert.Equal("Units", document.Sheets[0].CellAt(3, 1).GetValue<string>());
+        Assert.Equal("Units", document.Sheets[0].Cell(3, 1).GetValue<string>());
         Assert.Contains(result.Report.Diagnostics, item => item.Code == HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded);
     }
 
@@ -41,9 +41,9 @@ public sealed class HtmlExcelTableCaptionTests {
         using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(artifact.ToArray()));
 
         ExcelSheet table = Assert.Single(reopened.Sheets);
-        Assert.Equal("Contaminant", table.CellAt(1, 1).GetValue<string>());
-        Assert.Equal("Fluoride", table.CellAt(2, 1).GetValue<string>());
-        Assert.Equal(RegulatoryTableCaption, table.CellAt(4, 1).GetValue<string>());
+        Assert.Equal("Contaminant", table.Cell(1, 1).GetValue<string>());
+        Assert.Equal("Fluoride", table.Cell(2, 1).GetValue<string>());
+        Assert.Equal(RegulatoryTableCaption, table.Cell(4, 1).GetValue<string>());
         Assert.Equal(RegulatoryTableLink, table.GetHyperlinks()["A4"].Target);
         Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated

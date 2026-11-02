@@ -50,8 +50,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Empty(result.Report.SourceDeclarationIssues);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        if (bit == 17) Assert.Equal("value", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
-        else Assert.True(reopened.Sheets[0].CellAt(1, 1).GetValue<bool>());
+        if (bit == 17) Assert.Equal("value", reopened.Sheets[0].Cell(1, 1).GetValue<string>());
+        else Assert.True(reopened.Sheets[0].Cell(1, 1).GetValue<bool>());
         Assert.Empty(reopened.ValidateOpenXml());
     }
 
@@ -74,8 +74,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal(!customSettings, reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode == "@");
-        Assert.Null(reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal(!customSettings, reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode == "@");
+        Assert.Null(reopened.Sheets[0].Cell(1, 1).GetValue<string>());
         Assert.False(reopened.Sheets[0].TryGetCellValueSnapshot(1, 1, out _));
     }
 
@@ -176,11 +176,11 @@ public sealed partial class IWorkBoundaryTests {
             using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToExcelDocumentResult(options); partial.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-            if (cell.Value is DateTime date) Assert.Equal(date.ToOADate(), reopened.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
-            else if (cell.Value is bool) Assert.Equal(cell.Value, reopened.Sheets[0].CellAt(1, 1).GetValue<bool>());
-            else if (cell.Value is string) Assert.Equal(cell.Value, reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+            if (cell.Value is DateTime date) Assert.Equal(date.ToOADate(), reopened.Sheets[0].Cell(1, 1).GetValue<double>(), 10);
+            else if (cell.Value is bool) Assert.Equal(cell.Value, reopened.Sheets[0].Cell(1, 1).GetValue<bool>());
+            else if (cell.Value is string) Assert.Equal(cell.Value, reopened.Sheets[0].Cell(1, 1).GetValue<string>());
             else Assert.Equal(cell.Kind == IWorkCellKind.Duration ? (double)cell.Value! / 86_400d : cell.Value,
-                reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+                reopened.Sheets[0].Cell(1, 1).GetValue<double>());
             Assert.Empty(reopened.ValidateOpenXml());
         } else {
             using var automatic = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);

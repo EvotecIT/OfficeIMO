@@ -34,8 +34,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Links");
-                sheet.CellValue(1, 1, "First");
-                sheet.CellValue(1, 2, "Second");
+                sheet.Cell(1, 1).SetValue("First");
+                sheet.Cell(1, 2).SetValue("Second");
                 sheet.SetHyperlink(1, 1, "https://example.org/range", display: "First", style: false);
                 document.Save();
             }

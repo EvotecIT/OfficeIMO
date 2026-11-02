@@ -15,7 +15,7 @@ public sealed partial class IWorkBoundaryTests {
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
         IWorkTableCell projectedCell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
-        ExcelCellData ownerCell = result.Value.Sheets[0].CellAt(1, 1).GetValue();
+        ExcelCellData ownerCell = result.Value.Sheets[0].Cell(1, 1).GetValue();
 
         Assert.False(result.IsVisualFallback);
         Assert.True(projectedCell.FormulaIsComplete);
@@ -34,7 +34,7 @@ public sealed partial class IWorkBoundaryTests {
         result.Value.Save(saved);
         saved.Position = 0;
         using ExcelDocument reopened = ExcelDocument.Load(saved);
-        ExcelCellData persisted = reopened.Sheets[0].CellAt(1, 1).GetValue();
+        ExcelCellData persisted = reopened.Sheets[0].Cell(1, 1).GetValue();
         Assert.Equal(ExcelCellDataKind.Formula, persisted.Kind);
         Assert.NotNull(persisted.Formula);
         Assert.Null(persisted.Value);

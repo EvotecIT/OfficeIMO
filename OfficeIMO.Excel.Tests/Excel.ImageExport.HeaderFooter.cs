@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
             ExcelSheet sheet = document.AddSheet("Bounded");
-            sheet.CellValue(1, 1, "Composed Excel raster export");
+            sheet.Cell(1, 1).SetValue("Composed Excel raster export");
             sheet.SetHeaderFooter(headerCenter: "Header", footerCenter: "Footer");
             var options = new ExcelImageExportOptions {
                 MaximumTotalEncodedBytes = 8L,
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(stream);
             ExcelSheet sheet = document.AddSheet("BoundedSvg");
             FillPageBreakGrid(sheet);
-            sheet.CellValue(3, 1, new string('\u754c', 10_000));
+            sheet.Cell(3, 1).SetValue(new string('\u754c', 10_000));
             sheet.SetHeaderFooter(headerCenter: "Bounded header", footerCenter: "Bounded footer");
             sheet.AddManualRowPageBreak(2, save: false);
             var options = new ExcelImageExportOptions {
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(stream);
             ExcelSheet sheet = document.AddSheet("BoundedDirectSvg");
             for (int row = 1; row <= 100; row++) {
-                sheet.CellValue(row, 1, "Bounded direct SVG row " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 1).SetValue("Bounded direct SVG row " + row.ToString(CultureInfo.InvariantCulture));
             }
             var options = new ExcelImageExportOptions {
                 Range = "A1:A100",
@@ -579,7 +579,7 @@ namespace OfficeIMO.Tests {
             FillPageBreakGrid(sheet);
             for (int row = 3; row <= 4; row++) {
                 for (int column = 1; column <= 4; column++) {
-                    sheet.CellBackground(row, column, "#00FF00");
+                    sheet.Cell(row, column).SetFillColor("#00FF00");
                 }
             }
             sheet.SetHeaderFooter(headerLeft: "Prepared", footerRight: "Internal");
@@ -824,7 +824,7 @@ namespace OfficeIMO.Tests {
         private static void FillPageBreakGrid(ExcelSheet sheet, int rows = 4) {
             for (int row = 1; row <= rows; row++) {
                 for (int column = 1; column <= 4; column++) {
-                    sheet.CellValue(row, column, ExcelA1.CellReference(row, column));
+                    sheet.Cell(row, column).SetValue(ExcelA1.CellReference(row, column));
                 }
             }
         }

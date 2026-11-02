@@ -21,7 +21,7 @@ public sealed partial class IWorkBoundaryTests {
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal(name + "({1,2,3})", reopened.Sheets[0].GetFormulaText(1, 1));
         Assert.Equal(0, reopened.Calculate());
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.False(Assert.Single(reopened.InspectFormulas().Formulas).IsSupportedByOfficeIMO);
     }
 
@@ -51,12 +51,12 @@ public sealed partial class IWorkBoundaryTests {
         string target = converted.WorksheetMappings[1].DestinationName.Replace("'", "''");
         Assert.Equal(name + "('" + target + "'!$A$1" + (range ? ":$B$3" : "") + ")",
             reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(13d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(13d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.True(reopened.Calculate() > 0);
-        Assert.Equal(expected, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
-        reopened.Sheets[1].CellValue(1, 1, 999d);
+        Assert.Equal(expected, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
+        reopened.Sheets[1].Cell(1, 1).SetValue(999d);
         reopened.Calculate();
-        Assert.Equal(expected, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(expected, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Empty(reopened.ValidateOpenXml());
     }
 
@@ -73,9 +73,9 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal(name + "(" + (arguments == 0 ? "" : "1") + ")", reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Equal(1, reopened.Calculate());
-        Assert.Equal(expected, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(expected, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.False(RenderFunction(index, 2).IsComplete);
         if (arguments == 1) Assert.False(RenderFunction(index, 0).IsComplete);
     }

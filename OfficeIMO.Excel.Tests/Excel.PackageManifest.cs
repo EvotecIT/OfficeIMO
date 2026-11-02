@@ -14,7 +14,7 @@ public sealed class ExcelPackageManifestTests {
         using var document = legacySource
             ? ExcelDocument.Load(Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents", "LegacyXlsCorpus", "openpreserve-format-corpus", "valid.xls"))
             : ExcelDocument.Create();
-        if (!legacySource) document.AddSheet("Data").CellValue(1, 1, "Preserved");
+        if (!legacySource) document.AddSheet("Data").Cell(1, 1).SetValue("Preserved");
         var project = OfficeVbaProject.Create(); project.AddModule("Notes", "' Inert manifest regression fixture\r\n");
         document.SetVbaProject(project);
         using var output = new MemoryStream();
@@ -39,7 +39,7 @@ public sealed class ExcelPackageManifestTests {
     }
     [Fact]
     public void Template_copy_updates_the_relocated_main_part_without_losing_the_project() {
-        using var document = ExcelDocument.Create(); document.AddSheet("Data").CellValue(1, 1, "Template value");
+        using var document = ExcelDocument.Create(); document.AddSheet("Data").Cell(1, 1).SetValue("Template value");
         var project = OfficeVbaProject.Create(); project.AddModule("Notes", "' Inert template fixture\r\n"); document.SetVbaProject(project);
         using var source = new MemoryStream(); document.Save(source, new ExcelSaveOptions { DisableFastPackageWriter = true });
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-Manifest-" + Guid.NewGuid().ToString("N") + ".xltm");
@@ -47,14 +47,14 @@ public sealed class ExcelPackageManifestTests {
             ExcelDocument.CopyPackage(source, path);
             using var copy = ExcelDocument.Load(path);
             Assert.Equal(DocumentFormat.OpenXml.SpreadsheetDocumentType.MacroEnabledTemplate, copy.OpenXmlDocument.DocumentType);
-            Assert.Equal("Template value", copy.Sheets[0].CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Template value", copy.Sheets[0].Cell(1, 1).GetValue<string>());
             Assert.Single(copy.ReadVbaProject()!.Modules);
         } finally { if (File.Exists(path)) File.Delete(path); }
     }
 
     [Fact]
     public void Unrelated_vendor_root_relationships_do_not_interfere_with_Office_parts() {
-        using var document = ExcelDocument.Create(); document.AddSheet("Data").CellValue(1, 1, "Vendor metadata");
+        using var document = ExcelDocument.Create(); document.AddSheet("Data").Cell(1, 1).SetValue("Vendor metadata");
         using var output = new MemoryStream(); document.Save(output, new ExcelSaveOptions { DisableFastPackageWriter = true });
         using (var package = new ZipArchive(output, ZipArchiveMode.Update, leaveOpen: true)) {
             var entry = package.GetEntry("_rels/.rels")!;
@@ -70,7 +70,7 @@ public sealed class ExcelPackageManifestTests {
         }
         output.Position = 0;
         using var saved = ExcelDocument.Load(output);
-        Assert.Equal("Vendor metadata", saved.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Vendor metadata", saved.Sheets[0].Cell(1, 1).GetValue<string>());
         Assert.Equal(3, saved.OpenXmlDocument.ExternalRelationships.Count());
         output.Position = 0;
         Assert.False(OfficeIMO.Excel.Utilities.ExcelPackageUtilities.NormalizeContentTypes(output, leaveOpen: true));

@@ -20,7 +20,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
             foreach (string path in new[] { literal, second }) {
                 if (excel) {
                     using var source = ExcelDocument.Create();
-                    source.AddSheet("Data").CellValue(1, 1, "Saved source"); source.Save(path);
+                    source.AddSheet("Data").Cell(1, 1).SetValue("Saved source"); source.Save(path);
                 } else {
                     using var source = WordDocument.Create();
                     source.AddParagraph("Saved source"); source.Save(path);
@@ -29,7 +29,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
             byte[] original = File.ReadAllBytes(literal);
             if (excel) {
                 var document = ExcelDocument.Create();
-                document.AddSheet("Data").CellValue(1, 1, "Borrowed source"); borrowed = document;
+                document.AddSheet("Data").Cell(1, 1).SetValue("Borrowed source"); borrowed = document;
             } else {
                 var document = WordDocument.Create(); document.AddParagraph("Borrowed source"); borrowed = document;
             }

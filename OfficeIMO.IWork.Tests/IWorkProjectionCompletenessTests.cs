@@ -17,7 +17,7 @@ public sealed partial class IWorkBoundaryTests {
 
         Assert.Equal(IWorkCellKind.Formula, cell.Kind);
         Assert.Equal(IWorkCellKind.Duration, cell.ValueKind);
-        Assert.Equal(1d / 24d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
+        Assert.Equal(1d / 24d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>(), 10);
     }
 
     [Fact]

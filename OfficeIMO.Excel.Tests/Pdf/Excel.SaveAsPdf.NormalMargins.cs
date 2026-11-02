@@ -12,7 +12,7 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Margins" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "BodyText");
+            sheet.Cell(1, 1).SetValue("BodyText");
             sheet.SetHeaderFooter(headerLeft: "HeaderLeft", headerRight: "HeaderRight", footerLeft: "FooterLeft");
             document.Save();
             bytes = document.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false })
@@ -48,7 +48,7 @@ public partial class Excel {
         using (ExcelDocument document = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Wide" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(120));
-            sheet.Cell(1, 1, "Wide column text that ends past the right margin of a portrait letter page in this export test case");
+            sheet.Cell(1, 1).SetValue("Wide column text that ends past the right margin of a portrait letter page in this export test case");
             document.Save();
             bytes = document.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false })
                 .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -63,20 +63,20 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, "ExcelFormulaColumnHeaders.xlsx");
         using ExcelDocument document = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Data" });
         ExcelSheet sheet = document.Sheets[0];
-        sheet.Cell(1, 1, "Item"); sheet.Cell(1, 2, "Cost"); sheet.Cell(1, 3, "Margin"); sheet.Cell(1, 4, "Label");
+        sheet.Cell(1, 1).SetValue("Item"); sheet.Cell(1, 2).SetValue("Cost"); sheet.Cell(1, 3).SetValue("Margin"); sheet.Cell(1, 4).SetValue("Label");
         for (int row = 2; row <= 4; row++) {
-            sheet.Cell(row, 1, "Row " + row);
-            sheet.Cell(row, 2, row * 10D, numberFormat: "#,##0");
-            sheet.CellFormula(row, 3, $"B{row}*2");
-            sheet.FormatCell(row, 3, "#,##0");
-            sheet.CellFormula(row, 4, $"A{row}&\"!\"");
+            sheet.Cell(row, 1).SetValue("Row " + row);
+            sheet.Cell(row, 2).SetValue(row * 10D).SetNumberFormat("#,##0");
+            sheet.Cell(row, 3).SetFormula($"B{row}*2");
+            sheet.Cell(row, 3).SetNumberFormat("#,##0");
+            sheet.Cell(row, 4).SetFormula($"A{row}&\"!\"");
         }
 
         sheet.AddTable("A1:D4", hasHeader: true, name: "Costs", style: ExcelTableStyle.TableStyleMedium2);
 
-        Assert.Equal("right", sheet.GetCellStyle(1, 2).HorizontalAlignment);
-        Assert.Equal("right", sheet.GetCellStyle(1, 3).HorizontalAlignment);
-        Assert.Null(sheet.GetCellStyle(1, 4).HorizontalAlignment);
-        Assert.Null(sheet.GetCellStyle(1, 1).HorizontalAlignment);
+        Assert.Equal("right", sheet.Cell(1, 2).GetStyle().HorizontalAlignment);
+        Assert.Equal("right", sheet.Cell(1, 3).GetStyle().HorizontalAlignment);
+        Assert.Null(sheet.Cell(1, 4).GetStyle().HorizontalAlignment);
+        Assert.Null(sheet.Cell(1, 1).GetStyle().HorizontalAlignment);
     }
 }

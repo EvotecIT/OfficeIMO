@@ -235,8 +235,8 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             partial.Value.Save(saved); saved.Position = 0;
             using ExcelDocument reopened = ExcelDocument.Load(saved);
-            if (field == 4) Assert.Equal(expected, reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
-            else Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+            if (field == 4) Assert.Equal(expected, reopened.Sheets[0].Cell(1, 1).GetValue<string>());
+            else Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         } else {
             using var automatic = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.Equal(field == 4, automatic.IsVisualFallback);

@@ -37,7 +37,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.DoesNotContain(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_TABLE_RICH_TEXT_STORAGE_UNSUPPORTED");
 
-        ExcelCellData exported = result.Value.Sheets[0].CellAt(1, 1).GetValue();
+        ExcelCellData exported = result.Value.Sheets[0].Cell(1, 1).GetValue();
         Assert.Equal(ExcelCellDataKind.Formula, exported.Kind);
         Assert.Equal("1", result.Value.Sheets[0].GetFormulaText(1, 1));
         Assert.Null(exported.Value);
@@ -45,7 +45,7 @@ public sealed partial class IWorkBoundaryTests {
         result.Value.Save(saved);
         saved.Position = 0;
         using ExcelDocument reopened = ExcelDocument.Load(saved);
-        ExcelCellData persisted = reopened.Sheets[0].CellAt(1, 1).GetValue();
+        ExcelCellData persisted = reopened.Sheets[0].Cell(1, 1).GetValue();
         Assert.Equal(ExcelCellDataKind.Formula, persisted.Kind);
         Assert.Equal("1", reopened.Sheets[0].GetFormulaText(1, 1));
         Assert.Null(persisted.Value);

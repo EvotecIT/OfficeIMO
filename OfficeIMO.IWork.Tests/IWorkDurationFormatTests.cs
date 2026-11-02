@@ -22,7 +22,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(converted.IsVisualFallback);
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal("[h]\"h\" m\"m\"", reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode);
+        Assert.Equal("[h]\"h\" m\"m\"", reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
         Assert.Equal("", Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
     }
 
@@ -66,7 +66,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_DURATION_DISPLAY_APPROXIMATED");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal(seconds / 86400, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(seconds / 86400, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Equal(expected, Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
     }
 

@@ -31,7 +31,7 @@ public sealed partial class IWorkBoundaryTests {
                 int row = cell.GetProperty("row").GetInt32(), column = cell.GetProperty("column").GetInt32();
                 string? rgb = cell.GetProperty("rgb").GetString();
                 Assert.Equal(rgb, table.GetFill(row, column)?.Color?.RgbHex);
-                Assert.Equal(rgb == null ? null : "FF" + rgb, destination.GetCellStyle(row, column).FillColorArgb);
+                Assert.Equal(rgb == null ? null : "FF" + rgb, destination.Cell(row, column).GetStyle().FillColorArgb);
             }
         }
     }

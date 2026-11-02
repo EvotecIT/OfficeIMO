@@ -30,8 +30,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal(value.ToOADate(), reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
-        Assert.Equal(code, reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode);
+        Assert.Equal(value.ToOADate(), reopened.Sheets[0].Cell(1, 1).GetValue<double>());
+        Assert.Equal(code, reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
         Assert.Equal(expected, Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
     }
 
@@ -126,7 +126,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Single(result.Projection.Sheets[0].Tables[0].Cells);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal("dd/mm/yyyy", reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode);
+        Assert.Equal("dd/mm/yyyy", reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
         Assert.Equal("", Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
         using var limited = DateFormatPackage(IWorkDocumentKind.Numbers, "dd/MM/y", new DateTime(2026, 1, 5), empty: true, columns: 2);
         Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(limited,

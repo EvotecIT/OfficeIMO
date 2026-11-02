@@ -32,18 +32,18 @@ public sealed partial class IWorkBoundaryTests {
             int row = expected.GetProperty("row").GetInt32(), column = expected.GetProperty("column").GetInt32();
             Assert.True(table.GetCell(row, column)!.FormulaIsComplete);
             Assert.Equal(expected.GetProperty("formula").GetString(), sheet.GetFormulaText(row, column));
-            Assert.Equal(expected.GetProperty("nativeValue").GetDouble(), sheet.CellAt(row, column).GetValue<double>());
+            Assert.Equal(expected.GetProperty("nativeValue").GetDouble(), sheet.Cell(row, column).GetValue<double>());
         }
         Assert.Equal(39, reopened.Calculate());
-        sheet.CellValue(2, 2, 24d); Assert.Equal(39, reopened.Calculate());
-        foreach (int column in new[] { 5, 7 }) Assert.Equal(12d, sheet.CellAt(2, column).GetValue<double>());
-        foreach (int column in new[] { 6, 8 }) Assert.Equal(360d, sheet.CellAt(2, column).GetValue<double>());
+        sheet.Cell(2, 2).SetValue(24d); Assert.Equal(39, reopened.Calculate());
+        foreach (int column in new[] { 5, 7 }) Assert.Equal(12d, sheet.Cell(2, column).GetValue<double>());
+        foreach (int column in new[] { 6, 8 }) Assert.Equal(360d, sheet.Cell(2, column).GetValue<double>());
         using var finalBytes = new MemoryStream(); reopened.Save(finalBytes); finalBytes.Position = 0;
         using var final = ExcelDocument.Load(finalBytes);
         Assert.Equal("GCD(B2,C2,D2)", final.Sheets[0].GetFormulaText(2, 7));
         Assert.Equal("LCM($B$2,$C$2:$D$2,1)", final.Sheets[0].GetFormulaText(2, 8));
-        Assert.Equal(12d, final.Sheets[0].CellAt(2, 7).GetValue<double>());
-        Assert.Equal(360d, final.Sheets[0].CellAt(2, 8).GetValue<double>());
+        Assert.Equal(12d, final.Sheets[0].Cell(2, 7).GetValue<double>());
+        Assert.Equal(360d, final.Sheets[0].Cell(2, 8).GetValue<double>());
         Assert.Empty(final.ValidateOpenXml());
     }
 

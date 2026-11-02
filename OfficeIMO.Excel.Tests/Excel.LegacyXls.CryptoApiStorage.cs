@@ -19,7 +19,7 @@ public sealed class ExcelLegacyCryptoApiStorageTests {
         foreach (var stream in original.Streams.Where(item => item.Key.StartsWith("_VBA_PROJECT_CUR/", StringComparison.OrdinalIgnoreCase)))
             Assert.Equal(stream.Value, encryptedCompound!.Streams[stream.Key]);
         using var document = ExcelDocument.LoadEncrypted(new MemoryStream(encrypted), "test-password");
-        document.Sheets[0].CellValue(1, 1, "CryptoAPI restored storage");
+        document.Sheets[0].Cell(1, 1).SetValue("CryptoAPI restored storage");
         byte[] plain = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         Assert.True(OfficeCompoundFileReader.TryRead(plain, out OfficeCompoundFile? result, out string? error), error);
         Assert.False(result!.Streams.ContainsKey("encryption"));
@@ -41,7 +41,7 @@ public sealed class ExcelLegacyCryptoApiStorageTests {
         foreach (var stream in original.Streams.Where(item => item.Key.StartsWith("_VBA_PROJECT_CUR/", StringComparison.OrdinalIgnoreCase)))
             Assert.Equal(stream.Value, protectedOutput.Streams[stream.Key]);
         using var reloaded = ExcelDocument.LoadEncrypted(output, "new-password");
-        Assert.Equal("CryptoAPI restored storage", reloaded.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("CryptoAPI restored storage", reloaded.Sheets[0].Cell(1, 1).GetValue<string>());
         Assert.Equal(4, reloaded.LegacyXlsChartSheets.Count);
     }
 

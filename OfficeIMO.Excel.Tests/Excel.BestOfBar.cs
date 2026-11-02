@@ -17,11 +17,11 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Amount");
-                sheet.CellValue(2, 1, 10);
-                sheet.CellValue(3, 1, 20);
+                sheet.Cell(1, 1).SetValue("Amount");
+                sheet.Cell(2, 1).SetValue(10);
+                sheet.Cell(3, 1).SetValue(20);
                 sheet.AddTable("A1:A3", hasHeader: true, name: "Sales", style: ExcelTableStyle.TableStyleMedium2);
-                sheet.CellFormula(2, 3, "SUM(Sales[Amount])");
+                sheet.Cell(2, 3).SetFormula("SUM(Sales[Amount])");
                 document.Save(filePath, new ExcelSaveOptions { SafePreflight = true });
             }
 
@@ -38,8 +38,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, 10);
-                sheet.CellFormula(1, 2, "A1*2");
+                sheet.Cell(1, 1).SetValue(10);
+                sheet.Cell(1, 2).SetFormula("A1*2");
                 document.Save(filePath, new ExcelSaveOptions { ForceFullCalculationOnOpen = true });
             }
 
@@ -57,14 +57,14 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
                 ExcelSheet sheet = document.AddSheet("Trend");
-                sheet.CellValue(1, 1, "Month");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "Jan");
-                sheet.CellValue(2, 2, 10);
-                sheet.CellValue(3, 1, "Feb");
-                sheet.CellValue(3, 2, 12);
-                sheet.CellValue(4, 1, "Mar");
-                sheet.CellValue(4, 2, 18);
+                sheet.Cell(1, 1).SetValue("Month");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Jan");
+                sheet.Cell(2, 2).SetValue(10);
+                sheet.Cell(3, 1).SetValue("Feb");
+                sheet.Cell(3, 2).SetValue(12);
+                sheet.Cell(4, 1).SetValue("Mar");
+                sheet.Cell(4, 2).SetValue(18);
                 sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(640), Height = OfficeLength.Pixels(360), Title = "Trend", IncludeCachedData = true, HasHeaders = true }).SetCategoryAxisScale(majorUnit: 2, minorUnit: 1, reverseOrder: true);
                 document.Save();
             }
@@ -150,8 +150,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Rows");
-                sheet.CellValue(3, 1, "Tall");
-                sheet.CellValue(4, 1, "Normal");
+                sheet.Cell(3, 1).SetValue("Tall");
+                sheet.Cell(4, 1).SetValue("Normal");
                 sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42D)));
                 document.Save();
             }
@@ -184,8 +184,8 @@ namespace OfficeIMO.Tests
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                Assert.Equal("Id", document.Sheets[0].CellAt(1, 1).GetValue<string>());
-                Assert.Equal(2500D, document.Sheets[0].CellAt(2501, 1).GetValue<double>());
+                Assert.Equal("Id", document.Sheets[0].Cell(1, 1).GetValue<string>());
+                Assert.Equal(2500D, document.Sheets[0].Cell(2501, 1).GetValue<double>());
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -245,11 +245,11 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Report");
-                sheet.CellValue(2, 1, "Value");
-                sheet.CellValue(2, 2, "  Value  ");
-                sheet.CellValue(3, 1, 10);
-                sheet.CellValue(3, 2, 20);
+                sheet.Cell(1, 1).SetValue("Report");
+                sheet.Cell(2, 1).SetValue("Value");
+                sheet.Cell(2, 2).SetValue("  Value  ");
+                sheet.Cell(3, 1).SetValue(10);
+                sheet.Cell(3, 2).SetValue(20);
 
                 var exactPlan = new ExcelColumnFormatPlan().Add("  Value  ", ExcelNumberPreset.Integer);
                 IReadOnlyList<ExcelColumnFormatResult> exactResults = sheet.ApplyColumnFormatPlan(
@@ -285,7 +285,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(3, 1, 42);
+                sheet.Cell(3, 1).SetValue(42);
 
                 IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(
                     new ExcelColumnFormatPlan().Add("Column1", ExcelNumberPreset.Integer),
@@ -304,8 +304,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "  Value  ");
-                sheet.CellValue(2, 1, 42);
+                sheet.Cell(1, 1).SetValue("  Value  ");
+                sheet.Cell(2, 1).SetValue(42);
 
                 IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(
                     new ExcelColumnFormatPlan().Add("  Value  ", ExcelNumberPreset.Integer));
@@ -362,8 +362,8 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
                 sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { IncludeHeaders = true, Name = "Rows", Style = ExcelTableStyle.TableStyleMedium2 }, row: 1, column: 1);
-                sheet.CellValue(1, 2, "Score");
-                sheet.CellValue(2, 2, 42);
+                sheet.Cell(1, 2).SetValue("Score");
+                sheet.Cell(2, 2).SetValue(42);
 
                 IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(
                     new ExcelColumnFormatPlan().Add("Score", ExcelNumberPreset.Integer));

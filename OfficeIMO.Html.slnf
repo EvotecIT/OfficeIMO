@@ -1,0 +1,41 @@
+{
+  "solution": {
+    "path": "OfficeIMO.slnx",
+    "projects": [
+      "OfficeIMO.Core\\OfficeIMO.Core.csproj",
+      "OfficeIMO.Email.Html\\OfficeIMO.Email.Html.csproj",
+      "OfficeIMO.Email.Image\\OfficeIMO.Email.Image.csproj",
+      "OfficeIMO.Email\\OfficeIMO.Email.csproj",
+      "OfficeIMO.Epub.Image\\OfficeIMO.Epub.Image.csproj",
+      "OfficeIMO.Epub\\OfficeIMO.Epub.csproj",
+      "OfficeIMO.Excel.Html\\OfficeIMO.Excel.Html.csproj",
+      "OfficeIMO.Excel\\OfficeIMO.Excel.csproj",
+      "OfficeIMO.Html.AngleSharp\\OfficeIMO.Html.AngleSharp.csproj",
+      "OfficeIMO.Html.Core\\OfficeIMO.Html.Core.csproj",
+      "OfficeIMO.Html.Pdf.Browser.Tests\\OfficeIMO.Html.Pdf.Browser.Tests.csproj",
+      "OfficeIMO.Html.Pdf.Browser\\OfficeIMO.Html.Pdf.Browser.csproj",
+      "OfficeIMO.Html.Pdf\\OfficeIMO.Html.Pdf.csproj",
+      "OfficeIMO.Html.Rtf\\OfficeIMO.Html.Rtf.csproj",
+      "OfficeIMO.Html.Tests\\OfficeIMO.Html.Tests.csproj",
+      "OfficeIMO.Html\\OfficeIMO.Html.csproj",
+      "OfficeIMO.Markdown.Html\\OfficeIMO.Markdown.Html.csproj",
+      "OfficeIMO.Markdown.Pdf\\OfficeIMO.Markdown.Pdf.csproj",
+      "OfficeIMO.Markdown\\OfficeIMO.Markdown.csproj",
+      "OfficeIMO.Mhtml.Pdf\\OfficeIMO.Mhtml.Pdf.csproj",
+      "OfficeIMO.Mhtml\\OfficeIMO.Mhtml.csproj",
+      "OfficeIMO.OneNote.Html\\OfficeIMO.OneNote.Html.csproj",
+      "OfficeIMO.OneNote.Markdown\\OfficeIMO.OneNote.Markdown.csproj",
+      "OfficeIMO.OneNote\\OfficeIMO.OneNote.csproj",
+      "OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj",
+      "OfficeIMO.PowerPoint.Html\\OfficeIMO.PowerPoint.Html.csproj",
+      "OfficeIMO.PowerPoint.Pdf\\OfficeIMO.PowerPoint.Pdf.csproj",
+      "OfficeIMO.PowerPoint\\OfficeIMO.PowerPoint.csproj",
+      "OfficeIMO.Reader.Core\\OfficeIMO.Reader.Core.csproj",
+      "OfficeIMO.Reader.Html\\OfficeIMO.Reader.Html.csproj",
+      "OfficeIMO.Rtf\\OfficeIMO.Rtf.csproj",
+      "OfficeIMO.Word.Html\\OfficeIMO.Word.Html.csproj",
+      "OfficeIMO.Word.Pdf\\OfficeIMO.Word.Pdf.csproj",
+      "OfficeIMO.Word\\OfficeIMO.Word.csproj"
+    ]
+  }
+}

@@ -30,13 +30,13 @@ namespace OfficeIMO.Tests {
                 document.DateSystem = system;
                 var sheet = document.AddSheet("Data");
                 string[] headers = { "Calendar", "Duration", "Time", "Numeric", "Text" };
-                for (int c = 0; c < headers.Length; c++) sheet.CellValue(1, c + 1, headers[c]);
+                for (int c = 0; c < headers.Length; c++) sheet.Cell(1, c + 1).SetValue(headers[c]);
                 for (int row = 2; row <= 3; row++) {
-                    sheet.CellValue(row, 1, row == 2 ? 1.5d : 59.5d);
-                    sheet.CellValue(row, 2, 1.5d);
-                    sheet.CellValue(row, 3, 0.5d);
-                    sheet.CellValue(row, 4, 1.5d);
-                    sheet.CellValue(row, 5, 1.5d);
+                    sheet.Cell(row, 1).SetValue(row == 2 ? 1.5d : 59.5d);
+                    sheet.Cell(row, 2).SetValue(1.5d);
+                    sheet.Cell(row, 3).SetValue(0.5d);
+                    sheet.Cell(row, 4).SetValue(1.5d);
+                    sheet.Cell(row, 5).SetValue(1.5d);
                 }
                 sheet.ColumnStyleByHeader("Calendar").NumberFormat("yyyy-mm-dd hh:mm:ss");
                 foreach (string header in new[] { "Duration", "Numeric", "Text" }) sheet.ColumnStyleByHeader(header).NumberFormat("[h]:mm");
@@ -93,8 +93,8 @@ namespace OfficeIMO.Tests {
                 document.DateSystem = system;
                 var sheet = document.AddSheet("Data");
                 for (int c = 0; c < formats.Length; c++) {
-                    sheet.CellValue(1, c + 1, "Field" + c);
-                    sheet.CellValue(2, c + 1, 1.5d);
+                    sheet.Cell(1, c + 1).SetValue("Field" + c);
+                    sheet.Cell(2, c + 1).SetValue(1.5d);
                     sheet.ColumnStyleByHeader("Field" + c).NumberFormat(formats[c]);
                 }
                 document.Save();

@@ -65,22 +65,22 @@ using var workbook = ExcelDocument.Create("Report.xlsx", "Sales");
 var sheet = workbook.Sheets[0];
 
 // Set header row
-sheet.CellAt("A1").SetValue("Product");
-sheet.CellAt("B1").SetValue("Q1 Revenue");
-sheet.CellAt("C1").SetValue("Q2 Revenue");
+sheet.Cell("A1").SetValue("Product");
+sheet.Cell("B1").SetValue("Q1 Revenue");
+sheet.Cell("C1").SetValue("Q2 Revenue");
 
 // Set data rows
-sheet.CellAt("A2").SetValue("Widget A");
-sheet.CellAt("B2").SetValue(15000);
-sheet.CellAt("C2").SetValue(18000);
+sheet.Cell("A2").SetValue("Widget A");
+sheet.Cell("B2").SetValue(15000);
+sheet.Cell("C2").SetValue(18000);
 
-sheet.CellAt("A3").SetValue("Widget B");
-sheet.CellAt("B3").SetValue(22000);
-sheet.CellAt("C3").SetValue(25000);
+sheet.Cell("A3").SetValue("Widget B");
+sheet.Cell("B3").SetValue(22000);
+sheet.Cell("C3").SetValue(25000);
 
 // Add a SUM formula
-sheet.CellAt("B4").SetFormula("SUM(B2:B3)");
-sheet.CellAt("C4").SetFormula("SUM(C2:C3)");
+sheet.Cell("B4").SetFormula("SUM(B2:B3)");
+sheet.Cell("C4").SetFormula("SUM(C2:C3)");
 
 workbook.Save();
 ```

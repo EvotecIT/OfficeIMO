@@ -17,7 +17,7 @@ public static partial class ExcelIWorkConverter {
                 mappings.Add(new NumbersWorksheetMapping(sheetIndex + 1, sourceSheet.Name, null, null, sourceSheet.Name, text.Name));
                 for (int index = 0; index < sourceSheet.TextBoxes.Count; index++) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    text.CellAt(index + 1, 1).SetValue(sourceSheet.TextBoxes[index]);
+                    text.Cell(index + 1, 1).SetValue(sourceSheet.TextBoxes[index]);
                 }
             }
             for (int tableIndex = 0; tableIndex < sourceSheet.Tables.Count; tableIndex++) {

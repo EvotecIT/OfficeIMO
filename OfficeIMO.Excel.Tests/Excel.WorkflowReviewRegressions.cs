@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(source)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Ready");
+                sheet.Cell(1, 1).SetValue("Ready");
 
                 document.SetNamedRange("Anchor", "A1", sheet);
                 document.Save(destination);
@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
 
             destination.Position = 0;
             using var loaded = ExcelDocument.Load(destination, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
-            Assert.Equal("$A$1", loaded.GetNamedRange("Anchor", loaded["Data"]));
+            Assert.Equal("$A$1", loaded.GetNamedRangeText("Anchor", loaded["Data"]));
         }
 
         [Fact]
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCustomDocumentProperties.DirectCollection.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddSheet("Data").CellValue(1, 1, "Ready");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Ready");
                 document.CustomProperties["Direct"] = new ExcelCustomProperty("Tracked");
                 document.Save();
             }
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PageBreaks.ConvertAutomatic.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddSheet("Data").CellValue(1, 1, "Ready");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Ready");
                 document.Save();
             }
 
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, new DateTime(2026, 6, 22));
+                sheet.Cell(1, 1).SetValue(new DateTime(2026, 6, 22));
                 sheet.AddConditionalTimePeriodRule("A1:A3", ExcelConditionalTimePeriod.Today);
                 document.Save();
             }
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, "Region");
+                sheet.Cell(1, 1).SetValue("Region");
                 document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: 1, lastCol: 1, save: false);
 
                 sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {
@@ -226,7 +226,7 @@ namespace OfficeIMO.Tests {
         public void Test_EnsureWorkbookTheme_SavesEnsuredPartsForStreamWorkbook() {
             using var source = new MemoryStream();
             using (var document = ExcelDocument.Create(source)) {
-                document.AddSheet("Data").CellValue(1, 1, "Ready");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Ready");
                 document.Save(source);
             }
 
@@ -260,9 +260,9 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "One");
-                sheet.CellValue(2, 1, "Two");
-                sheet.CellValue(3, 1, "Three");
+                sheet.Cell(1, 1).SetValue("One");
+                sheet.Cell(2, 1).SetValue("Two");
+                sheet.Cell(3, 1).SetValue("Three");
                 document.Save();
             }
 
@@ -438,10 +438,10 @@ namespace OfficeIMO.Tests {
         public void Test_DashboardChart_RejectsOutOfBoundsAnchorsAndDimensions() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Dashboard");
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "Sales");
-            sheet.CellValue(2, 1, "EU");
-            sheet.CellValue(2, 2, 10);
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Sales");
+            sheet.Cell(2, 1).SetValue("EU");
+            sheet.Cell(2, 2).SetValue(10);
 
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", Row = ExcelA1.MaxRows + 1, Column = 1 }));
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", Row = 1, Column = ExcelA1.MaxColumns + 1 }));
@@ -457,7 +457,7 @@ namespace OfficeIMO.Tests {
             using var source = new MemoryStream();
             using (var document = ExcelDocument.Create(source)) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, "Region");
+                sheet.Cell(1, 1).SetValue("Region");
                 document.Save(source);
             }
 

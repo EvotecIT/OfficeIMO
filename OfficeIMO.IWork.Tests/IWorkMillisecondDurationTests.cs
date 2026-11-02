@@ -36,8 +36,8 @@ public sealed partial class IWorkBoundaryTests {
                 && d.LossKind == OfficeConversionLossKind.Approximation);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-            Assert.Equal(-129661.75d / 86400, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
-            Assert.Equal(code, reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode);
+            Assert.Equal(-129661.75d / 86400, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
+            Assert.Equal(code, reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
             Assert.Equal(expected, Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
         } else if (kind == IWorkDocumentKind.Pages) {
             using var result = source.ToWordDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
@@ -70,7 +70,7 @@ public sealed partial class IWorkBoundaryTests {
         result.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal(code, reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode);
+        Assert.Equal(code, reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
         Assert.Equal("", Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
     }
 

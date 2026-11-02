@@ -52,14 +52,14 @@ public sealed class IWorkFractionFormatCorpusTests {
         ExcelRangeVisualInfo snapshot = sheet.Range($"B1:B{manifest.RootElement.GetProperty("cases").GetArrayLength()}").CreateVisualSnapshot();
         foreach (JsonElement expected in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
             int row = expected.GetProperty("row").GetInt32();
-            ExcelCellData cell = sheet.CellAt(row, 2).GetValue();
+            ExcelCellData cell = sheet.Cell(row, 2).GetValue();
             Assert.Equal(ExcelCellDataKind.Number, cell.Kind);
             Assert.Equal(expected.GetProperty("portableValue").GetDouble(), Assert.IsType<double>(cell.Value));
             string text = Assert.Single(snapshot.Cells, c => c.Row == row).Text;
             Assert.Equal(expected.GetProperty("destinationDisplayText").GetString(), text);
             if (expected.GetProperty("sourceDisplayIsQualified").GetBoolean())
                 Assert.Equal(expected.GetProperty("sourceDisplayText").GetString(), text);
-            Assert.Equal(expected.GetProperty("destinationFormatCode").GetString(), sheet.CellAt(row, 2).GetStyle().NumberFormatCode);
+            Assert.Equal(expected.GetProperty("destinationFormatCode").GetString(), sheet.Cell(row, 2).GetStyle().NumberFormatCode);
         }
     }
 }

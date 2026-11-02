@@ -42,11 +42,11 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 var first = document.AddSheet("First");
-                first.CellValue(1, 1, "Value");
-                first.CellValue(2, 1, "One");
+                first.Cell(1, 1).SetValue("Value");
+                first.Cell(2, 1).SetValue("One");
                 var second = document.AddSheet("Second");
-                second.CellValue(1, 1, "Value");
-                second.CellValue(2, 1, "Two");
+                second.Cell(1, 1).SetValue("Value");
+                second.Cell(2, 1).SetValue("Two");
                 document.Save();
             }
 
@@ -72,12 +72,12 @@ public partial class Excel {
     [Fact]
     public void OpenDataReader_SelectsWorksheetIndexAndA1Range() {
         using var document = ExcelDocument.Create(new MemoryStream());
-        document.AddSheet("Ignore").CellValue(1, 1, "Ignored");
+        document.AddSheet("Ignore").Cell(1, 1).SetValue("Ignored");
         ExcelSheet selected = document.AddSheet("Data");
-        selected.CellValue(1, 1, "Skip");
-        selected.CellValue(1, 2, "Name");
-        selected.CellValue(2, 1, 1);
-        selected.CellValue(2, 2, "Ada");
+        selected.Cell(1, 1).SetValue("Skip");
+        selected.Cell(1, 2).SetValue("Name");
+        selected.Cell(2, 1).SetValue(1);
+        selected.Cell(2, 2).SetValue("Ada");
 
         using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(
             document.ToBytes(),
@@ -95,7 +95,7 @@ public partial class Excel {
     [Fact]
     public void OpenDataReader_RejectsSheetNameAndIndexTogether() {
         using var document = ExcelDocument.Create(new MemoryStream());
-        document.AddSheet("Data").CellValue(1, 1, "Value");
+        document.AddSheet("Data").Cell(1, 1).SetValue("Value");
 
         Assert.Throws<ArgumentException>(() => { using var reader = ExcelDocument.OpenReader(
             document.ToBytes(),
@@ -120,8 +120,8 @@ public partial class Excel {
     public void OpenDataReader_GetFieldValueSupportsNullablePrimitives() {
         using var document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "Value");
-        sheet.CellValue(2, 1, 42);
+        sheet.Cell(1, 1).SetValue("Value");
+        sheet.Cell(2, 1).SetValue(42);
         byte[] workbook = document.ToBytes();
 
         using DbDataReader reader = ExcelDocument.OpenReader(workbook);
@@ -135,10 +135,10 @@ public partial class Excel {
     public void OpenDataReader_GetFieldValueSupportsDateOnlyAndTimeOnlyWithoutChangingSchemaTypes() {
         using var document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "Date");
-        sheet.CellValue(1, 2, "Time");
-        sheet.CellValue(2, 1, new DateOnly(2026, 8, 6));
-        sheet.CellValue(2, 2, new TimeOnly(14, 35, 12));
+        sheet.Cell(1, 1).SetValue("Date");
+        sheet.Cell(1, 2).SetValue("Time");
+        sheet.Cell(2, 1).SetValue(new DateOnly(2026, 8, 6));
+        sheet.Cell(2, 2).SetValue(new TimeOnly(14, 35, 12));
 
         using DbDataReader reader = ExcelDocument.OpenReader(
             document.ToBytes(),
@@ -156,8 +156,8 @@ public partial class Excel {
         const string sourceValue = "customer-secret-date";
         using var document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "Date");
-        sheet.CellValue(2, 1, sourceValue);
+        sheet.Cell(1, 1).SetValue("Date");
+        sheet.Cell(2, 1).SetValue(sourceValue);
 
         using DbDataReader reader = ExcelDocument.OpenReader(
             document.ToBytes(),
@@ -181,8 +181,8 @@ public partial class Excel {
             $"OfficeIMO.Excel.DuplicateOpenXmlWorksheetName.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                document.AddSheet("Data").CellValue(1, 1, "First");
-                document.AddSheet("Other").CellValue(1, 1, "Second");
+                document.AddSheet("Data").Cell(1, 1).SetValue("First");
+                document.AddSheet("Other").Cell(1, 1).SetValue("Second");
                 document.Save();
             }
 
@@ -209,10 +209,10 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 var sheet = document.AddSheet("Legacy");
-                sheet.CellValue(1, 1, "Id");
-                sheet.CellValue(1, 2, "Name");
-                sheet.CellValue(2, 1, 7);
-                sheet.CellValue(2, 2, "Ada");
+                sheet.Cell(1, 1).SetValue("Id");
+                sheet.Cell(1, 2).SetValue("Name");
+                sheet.Cell(2, 1).SetValue(7);
+                sheet.Cell(2, 2).SetValue("Ada");
                 document.Save();
             }
 
@@ -281,10 +281,10 @@ public partial class Excel {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.DataReaderSheet.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                document.AddSheet("Ignore").CellValue(1, 1, "Ignored");
+                document.AddSheet("Ignore").Cell(1, 1).SetValue("Ignored");
                 var selected = document.AddSheet("Data");
-                selected.CellValue(1, 1, "Value");
-                selected.CellValue(2, 1, "Selected");
+                selected.Cell(1, 1).SetValue("Value");
+                selected.Cell(2, 1).SetValue("Selected");
                 document.Save();
             }
 
@@ -330,9 +330,9 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Shared");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellFormula(2, 1, "B2+1");
-                sheet.CellFormula(3, 1, "B3+1");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetFormula("B2+1");
+                sheet.Cell(3, 1).SetFormula("B3+1");
                 document.Save();
             }
 
@@ -374,12 +374,12 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet first = document.AddSheet("First");
-                first.CellValue(1, 1, "Value");
-                first.CellValue(2, 1, "Ready");
+                first.Cell(1, 1).SetValue("Value");
+                first.Cell(2, 1).SetValue("Ready");
                 ExcelSheet second = document.AddSheet("Second");
-                second.CellValue(1, 1, "Value");
-                second.CellFormula(2, 1, "B2+1");
-                second.CellFormula(3, 1, "B3+1");
+                second.Cell(1, 1).SetValue("Value");
+                second.Cell(2, 1).SetFormula("B2+1");
+                second.Cell(3, 1).SetFormula("B3+1");
                 document.Save();
             }
 
@@ -436,9 +436,9 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Shared");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellFormula(2, 1, "B2+1");
-                sheet.CellFormula(3, 1, "B3+1");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetFormula("B2+1");
+                sheet.Cell(3, 1).SetFormula("B3+1");
                 document.Save();
             }
 
@@ -488,9 +488,9 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Shared");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellFormula(2, 1, "B2+1");
-                sheet.CellFormula(3, 1, "B3+1");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetFormula("B2+1");
+                sheet.Cell(3, 1).SetFormula("B3+1");
                 document.Save();
             }
 
@@ -535,9 +535,9 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Shared");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellFormula(2, 1, "B2+1");
-                sheet.CellFormula(3, 1, "B3+1");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetFormula("B2+1");
+                sheet.Cell(3, 1).SetFormula("B3+1");
                 document.Save();
             }
 
@@ -578,9 +578,9 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Shared");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellFormula(2, 1, "B2+1");
-                sheet.CellFormula(3, 1, "B3+1");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetFormula("B2+1");
+                sheet.Cell(3, 1).SetFormula("B3+1");
                 document.Save();
             }
 
@@ -619,7 +619,7 @@ public partial class Excel {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.MissingSheet.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                document.AddSheet("Data").CellValue(1, 1, "Value");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Value");
                 document.Save();
             }
 
@@ -642,12 +642,12 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Id");
-                sheet.CellValue(1, 2, "Name");
-                sheet.CellValue(2, 1, 1);
-                sheet.CellValue(2, 2, "Ada");
-                sheet.CellValue(3, 1, 2);
-                sheet.CellValue(3, 2, "Grace");
+                sheet.Cell(1, 1).SetValue("Id");
+                sheet.Cell(1, 2).SetValue("Name");
+                sheet.Cell(2, 1).SetValue(1);
+                sheet.Cell(2, 2).SetValue("Ada");
+                sheet.Cell(3, 1).SetValue(2);
+                sheet.Cell(3, 2).SetValue("Grace");
                 document.Save();
             }
 
@@ -715,10 +715,10 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Amount");
-                sheet.CellValue(1, 2, "Identifier");
-                sheet.CellValue(2, 1, "1,5");
-                sheet.CellValue(2, 2, identifier.ToString("D"));
+                sheet.Cell(1, 1).SetValue("Amount");
+                sheet.Cell(1, 2).SetValue("Identifier");
+                sheet.Cell(2, 1).SetValue("1,5");
+                sheet.Cell(2, 2).SetValue(identifier.ToString("D"));
                 document.Save();
             }
 
@@ -766,8 +766,8 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(2, 1, "One");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("One");
                 document.Save();
             }
 
@@ -903,7 +903,7 @@ public partial class Excel {
         using var document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddSheet("Data");
         for (int row = 1; row <= 50_000; row++) {
-            sheet.CellValue(row, 1, row);
+            sheet.Cell(row, 1).SetValue(row);
         }
         Assert.True(document.HasPendingDirectCellValues);
 
@@ -985,9 +985,9 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
+                sheet.Cell(1, 1).SetValue("Value");
                 for (int row = 2; row <= 2000; row++) {
-                    sheet.CellValue(row, 1, "Value " + row.ToString(CultureInfo.InvariantCulture));
+                    sheet.Cell(row, 1).SetValue("Value " + row.ToString(CultureInfo.InvariantCulture));
                 }
                 document.Save();
             }
@@ -1010,8 +1010,8 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(2, 1, 42);
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetValue(42);
                 document.Save();
             }
 
@@ -1099,8 +1099,8 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(2, 1, 42);
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetValue(42);
                 document.Save();
             }
 
@@ -1186,8 +1186,8 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(2, 1, "One");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("One");
                 document.Save();
             }
 
@@ -1212,9 +1212,9 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
+                sheet.Cell(1, 1).SetValue("Value");
                 for (int row = 2; row <= 2000; row++) {
-                    sheet.CellValue(row, 1, "Value " + row.ToString(CultureInfo.InvariantCulture));
+                    sheet.Cell(row, 1).SetValue("Value " + row.ToString(CultureInfo.InvariantCulture));
                 }
                 document.Save();
             }

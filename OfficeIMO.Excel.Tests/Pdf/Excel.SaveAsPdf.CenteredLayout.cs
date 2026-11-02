@@ -15,8 +15,8 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, $"CenteredLayout-{horizontal}-{vertical}.xlsx");
         using var workbook = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Centered" });
         ExcelSheet sheet = workbook.Sheets[0];
-        sheet.CellValue(1, 1, "Marker");
-        sheet.CellValue(2, 2, "Tail");
+        sheet.Cell(1, 1).SetValue("Marker");
+        sheet.Cell(2, 2).SetValue("Tail");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
         sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
         sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));

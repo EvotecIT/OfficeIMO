@@ -10,9 +10,9 @@ public sealed partial class ConversionCmdletWorkflowTests {
     public void RuleQueriesPreferHeadersToRangesAndRetainNativeSnapshotsAndWorksheetProvenance(string command) {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "Status"); sheet.CellValue(1, 2, "Value");
-        sheet.CellValue(2, 1, "Open"); sheet.CellValue(3, 1, "Closed");
-        sheet.CellValue(2, 2, 10); sheet.CellValue(3, 2, 20);
+        sheet.Cell(1, 1).SetValue("Status"); sheet.Cell(1, 2).SetValue("Value");
+        sheet.Cell(2, 1).SetValue("Open"); sheet.Cell(3, 1).SetValue("Closed");
+        sheet.Cell(2, 2).SetValue(10); sheet.Cell(3, 2).SetValue(20);
         sheet.ValidationList("A2:A3", new[] { "Open", "Closed" });
         sheet.ValidationList("B2:B3", new[] { "10", "20" });
         sheet.AddConditionalRule("A2:A3", ExcelConditionalFormattingOperator.Equal, "\"Open\"");

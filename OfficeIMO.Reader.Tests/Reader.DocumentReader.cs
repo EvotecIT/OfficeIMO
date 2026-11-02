@@ -47,10 +47,10 @@ public sealed class ReaderDocumentReaderTests {
         try {
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Data");
-                sheet.Cell(1, 1, "Name");
-                sheet.Cell(1, 2, "Value");
-                sheet.Cell(2, 1, "A");
-                sheet.Cell(2, 2, 1);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(1);
                 doc.Save();
             }
 
@@ -105,7 +105,7 @@ public sealed class ReaderDocumentReaderTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using ExcelDocument document = ExcelDocument.Create(path);
-            document.AddSheet("Data").CellValue(1, 1, "Preserved record warning");
+            document.AddSheet("Data").Cell(1, 1).SetValue("Preserved record warning");
 
             typeof(ExcelDocument)
                 .GetProperty(nameof(ExcelDocument.SourceFormat))!
@@ -159,10 +159,10 @@ public sealed class ReaderDocumentReaderTests {
         try {
             using (var doc = ExcelDocument.Create(sourcePath)) {
                 var sheet = doc.AddSheet("SecureData");
-                sheet.Cell(1, 1, "Name");
-                sheet.Cell(1, 2, "Value");
-                sheet.Cell(2, 1, "Token");
-                sheet.Cell(2, 2, 7);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Token");
+                sheet.Cell(2, 2).SetValue(7);
                 doc.Save(encryptedPath,new OfficeIMO.Excel.ExcelSaveOptions{Password=password});
             }
 

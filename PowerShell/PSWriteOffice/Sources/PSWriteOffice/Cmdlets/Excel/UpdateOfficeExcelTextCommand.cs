@@ -105,7 +105,7 @@ public sealed class UpdateOfficeExcelTextCommand : PSWriteOffice.Cmdlets.OfficeM
 
     private int ReplaceInSheet(ExcelSheet sheet) {
         var count = 0;
-        var range = string.IsNullOrWhiteSpace(Range) ? sheet.UsedRangeA1 : Range!;
+        var range = string.IsNullOrWhiteSpace(Range) ? sheet.UsedRange.Address : Range!;
         foreach (var cell in sheet.EnumerateRange(range)) {
             if (cell.Value is not string text) {
                 continue;
@@ -116,7 +116,7 @@ public sealed class UpdateOfficeExcelTextCommand : PSWriteOffice.Cmdlets.OfficeM
                 continue;
             }
 
-            sheet.CellValue(cell.Row, cell.Column, updated);
+            sheet.Cell(cell.Row, cell.Column).SetValue(updated);
             count += cellReplacements;
         }
 

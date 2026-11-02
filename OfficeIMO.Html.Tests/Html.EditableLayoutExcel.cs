@@ -34,8 +34,8 @@ public sealed class HtmlEditableLayoutExcelTests {
         Assert.True(openingRow < pictures[0].RowIndex && pictures[0].RowIndex < firstCaptionRow);
         Assert.True(firstCaptionRow < middleRow && middleRow < pictures[1].RowIndex);
         Assert.True(pictures[1].RowIndex < secondCaptionRow && secondCaptionRow < closingRow);
-        Assert.True(sheet.GetCellStyle(firstCaptionRow, 1).WrapText);
-        Assert.True(sheet.GetCellStyle(middleRow, 1).WrapText);
+        Assert.True(sheet.Cell(firstCaptionRow, 1).GetStyle().WrapText);
+        Assert.True(sheet.Cell(middleRow, 1).GetStyle().WrapText);
     }
 
     [Fact]
@@ -214,10 +214,10 @@ public sealed class HtmlEditableLayoutExcelTests {
 
         Assert.True(sheet.TryGetCellText(13, 2, out string positioned));
         Assert.Equal("Editable positioned", positioned);
-        Assert.Equal("DBEAFE", sheet.CellAt(13, 2).GetStyle().FillColorHex);
+        Assert.Equal("DBEAFE", sheet.Cell(13, 2).GetStyle().FillColorHex);
         Assert.True(sheet.TryGetCellText(3, 1, out string grid));
         Assert.Equal("Grid A Grid B", grid);
-        Assert.Equal("FEF3C7", sheet.CellAt(3, 1).GetStyle().FillColorHex);
+        Assert.Equal("FEF3C7", sheet.Cell(3, 1).GetStyle().FillColorHex);
         Assert.Contains(sheet.GetMergedRanges(), range => range.A1Range == "B13:E16");
         Assert.Contains(sheet.GetMergedRanges(), range => range.A1Range == "A3:E6");
         Assert.Single(sheet.Images);

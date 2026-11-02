@@ -50,10 +50,10 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_DoesNotPreflightAbsoluteTwoCellDrawingAnchors() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Category");
-            sheet.CellAt(1, 2).SetValue("Value");
-            sheet.CellAt(2, 1).SetValue("One");
-            sheet.CellAt(2, 2).SetValue(1);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("One");
+            sheet.Cell(2, 2).SetValue(1);
             sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
 
             Xdr.WorksheetDrawing drawing = sheet.WorksheetPart.DrawingsPart!.WorksheetDrawing!;
@@ -87,8 +87,8 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddSheet("Data");
             ExcelSheet other = document.AddSheet("Other");
-            data.CellAt(2, 1).SetValue(1);
-            other.CellAt(2, 1).SetValue(1);
+            data.Cell(2, 1).SetValue(1);
+            other.Cell(2, 1).SetValue(1);
 
             Cx.Formula dataFormula = AppendExtendedChartFormula(data, "A2:A3");
             Cx.Formula otherFormula = AppendExtendedChartFormula(other, "A2:A3");

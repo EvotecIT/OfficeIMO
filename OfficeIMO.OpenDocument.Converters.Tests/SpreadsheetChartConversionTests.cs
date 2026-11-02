@@ -146,8 +146,8 @@ public sealed class SpreadsheetChartConversionTests {
         using ExcelDocument converted = result.Value;
         Assert.Single(converted["Data"].Charts);
         Assert.NotNull(converted.GetNamedRange("_OfficeIMO_ChartDataOwner_2"));
-        Assert.NotEqual(converted.GetNamedRange("_OfficeIMO_ChartDataOwner_2"),
-            converted.GetNamedRange("_OfficeIMO_ChartDataOwner"));
+        Assert.NotEqual(NamedTarget(converted, "_OfficeIMO_ChartDataOwner_2"),
+            NamedTarget(converted, "_OfficeIMO_ChartDataOwner"));
         using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(converted.ToBytes()));
         Assert.NotNull(reopened.GetNamedRange("_OfficeIMO_ChartDataOwner"));
         Assert.NotNull(reopened.GetNamedRange("_OfficeIMO_ChartDataOwner_2"));
@@ -448,5 +448,10 @@ public sealed class SpreadsheetChartConversionTests {
             edit(xml);
             return Encoding.UTF8.GetBytes(xml.ToString(SaveOptions.DisableFormatting));
         });
+    }
+
+    private static string NamedTarget(ExcelDocument document, string name) {
+        ExcelRange range = document.GetNamedRange(name)!;
+        return range.Sheet.Name + "!" + range.Address;
     }
 }

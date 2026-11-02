@@ -1,0 +1,34 @@
+{
+  "solution": {
+    "path": "OfficeIMO.slnx",
+    "projects": [
+      "OfficeIMO.ChartForgeX.Markdown.Tests\\OfficeIMO.ChartForgeX.Markdown.Tests.csproj",
+      "OfficeIMO.ChartForgeX.Markdown\\OfficeIMO.ChartForgeX.Markdown.csproj",
+      "OfficeIMO.ChartForgeX.Tests\\OfficeIMO.ChartForgeX.Tests.csproj",
+      "OfficeIMO.ChartForgeX\\OfficeIMO.ChartForgeX.csproj",
+      "OfficeIMO.Core\\OfficeIMO.Core.csproj",
+      "OfficeIMO.Drawing.CodeGlyphX.Tests\\OfficeIMO.Drawing.CodeGlyphX.Tests.csproj",
+      "OfficeIMO.Drawing.CodeGlyphX\\OfficeIMO.Drawing.CodeGlyphX.csproj",
+      "OfficeIMO.Drawing.HarfBuzz.Tests\\OfficeIMO.Drawing.HarfBuzz.Tests.csproj",
+      "OfficeIMO.Drawing.HarfBuzz\\OfficeIMO.Drawing.HarfBuzz.csproj",
+      "OfficeIMO.Drawing.Tests\\OfficeIMO.Drawing.Tests.csproj",
+      "OfficeIMO.Excel\\OfficeIMO.Excel.csproj",
+      "OfficeIMO.Html.AngleSharp\\OfficeIMO.Html.AngleSharp.csproj",
+      "OfficeIMO.Html.Core\\OfficeIMO.Html.Core.csproj",
+      "OfficeIMO.Html\\OfficeIMO.Html.csproj",
+      "OfficeIMO.Markdown.Html\\OfficeIMO.Markdown.Html.csproj",
+      "OfficeIMO.Markdown.Pdf\\OfficeIMO.Markdown.Pdf.csproj",
+      "OfficeIMO.Markdown\\OfficeIMO.Markdown.csproj",
+      "OfficeIMO.MarkdownRenderer\\OfficeIMO.MarkdownRenderer.csproj",
+      "OfficeIMO.Markup.PowerPoint\\OfficeIMO.Markup.PowerPoint.csproj",
+      "OfficeIMO.Markup.Word\\OfficeIMO.Markup.Word.csproj",
+      "OfficeIMO.Markup\\OfficeIMO.Markup.csproj",
+      "OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj",
+      "OfficeIMO.PowerPoint\\OfficeIMO.PowerPoint.csproj",
+      "OfficeIMO.Visio\\OfficeIMO.Visio.csproj",
+      "OfficeIMO.Word.Markdown\\OfficeIMO.Word.Markdown.csproj",
+      "OfficeIMO.Word.Pdf\\OfficeIMO.Word.Pdf.csproj",
+      "OfficeIMO.Word\\OfficeIMO.Word.csproj"
+    ]
+  }
+}

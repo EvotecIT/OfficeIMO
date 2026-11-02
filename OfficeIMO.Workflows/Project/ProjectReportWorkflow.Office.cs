@@ -86,31 +86,31 @@ public static partial class ProjectReportWorkflow {
         var document = ExcelDocument.Create();
         try {
             var sheet = document.AddSheet("Report");
-            for (int c = 0; c < view.Columns.Count; c++) sheet.CellValue(1, c + 1, ProjectView.ColumnTitle(view.Columns[c]));
+            for (int c = 0; c < view.Columns.Count; c++) sheet.Cell(1, c + 1).SetValue(ProjectView.ColumnTitle(view.Columns[c]));
             for (int r = 0; r < view.Rows.Count; r++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 var row = view.Rows[r];
                 for (int c = 0; c < view.Columns.Count; c++) {
                     int column = c + 1, line = r + 2;
                     switch (view.Columns[c]) {
-                        case ProjectViewColumn.Uid: sheet.CellValue(line, column, row.Uid); break;
+                        case ProjectViewColumn.Uid: sheet.Cell(line, column).SetValue(row.Uid); break;
                         case ProjectViewColumn.Start when row.Start.HasValue: SetExcelDate(sheet, line, column, row.Start.Value); break;
                         case ProjectViewColumn.Finish when row.Finish.HasValue: SetExcelDate(sheet, line, column, row.Finish.Value); break;
-                        case ProjectViewColumn.WorkHours when row.WorkHours.HasValue: sheet.CellValue(line, column, row.WorkHours.Value); break;
-                        case ProjectViewColumn.Cost when row.Cost.HasValue: sheet.CellValue(line, column, row.Cost.Value); break;
-                        case ProjectViewColumn.PercentComplete when row.PercentComplete.HasValue: sheet.CellValue(line, column, row.PercentComplete.Value); break;
-                        default: sheet.CellValue(line, column, row.GetText(view.Columns[c])); break;
+                        case ProjectViewColumn.WorkHours when row.WorkHours.HasValue: sheet.Cell(line, column).SetValue(row.WorkHours.Value); break;
+                        case ProjectViewColumn.Cost when row.Cost.HasValue: sheet.Cell(line, column).SetValue(row.Cost.Value); break;
+                        case ProjectViewColumn.PercentComplete when row.PercentComplete.HasValue: sheet.Cell(line, column).SetValue(row.PercentComplete.Value); break;
+                        default: sheet.Cell(line, column).SetValue(row.GetText(view.Columns[c])); break;
                     }
                 }
             }
             FinishSheet(sheet, cancellationToken, view.Rows.Count + 1, view.Columns.Count);
             if (IsUsage(view)) {
-                var usage = document.AddSheet("Work hours"); usage.CellValue(1, 1, "UID"); usage.CellValue(1, 2, "Name");
-                for (int b = 0; b < view.Buckets.Count; b++) { usage.CellValue(1, b + 3, view.Buckets[b].Start); usage.FormatCell(1, b + 3, "yyyy-mm-dd"); }
+                var usage = document.AddSheet("Work hours"); usage.Cell(1, 1).SetValue("UID"); usage.Cell(1, 2).SetValue("Name");
+                for (int b = 0; b < view.Buckets.Count; b++) { usage.Cell(1, b + 3).SetValue(view.Buckets[b].Start); usage.Cell(1, b + 3).SetNumberFormat("yyyy-mm-dd"); }
                 for (int r = 0; r < view.Rows.Count; r++) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    usage.CellValue(r + 2, 1, view.Rows[r].Uid); usage.CellValue(r + 2, 2, view.Rows[r].Name);
-                    for (int b = 0; b < view.Buckets.Count; b++) usage.CellValue(r + 2, b + 3, view.Rows[r].BucketWorkHours[b]);
+                    usage.Cell(r + 2, 1).SetValue(view.Rows[r].Uid); usage.Cell(r + 2, 2).SetValue(view.Rows[r].Name);
+                    for (int b = 0; b < view.Buckets.Count; b++) usage.Cell(r + 2, b + 3).SetValue(view.Rows[r].BucketWorkHours[b]);
                 }
                 FinishSheet(usage, cancellationToken, view.Rows.Count + 1, view.Buckets.Count + 2, 2); usage.Freeze(1, 2);
             }

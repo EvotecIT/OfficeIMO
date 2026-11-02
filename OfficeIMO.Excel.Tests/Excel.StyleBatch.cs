@@ -15,16 +15,16 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(path)) {
                 var first = document.AddSheet("First");
                 var second = document.AddSheet("Second");
-                first.CellValue(1, 1, "First value");
-                second.CellValue(1, 1, "Second value");
-                first.Batch(_ => second.CellWrapTextFor(new[] { (1, 1) }));
+                first.Cell(1, 1).SetValue("First value");
+                second.Cell(1, 1).SetValue("Second value");
+                first.Batch(_ => second.Cell(1, 1).SetWrapText());
                 document.Save();
             }
             using var reopened = ExcelDocument.Load(path);
-            Assert.Equal("First value", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
-            Assert.False(reopened.Sheets[0].CellAt(1, 1).GetStyle().WrapText);
-            Assert.Equal("Second value", reopened.Sheets[1].CellAt(1, 1).GetValue<string>());
-            Assert.True(reopened.Sheets[1].CellAt(1, 1).GetStyle().WrapText);
+            Assert.Equal("First value", reopened.Sheets[0].Cell(1, 1).GetValue<string>());
+            Assert.False(reopened.Sheets[0].Cell(1, 1).GetStyle().WrapText);
+            Assert.Equal("Second value", reopened.Sheets[1].Cell(1, 1).GetValue<string>());
+            Assert.True(reopened.Sheets[1].Cell(1, 1).GetStyle().WrapText);
         }
 
         [Fact]
@@ -34,9 +34,9 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddSheet("Styled");
                 var selected = Enumerable.Range(1, 64).Select(row => (Row: row, Column: row % 2 == 0 ? 3 : 1)).ToArray();
                 foreach (var cell in selected) {
-                    sheet.CellValue(cell.Row, cell.Column, cell.Row);
-                    sheet.CellAt(cell.Row, cell.Column).SetBold();
-                    sheet.FormatCell(cell.Row, cell.Column, "0.00");
+                    sheet.Cell(cell.Row, cell.Column).SetValue(cell.Row);
+                    sheet.Cell(cell.Row, cell.Column).SetBold();
+                    sheet.Cell(cell.Row, cell.Column).SetNumberFormat("0.00");
                 }
                 var package = document.OpenXmlDocument;
                 var stylesPart = package.WorkbookPart!.WorkbookStylesPart!;
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
                 package.Features.Get<IPartRootEventsFeature>()!.Change += args => {
                     if (args.Type == EventType.Saved && ReferenceEquals(args.Argument, stylesPart)) saves++;
                 };
-                sheet.CellWrapTextFor(selected);
+                sheet.Batch(batch => { foreach (var cell in selected) batch.Cell(cell.Row, cell.Column).SetWrapText(); });
                 Assert.Equal(1, saves);
                 document.Save();
             }
@@ -53,28 +53,10 @@ namespace OfficeIMO.Tests {
             ExcelSheet saved = reopened.Sheets[0];
             Assert.Equal(64, saved.EnumerateCells().Count());
             foreach (var cell in saved.EnumerateCells()) {
-                var style = saved.CellAt(cell.Row, cell.Column).GetStyle();
+                var style = saved.Cell(cell.Row, cell.Column).GetStyle();
                 Assert.True(style.WrapText && style.Bold);
                 Assert.Equal("0.00", style.NumberFormatCode);
             }
-        }
-
-        [Fact]
-        public void Wrap_text_batch_validates_before_editing_and_can_clear_wrapping() {
-            string path = Path.Combine(_directoryWithFiles, "WrapTextBatch.Validation.xlsx");
-            using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddSheet("Styled");
-                sheet.CellValue(1, 1, "Preserved");
-                sheet.CellWrapText(1, 1);
-                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.CellWrapTextFor(new[] { (1, 1), (0, 2) }, false));
-                Assert.True(sheet.CellAt(1, 1).GetStyle().WrapText);
-                Assert.Single(sheet.EnumerateCells());
-                sheet.Batch(selected => selected.CellWrapTextFor(new[] { (1, 1), (1, 1) }, false));
-                document.Save();
-            }
-            using var reopened = ExcelDocument.Load(path);
-            Assert.Equal("Preserved", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
-            Assert.False(reopened.Sheets[0].CellAt(1, 1).GetStyle().WrapText);
         }
 
         [Fact]
@@ -88,15 +70,15 @@ namespace OfficeIMO.Tests {
                         string color = row.ToString("X6");
                         string format = "0.00\"" + row + "\"";
                         for (int column = 1; column <= 2; column++) {
-                            sheet.CellAt(row, column).SetValue(row);
-                            sheet.CellBackground(row, column, color);
-                            sheet.CellFontName(row, column, "Bounded Font");
-                            sheet.FormatCell(row, column, format);
+                            sheet.Cell(row, column).SetValue(row);
+                            sheet.Cell(row, column).SetFillColor(color);
+                            sheet.Cell(row, column).SetFontName("Bounded Font");
+                            sheet.Cell(row, column).SetNumberFormat(format);
                         }
                     }
-                    second.CellAt(1, 1).SetValue(7);
-                    second.CellBackground(1, 1, "ABCDEF");
-                    second.FormatCell(1, 1, "0.00\"other\"");
+                    second.Cell(1, 1).SetValue(7);
+                    second.Cell(1, 1).SetFillColor("ABCDEF");
+                    second.Cell(1, 1).SetNumberFormat("0.00\"other\"");
                 }
                 document.Save();
             }
@@ -109,10 +91,10 @@ namespace OfficeIMO.Tests {
             }
             using (var reopened = ExcelDocument.Load(path)) {
                 ExcelSheet sheet = reopened.Sheets[0];
-                Assert.Equal("Bounded Font", sheet.CellAt(256, 2).GetStyle().FontName);
-                Assert.Equal("0.00\"256\"", sheet.CellAt(256, 2).GetStyle().NumberFormatCode);
-                Assert.Equal("FF000100", sheet.CellAt(256, 2).GetStyle().FillColorArgb);
-                Assert.Equal("0.00\"other\"", reopened.Sheets[1].CellAt(1, 1).GetStyle().NumberFormatCode);
+                Assert.Equal("Bounded Font", sheet.Cell(256, 2).GetStyle().FontName);
+                Assert.Equal("0.00\"256\"", sheet.Cell(256, 2).GetStyle().NumberFormatCode);
+                Assert.Equal("FF000100", sheet.Cell(256, 2).GetStyle().FillColorArgb);
+                Assert.Equal("0.00\"other\"", reopened.Sheets[1].Cell(1, 1).GetStyle().NumberFormatCode);
             }
         }
     }

@@ -73,9 +73,9 @@ public sealed class HtmlFontFamilyInheritanceTests {
     private static string? ExcelFont(ExcelDocument workbook) {
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
         int row = Assert.Single(Enumerable.Range(1, 4), index =>
-            sheet.CellAt(index, 1).GetValue<string>() == Marker);
-        var runs = sheet.CellAt(row, 1).GetRichText();
-        string? cellFont = sheet.GetCellStyle(row, 1).FontName;
+            sheet.Cell(index, 1).GetValue<string>() == Marker);
+        var runs = sheet.Cell(row, 1).GetRichText();
+        string? cellFont = sheet.Cell(row, 1).GetStyle().FontName;
         return runs.Count == 0 ? cellFont
             : Assert.Single(runs, run => run.Text == Marker).FontName ?? cellFont;
     }

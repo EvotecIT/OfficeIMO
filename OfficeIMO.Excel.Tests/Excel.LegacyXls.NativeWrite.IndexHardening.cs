@@ -64,9 +64,9 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create();
             foreach ((string name, int firstValue) in sheets) {
                 ExcelSheet sheet = document.AddSheet(name);
-                sheet.CellValue(1, 1, "Value");
+                sheet.Cell(1, 1).SetValue("Value");
                 for (int row = 2; row <= 256; row++) {
-                    sheet.CellValue(row, 1, firstValue + row - 2);
+                    sheet.Cell(row, 1).SetValue(firstValue + row - 2);
                 }
             }
 

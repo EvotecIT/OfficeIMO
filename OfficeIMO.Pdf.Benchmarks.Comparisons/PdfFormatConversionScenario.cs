@@ -159,17 +159,17 @@ internal sealed record PdfFormatConversionScenario(
     private static byte[] CreateXlsx(int recordCount, PdfFormatConversionProfile profile) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
-        sheet.Cell(1, 1, Heading);
-        sheet.Cell(2, 1, "Record");
-        sheet.Cell(2, 2, "Description");
-        sheet.Cell(2, 3, "Amount");
-        sheet.Cell(2, 4, "Status");
+        sheet.Cell(1, 1).SetValue(Heading);
+        sheet.Cell(2, 1).SetValue("Record");
+        sheet.Cell(2, 2).SetValue("Description");
+        sheet.Cell(2, 3).SetValue("Amount");
+        sheet.Cell(2, 4).SetValue("Status");
         for (int index = 1; index <= recordCount; index++) {
             int row = index + 2;
-            sheet.Cell(row, 1, PdfFormatConversionRecordManifest.RecordMarker(index));
-            sheet.Cell(row, 2, PdfFormatConversionRecordManifest.CustomerMarker(index) + " " + PdfFormatConversionRecordManifest.Description);
-            sheet.Cell(row, 3, PdfFormatConversionRecordManifest.AmountMarker(index));
-            sheet.Cell(row, 4, PdfFormatConversionRecordManifest.StatusMarker(index));
+            sheet.Cell(row, 1).SetValue(PdfFormatConversionRecordManifest.RecordMarker(index));
+            sheet.Cell(row, 2).SetValue(PdfFormatConversionRecordManifest.CustomerMarker(index) + " " + PdfFormatConversionRecordManifest.Description);
+            sheet.Cell(row, 3).SetValue(PdfFormatConversionRecordManifest.AmountMarker(index));
+            sheet.Cell(row, 4).SetValue(PdfFormatConversionRecordManifest.StatusMarker(index));
         }
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
         sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(42));
@@ -177,8 +177,8 @@ internal sealed record PdfFormatConversionScenario(
         sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(14));
         if (profile == PdfFormatConversionProfile.Structured) {
             ExcelSheet details = document.AddSheet("Structured");
-            details.Cell(1, 1, StructureMarker);
-            details.Cell(2, 1, "This second worksheet verifies multi-sheet pagination and wrapped cell projection.");
+            details.Cell(1, 1).SetValue(StructureMarker);
+            details.Cell(2, 1).SetValue("This second worksheet verifies multi-sheet pagination and wrapped cell projection.");
             details.SetColumnWidth(1, ExcelColumnWidth.Characters(28));
         }
         return document.ToBytes();

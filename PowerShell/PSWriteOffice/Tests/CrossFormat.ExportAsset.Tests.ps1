@@ -78,12 +78,12 @@ Describe 'Document asset export' {
         $workbook = [OfficeIMO.Excel.ExcelDocument]::Create()
         try {
             $first = $workbook.AddSheet('2')
-            $null = $first.CellValue(1, 1, 'Header')
-            $null = $first.CellValue(2, 1, 'Excluded')
+            $null = $first.Cell(1, 1).SetValue('Header')
+            $null = $first.Cell(2, 1).SetValue('Excluded')
             $second = $workbook.AddSheet('Evidence')
-            $null = $second.CellValue(1, 1, 'Header')
-            $null = $second.CellValue(2, 1, 'Selected')
-            $null = $second.CellValue(3, 1, 'Outside range')
+            $null = $second.Cell(1, 1).SetValue('Header')
+            $null = $second.Cell(2, 1).SetValue('Selected')
+            $null = $second.Cell(3, 1).SetValue('Outside range')
             $workbook.Save($path)
         } finally { $workbook.Dispose() }
         $results = @(Export-OfficeDocumentAsset $path (Join-Path $TestDrive 'selected-sheet') -Type Table -TableFormat Csv -Sheet 2 -Range A1:A2)

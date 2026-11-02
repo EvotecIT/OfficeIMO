@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             var documentResult = ExcelDocument.ImportSpreadsheetXml(Input(name));
             documentResult.ThrowIfLoss();
             using ExcelDocument document = documentResult.Value;
-            Assert.Equal(expected, document.Sheets[0].GetCellStyle(1, 1).NumberFormatCode);
+            Assert.Equal(expected, document.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
             Assert.Empty(document.ValidateOpenXml());
         }
 
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = result.Value;
             Assert.Contains(result.Report.Diagnostics, item => item.LossKind == OfficeConversionLossKind.Approximation);
             Assert.Throws<OfficeConversionException>(() => result.ThrowIfLoss());
-            Assert.DoesNotContain("Currency", document.Sheets[0].GetCellStyle(1, 1).NumberFormatCode);
+            Assert.DoesNotContain("Currency", document.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
         }
 
         private static byte[] Input(string name) => Encoding.UTF8.GetBytes(

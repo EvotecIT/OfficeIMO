@@ -55,13 +55,13 @@ public sealed partial class IWorkBoundaryTests {
         double expected = seconds / 86_400d;
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(expected, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(expected, result.Value.Sheets[0].Cell(1, 1).GetValue<double>());
 
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
         using ExcelDocument reopened = ExcelDocument.Load(saved);
-        Assert.Equal(expected, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(expected, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Theory]

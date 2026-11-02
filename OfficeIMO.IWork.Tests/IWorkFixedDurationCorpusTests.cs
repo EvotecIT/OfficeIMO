@@ -48,10 +48,10 @@ public sealed class IWorkFixedDurationCorpusTests {
                 Assert.Equal(IWorkCellUnsupportedFeatures.None, cell.UnsupportedFeatures);
                 Assert.Equal((IWorkDurationUnit)expected.GetProperty("settings").GetProperty("duration_unit_largest").GetInt32(), format.DurationFormat!.LargestUnit);
                 Assert.Equal(smallest, format.DurationFormat.SmallestUnit);
-                Assert.Equal(expected.GetProperty("nativeFormatCode").GetString(), target.CellAt(row, column).GetStyle().NumberFormatCode);
-                Assert.Equal(reference.CellAt(row, column).GetStyle().NumberFormatCode, target.CellAt(row, column).GetStyle().NumberFormatCode);
-                Assert.InRange(Math.Abs(expected.GetProperty("nativeValueDays").GetDouble() - target.CellAt(row, column).GetValue<double>()), 0, 1e-12);
-                Assert.InRange(Math.Abs(reference.CellAt(row, column).GetValue<double>() - target.CellAt(row, column).GetValue<double>()), 0, 1e-12);
+                Assert.Equal(expected.GetProperty("nativeFormatCode").GetString(), target.Cell(row, column).GetStyle().NumberFormatCode);
+                Assert.Equal(reference.Cell(row, column).GetStyle().NumberFormatCode, target.Cell(row, column).GetStyle().NumberFormatCode);
+                Assert.InRange(Math.Abs(expected.GetProperty("nativeValueDays").GetDouble() - target.Cell(row, column).GetValue<double>()), 0, 1e-12);
+                Assert.InRange(Math.Abs(reference.Cell(row, column).GetValue<double>() - target.Cell(row, column).GetValue<double>()), 0, 1e-12);
                 if (expected.GetProperty("isFormula").GetBoolean()) {
                     Assert.Equal(IWorkCellKind.Formula, cell.Kind);
                     Assert.True(cell.SourceFormulaIsDeclared);
@@ -74,7 +74,7 @@ public sealed class IWorkFixedDurationCorpusTests {
                 }
                 cells++;
             }
-            target.CellValue(5, 3, 1.75d); // Edit the operand in day serials, retaining the native duration format.
+            target.Cell(5, 3).SetValue(1.75d); // Edit the operand in day serials, retaining the native duration format.
         }
         Assert.Equal(42, cells);
         Assert.Equal(21, formulas);
@@ -84,7 +84,7 @@ public sealed class IWorkFixedDurationCorpusTests {
         using var final = ExcelDocument.Load(recalculated);
         foreach (var sheet in final.Sheets) {
             Assert.Equal("C5+C5", sheet.GetFormulaText(5, 4));
-            Assert.Equal(3.5d, sheet.CellAt(5, 4).GetValue<double>());
+            Assert.Equal(3.5d, sheet.Cell(5, 4).GetValue<double>());
         }
         Assert.Empty(final.ValidateOpenXml());
         Assert.Equal(decoded.RootElement.GetProperty("sourceSha256").GetString(), Hash(sourcePath));

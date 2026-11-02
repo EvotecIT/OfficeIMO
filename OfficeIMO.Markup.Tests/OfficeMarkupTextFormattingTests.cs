@@ -224,9 +224,9 @@ public class OfficeMarkupTextFormattingTests {
 
         using ExcelDocument workbook = source.ToExcelDocumentResult().RequireValue();
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
-        ExcelCellStyleInfo style = sheet.GetCellStyle(1, 1);
+        ExcelCellStyleInfo style = sheet.Cell(1, 1).GetStyle();
 
-        Assert.Equal("mIXED CASE", sheet.CellAt(1, 1).GetValue().Value?.ToString());
+        Assert.Equal("mIXED CASE", sheet.Cell(1, 1).GetValue().Value?.ToString());
         Assert.Equal("Aptos", style.FontName);
         Assert.Equal(17D, style.FontSize?.ToPoints());
         Assert.True(style.Bold);

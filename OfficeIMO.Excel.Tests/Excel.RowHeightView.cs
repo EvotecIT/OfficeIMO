@@ -14,14 +14,14 @@ public partial class Excel {
     public void Xlsb_DefaultViewRetainsGridlineVisibilityAcrossRewrite(bool visible) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
-        sheet.Cell(1, 1, "Original");
+        sheet.Cell(1, 1).SetValue("Original");
         sheet.SetGridlinesVisible(visible);
         using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }), writable: false));
         Assert.Equal(visible, loaded.Sheets[0].GetViewInfo().ShowGridlines);
-        loaded.Sheets[0].Cell(1, 1, "Edited");
+        loaded.Sheets[0].Cell(1, 1).SetValue("Edited");
         using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }), writable: false));
         Assert.Equal(visible, reopened.Sheets[0].GetViewInfo().ShowGridlines);
-        Assert.Equal("Edited", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Edited", reopened.Sheets[0].Cell(1, 1).GetValue<string>());
     }
 
     [Theory]
@@ -32,7 +32,7 @@ public partial class Excel {
         using var stream = new MemoryStream();
         using (ExcelDocument document = ExcelDocument.Create()) {
             ExcelSheet sheet = document.AddSheet("Report");
-            sheet.Cell(1, 1, "Explicit height");
+            sheet.Cell(1, 1).SetValue("Explicit height");
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24D)));
             if (unfreeze) { sheet.Freeze(1, 1); sheet.Freeze(); }
             document.Save(stream, new ExcelSaveOptions { ValidateOpenXml = validate });

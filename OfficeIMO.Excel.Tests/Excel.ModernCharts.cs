@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(chart.DataRange.StartRow > secondRange.CategoryEndRow);
                 Assert.Equal(
                     "East",
-                    document[secondRange.SheetName].CellAt(secondRange.CategoryStartRow, secondRange.CategoryStartColumn).GetValue<string>());
+                    document[secondRange.SheetName].Cell(secondRange.CategoryStartRow, secondRange.CategoryStartColumn).GetValue<string>());
                 Assert.NotNull(chartPart.ChartSpace.Descendants().FirstOrDefault(element =>
                     element.LocalName == "vendorState" && element.NamespaceUri == "urn:vendor:chart"));
                 Xdr.OneCellAnchor anchor = Assert.Single(dashboard.WorksheetPart.DrawingsPart.WorksheetDrawing!
@@ -133,12 +133,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.ModernCharts.ImportedVisibleData.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet visibleData = document.AddSheet("VisibleData");
-                visibleData.CellValue(1, 1, "Category");
-                visibleData.CellValue(1, 2, "Value");
-                visibleData.CellValue(2, 1, "Keep A");
-                visibleData.CellValue(2, 2, 10d);
-                visibleData.CellValue(3, 1, "Keep B");
-                visibleData.CellValue(3, 2, 20d);
+                visibleData.Cell(1, 1).SetValue("Category");
+                visibleData.Cell(1, 2).SetValue("Value");
+                visibleData.Cell(2, 1).SetValue("Keep A");
+                visibleData.Cell(2, 2).SetValue(10d);
+                visibleData.Cell(3, 1).SetValue("Keep B");
+                visibleData.Cell(3, 2).SetValue(20d);
                 ExcelSheet dashboard = document.AddSheet("Dashboard");
                 dashboard.AddModernChart(
                     new ExcelChartData(
@@ -163,8 +163,8 @@ namespace OfficeIMO.Tests {
                     new ExcelChartData(
                         new[] { "Changed" },
                         new[] { new ExcelChartSeries("Value", new[] { 99d }) })));
-                Assert.Equal("Keep A", document["VisibleData"].CellAt(2, 1).GetValue<string>());
-                Assert.Equal(10d, document["VisibleData"].CellAt(2, 2).GetValue<double>());
+                Assert.Equal("Keep A", document["VisibleData"].Cell(2, 1).GetValue<string>());
+                Assert.Equal(10d, document["VisibleData"].Cell(2, 2).GetValue<double>());
             }
         }
 
@@ -173,7 +173,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.ModernCharts.ReservedSheetCollision.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet reserved = document.AddSheet("OfficeIMO_ChartData");
-                reserved.CellValue(1, 1, "user data");
+                reserved.Cell(1, 1).SetValue("user data");
                 ExcelSheet dashboard = document.AddSheet("Dashboard");
                 ExcelModernChart chart = dashboard.AddModernChart(
                     new ExcelChartData(
@@ -183,7 +183,7 @@ namespace OfficeIMO.Tests {
                     1,
                     ExcelModernChartType.Funnel);
                 Assert.False(reserved.Hidden);
-                Assert.Equal("user data", reserved.CellAt(1, 1).GetValue<string>());
+                Assert.Equal("user data", reserved.Cell(1, 1).GetValue<string>());
                 Assert.NotEqual(reserved.Name, chart.DataRange!.SheetName);
                 Assert.True(document[chart.DataRange.SheetName].Hidden);
                 document.Save();
@@ -195,7 +195,7 @@ namespace OfficeIMO.Tests {
                 chart.UpdateData(new ExcelChartData(
                     new[] { "Changed" },
                     new[] { new ExcelChartSeries("Value", new[] { 3d }) }));
-                Assert.Equal("user data", document["OfficeIMO_ChartData"].CellAt(1, 1).GetValue<string>());
+                Assert.Equal("user data", document["OfficeIMO_ChartData"].Cell(1, 1).GetValue<string>());
                 Assert.False(document["OfficeIMO_ChartData"].Hidden);
                 Assert.Empty(document.ValidateOpenXml());
             }

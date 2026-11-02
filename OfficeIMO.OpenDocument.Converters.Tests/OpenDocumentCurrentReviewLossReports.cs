@@ -694,8 +694,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     public void MergeBudgetChargesOnlyCoordinatesNotAlreadyMaterialized() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellAt(1, 1).SetValue("Anchor");
-        sheet.MergeRange("A1:B2");
+        sheet.Cell(1, 1).SetValue("Anchor");
+        sheet.Range("A1:B2").Merge();
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult(
             new ExcelOpenDocumentConversionOptions { MaximumExpandedCells = 4 });
@@ -1148,11 +1148,11 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     public void ExcelToOdsPreservesTypedValuesOnHyperlinkedCellsAndFormulaSeparators() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = source.AddSheet("Data");
-        source.AddSheet("Other, Sheet").CellAt(1, 1).SetValue(1);
+        source.AddSheet("Other, Sheet").Cell(1, 1).SetValue(1);
         sheet.SetHyperlink(1, 1, "https://example.com", "42");
-        sheet.CellAt(1, 1).SetValue(42);
-        sheet.CellAt(1, 2).SetFormula("IF(A1=42,\"x,y\",\"other\")");
-        sheet.CellAt(1, 3).SetFormula("SUM('Other, Sheet'!A1,A1)");
+        sheet.Cell(1, 1).SetValue(42);
+        sheet.Cell(1, 2).SetFormula("IF(A1=42,\"x,y\",\"other\")");
+        sheet.Cell(1, 3).SetFormula("SUM('Other, Sheet'!A1,A1)");
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
         OdsDocument target = conversion.Value;
@@ -1272,10 +1272,10 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     public void ExcelToOdsConvertsLowercaseFormulaReferences() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellAt(1, 1).SetValue(1);
-        sheet.CellAt(1, 2).SetFormula("sum(a1,'Data'!a1)");
+        sheet.Cell(1, 1).SetValue(1);
+        sheet.Cell(1, 2).SetFormula("sum(a1,'Data'!a1)");
         source.SetNamedRange("A1_total", "'Data'!$A$1", save: false);
-        sheet.CellAt(1, 3).SetFormula("SUM(A1_total,a1)");
+        sheet.Cell(1, 3).SetFormula("SUM(A1_total,a1)");
 
         OdsDocument target = source.ToOpenDocument();
 

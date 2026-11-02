@@ -130,7 +130,7 @@ public sealed class ReliableBatchCommandTests {
 
         Assert.Equal((int)OfficeImoToolExitCode.Success, result.Code);
         using var workbook = OfficeIMO.Excel.ExcelDocument.Load(Path.Combine(files.Output, "source.xlsx"));
-        Assert.Equal(42d, Assert.Single(workbook.Sheets).CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, Assert.Single(workbook.Sheets).Cell(1, 1).GetValue<double>());
     }
 
     [Fact]

@@ -234,10 +234,10 @@ public class HtmlTextFormattingConversionTests {
     public void ExcelSemanticHtmlRoundTripRetainsCellAndRichRunTypography() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Text");
-        sheet.CellAt(1, 1).SetValue("Cell").SetBold().SetItalic()
+        sheet.Cell(1, 1).SetValue("Cell").SetBold().SetItalic()
             .SetUnderline(ExcelUnderlineStyle.DoubleAccounting).SetStrikethrough()
             .SetSuperscript().SetFontName("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetFontColor("336699");
-        sheet.CellAt(2, 1).SetRichText(
+        sheet.Cell(2, 1).SetRichText(
             new ExcelRichTextRun("Rich") {
                 Bold = true,
                 Underline = true,
@@ -263,7 +263,7 @@ public class HtmlTextFormattingConversionTests {
             .ToExcelDocumentResult()
             .RequireValue();
         ExcelSheet actualSheet = Assert.Single(imported.Sheets);
-        ExcelCellStyleInfo cellStyle = actualSheet.GetCellStyle(1, 1);
+        ExcelCellStyleInfo cellStyle = actualSheet.Cell(1, 1).GetStyle();
         Assert.True(cellStyle.Bold);
         Assert.True(cellStyle.Italic);
         Assert.Equal(ExcelUnderlineStyle.DoubleAccounting, cellStyle.UnderlineStyle);
@@ -273,7 +273,7 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal(14D, cellStyle.FontSize?.ToPoints());
         Assert.Equal("336699", cellStyle.FontColorHex);
 
-        ExcelRichTextRun[] runs = actualSheet.GetRichText(2, 1).ToArray();
+        ExcelRichTextRun[] runs = actualSheet.Cell(2, 1).GetRichText().ToArray();
         Assert.Equal(2, runs.Length);
         Assert.Equal(ExcelUnderlineStyle.SingleAccounting, runs[0].UnderlineStyle);
         Assert.Equal("Aptos", runs[0].FontName);
@@ -286,8 +286,8 @@ public class HtmlTextFormattingConversionTests {
     public void ExcelSemanticHtmlRoundTripRetainsTypographyOnEmptyTemplateCells() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Template");
-        sheet.CellAt(1, 1).SetValue("Anchor");
-        sheet.CellAt(1, 2).SetBold().SetItalic()
+        sheet.Cell(1, 1).SetValue("Anchor");
+        sheet.Cell(1, 2).SetBold().SetItalic()
             .SetUnderline(ExcelUnderlineStyle.DoubleAccounting).SetStrikethrough()
             .SetSubscript().SetFontName("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetFontColor("336699");
 
@@ -299,7 +299,7 @@ public class HtmlTextFormattingConversionTests {
             .ToExcelDocumentResult()
             .RequireValue();
         ExcelSheet actualSheet = Assert.Single(imported.Sheets);
-        ExcelCellStyleInfo style = actualSheet.GetCellStyle(1, 2);
+        ExcelCellStyleInfo style = actualSheet.Cell(1, 2).GetStyle();
 
         Assert.False(actualSheet.TryGetCellValueSnapshot(1, 2, out _));
         Assert.True(style.Bold);
@@ -322,20 +322,20 @@ public class HtmlTextFormattingConversionTests {
             .RequireValue();
         ExcelSheet sheet = Assert.Single(imported.Sheets);
 
-        Assert.Equal("336699", sheet.GetCellStyle(1, 1).FontColorHex);
-        Assert.Equal("FFCC3300", Assert.Single(sheet.GetRichText(1, 1)).FontColor);
+        Assert.Equal("336699", sheet.Cell(1, 1).GetStyle().FontColorHex);
+        Assert.Equal("FFCC3300", Assert.Single(sheet.Cell(1, 1).GetRichText()).FontColor);
 
         using ExcelDocument generic = HtmlConversionDocument
             .Parse("<table><tr><td style=\"color:#11223380\">Generic</td></tr></table>")
             .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic })
             .RequireValue();
-        Assert.Equal("112233", Assert.Single(generic.Sheets).GetCellStyle(1, 1).FontColorHex);
+        Assert.Equal("112233", Assert.Single(generic.Sheets).Cell(1, 1).GetStyle().FontColorHex);
     }
 
     [Fact]
     public void ExcelHtmlImportWalksPlainAndNestedStyledTextInDomOrder() {
         using ExcelDocument source = ExcelDocument.Create();
-        source.AddSheet("Text").CellAt(1, 1).SetValue("Placeholder");
+        source.AddSheet("Text").Cell(1, 1).SetValue("Placeholder");
         ExcelHtmlSaveOptions options = ExcelHtmlSaveOptions.CreateSemanticTablesProfile();
         options.HeaderMode = ExcelHtmlHeaderMode.None;
         string html = source.ToHtml(options)
@@ -350,7 +350,7 @@ public class HtmlTextFormattingConversionTests {
             .ToExcelDocumentResult()
             .RequireValue();
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
-        ExcelRichTextRun[] runs = importedSheet.GetRichText(1, 1).ToArray();
+        ExcelRichTextRun[] runs = importedSheet.Cell(1, 1).GetRichText().ToArray();
 
         Assert.Equal("plain bold nested tail", string.Concat(runs.Select(run => run.Text)));
         Assert.Contains(runs, run => run.Text == "plain " && !run.Bold && !run.Italic);
@@ -368,7 +368,7 @@ public class HtmlTextFormattingConversionTests {
             .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic })
             .RequireValue();
         ExcelSheet sheet = Assert.Single(imported.Sheets);
-        ExcelRichTextRun[] runs = sheet.GetRichText(1, 1).ToArray();
+        ExcelRichTextRun[] runs = sheet.Cell(1, 1).GetRichText().ToArray();
 
         Assert.Equal("one\ntwo", string.Concat(runs.Select(run => run.Text)));
         Assert.Contains(runs, run => run.Text == "one" && run.Bold);
@@ -381,7 +381,7 @@ public class HtmlTextFormattingConversionTests {
     [Fact]
     public void ExcelSemanticHtmlRoundTripAppliesCellTypographyToRichRuns() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelCell cell = source.AddSheet("Text").CellAt(1, 1)
+        ExcelCell cell = source.AddSheet("Text").Cell(1, 1)
             .SetRichText(
                 new ExcelRichTextRun("Inherited"),
                 new ExcelRichTextRun(" Override") { Italic = true, FontColor = "CC0000" })
@@ -399,7 +399,7 @@ public class HtmlTextFormattingConversionTests {
             .ToExcelDocumentResult()
             .RequireValue();
 
-        ExcelRichTextRun[] runs = imported.Sheets.Single().GetRichText(1, 1).ToArray();
+        ExcelRichTextRun[] runs = imported.Sheets.Single().Cell(1, 1).GetRichText().ToArray();
         Assert.Equal(2, runs.Length);
         Assert.All(runs, run => {
             Assert.True(run.Bold);
@@ -418,7 +418,7 @@ public class HtmlTextFormattingConversionTests {
     public void ExcelSemanticHtmlPreservesDirectStyleResetsAndRendersPlainCellScriptsInline() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Text");
-        sheet.CellAt(1, 1)
+        sheet.Cell(1, 1)
             .SetRichText(new ExcelRichTextRun("Direct off") {
                 Bold = false,
                 Italic = false,
@@ -427,7 +427,7 @@ public class HtmlTextFormattingConversionTests {
                 VerticalTextAlignment = ExcelVerticalTextAlignment.Baseline
             })
             .SetBold().SetItalic().SetUnderline().SetStrikethrough().SetSuperscript();
-        sheet.CellAt(2, 1).SetValue("Plain script").SetSubscript();
+        sheet.Cell(2, 1).SetValue("Plain script").SetSubscript();
 
         string html = source.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
         Assert.Contains("font-weight:normal", html, StringComparison.OrdinalIgnoreCase);
@@ -443,14 +443,14 @@ public class HtmlTextFormattingConversionTests {
             .ToExcelDocumentResult()
             .RequireValue();
         ExcelSheet actual = Assert.Single(imported.Sheets);
-        ExcelRichTextRun directOff = Assert.Single(actual.GetRichText(1, 1));
+        ExcelRichTextRun directOff = Assert.Single(actual.Cell(1, 1).GetRichText());
         Assert.False(directOff.Bold);
         Assert.False(directOff.Italic);
         Assert.False(directOff.Underline);
         Assert.False(directOff.Strikethrough);
         Assert.Equal(ExcelVerticalTextAlignment.Baseline, directOff.VerticalTextAlignment);
-        Assert.Equal(ExcelVerticalTextAlignment.Superscript, actual.GetCellStyle(1, 1).VerticalTextAlignment);
-        Assert.Equal(ExcelVerticalTextAlignment.Subscript, actual.GetCellStyle(2, 1).VerticalTextAlignment);
+        Assert.Equal(ExcelVerticalTextAlignment.Superscript, actual.Cell(1, 1).GetStyle().VerticalTextAlignment);
+        Assert.Equal(ExcelVerticalTextAlignment.Subscript, actual.Cell(2, 1).GetStyle().VerticalTextAlignment);
     }
 
     [Fact]
@@ -483,12 +483,12 @@ public class HtmlTextFormattingConversionTests {
         for (int column = 1; column <= expectedKinds.Length; column++) {
             Assert.True(sheet.TryGetCellValueSnapshot(1, column, out ExcelNativeCellValueInfo? snapshot));
             Assert.Equal(expectedKinds[column - 1], snapshot!.Kind);
-            Assert.Empty(sheet.GetRichText(1, column));
+            Assert.Empty(sheet.Cell(1, column).GetRichText());
         }
 
         Assert.Equal("1+2", sheet.GetFormulaText(1, 2));
-        Assert.Equal(ExcelVerticalTextAlignment.Superscript, sheet.GetCellStyle(1, 1).VerticalTextAlignment);
-        Assert.Equal(ExcelVerticalTextAlignment.Subscript, sheet.GetCellStyle(1, 4).VerticalTextAlignment);
+        Assert.Equal(ExcelVerticalTextAlignment.Superscript, sheet.Cell(1, 1).GetStyle().VerticalTextAlignment);
+        Assert.Equal(ExcelVerticalTextAlignment.Subscript, sheet.Cell(1, 4).GetStyle().VerticalTextAlignment);
     }
 
     [Fact]
@@ -729,14 +729,14 @@ public class HtmlTextFormattingConversionTests {
         Assert.Null(Assert.Single(word.Paragraphs).Underline);
 
         using ExcelDocument excelSource = ExcelDocument.Create();
-        excelSource.AddSheet("Text").CellAt(1, 1).SetRichText(
+        excelSource.AddSheet("Text").Cell(1, 1).SetRichText(
             new ExcelRichTextRun("Ex") { Bold = true },
             new ExcelRichTextRun("cel") { Italic = true });
         string excelHtml = excelSource.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile())
             .Replace("<span", "<span data-officeimo-excel-underline=\"999\"");
         using ExcelDocument excel = HtmlConversionDocument.Parse(excelHtml, HtmlConversionDocumentOptions.CreateTrustedProfile())
             .ToExcelDocumentResult().RequireValue();
-        Assert.All(Assert.Single(excel.Sheets).GetRichText(1, 1), run => Assert.Null(run.UnderlineStyle));
+        Assert.All(Assert.Single(excel.Sheets).Cell(1, 1).GetRichText(), run => Assert.Null(run.UnderlineStyle));
 
         using PowerPointDocument powerPointSource = PowerPointDocument.Create();
         powerPointSource.AddSlide().AddTextBox("PowerPoint");
@@ -760,7 +760,7 @@ public class HtmlTextFormattingConversionTests {
         Assert.EndsWith("'", quoted, StringComparison.Ordinal);
 
         using ExcelDocument excel = ExcelDocument.Create();
-        excel.AddSheet("Text").CellAt(1, 1).SetValue("Excel").SetFontName(hostile);
+        excel.AddSheet("Text").Cell(1, 1).SetValue("Excel").SetFontName(hostile);
         string excelHtml = excel.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
         Assert.Contains(OfficeHtmlText.EscapeAttribute(quoted), excelHtml, StringComparison.Ordinal);
 

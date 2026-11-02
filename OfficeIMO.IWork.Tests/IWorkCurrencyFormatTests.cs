@@ -28,7 +28,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.DoesNotContain(converted.Report.Diagnostics, d => d.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED");
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = global::OfficeIMO.Excel.ExcelDocument.Load(saved);
-        var cache = reopened.Sheets[0].CellAt(1, 1).GetValue();
+        var cache = reopened.Sheets[0].Cell(1, 1).GetValue();
         Assert.Equal(global::OfficeIMO.Excel.ExcelCellDataKind.Formula, cache.Kind);
         Assert.Equal(-0.5d, cache.Value);
         Assert.Equal("GBP (0.50)", Assert.Single(reopened.Sheets[0].Range("A1:A1").CreateVisualSnapshot().Cells).Text);

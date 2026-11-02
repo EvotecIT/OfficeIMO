@@ -104,7 +104,7 @@ public static partial class HtmlExcelConverterExtensions {
                 ReserveSpan(occupiedCells, cellRow, cellColumn, rowSpan, columnSpan);
 
                 string text = semanticCell?.Text ?? NormalizeText(cell.TextContent);
-                ExcelCell targetCell = sheet.CellAt(cellRow, cellColumn);
+                ExcelCell targetCell = sheet.Cell(cellRow, cellColumn);
                 bool stored = false;
                 bool preserveValue = false;
                 if (!(useSemanticValues && IsSemanticEmptyCell(cell))
@@ -126,7 +126,7 @@ public static partial class HtmlExcelConverterExtensions {
                 }
 
                 if (rowSpan > 1 || columnSpan > 1) {
-                    sheet.MergeRange(BuildRangeReference(cellRow, cellColumn, cellRow + rowSpan - 1, cellColumn + columnSpan - 1));
+                    sheet.Range(BuildRangeReference(cellRow, cellColumn, cellRow + rowSpan - 1, cellColumn + columnSpan - 1)).Merge();
                     result.MergedRanges++;
                 }
 

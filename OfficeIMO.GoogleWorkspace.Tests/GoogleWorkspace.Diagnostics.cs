@@ -96,8 +96,8 @@ namespace OfficeIMO.Tests {
             try {
                 using var document = ExcelDocument.Create(filePath);
                 var summary = document.AddSheet("Summary");
-                summary.CellValue(1, 1, "Name");
-                summary.CellValue(2, 1, "Alpha");
+                summary.Cell(1, 1).SetValue("Name");
+                summary.Cell(2, 1).SetValue("Alpha");
 
                 var entries = new List<GoogleWorkspaceDiagnosticEntry>();
                 int createAttempts = 0;
@@ -342,8 +342,8 @@ namespace OfficeIMO.Tests {
             try {
                 using var document = ExcelDocument.Create(filePath);
                 var summary = document.AddSheet("Summary");
-                summary.CellValue(1, 1, "Name");
-                summary.CellValue(2, 1, "Alpha");
+                summary.Cell(1, 1).SetValue("Name");
+                summary.Cell(2, 1).SetValue("Alpha");
 
                 var entries = new List<GoogleWorkspaceDiagnosticEntry>();
                 var session = new GoogleWorkspaceSession(
@@ -422,8 +422,8 @@ namespace OfficeIMO.Tests {
             try {
                 using var document = ExcelDocument.Create(filePath);
                 var summary = document.AddSheet("Summary");
-                summary.CellValue(1, 1, "Name");
-                summary.CellValue(2, 1, "Alpha");
+                summary.Cell(1, 1).SetValue("Name");
+                summary.Cell(2, 1).SetValue("Alpha");
 
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
                     if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets") {
@@ -467,8 +467,8 @@ namespace OfficeIMO.Tests {
             try {
                 using var document = ExcelDocument.Create(filePath);
                 var summary = document.AddSheet("Summary");
-                summary.CellValue(1, 1, "Name");
-                summary.CellValue(2, 1, "Alpha");
+                summary.Cell(1, 1).SetValue("Name");
+                summary.Cell(2, 1).SetValue("Alpha");
 
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
                     if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets") {

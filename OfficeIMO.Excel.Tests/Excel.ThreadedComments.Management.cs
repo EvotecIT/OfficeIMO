@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                     ExcelSheet sheet = document.AddSheet("Review");
-                    sheet.CellValue(2, 2, 1250d);
+                    sheet.Cell(2, 2).SetValue(1250d);
                     sheet.AddThreadedComment(new ExcelThreadedCommentOptions {
                         Address = "B2",
                         Text = "Please review.",

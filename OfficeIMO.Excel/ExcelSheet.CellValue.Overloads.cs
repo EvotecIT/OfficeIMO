@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
-        public void CellValue(int row, int column, string value) {
+        internal void CellValue(int row, int column, string value) {
             if (TrySetPendingDirectCell(row, column, ExcelBufferedCell.Text(value))) {
                 return;
             }
@@ -30,7 +30,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
-        public void CellValue(int row, int column, double value) {
+        internal void CellValue(int row, int column, double value) {
             if (TrySetPendingDirectCell(row, column, ExcelBufferedCell.Number(value))) {
                 return;
             }
@@ -53,7 +53,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
-        public void CellValue(int row, int column, float value) {
+        internal void CellValue(int row, int column, float value) {
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -76,7 +76,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
-        public void CellValue(int row, int column, decimal value) {
+        internal void CellValue(int row, int column, decimal value) {
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -99,7 +99,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
-        public void CellValue(int row, int column, int value) {
+        internal void CellValue(int row, int column, int value) {
             if (TrySetPendingDirectCell(row, column, ExcelBufferedCell.Int32(value))) {
                 return;
             }
@@ -122,7 +122,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
-        public void CellValue(int row, int column, long value) {
+        internal void CellValue(int row, int column, long value) {
             if (TrySetPendingDirectCell(row, column, ExcelBufferedCell.Int64(value))) {
                 return;
             }
@@ -145,7 +145,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
-        public void CellValue(int row, int column, short value) {
+        internal void CellValue(int row, int column, short value) {
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -168,7 +168,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
-        public void CellValue(int row, int column, DateTime value) {
+        internal void CellValue(int row, int column, DateTime value) {
             if (TrySetPendingDirectCell(row, column, ExcelBufferedCell.DateTimeCell(value))) {
                 return;
             }
@@ -191,7 +191,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
-        public void CellValue(int row, int column, DateTimeOffset value) {
+        internal void CellValue(int row, int column, DateTimeOffset value) {
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -215,7 +215,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
 #if NET6_0_OR_GREATER
-        public void CellValue(int row, int column, DateOnly value) {
+        internal void CellValue(int row, int column, DateOnly value) {
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -238,7 +238,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
-        public void CellValue(int row, int column, TimeOnly value) {
+        internal void CellValue(int row, int column, TimeOnly value) {
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -262,7 +262,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
 #endif
-        public void CellValue(int row, int column, TimeSpan value) {
+        internal void CellValue(int row, int column, TimeSpan value) {
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -285,7 +285,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
-        public void CellValue(int row, int column, uint value) {
+        internal void CellValue(int row, int column, uint value) {
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -308,7 +308,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
-        public void CellValue(int row, int column, ulong value) {
+        internal void CellValue(int row, int column, ulong value) {
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -331,7 +331,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
-        public void CellValue(int row, int column, ushort value) {
+        internal void CellValue(int row, int column, ushort value) {
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -354,7 +354,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
-        public void CellValue(int row, int column, byte value) {
+        internal void CellValue(int row, int column, byte value) {
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -377,7 +377,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
-        public void CellValue(int row, int column, sbyte value) {
+        internal void CellValue(int row, int column, sbyte value) {
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -400,7 +400,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
-        public void CellValue(int row, int column, bool value) {
+        internal void CellValue(int row, int column, bool value) {
             if (TrySetPendingDirectCell(row, column, ExcelBufferedCell.Boolean(value))) {
                 return;
             }
@@ -433,7 +433,7 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index.</param>
         /// <param name="column">The 1-based column index.</param>
         /// <param name="formula">The formula expression.</param>
-        public void CellFormula(int row, int column, string formula) {
+        internal void CellFormula(int row, int column, string formula) {
             if (TrySetPendingDirectCellFormula(row, column, formula)) {
                 return;
             }

@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
         private static void CreateSharedStringWorkbook(string filePath, string sharedStringItemsXml, string count, string uniqueCount) {
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "placeholder");
+                sheet.Cell(1, 1).SetValue("placeholder");
                 document.Save();
             }
 

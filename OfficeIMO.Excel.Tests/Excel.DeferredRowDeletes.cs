@@ -14,10 +14,10 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(stream)) {
                 ExcelSheet sheet = document.AddSheet("Data");
                 for (int row = 1; row <= 12; row++) {
-                    sheet.CellValue(row, 1, row * 10);
-                    sheet.CellFormula(row, 2, "SUM(A1:A" + row + ")+A" + row);
+                    sheet.Cell(row, 1).SetValue(row * 10);
+                    sheet.Cell(row, 2).SetFormula("SUM(A1:A" + row + ")+A" + row);
                 }
-                document.AddSheet("Other").CellValue(1, 1, "Kept");
+                document.AddSheet("Other").Cell(1, 1).SetValue("Kept");
                 document.Save(stream);
             }
             return stream.ToArray();
@@ -28,11 +28,11 @@ namespace OfficeIMO.Tests {
             yield return new object[] { "GetFormulaText", (Func<ExcelDocument, string>)(document => document.Sheets[0].GetFormulaText(9, 2) ?? "none") };
             yield return new object[] { "EnumerateCells", (Func<ExcelDocument, string>)(document => document.Sheets[0].EnumerateCells().Count().ToString()) };
             yield return new object[] { "GetFormulaCells", (Func<ExcelDocument, string>)(document => document.Sheets[0].GetFormulaCells().Last().Formula) };
-            yield return new object[] { "CellAt", (Func<ExcelDocument, string>)(document => document.Sheets[0].CellAt(9, 1).GetValue<double>().ToString(System.Globalization.CultureInfo.InvariantCulture)) };
+            yield return new object[] { "CellAt", (Func<ExcelDocument, string>)(document => document.Sheets[0].Cell(9, 1).GetValue<double>().ToString(System.Globalization.CultureInfo.InvariantCulture)) };
             yield return new object[] { "SheetsReopened", (Func<ExcelDocument, string>)(document => document.Sheets.First(sheet => sheet.Name == "Data").TryGetCellText(9, 1, out string text) ? text : "none") };
             yield return new object[] { "OpenXmlDocument", (Func<ExcelDocument, string>)(document => document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Sum(part => part.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Row>().Count()).ToString()) };
             yield return new object[] { "OtherSheetWrite", (Func<ExcelDocument, string>)(document => {
-                document.Sheets[1].CellValue(2, 1, "x");
+                document.Sheets[1].Cell(2, 1).SetValue("x");
                 return document.Sheets[0].TryGetCellText(9, 1, out string text) ? text : "none";
             }) };
             yield return new object[] { "Calculate", (Func<ExcelDocument, string>)(document => {
@@ -107,8 +107,8 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                for (int row = 1; row <= 6; row++) sheet.CellValue(row, 1, row);
-                sheet.CellFormula(8, 1, "SUM(A2:A5)+A3+A4");
+                for (int row = 1; row <= 6; row++) sheet.Cell(row, 1).SetValue(row);
+                sheet.Cell(8, 1).SetFormula("SUM(A2:A5)+A3+A4");
                 document.Save(stream);
             }
 

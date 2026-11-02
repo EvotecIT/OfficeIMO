@@ -135,6 +135,6 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(IWorkCellKind.Boolean, cell.Kind);
         Assert.Equal(expected, cell.Value);
         Assert.Equal(expected,
-            result.Value.Sheets[0].CellAt(1, 1).GetValue<bool>());
+            result.Value.Sheets[0].Cell(1, 1).GetValue<bool>());
     }
 }

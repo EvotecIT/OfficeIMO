@@ -72,8 +72,8 @@ public partial class HtmlOfficeAdapters {
 
         using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(bytes));
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
-        Assert.Equal("Safely managed water service level", sheet.CellAt(2, 1).GetValue<string>());
-        Assert.Contains("priority chemical contamination", sheet.CellAt(2, 2).GetValue<string>(), StringComparison.Ordinal);
+        Assert.Equal("Safely managed water service level", sheet.Cell(2, 1).GetValue<string>());
+        Assert.Contains("priority chemical contamination", sheet.Cell(2, 2).GetValue<string>(), StringComparison.Ordinal);
     }
 
     [Fact]

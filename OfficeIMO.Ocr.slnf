@@ -1,0 +1,15 @@
+{
+  "solution": {
+    "path": "OfficeIMO.slnx",
+    "projects": [
+      "OfficeIMO.Core\\OfficeIMO.Core.csproj",
+      "OfficeIMO.Ocr.Process\\OfficeIMO.Ocr.Process.csproj",
+      "OfficeIMO.Ocr.Tesseract\\OfficeIMO.Ocr.Tesseract.csproj",
+      "OfficeIMO.Ocr\\OfficeIMO.Ocr.csproj",
+      "OfficeIMO.Pdf.Ocr\\OfficeIMO.Pdf.Ocr.csproj",
+      "OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj",
+      "OfficeIMO.Reader.Core\\OfficeIMO.Reader.Core.csproj",
+      "OfficeIMO.Reader.Ocr\\OfficeIMO.Reader.Ocr.csproj"
+    ]
+  }
+}

@@ -1,15 +1,103 @@
 #nullable enable
+OfficeIMO.Excel.ExcelCell.Clear(OfficeIMO.Excel.ExcelClearOptions options = OfficeIMO.Excel.ExcelClearOptions.All) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.Currency(int decimals = 2, System.Globalization.CultureInfo? culture = null) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.Date(string! pattern = "yyyy-mm-dd") -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.DateTime(string! pattern = "yyyy-mm-dd hh:mm:ss") -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.DurationHours() -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.Equals(OfficeIMO.Excel.ExcelCell other) -> bool
+OfficeIMO.Excel.ExcelCell.Error() -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.ExcelCell() -> void
+OfficeIMO.Excel.ExcelCell.HeaderStyle() -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.Integer() -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.MutedText() -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.Number(int decimals = 2) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.Percent(int decimals = 0) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetBaseline() -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetBold(bool bold = true) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetBorder(OfficeIMO.Excel.ExcelBorderStyle style, string? hexColor = null) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetBorder(OfficeIMO.Excel.ExcelCellBorders borders, OfficeIMO.Excel.ExcelBorderStyle style, string? hexColor = null) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetDiagonalBorder(OfficeIMO.Excel.ExcelBorderStyle style, string? hexColor = null, bool diagonalUp = true, bool diagonalDown = true) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetError(string! errorText) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetFillColor(OfficeIMO.OfficeColor color) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetFillColor(string! hexColor) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetFontColor(string! hexColor) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetFontName(string! fontName) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetFontSize(OfficeIMO.OfficeLength fontSize) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetFormula(string! formula) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetGradientFill(string! fromHexColor, string! toHexColor, double degree = 0) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetHorizontalAlignment(OfficeIMO.Excel.ExcelHorizontalAlignment alignment) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetItalic(bool italic = true) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetNumberFormat(string! numberFormat) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetRichText(System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelRichTextRun!>! runs) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetRichText(params OfficeIMO.Excel.ExcelRichTextRun![]! runs) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetShrinkToFit(bool shrinkToFit = true) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetStrikethrough(bool strikethrough = true) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetSubscript() -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetSuperscript() -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetTextRotation(int rotation) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetUnderline(OfficeIMO.Excel.ExcelUnderlineStyle underlineStyle) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetUnderline(bool underline = true) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetValue(System.DateTime value) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetValue(System.DateTimeOffset value) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetValue(System.TimeSpan value) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetValue(bool value) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetValue(byte value) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetValue(decimal value) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetValue(double value) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetValue(float value) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetValue(int value) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetValue(long value) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetValue(object? value) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetValue(sbyte value) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetValue(short value) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetValue(string! value) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetValue(uint value) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetValue(ulong value) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetValue(ushort value) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetValue<T>(T? value) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetVerticalAlignment(OfficeIMO.Excel.ExcelVerticalAlignment alignment) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetVerticalTextAlignment(OfficeIMO.Excel.ExcelVerticalTextAlignment alignment) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetWrapText(bool wrapText = true) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.Success() -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.Text() -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.Time() -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.Warning() -> OfficeIMO.Excel.ExcelCell
 OfficeIMO.Excel.ExcelChart.ApplyDashboardPreset(OfficeIMO.Excel.ExcelDashboardChartPreset preset = OfficeIMO.Excel.ExcelDashboardChartPreset.Comparison, int? styleId = null, int? colorStyleId = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelDocument.GetNamedRange(string! name, OfficeIMO.Excel.ExcelSheet? scope = null) -> OfficeIMO.Excel.ExcelRange?
 OfficeIMO.Excel.ExcelDocument.SetNamedFormula(string! name, string! formula, OfficeIMO.Excel.ExcelSheet? scope = null, bool save = true, bool hidden = false, OfficeIMO.Excel.ExcelDefinedNameValidationMode validationMode = OfficeIMO.Excel.ExcelDefinedNameValidationMode.Sanitize) -> void
 OfficeIMO.Excel.ExcelDocumentMappingExtensions
+OfficeIMO.Excel.ExcelRange.Cell(int rowOffset, int columnOffset) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelRange.FirstCell.get -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelRange.SetBorder(OfficeIMO.Excel.ExcelBorderStyle style, string? hexColor = null) -> OfficeIMO.Excel.ExcelRange!
+OfficeIMO.Excel.ExcelRange.SetBorder(OfficeIMO.Excel.ExcelCellBorders borders, OfficeIMO.Excel.ExcelBorderStyle style, string? hexColor = null) -> OfficeIMO.Excel.ExcelRange!
+OfficeIMO.Excel.ExcelRange.SetDiagonalBorder(OfficeIMO.Excel.ExcelBorderStyle style, string? hexColor = null, bool diagonalUp = true, bool diagonalDown = true) -> OfficeIMO.Excel.ExcelRange!
+OfficeIMO.Excel.ExcelRange.SetFillColor(OfficeIMO.OfficeColor color) -> OfficeIMO.Excel.ExcelRange!
+OfficeIMO.Excel.ExcelRange.SetHorizontalAlignment(OfficeIMO.Excel.ExcelHorizontalAlignment alignment) -> OfficeIMO.Excel.ExcelRange!
+OfficeIMO.Excel.ExcelRange.SetVerticalAlignment(OfficeIMO.Excel.ExcelVerticalAlignment alignment) -> OfficeIMO.Excel.ExcelRange!
+OfficeIMO.Excel.ExcelRange.SetWrapText(bool wrapText = true) -> OfficeIMO.Excel.ExcelRange!
+OfficeIMO.Excel.ExcelSheet.Cell(int row, int column) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelSheet.Cell(string! reference) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelSheet.DeleteColumns(int firstColumn, int count = 1) -> void
+OfficeIMO.Excel.ExcelSheet.DeleteColumnsTransactional(int firstColumn, int count = 1, OfficeIMO.Excel.ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Excel.ExcelMutationResult!
 OfficeIMO.Excel.ExcelSheet.Document.get -> OfficeIMO.Excel.ExcelDocument!
+OfficeIMO.Excel.ExcelSheet.GetNamedRange(string! name) -> OfficeIMO.Excel.ExcelRange?
+OfficeIMO.Excel.ExcelSheet.InsertColumns(int firstColumn, int count = 1) -> void
+OfficeIMO.Excel.ExcelSheet.InsertColumnsTransactional(int firstColumn, int count = 1, OfficeIMO.Excel.ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Excel.ExcelMutationResult!
+OfficeIMO.Excel.ExcelSheet.Range(int firstRow, int firstColumn, int lastRow, int lastColumn) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelSheet.SetFooter(string? left = null, string? center = null, string? right = null, bool? differentFirstPage = null, bool? differentOddEven = null, bool? alignWithMargins = null, bool? scaleWithDocument = null) -> void
 OfficeIMO.Excel.ExcelSheet.SetHeader(string? left = null, string? center = null, string? right = null, bool? differentFirstPage = null, bool? differentOddEven = null, bool? alignWithMargins = null, bool? scaleWithDocument = null) -> void
 OfficeIMO.Excel.ExcelSheet.SetNamedFormula(string! name, string! formula, bool save = true, bool hidden = false, OfficeIMO.Excel.ExcelDefinedNameValidationMode validationMode = OfficeIMO.Excel.ExcelDefinedNameValidationMode.Sanitize) -> void
 OfficeIMO.Excel.ExcelSheet.SetTabColor(OfficeIMO.OfficeColor color) -> void
+OfficeIMO.Excel.ExcelSheet.SetValues(System.Collections.Generic.IEnumerable<(int Row, int Column, object! Value)>! cells, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> void
+OfficeIMO.Excel.ExcelSheet.UsedRange.get -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.MaxNames.get -> int
 OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.MaxNames.set -> void
 OfficeIMO.Excel.ExcelWorkbookMergeOptions.Clone() -> OfficeIMO.Excel.ExcelWorkbookMergeOptions!
+override OfficeIMO.Excel.ExcelCell.Equals(object? obj) -> bool
+override OfficeIMO.Excel.ExcelCell.GetHashCode() -> int
+static OfficeIMO.Excel.ExcelCell.operator !=(OfficeIMO.Excel.ExcelCell left, OfficeIMO.Excel.ExcelCell right) -> bool
+static OfficeIMO.Excel.ExcelCell.operator ==(OfficeIMO.Excel.ExcelCell left, OfficeIMO.Excel.ExcelCell right) -> bool
 static OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAs<T>(this OfficeIMO.Excel.ExcelDocument! document, OfficeIMO.Excel.ExcelReaderOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<T>!
 static OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAs<T>(this OfficeIMO.Excel.ExcelDocument! document, System.Action<OfficeIMO.Data.RowMapper<T>!>! configure, OfficeIMO.Excel.ExcelReaderOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<T>!
 static OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAs<T>(this OfficeIMO.Excel.ExcelDocument! document, System.Func<System.Data.IDataRecord!, T>! factory, OfficeIMO.Excel.ExcelReaderOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<T>!

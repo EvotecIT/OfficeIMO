@@ -614,7 +614,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                                 ? cellRun.WithInheritedStyle(OdsSheet.GetDefaultCellStyleName(rowRun, column, columnRuns))
                                 : cellRun;
                             int excelColumn = checked((int)column + 1);
-                            ExcelCell converted = sheet.CellAt(excelRow, excelColumn);
+                            ExcelCell converted = sheet.Cell(excelRow, excelColumn);
                             ExcelValueProjectionStatus valueStatus = SetExcelValue(converted, cellRun.Value);
                             if (valueStatus == ExcelValueProjectionStatus.Invalid) invalidValues++;
                             else if (valueStatus == ExcelValueProjectionStatus.TimeZoneNormalized) normalizedDateTimeOffsets++;
@@ -705,7 +705,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                                     string start = SpreadsheetAddressConverter.ToA1(excelRow, excelColumn);
                                     string end = SpreadsheetAddressConverter.ToA1(
                                         checked((int)mergeLastRow), checked((int)mergeLastColumn));
-                                    sheet.MergeRange(start + ":" + end);
+                                    sheet.Range(start + ":" + end).Merge();
                                     merges++;
                                 } else truncated = true;
                             }

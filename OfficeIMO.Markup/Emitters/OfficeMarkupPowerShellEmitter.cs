@@ -400,7 +400,7 @@ public sealed class OfficeMarkupPowerShellEmitter {
                     for (int row = 0; row < range.Values.Count; row++) {
                         var values = range.Values[row];
                         for (int column = 0; column < values.Count; column++) {
-                            sb.AppendLine($"{rangeWorksheetExpression}.Cell({startRow + row}, {startColumn + column}, {PsString(values[column])})");
+                            sb.AppendLine($"{rangeWorksheetExpression}.Cell({startRow + row}, {startColumn + column}).SetValue({PsString(values[column])})");
                         }
                     }
 
@@ -408,7 +408,7 @@ public sealed class OfficeMarkupPowerShellEmitter {
                 case OfficeMarkupFormulaBlock formula:
                     var (formulaWorksheetExpression, formulaCell) = ResolveWorkbookTarget(formula.Sheet, formula.Cell);
                     if (TryParseCellAddress(formulaCell, out var formulaRow, out var formulaColumn)) {
-                        sb.AppendLine($"{formulaWorksheetExpression}.CellFormula({formulaRow}, {formulaColumn}, {PsString(formula.Expression)})");
+                        sb.AppendLine($"{formulaWorksheetExpression}.Cell({formulaRow}, {formulaColumn}).SetFormula({PsString(formula.Expression)})");
                     } else {
                         sb.AppendLine($"# TODO: formula target {PsString(formulaCell)} could not be parsed; apply {PsString(formula.Expression)} manually.");
                     }
@@ -472,48 +472,49 @@ public sealed class OfficeMarkupPowerShellEmitter {
         var border = GetAttribute(formatting.Attributes, "border", "border-style", "borderStyle");
         var borderColor = GetAttribute(formatting.Attributes, "border-color", "borderColor", "line-color", "lineColor");
 
-        foreach (var (row, column) in cells) {
+        string subject = OfficeMarkupCSharpEmitter.FormattingSubject(worksheetExpression, cells, PsString);
+        {
             if (!string.IsNullOrWhiteSpace(formatting.NumberFormat)) {
-                sb.AppendLine($"{worksheetExpression}.FormatCell({row}, {column}, {PsString(formatting.NumberFormat!)})");
+                sb.AppendLine($"{subject}.SetNumberFormat({PsString(formatting.NumberFormat!)})");
             }
 
             if (!string.IsNullOrWhiteSpace(fill)) {
-                sb.AppendLine($"{worksheetExpression}.CellBackground({row}, {column}, {PsString(fill!)})");
+                sb.AppendLine($"{subject}.SetFillColor({PsString(fill!)})");
             }
 
             if (!string.IsNullOrWhiteSpace(fontColor)) {
-                sb.AppendLine($"{worksheetExpression}.CellFontColor({row}, {column}, {PsString(fontColor!)})");
+                sb.AppendLine($"{subject}.SetFontColor({PsString(fontColor!)})");
             }
 
             if (!string.IsNullOrWhiteSpace(bold) && IsTruthy(bold!)) {
-                sb.AppendLine($"{worksheetExpression}.CellBold({row}, {column}, $true)");
+                sb.AppendLine($"{subject}.SetBold()");
             }
 
             if (!string.IsNullOrWhiteSpace(italic) && IsTruthy(italic!)) {
-                sb.AppendLine($"{worksheetExpression}.CellItalic({row}, {column}, $true)");
+                sb.AppendLine($"{subject}.SetItalic()");
             }
 
             if (!string.IsNullOrWhiteSpace(underline) && IsTruthy(underline!)) {
-                sb.AppendLine($"{worksheetExpression}.CellUnderline({row}, {column}, $true)");
+                sb.AppendLine($"{subject}.SetUnderline()");
             }
 
             if (TryGetHorizontalAlignmentIdentifier(alignment, out var alignmentIdentifier)) {
-                sb.AppendLine($"{worksheetExpression}.CellAlign({row}, {column}, {PsString(alignmentIdentifier)})");
+                sb.AppendLine($"{subject}.SetHorizontalAlignment({PsString(alignmentIdentifier)})");
             }
 
             if (TryGetVerticalAlignmentIdentifier(verticalAlignment, out var verticalAlignmentIdentifier)) {
-                sb.AppendLine($"{worksheetExpression}.CellVerticalAlign({row}, {column}, {PsString(verticalAlignmentIdentifier)})");
+                sb.AppendLine($"{subject}.SetVerticalAlignment({PsString(verticalAlignmentIdentifier)})");
             }
 
             if (!string.IsNullOrWhiteSpace(wrap) && IsTruthy(wrap!)) {
-                sb.AppendLine($"{worksheetExpression}.WrapCells({row}, {row}, {column})");
+                sb.AppendLine($"{subject}.SetWrapText()");
             }
 
             if (TryGetBorderStyleIdentifier(border, out var borderStyleIdentifier)) {
                 var borderColorArgument = !string.IsNullOrWhiteSpace(borderColor)
                     ? $", {PsString(borderColor!)}"
                     : string.Empty;
-                sb.AppendLine($"{worksheetExpression}.CellBorder({row}, {column}, {PsString(borderStyleIdentifier)}{borderColorArgument})");
+                sb.AppendLine($"{subject}.SetBorder({PsString(borderStyleIdentifier)}{borderColorArgument})");
             }
         }
     }

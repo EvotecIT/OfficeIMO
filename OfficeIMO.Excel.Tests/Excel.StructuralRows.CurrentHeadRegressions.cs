@@ -16,14 +16,14 @@ namespace OfficeIMO.Tests
         public void Test_StructuralRows_PreservesOutOfGridNamesStructuredReferencesAndExternalTargets() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("A3 Total");
-            sheet.CellAt(2, 1).SetValue(10);
+            sheet.Cell(1, 1).SetValue("A3 Total");
+            sheet.Cell(2, 1).SetValue(10);
             sheet.AddTable(
                 "A1:A2",
                 hasHeader: true,
                 name: "Table1",
                 OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
-            sheet.CellFormula(1, 3, "A1048577+SUM(Table1[A3 Total])");
+            sheet.Cell(1, 3).SetFormula("A1048577+SUM(Table1[A3 Total])");
             sheet.SetHyperlink(2, 1, "https://example.org/book.xlsx", display: "External");
             Hyperlink hyperlink = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Hyperlink>());
             hyperlink.Location = $"Data!A{ExcelA1.MaxRows}";
@@ -39,8 +39,8 @@ namespace OfficeIMO.Tests
         public void Test_StructuralRows_RemapsOffice2010DataValidationTargetsAndFormulas() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(2, 1).SetValue(1);
-            sheet.CellAt(3, 1).SetValue(2);
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(3, 1).SetValue(2);
 
             var validation = new X14.DataValidation(
                 new X14.DataValidationForumla1(new Xm.Formula("A2>0")),
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
             document.AddSheet("Other");
-            sheet.CellAt(2, 1).SetValue(1);
+            sheet.Cell(2, 1).SetValue(1);
 
             var validation = new DataValidation(
                 new Formula1("Other!A2+SUM(Other!B2:B3)+SUM(Other!2:3)>0"),
@@ -91,8 +91,8 @@ namespace OfficeIMO.Tests
         public void Test_StructuralRows_RemapsStandardAndOffice2010IgnoredErrors() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(5, 1).SetValue("1");
-            sheet.CellAt(6, 1).SetValue("2");
+            sheet.Cell(5, 1).SetValue("1");
+            sheet.Cell(6, 1).SetValue("2");
 
             var standardError = new IgnoredError {
                 SequenceOfReferences = new ListValue<StringValue> { InnerText = "A5:A6" },
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
             document.AddSheet("Other");
-            sheet.CellAt(2, 1).SetValue(1);
+            sheet.Cell(2, 1).SetValue(1);
 
             var rule = new X14.ConditionalFormattingRule(
                 new Xm.Formula("A2>0"),
@@ -163,14 +163,14 @@ namespace OfficeIMO.Tests
         public void Test_StructuralRows_RejectsFormControlsBeforeMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(2, 1).SetValue("Keep");
+            sheet.Cell(2, 1).SetValue("Keep");
             sheet.WorksheetPart.Worksheet.Append(new Controls());
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                 () => sheet.InsertRows(2));
 
             Assert.Contains("form controls", exception.Message, System.StringComparison.OrdinalIgnoreCase);
-            Assert.Equal("Keep", sheet.CellAt(2, 1).GetValue<string>());
+            Assert.Equal("Keep", sheet.Cell(2, 1).GetValue<string>());
         }
 
         [Fact]
@@ -178,10 +178,10 @@ namespace OfficeIMO.Tests
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet first = document.AddSheet("First");
             ExcelSheet second = document.AddSheet("Second");
-            first.CellAt(2, 1).SetValue(1);
-            first.CellAt(3, 1).SetValue(2);
-            second.CellAt(2, 1).SetValue(1);
-            second.CellAt(3, 1).SetValue(2);
+            first.Cell(2, 1).SetValue(1);
+            first.Cell(3, 1).SetValue(2);
+            second.Cell(2, 1).SetValue(1);
+            second.Cell(3, 1).SetValue(2);
 
             AppendSharedFormulaGroup(first, sharedIndex: 31U, anchorReference: "B2:B3");
             AppendSharedFormulaGroup(second, sharedIndex: 32U, anchorReference: "B2:B2");
@@ -201,12 +201,12 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Region");
-            sheet.CellAt(1, 2).SetValue("Sales");
-            sheet.CellAt(2, 1).SetValue("East");
-            sheet.CellAt(2, 2).SetValue(10);
-            sheet.CellAt(3, 1).SetValue("West");
-            sheet.CellAt(3, 2).SetValue(20);
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Sales");
+            sheet.Cell(2, 1).SetValue("East");
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(3, 1).SetValue("West");
+            sheet.Cell(3, 2).SetValue(20);
             sheet.AddTable("A1:B3", hasHeader: true, name: "PivotSourceData", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             sheet.AddPivotTable("A1:B3", "E10", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             PivotTablePart pivotPart = Assert.Single(sheet.WorksheetPart.PivotTableParts);

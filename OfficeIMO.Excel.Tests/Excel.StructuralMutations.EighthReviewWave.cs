@@ -20,11 +20,11 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create();
             ExcelSheet data = document.AddSheet("Data");
             ExcelSheet summary = document.AddSheet("Summary");
-            data.CellValue(1, 1, 1);
-            data.CellValue(1, 2, 2);
-            data.CellValue(2, 1, 3);
-            data.CellValue(2, 2, 4);
-            summary.CellFormula(1, 1, "SUM(Data!A1:B2)");
+            data.Cell(1, 1).SetValue(1);
+            data.Cell(1, 2).SetValue(2);
+            data.Cell(2, 1).SetValue(3);
+            data.Cell(2, 2).SetValue(4);
+            summary.Cell(1, 1).SetFormula("SUM(Data!A1:B2)");
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => {
                 if (inserting) data.PlanInsertCells("A1", direction);
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             VmlDrawingPart vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
             int[] before = ReadCommentVmlAnchor(vmlPart);
 
-            sheet.MoveRange("A1", "B1");
+            sheet.Range("A1").MoveTo("B1");
 
             Assert.False(sheet.HasComment(1, 1));
             Assert.True(sheet.HasComment(1, 2));
@@ -86,17 +86,17 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create();
             ExcelSheet data = document.AddSheet("Data");
             ExcelSheet summary = document.AddSheet("Summary");
-            data.CellValue(2, 2, "Target");
+            data.Cell(2, 2).SetValue("Target");
             var hyperlink = new Hyperlink { Reference = "D1", Location = "Data!B2" };
             summary.WorksheetPart.Worksheet.Append(new Hyperlinks(hyperlink));
 
-            data.InsertColumns(2);
+            data.InsertColumnsTransactional(2);
             Assert.Equal("Data!C2", hyperlink.Location!.Value);
 
             data.InsertCells("C2", ExcelCellShiftDirection.Down);
             Assert.Equal("Data!C3", hyperlink.Location!.Value);
 
-            data.MoveRange("C3", "E5");
+            data.Range("C3").MoveTo("E5");
             Assert.Equal("Data!E5", hyperlink.Location!.Value);
         }
 
@@ -106,14 +106,14 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Data");
             Xnsv.NsvFilter filter = AddNamedSheetViewFilter(sheet, "A1:C10");
 
-            sheet.DeleteColumns(3);
+            sheet.DeleteColumnsTransactional(3);
             Assert.Equal("A1:B10", filter.Ref!.Value);
 
             filter.Ref = "A1:A10";
             sheet.InsertCells("A1", ExcelCellShiftDirection.Down);
             Assert.Equal("A2:A11", filter.Ref!.Value);
 
-            sheet.MoveRange("A2:A11", "C2");
+            sheet.Range("A2:A11").MoveTo("C2");
             Assert.Equal("C2:C11", filter.Ref!.Value);
         }
 
@@ -123,8 +123,8 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaInspection_HonorsPackageRecalculationFlags(bool workbookLevel) {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, 1);
-            sheet.CellFormula(1, 2, "A1*2");
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(1, 2).SetFormula("A1*2");
             Cell formulaCell = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "B1");
             formulaCell.CellValue = new CellValue("2");

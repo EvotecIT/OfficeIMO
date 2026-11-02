@@ -62,9 +62,9 @@ public sealed partial class StudioIWorkConversionTests {
             } else {
                 using var saved = OfficeIMO.Excel.ExcelDocument.Load(job.OutputPath!);
                 var sheet = Assert.Single(saved.Sheets);
-                Assert.Equal("a", sheet.CellAt(1, 1).GetValue<string>());
-                Assert.Equal(2d, sheet.CellAt(2, 2).GetValue<double>());
-                Assert.Equal("Z", sheet.CellAt(3, 3).GetValue<string>());
+                Assert.Equal("a", sheet.Cell(1, 1).GetValue<string>());
+                Assert.Equal(2d, sheet.Cell(2, 2).GetValue<double>());
+                Assert.Equal("Z", sheet.Cell(3, 3).GetValue<string>());
             }
             Assert.True(job.HasConversionEvidence);
             var facts = job.ConversionEvidence!.Facts;

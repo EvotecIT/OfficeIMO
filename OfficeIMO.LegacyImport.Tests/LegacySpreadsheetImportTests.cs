@@ -47,7 +47,7 @@ public sealed class LegacySpreadsheetImportTests {
         var formulaCell = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 3);
         Assert.Equal("($A$1+$B$1)", formulaCell.Formula);
         Assert.Equal(84d, Convert.ToDouble(formulaCell.Value));
-        Assert.Equal("84", imported.Value.Sheets[0].CellAt(1, 3).GetValue().CachedText);
+        Assert.Equal("84", imported.Value.Sheets[0].Cell(1, 3).GetValue().CachedText);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public sealed class LegacySpreadsheetImportTests {
 
         LegacySpreadsheetCellContent blank = Assert.Single(imported.Cells, cell => cell.Row == 1 && cell.Column == 4);
         Assert.Null(blank.CachedValue);
-        Assert.Null(imported.Value.Sheets[0].CellAt(1, 4).GetValue().Value);
+        Assert.Null(imported.Value.Sheets[0].Cell(1, 4).GetValue().Value);
     }
 
     [Fact]
@@ -517,7 +517,7 @@ public sealed class LegacySpreadsheetImportTests {
         Assert.Equal(32_767, value.Length);
         Assert.Equal("1", imported.Metadata["TruncatedSalvageCellCount"]);
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "legacy-sheet-cell-text-truncated");
-        Assert.Equal(value, imported.Value.Sheets[0].CellAt(1, 1).GetValue().CachedText);
+        Assert.Equal(value, imported.Value.Sheets[0].Cell(1, 1).GetValue().CachedText);
     }
 
     [Fact]

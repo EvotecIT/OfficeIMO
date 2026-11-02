@@ -13,10 +13,10 @@ using OfficeIMO.GoogleWorkspace;
 
 using ExcelDocument workbook = ExcelDocument.Create();
 var summary = workbook.AddSheet("Summary");
-summary.CellValue(1, 1, "Quarter");
-summary.CellValue(1, 2, "Revenue");
-summary.CellValue(2, 1, "Q1");
-summary.CellValue(2, 2, 125000);
+summary.Cell(1, 1).SetValue("Quarter");
+summary.Cell(1, 2).SetValue("Revenue");
+summary.Cell(2, 1).SetValue("Q1");
+summary.Cell(2, 2).SetValue(125000);
 
 var options = new GoogleSheetsSaveOptions { Title = "Quarterly revenue" };
 options.Identity.WriteDeveloperMetadata = true;

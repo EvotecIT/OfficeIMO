@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index.</param>
         /// <param name="column">The 1-based column index.</param>
         /// <param name="value">The value to assign.</param>
-        public void CellValue(int row, int column, object? value) {
+        internal void CellValue(int row, int column, object? value) {
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index.</param>
         /// <param name="column">The 1-based column index.</param>
         /// <param name="value">The nullable value to assign.</param>
-        public void CellValue<T>(int row, int column, T? value) where T : struct {
+        internal void CellValue<T>(int row, int column, T? value) where T : struct {
             if (TrySetPendingDirectCellValue(row, column, value.HasValue ? value.Value : null)) {
                 return;
             }

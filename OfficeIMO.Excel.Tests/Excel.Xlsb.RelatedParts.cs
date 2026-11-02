@@ -22,7 +22,7 @@ public sealed class ExcelXlsbRelatedPartsTests {
         Assert.Equal(4, document.WorkbookPartRoot.ChartsheetParts.Count());
         Assert.True(document.HasMacros);
         Assert.Contains(document.ReadVbaProject()!.Modules, item => item.Name == "PreservationNotes");
-        document.Sheets[0].CellValue(1, 1, "Edited inert preservation value");
+        document.Sheets[0].Cell(1, 1).SetValue("Edited inert preservation value");
         using var destination = new MemoryStream();
         if (asynchronous) await document.SaveAsync(destination, ExcelFileFormat.Xlsb);
         else document.Save(destination, ExcelFileFormat.Xlsb);
@@ -34,7 +34,7 @@ public sealed class ExcelXlsbRelatedPartsTests {
             Assert.Equal(Read(entry), Read(after.GetEntry(entry.FullName)!));
         Assert.NotEqual(Read(before.GetEntry("xl/worksheets/sheet1.bin")!), Read(after.GetEntry("xl/worksheets/sheet1.bin")!));
         using var reloaded = ExcelDocument.Load(new MemoryStream(saved));
-        Assert.Equal("Edited inert preservation value", reloaded.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Edited inert preservation value", reloaded.Sheets[0].Cell(1, 1).GetValue<string>());
         Assert.Equal(4, reloaded.WorkbookPartRoot.ChartsheetParts.Count());
         Assert.True(reloaded.HasMacros);
         Assert.Equal(saved, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
@@ -63,7 +63,7 @@ public sealed class ExcelXlsbRelatedPartsTests {
         cell.CellFormula = null; cell.CellValue = null; cell.InlineString = new InlineString(new Text("Direct DOM edit"));
         byte[] saved = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         using var reloaded = ExcelDocument.Load(new MemoryStream(saved));
-        Assert.Equal("Direct DOM edit", reloaded.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Direct DOM edit", reloaded.Sheets[0].Cell(1, 1).GetValue<string>());
     }
 
     [Fact]

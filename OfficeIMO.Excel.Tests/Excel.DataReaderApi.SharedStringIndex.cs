@@ -129,8 +129,8 @@ public partial class Excel {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.IndexedSst.{Guid.NewGuid():N}.xlsx");
         using (var document = ExcelDocument.Create(path)) {
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Header");
-            sheet.CellValue(2, 1, "Ready");
+            sheet.Cell(1, 1).SetValue("Header");
+            sheet.Cell(2, 1).SetValue("Ready");
             document.Save();
         }
         string count = declaredCount ?? (fillerCount + 3).ToString(System.Globalization.CultureInfo.InvariantCulture);

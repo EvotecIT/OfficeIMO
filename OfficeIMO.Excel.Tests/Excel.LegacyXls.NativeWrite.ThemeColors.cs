@@ -14,8 +14,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("ThemeStyles");
-                    sheet.CellValue(1, 1, "Theme styled");
-                    sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
+                    sheet.Cell(1, 1).SetValue("Theme styled");
+                    sheet.Cell(1, 1).SetFillColor("#ABCDEF");
 
                     Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single();
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(workbook.TryResolveColor(cellFormat.Border!.TopColorIndex, out string? topBorderColor));
                 Assert.Equal("FFE3915E", topBorderColor);
 
-                ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
+                ExcelCellStyleInfo projectedStyle = result.Document.Sheets[0].Cell(1, 1).GetStyle();
                 Assert.Equal("FF1D378A", projectedStyle.FontColorArgb);
                 Assert.Equal("FF5774A4", projectedStyle.FillColorArgb);
                 Assert.NotNull(projectedStyle.Border);

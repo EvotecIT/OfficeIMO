@@ -95,17 +95,17 @@ namespace OfficeIMO.Tests
                 if (oracleCase.GetProperty("date1904").GetBoolean())
                     document.DateSystem = ExcelDateSystem.NineteenFour;
                 var source = document.AddSheet("Source");
-                source.CellValue(1, 1, "OrderDate");
-                source.CellValue(1, 2, "Sales");
+                source.Cell(1, 1).SetValue("OrderDate");
+                source.Cell(1, 2).SetValue("Sales");
                 for (int index = 0; index < sourceDates.Length; index++)
                 {
                     int row = index + 2;
-                    source.CellValue(row, 1, sourceDates[index]);
-                    source.CellAt(row, 1).DateTime("yyyy-mm-dd hh:mm");
-                    source.CellValue(row, 2, (double)(index + 1));
+                    source.Cell(row, 1).SetValue(sourceDates[index]);
+                    source.Cell(row, 1).DateTime("yyyy-mm-dd hh:mm");
+                    source.Cell(row, 2).SetValue((double)(index + 1));
                 }
 
-                source.CellValue(sourceDates.Length + 2, 2, 1000d);
+                source.Cell(sourceDates.Length + 2, 2).SetValue(1000d);
                 {
                     var pivotOptions1 = new ExcelPivotTableOptions();
                     pivotOptions1.RowFields.Add("OrderDate");

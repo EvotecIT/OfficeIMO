@@ -126,7 +126,7 @@ public sealed class ReaderNativeLeanProjectionTests {
             using WordDocument ordinary = WordDocument.Load(new MemoryStream(source, writable: false));
             Assert.Contains(ordinary.Paragraphs, paragraph => paragraph.Text == "Legacy body");
         } else if (format == "excel") {
-            using ExcelDocument document = ExcelDocument.Create(); document.AddSheet("Legacy").CellValue(1, 1, "Legacy body");
+            using ExcelDocument document = ExcelDocument.Create(); document.AddSheet("Legacy").Cell(1, 1).SetValue("Legacy body");
             source = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
             using var input = new MemoryStream(source, writable: false);
             Assert.Throws<NotSupportedException>(() => ExcelDocument.Load(input, new ExcelLoadOptions { AllowBinaryProjection = false }));
@@ -216,7 +216,7 @@ public sealed class ReaderNativeLeanProjectionTests {
 
     [Fact]
     public void XmlOnlyExcelLoadRefusesXlsbBeforeProjection() {
-        using ExcelDocument source = ExcelDocument.Create(); source.AddSheet("Binary").CellValue(1, 1, "Saved value");
+        using ExcelDocument source = ExcelDocument.Create(); source.AddSheet("Binary").Cell(1, 1).SetValue("Saved value");
         byte[] bytes = source.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         using var input = new MemoryStream(bytes, writable: false);
         Assert.Throws<NotSupportedException>(() => ExcelDocument.Load(input, new ExcelLoadOptions { AllowBinaryProjection = false }));
@@ -258,7 +258,7 @@ public sealed class ReaderNativeLeanProjectionTests {
         }
         if (format == "excel") {
             using ExcelDocument document = ExcelDocument.Create();
-            var sheet = document.AddSheet("Evidence"); sheet.CellValue(1, 1, "Header"); sheet.CellValue(2, 1, "Body evidence");
+            var sheet = document.AddSheet("Evidence"); sheet.Cell(1, 1).SetValue("Header"); sheet.Cell(2, 1).SetValue("Body evidence");
             sheet.AddImage(1, 1, Pixel, new OfficeIMO.Excel.ExcelImageOptions { Width = OfficeIMO.OfficeLength.Pixels(1), Height = OfficeIMO.OfficeLength.Pixels(1) });
             return document.ToBytes();
         }

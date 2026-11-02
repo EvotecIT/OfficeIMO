@@ -223,13 +223,13 @@ namespace OfficeIMO.Tests
         private static string CreateDesktopExcelValuesWorkbook(string filePath) {
             using var document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Values");
-            sheet.CellValue(1, 1, "Name");
-            sheet.CellValue(1, 2, "Amount");
-            sheet.CellValue(2, 1, "Alpha");
-            sheet.CellValue(2, 2, 10d);
-            sheet.CellValue(3, 1, "Beta");
-            sheet.CellValue(3, 2, 20.5d);
-            sheet.CellFormula(4, 2, "SUM(B2:B3)");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue("Alpha");
+            sheet.Cell(2, 2).SetValue(10d);
+            sheet.Cell(3, 1).SetValue("Beta");
+            sheet.Cell(3, 2).SetValue(20.5d);
+            sheet.Cell(4, 2).SetFormula("SUM(B2:B3)");
             sheet.Range("A1:B1").HeaderStyle();
             document.Save();
             return filePath;
@@ -238,12 +238,12 @@ namespace OfficeIMO.Tests
         private static string CreateDesktopExcelTableWorkbook(string filePath) {
             using var document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "Score");
-            sheet.CellValue(2, 1, "North");
-            sheet.CellValue(2, 2, 80d);
-            sheet.CellValue(3, 1, "South");
-            sheet.CellValue(3, 2, 95d);
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Score");
+            sheet.Cell(2, 1).SetValue("North");
+            sheet.Cell(2, 2).SetValue(80d);
+            sheet.Cell(3, 1).SetValue("South");
+            sheet.Cell(3, 2).SetValue(95d);
             sheet.AddTable("A1:B3", true, "ScoresTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
             sheet.AddAutoFilter("A1:B3", new Dictionary<uint, IEnumerable<string>> {
                 { 0, new[] { "North", "South" } }
@@ -256,9 +256,9 @@ namespace OfficeIMO.Tests
         private static string CreateDesktopExcelFormattingWorkbook(string filePath) {
             using var document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Formatting");
-            sheet.CellValue(1, 1, "Score");
-            sheet.CellValue(2, 1, 42d);
-            sheet.CellValue(3, 1, 87d);
+            sheet.Cell(1, 1).SetValue("Score");
+            sheet.Cell(2, 1).SetValue(42d);
+            sheet.Cell(3, 1).SetValue(87d);
             sheet.AddConditionalColorScale("A2:A3", OfficeColor.Red, OfficeColor.Lime);
             sheet.AddConditionalDataBar("A2:A3", OfficeColor.Blue);
             sheet.AddConditionalRule("A2:A3", ExcelConditionalFormattingOperator.GreaterThan, "50");
@@ -290,14 +290,14 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Dashboard");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Revenue");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 10d);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 16d);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 13d);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Revenue");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(10d);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(16d);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(13d);
             sheet.AddTable("A1:B4", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
             sheet.AddRevenueTrendChart("A1:B4", row: 1, column: 5);
             sheet.AddTopNBarChart("A1:B4", row: 18, column: 5, title: "Top Revenue");
@@ -337,13 +337,13 @@ namespace OfficeIMO.Tests
         }
 
         private static void WriteDesktopPivotSource(ExcelSheet sheet, int dataRows) {
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "Date");
-            sheet.CellValue(1, 3, "Sales");
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Date");
+            sheet.Cell(1, 3).SetValue("Sales");
             for (int index = 0; index < dataRows; index++) {
-                sheet.CellValue(index + 2, 1, index % 2 == 0 ? "East" : "West");
-                sheet.CellValue(index + 2, 2, new DateTime(2026, index + 1, 1));
-                sheet.CellValue(index + 2, 3, (index + 1) * 100d);
+                sheet.Cell(index + 2, 1).SetValue(index % 2 == 0 ? "East" : "West");
+                sheet.Cell(index + 2, 2).SetValue(new DateTime(2026, index + 1, 1));
+                sheet.Cell(index + 2, 3).SetValue((index + 1) * 100d);
             }
         }
     }

@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
 
             /// <summary>Writes a section header cell using the current theme's section style.</summary>
             public ColumnComposer Section(string text) {
-                _sheet.Cell(_row, _baseCol, text);
+                _sheet.Cell(_row, _baseCol).SetValue(text);
                 _sheet.CellBold(_row, _baseCol, true);
                 _sheet.CellBackground(_row, _baseCol, _theme.SectionHeaderFillHex);
                 if (_baseCol > 0) _maxColUsed = Math.Max(_maxColUsed, _baseCol);
@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
 
             /// <summary>Writes a single paragraph cell and advances the row.</summary>
             public ColumnComposer Paragraph(string text) {
-                if (!string.IsNullOrEmpty(text)) { _sheet.Cell(_row, _baseCol, text); _row++; }
+                if (!string.IsNullOrEmpty(text)) { _sheet.Cell(_row, _baseCol).SetValue(text); _row++; }
                 if (_baseCol > 0) _maxColUsed = Math.Max(_maxColUsed, _baseCol);
                 return this;
             }
@@ -54,17 +54,17 @@ namespace OfficeIMO.Excel {
             /// <summary>Writes a bullet for each item (• text) in this column.</summary>
             public ColumnComposer BulletedList(IEnumerable<string> items) {
                 if (items == null) return this;
-                foreach (var item in items) { _sheet.Cell(_row, _baseCol, $"• {item}"); _row++; }
+                foreach (var item in items) { _sheet.Cell(_row, _baseCol).SetValue($"• {item}"); _row++; }
                 if (_baseCol > 0) _maxColUsed = Math.Max(_maxColUsed, _baseCol);
                 return this;
             }
 
             /// <summary>Writes a two-column key/value row with styled key cell.</summary>
             public ColumnComposer KeyValue(string key, object? value) {
-                _sheet.Cell(_row, _baseCol, key);
+                _sheet.Cell(_row, _baseCol).SetValue(key);
                 _sheet.CellBold(_row, _baseCol, true);
                 _sheet.CellBackground(_row, _baseCol, _theme.KeyFillHex);
-                _sheet.Cell(_row, _baseCol + 1, value ?? string.Empty);
+                _sheet.Cell(_row, _baseCol + 1).SetValue(value ?? string.Empty);
                 _maxColUsed = Math.Max(_maxColUsed, _baseCol + 1);
                 _row++;
                 return this;
@@ -110,7 +110,7 @@ namespace OfficeIMO.Excel {
                     renderedColumnCountForCellLimit: renderedColumnCountForCellLimit);
                 IReadOnlyList<Dictionary<string, object?>> rows = projection.Rows;
                 if (rows.Count == 0) {
-                    _sheet.Cell(_row, _baseCol, "(no data)");
+                    _sheet.Cell(_row, _baseCol).SetValue("(no data)");
                     _row++;
                     return _sheet.AddTable($"{ExcelReportBuilder.ColumnLetter(_baseCol)}{_row - 1}:{ExcelReportBuilder.ColumnLetter(_baseCol)}{_row - 1}", hasHeader: false, name: title ?? "Table", style: style, includeAutoFilter: false);
                 }
@@ -119,7 +119,7 @@ namespace OfficeIMO.Excel {
                     ? projection.Columns.OrderBy(path => path, System.StringComparer.Ordinal).ToList()
                     : projection.Columns.ToList();
                 if (paths.Count == 0) {
-                    _sheet.Cell(_row, _baseCol, "(no tabular columns)");
+                    _sheet.Cell(_row, _baseCol).SetValue("(no tabular columns)");
                     _row++;
                     return _sheet.AddTable($"{ExcelReportBuilder.ColumnLetter(_baseCol)}{_row - 1}:{ExcelReportBuilder.ColumnLetter(_baseCol)}{_row - 1}", hasHeader: false, name: title ?? "Table", style: style, includeAutoFilter: false);
                 }
@@ -197,7 +197,7 @@ namespace OfficeIMO.Excel {
                     _row++;
                 }
 
-                _sheet.CellValues(cells);
+                _sheet.SetValues(cells);
 
                 int lastRow = _row - 1;
                 string start = ExcelReportBuilder.ColumnLetter(_baseCol) + headerRow.ToString();

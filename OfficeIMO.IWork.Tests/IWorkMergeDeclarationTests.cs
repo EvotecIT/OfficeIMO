@@ -81,7 +81,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             partial.Value.Save(saved); saved.Position = 0;
             using ExcelDocument reopened = ExcelDocument.Load(saved);
-            Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+            Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
             if (unreadableRange) Assert.Empty(reopened.Sheets[0].GetMergedRanges());
             else Assert.Equal("A4:B4", Assert.Single(reopened.Sheets[0].GetMergedRanges()).A1Range);
         } else {

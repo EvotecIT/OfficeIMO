@@ -13,10 +13,10 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Calc");
 
-            sheet.CellValue(1, 1, 4d);
-            sheet.CellValue(1, 2, 4d);
-            sheet.CellValue(1, 3, 4d);
-            sheet.CellFormula(1, 1, "2+2");
+            sheet.Cell(1, 1).SetValue(4d);
+            sheet.Cell(1, 2).SetValue(4d);
+            sheet.Cell(1, 3).SetValue(4d);
+            sheet.Cell(1, 1).SetFormula("2+2");
             sheet.SetArrayFormula("B1:B1", "2+2");
             sheet.SetLegacyArrayFormula("C1:C1", "2+2");
 
@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(formula.State.HasFlag(ExcelFormulaState.Evaluated));
             });
 
-            sheet.CellFormula(1, 1, "3+3");
+            sheet.Cell(1, 1).SetFormula("3+3");
 
             Assert.All(sheet.GetFormulaCells(), formula => {
                 Assert.Equal("4", formula.CachedValue);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
         public void Test_NamedStyleValidation_RejectsInvalidXmlBeforeStylesheetMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetBold();
+            sheet.Cell(1, 1).SetBold();
             string originalStyles = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!.OuterXml;
 
             ArgumentException exception = Assert.Throws<ArgumentException>(() =>
@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
             Assert.True(batchEntered.Wait(TimeSpan.FromSeconds(10)));
 
             Task write = Task.Factory.StartNew(
-                () => sheet.CellValue(1, 1, "Serialized"),
+                () => sheet.Cell(1, 1).SetValue("Serialized"),
                 CancellationToken.None,
                 TaskCreationOptions.LongRunning,
                 TaskScheduler.Default);
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
 
             await batch;
             await write;
-            Assert.Equal("Serialized", sheet.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Serialized", sheet.Cell(1, 1).GetValue<string>());
             Assert.Empty(document.ValidateOpenXml());
         }
     }

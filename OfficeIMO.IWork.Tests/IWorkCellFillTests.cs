@@ -33,7 +33,7 @@ public sealed partial class IWorkBoundaryTests {
                 string? rgb = fill.GetProperty("kind").GetString() == "none" ? null : fill.GetProperty("rgbHex").GetString();
                 Assert.IsType<IWorkCellFill>(source.Fill);
                 Assert.Equal(rgb, source.Fill!.Color?.RgbHex);
-                Assert.Equal(rgb == null ? null : "FF" + rgb, destination.GetCellStyle(row, column).FillColorArgb);
+                Assert.Equal(rgb == null ? null : "FF" + rgb, destination.Cell(row, column).GetStyle().FillColorArgb);
             }
         }
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_CELL_FILL_OMITTED");
@@ -201,7 +201,7 @@ public sealed partial class IWorkBoundaryTests {
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
             Assert.All(new[] { 1, 2 }, column => Assert.Equal(expected == null ? null : "FF" + expected,
-                reopened.Sheets[0].GetCellStyle(1, column).FillColorArgb));
+                reopened.Sheets[0].Cell(1, column).GetStyle().FillColorArgb));
             Assert.True(reopened.Sheets[0].TryGetCellValueSnapshot(1, 1, out var value));
             Assert.Equal(OfficeIMO.Excel.ExcelCellValueKind.Number, value!.Kind); Assert.Equal("42", value.RawValue);
         } else {

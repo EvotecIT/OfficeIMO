@@ -130,7 +130,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Formula", 1, 1, 42d, hasFormula: true)
         });
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(ownerPackage);
-        Assert.Equal(42d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
+        Assert.Equal(42d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>(), 10);
     }
 
     [Fact]
@@ -238,7 +238,7 @@ public sealed partial class IWorkBoundaryTests {
             IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly }));
 
         Assert.False(editable.IsVisualFallback);
-        Assert.Equal(42d, editable.Value.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, editable.Value.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.True(visual.IsVisualFallback);
         Assert.Single(visual.Value.Sheets[0].Images);
     }
@@ -329,8 +329,8 @@ public sealed partial class IWorkBoundaryTests {
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.Equal(2, result.Value.Sheets.Count);
-        Assert.Equal("Leading text", result.Value.Sheets[0].CellAt(1, 1).GetValue<string>());
-        Assert.Equal(42d, result.Value.Sheets[1].CellAt(1, 1).GetValue<double>(), 10);
+        Assert.Equal("Leading text", result.Value.Sheets[0].Cell(1, 1).GetValue<string>());
+        Assert.Equal(42d, result.Value.Sheets[1].Cell(1, 1).GetValue<double>(), 10);
         using var bytes = new MemoryStream();
         result.Value.Save(bytes);
         bytes.Position = 0;
@@ -785,7 +785,7 @@ public sealed partial class IWorkBoundaryTests {
 
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
-        Assert.Equal(1d / 24d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
+        Assert.Equal(1d / 24d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>(), 10);
     }
 
     [Fact]

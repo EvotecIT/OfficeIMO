@@ -11,9 +11,9 @@ namespace OfficeIMO.Tests {
             document.SheetCachingEnabled = sheetCaching;
             ExcelSheet sheet = document.AddSheet("Report");
             document.AddSheet("Keep");
-            sheet.CellValue(1, 1, "Before rollback");
+            sheet.Cell(1, 1).SetValue("Before rollback");
             Assert.Throws<InvalidOperationException>(() => sheet.ApplyTransactionalMutation(_ => {
-                sheet.CellValue(1, 1, "Interrupted edit");
+                sheet.Cell(1, 1).SetValue("Interrupted edit");
                 throw new InvalidOperationException("Abort transaction");
             }, 1, new ExcelMutationPlanOptions(), default));
 
@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
             using var saved = ExcelDocument.Load(stream);
             Assert.True(saved["Recovered"].Hidden);
             Assert.Equal("Recovered", sheet.Name);
-            Assert.Equal("Before rollback", saved["Recovered"].CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Before rollback", saved["Recovered"].Cell(1, 1).GetValue<string>());
         }
 
         [Fact]
@@ -33,9 +33,9 @@ namespace OfficeIMO.Tests {
             using var source = new MemoryStream();
             using (var authored = ExcelDocument.Create()) {
                 ExcelSheet report = authored.AddSheet("Report");
-                report.CellValue(1, 1, 2d);
-                report.CellFormula(1, 2, "A1*2");
-                authored.AddSheet("Keep").CellValue(1, 1, "Untouched");
+                report.Cell(1, 1).SetValue(2d);
+                report.Cell(1, 2).SetFormula("A1*2");
+                authored.AddSheet("Keep").Cell(1, 1).SetValue("Untouched");
                 authored.Save(source);
             }
 
@@ -43,19 +43,19 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.Sheets[0];
             ExcelSheet keep = document.Sheets[1];
             Assert.Throws<InvalidOperationException>(() => sheet.ApplyTransactionalMutation(_ => {
-                sheet.CellValue(1, 1, 99d);
-                keep.CellValue(1, 1, "Interrupted edit");
+                sheet.Cell(1, 1).SetValue(99d);
+                keep.Cell(1, 1).SetValue("Interrupted edit");
                 throw new InvalidOperationException("Abort transaction");
             }, 1, new ExcelMutationPlanOptions(), default));
 
-            Assert.Equal(2d, sheet.CellAt(1, 1).GetValue<double>());
-            Assert.Equal("Untouched", keep.CellAt(1, 1).GetValue<string>());
-            sheet.CellValue(1, 1, 5d);
+            Assert.Equal(2d, sheet.Cell(1, 1).GetValue<double>());
+            Assert.Equal("Untouched", keep.Cell(1, 1).GetValue<string>());
+            sheet.Cell(1, 1).SetValue(5d);
             document.Calculate();
             using var stream = new MemoryStream();
             document.Save(stream);
             using var saved = ExcelDocument.Load(stream);
-            Assert.Equal(5d, saved["Report"].CellAt(1, 1).GetValue<double>());
+            Assert.Equal(5d, saved["Report"].Cell(1, 1).GetValue<double>());
             Assert.True(saved["Report"].TryGetCachedFormulaValue(1, 2, out string? cached));
             Assert.Equal("10", cached);
         }
@@ -65,21 +65,21 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create();
             document.SheetCachingEnabled = false;
             ExcelSheet sheet = document.AddSheet("Report");
-            sheet.CellValue(1, 1, "Before rollback");
+            sheet.Cell(1, 1).SetValue("Before rollback");
             ExcelSheet alias = document.Sheets[0];
-            Assert.Equal("Before rollback", alias.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Before rollback", alias.Cell(1, 1).GetValue<string>());
             Assert.Throws<InvalidOperationException>(() => sheet.ApplyTransactionalMutation(_ => {
-                sheet.CellValue(1, 1, "Interrupted edit");
+                sheet.Cell(1, 1).SetValue("Interrupted edit");
                 throw new InvalidOperationException("Abort transaction");
             }, 1, new ExcelMutationPlanOptions(), default));
 
-            Assert.Equal("Before rollback", alias.CellAt(1, 1).GetValue<string>());
-            alias.CellValue(2, 1, "After rollback");
+            Assert.Equal("Before rollback", alias.Cell(1, 1).GetValue<string>());
+            alias.Cell(2, 1).SetValue("After rollback");
             using var stream = new MemoryStream();
             document.Save(stream);
             using var saved = ExcelDocument.Load(stream);
-            Assert.Equal("Before rollback", saved["Report"].CellAt(1, 1).GetValue<string>());
-            Assert.Equal("After rollback", saved["Report"].CellAt(2, 1).GetValue<string>());
+            Assert.Equal("Before rollback", saved["Report"].Cell(1, 1).GetValue<string>());
+            Assert.Equal("After rollback", saved["Report"].Cell(2, 1).GetValue<string>());
         }
     }
 }

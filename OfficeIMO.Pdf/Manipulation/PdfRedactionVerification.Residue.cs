@@ -102,7 +102,7 @@ internal static partial class PdfRedactionVerification {
                 continue;
             }
 
-            if (IsOpaqueImageCodecStream(stream, objects, readOptions, cancellationToken)) {
+            if (IsOpaqueImageCodecStream(stream, objects, readOptions.Limits, cancellationToken)) {
                 continue;
             }
 
@@ -123,10 +123,10 @@ internal static partial class PdfRedactionVerification {
         return issues;
     }
 
-    private static bool IsOpaqueImageCodecStream(
+    internal static bool IsOpaqueImageCodecStream(
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
-        PdfLoadOptions readOptions,
+        PdfReadLimits limits,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (PdfObjectLookup.ResolveChain(
@@ -172,7 +172,7 @@ internal static partial class PdfRedactionVerification {
             prefixDictionary.Items["DecodeParms"] = prefixDecodeParameters;
         }
 
-        int maximumDecodedBytes = Math.Min(MaxDecodedRedactionVerificationStreamBytes, readOptions.Limits.MaxDecodedStreamBytes);
+        int maximumDecodedBytes = Math.Min(MaxDecodedRedactionVerificationStreamBytes, limits.MaxDecodedStreamBytes);
         if (!StreamDecoder.TryDecode(prefixDictionary, stream.Data, maximumDecodedBytes, out byte[] opaquePayload, objects)) return false;
         return filters[filters.Count - 1] is not ("DCTDecode" or "DCT") || OfficeJpegCodec.IsJpeg(opaquePayload);
 

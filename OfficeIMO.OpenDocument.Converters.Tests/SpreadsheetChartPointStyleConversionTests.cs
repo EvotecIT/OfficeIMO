@@ -448,7 +448,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
     public void TransparentExcelPointReportsChartLossWithoutAbortingWorkbook() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Summary");
-        sheet.Cell(1, 1, "Retained cell");
+        sheet.Cell(1, 1).SetValue("Retained cell");
         var data = new OfficeChartData(new[] { "Pass", "Fail", "Unknown" },
             new[] { new OfficeSeries("Status", new[] { 3d, 4d, 5d })
                 .WithPointStyles(new OfficeChartPointStyle?[] {

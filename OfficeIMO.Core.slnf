@@ -1,0 +1,32 @@
+{
+  "solution": {
+    "path": "OfficeIMO.slnx",
+    "projects": [
+      "OfficeIMO.Archives.Tests\\OfficeIMO.Archives.Tests.csproj",
+      "OfficeIMO.Archives\\OfficeIMO.Archives.csproj",
+      "OfficeIMO.Core\\OfficeIMO.Core.csproj",
+      "OfficeIMO.CSV\\OfficeIMO.CSV.csproj",
+      "OfficeIMO.Data.Arrow\\OfficeIMO.Data.Arrow.csproj",
+      "OfficeIMO.Data.Generators\\OfficeIMO.Data.Generators.csproj",
+      "OfficeIMO.Epub\\OfficeIMO.Epub.csproj",
+      "OfficeIMO.Excel\\OfficeIMO.Excel.csproj",
+      "OfficeIMO.Html.AngleSharp\\OfficeIMO.Html.AngleSharp.csproj",
+      "OfficeIMO.Html.Core\\OfficeIMO.Html.Core.csproj",
+      "OfficeIMO.Html\\OfficeIMO.Html.csproj",
+      "OfficeIMO.JavaScript.Assets.Tests\\OfficeIMO.JavaScript.Assets.Tests.csproj",
+      "OfficeIMO.JavaScript.Assets\\OfficeIMO.JavaScript.Assets.csproj",
+      "OfficeIMO.OpenDocument\\OfficeIMO.OpenDocument.csproj",
+      "OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj",
+      "OfficeIMO.PowerPoint\\OfficeIMO.PowerPoint.csproj",
+      "OfficeIMO.Provenance.C2pa.Tests\\OfficeIMO.Provenance.C2pa.Tests.csproj",
+      "OfficeIMO.Provenance.C2pa\\OfficeIMO.Provenance.C2pa.csproj",
+      "OfficeIMO.Reader.Core\\OfficeIMO.Reader.Core.csproj",
+      "OfficeIMO.Reader.Excel\\OfficeIMO.Reader.Excel.csproj",
+      "OfficeIMO.Reader.Zip\\OfficeIMO.Reader.Zip.csproj",
+      "OfficeIMO.Security.Tests\\OfficeIMO.Security.Tests.csproj",
+      "OfficeIMO.Security\\OfficeIMO.Security.csproj",
+      "OfficeIMO.Visio\\OfficeIMO.Visio.csproj",
+      "OfficeIMO.Word\\OfficeIMO.Word.csproj"
+    ]
+  }
+}

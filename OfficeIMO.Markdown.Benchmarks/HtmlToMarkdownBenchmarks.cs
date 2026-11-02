@@ -27,7 +27,7 @@ public class HtmlToMarkdownBenchmarks {
     }
 
     [Benchmark(Baseline = true, Description = "OfficeIMO")]
-    public string OfficeIMO_Default_Profile() => HtmlConversionDocument.Parse(_html).ToMarkdown(_officeOptions);
+    public string OfficeIMO_Default_Profile() => HtmlConversionDocument.Parse(_html).ToMarkdown(_officeOptions).ToMarkdown();
 
     [Benchmark(Description = "ReverseMarkdown")]
     public string ReverseMarkdown_Default_Profile() => _reverseDefault.Convert(_html);
@@ -55,13 +55,13 @@ public class HtmlToMarkdownOfficeProfileBenchmarks {
     }
 
     [Benchmark]
-    public string OfficeIMO_GitHub_Profile() => _document.ToMarkdown(_githubOptions);
+    public string OfficeIMO_GitHub_Profile() => _document.ToMarkdown(_githubOptions).ToMarkdown();
 
     [Benchmark]
-    public string OfficeIMO_CommonMark_Profile() => _document.ToMarkdown(_commonMarkOptions);
+    public string OfficeIMO_CommonMark_Profile() => _document.ToMarkdown(_commonMarkOptions).ToMarkdown();
 
     [Benchmark]
-    public string OfficeIMO_Default_Profile() => _document.ToMarkdown(_officeOptions);
+    public string OfficeIMO_Default_Profile() => _document.ToMarkdown(_officeOptions).ToMarkdown();
 
     private void ValidateConverterOutputs(string expectedFragment) {
         ValidateOutput(nameof(OfficeIMO_GitHub_Profile), OfficeIMO_GitHub_Profile(), expectedFragment);
@@ -103,5 +103,5 @@ public class HtmlToMarkdownLargeArticleStageBenchmarks {
     public string RenderModel() => _markdownDocument.ToMarkdown(_options.MarkdownWriteOptions);
 
     [Benchmark]
-    public string FullConversion() => HtmlConversionDocument.Parse(_html).ToMarkdown(_options);
+    public string FullConversion() => HtmlConversionDocument.Parse(_html).ToMarkdown(_options).ToMarkdown(_options.MarkdownWriteOptions);
 }

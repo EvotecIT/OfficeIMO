@@ -54,8 +54,8 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, $"ExcelPdfDefaultGeometry-{defaultSize}-{cellSize}-{defaultFamily}-{substitute}-{baseColumnWidth}-{defaultColumnWidth}.xlsx");
         using (ExcelDocument workbook = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Geometry" })) {
             ExcelSheet sheet = workbook.Sheets[0];
-            sheet.Cell(1, 1, "ARef");
-            sheet.Cell(1, 2, "BRef");
+            sheet.Cell(1, 1).SetValue("ARef");
+            sheet.Cell(1, 2).SetValue("BRef");
             if (!baseColumnWidth.HasValue && !defaultColumnWidth.HasValue) {
                 sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
                 sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));

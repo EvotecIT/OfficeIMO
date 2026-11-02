@@ -36,8 +36,8 @@ public sealed class ImageConversionTests
             using (var excel = ExcelDocument.Load(output))
             {
                 var sheet = Assert.Single(excel.Sheets);
-                Assert.Equal("Credit", sheet.CellAt(3, 1).GetValue<string>());
-                Assert.Equal(-13.5, sheet.CellAt(3, 2).GetValue<double>());
+                Assert.Equal("Credit", sheet.Cell(3, 1).GetValue<string>());
+                Assert.Equal(-13.5, sheet.Cell(3, 2).GetValue<double>());
             }
             OfficeImageExporter.Export(review, Path.Combine(directory, "ledger.csv"), false, options, null, default);
             Assert.Contains("Credit,'-13.50", File.ReadAllText(Path.Combine(directory, "ledger.csv")));

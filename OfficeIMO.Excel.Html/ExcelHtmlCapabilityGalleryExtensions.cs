@@ -97,7 +97,7 @@ public static class ExcelHtmlCapabilityGalleryExtensions {
         bool hasImages = false;
 
         foreach (ExcelSheet sheet in workbook.Sheets) {
-            hasUsedCells |= !string.Equals(sheet.UsedRangeA1, "A1", StringComparison.OrdinalIgnoreCase) || sheet.TryGetCellText(1, 1, out string text) && text.Length > 0;
+            hasUsedCells |= !string.Equals(sheet.UsedRange.Address, "A1", StringComparison.OrdinalIgnoreCase) || sheet.TryGetCellText(1, 1, out string text) && text.Length > 0;
             hasFormulas |= sheet.GetFormulaCells().Count > 0;
             hasComments |= sheet.GetComments().Count > 0;
             hasCharts |= sheet.Charts.Any();

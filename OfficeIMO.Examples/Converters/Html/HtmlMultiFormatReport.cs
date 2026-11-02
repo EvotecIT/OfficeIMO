@@ -46,10 +46,10 @@ internal static partial class Html {
         excelResult.RequireValue();
         foreach (ExcelSheet sheet in excel.Sheets) {
             sheet.AutoFitColumns();
-            var (firstRow, firstColumn, lastRow, lastColumn) = ExcelA1.ParseRange(sheet.UsedRangeA1);
+            var (firstRow, firstColumn, lastRow, lastColumn) = ExcelA1.ParseRange(sheet.UsedRange.Address);
             if (firstColumn == lastColumn) {
-                sheet.WrapCells(firstRow,lastRow,firstColumn, ExcelColumnWidth.Characters(80D));
-                for (int row = firstRow; row <= lastRow; row++) sheet.CellVerticalAlign(row, firstColumn, ExcelVerticalAlignment.Top);
+                sheet.Range(firstRow, firstColumn, lastRow, firstColumn).SetWrapText(); sheet.SetColumnWidth(firstColumn, ExcelColumnWidth.Characters(80D));
+                for (int row = firstRow; row <= lastRow; row++) sheet.Cell(row, firstColumn).SetVerticalAlignment(ExcelVerticalAlignment.Top);
             }
             sheet.AutoFitRows();
             sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.A4);

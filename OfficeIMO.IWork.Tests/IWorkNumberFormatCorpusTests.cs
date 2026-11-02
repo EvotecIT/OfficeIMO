@@ -53,12 +53,12 @@ public sealed class IWorkNumberFormatCorpusTests {
         ExcelRangeVisualInfo snapshot = sheet.Range($"B1:B{count}").CreateVisualSnapshot();
         foreach (JsonElement expected in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
             int row = expected.GetProperty("row").GetInt32();
-            ExcelCellData cell = sheet.CellAt(row, 2).GetValue();
+            ExcelCellData cell = sheet.Cell(row, 2).GetValue();
             Assert.Equal(ExcelCellDataKind.Number, cell.Kind);
             Assert.Equal(expected.GetProperty("value").GetDouble(), Assert.IsType<double>(cell.Value), 12);
             Assert.Equal(expected.GetProperty("displayText").GetString(), Assert.Single(snapshot.Cells, c => c.Row == row).Text);
             int negativeStyle = expected.GetProperty("negativeStyle").GetInt32();
-            if (negativeStyle is 1 or 3) Assert.Contains("[Red]", sheet.CellAt(row, 2).GetStyle().NumberFormatCode!);
+            if (negativeStyle is 1 or 3) Assert.Contains("[Red]", sheet.Cell(row, 2).GetStyle().NumberFormatCode!);
         }
     }
 

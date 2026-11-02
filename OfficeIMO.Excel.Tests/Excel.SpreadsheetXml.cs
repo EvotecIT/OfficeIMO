@@ -19,7 +19,7 @@ public sealed class ExcelSpreadsheetXmlTests {
         string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents", "SpreadsheetXmlCorpus", "excel-financial.xml");
         using var document = ExcelDocument.ImportSpreadsheetXml(path).Value;
         Assert.Equal(38, document.InspectFormulas().Formulas.Count);
-        Assert.InRange(document.Sheets[0].CellAt(1, 1).GetValue<double>(), 0.00770147248, 0.00770147250);
+        Assert.InRange(document.Sheets[0].Cell(1, 1).GetValue<double>(), 0.00770147248, 0.00770147250);
         Assert.Equal("#NUM!", document.InspectFormulas().Formulas.Single(formula => formula.CellReference == "A14").CachedValue);
         using var copy = ExcelDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Equal("RATE(48,-200,8000)", copy.Sheets[0].GetFormulaText(1, 1));
@@ -46,17 +46,17 @@ public sealed class ExcelSpreadsheetXmlTests {
         using var document = documentResult.Value;
         Assert.Equal(2, document.Sheets.Count);
         var sheet = document.Sheets[0];
-        Assert.Equal("  00127 & Łódź  ", sheet.CellAt(3, 2).GetValue<string>());
-        Assert.Equal(1.2345678901234567, sheet.CellAt(3, 3).GetValue<double>());
-        Assert.True(sheet.CellAt(3, 4).GetValue<bool>());
+        Assert.Equal("  00127 & Łódź  ", sheet.Cell(3, 2).GetValue<string>());
+        Assert.Equal(1.2345678901234567, sheet.Cell(3, 3).GetValue<double>());
+        Assert.True(sheet.Cell(3, 4).GetValue<bool>());
         Assert.Equal("C3*2", sheet.GetFormulaText(3, 6));
-        Assert.Equal(99, sheet.CellAt(3, 6).GetValue<double>());
+        Assert.Equal(99, sheet.Cell(3, 6).GetValue<double>());
         Assert.Equal("\"RC[-3]\"", sheet.GetFormulaText(3, 8));
         Assert.Equal("#N/A", document.OpenXmlDocument.WorkbookPart!.WorksheetParts.First().Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single(cell => cell.CellReference == "G3").CellValue!.Text);
-        sheet.CellValue(4, 1, "Edited");
+        sheet.Cell(4, 1).SetValue("Edited");
         using var saved = new MemoryStream(); document.Save(saved);
         using var reopened = ExcelDocument.Load(saved);
-        Assert.Equal("Edited", reopened.Sheets[0].CellAt(4, 1).GetValue<string>());
+        Assert.Equal("Edited", reopened.Sheets[0].Cell(4, 1).GetValue<string>());
         using var reader = ExcelDocument.OpenReader(saved.ToArray(), new ExcelReaderOptions { SheetName = "Data", A1Range = "E3:E3", HasHeaderRow = false, TreatDatesUsingNumberFormat = true });
         Assert.True(reader.Read());
         Assert.Equal(new DateTime(2026, 10, 19, 12, 30, 0), reader.GetDateTime(0));
@@ -67,18 +67,18 @@ public sealed class ExcelSpreadsheetXmlTests {
     public void Xml_export_reimports_cells_and_formula_references_without_evaluating_them() {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("A & B");
-        sheet.CellValue(2, 2, "00127"); sheet.CellValue(2, 3, false); sheet.CellValue(2, 4, 12.5);
-        sheet.CellValue(4, 4, 42d); sheet.CellFormula(4, 4, "D2*2");
+        sheet.Cell(2, 2).SetValue("00127"); sheet.Cell(2, 3).SetValue(false); sheet.Cell(2, 4).SetValue(12.5);
+        sheet.Cell(4, 4).SetValue(42d); sheet.Cell(4, 4).SetFormula("D2*2");
         var result = document.ExportSpreadsheetXml();
         Assert.Equal("Workbook", XDocument.Parse(Encoding.UTF8.GetString(result.Value)).Root!.Name.LocalName);
         var imported = ExcelDocument.ImportSpreadsheetXml(result.Value);
         using var copy = imported.Value;
         Assert.Equal("A & B", copy.Sheets[0].Name);
-        Assert.Equal("00127", copy.Sheets[0].CellAt(2, 2).GetValue<string>());
-        Assert.False(copy.Sheets[0].CellAt(2, 3).GetValue<bool>());
-        Assert.Equal(12.5, copy.Sheets[0].CellAt(2, 4).GetValue<double>());
+        Assert.Equal("00127", copy.Sheets[0].Cell(2, 2).GetValue<string>());
+        Assert.False(copy.Sheets[0].Cell(2, 3).GetValue<bool>());
+        Assert.Equal(12.5, copy.Sheets[0].Cell(2, 4).GetValue<double>());
         Assert.Equal("D2*2", copy.Sheets[0].GetFormulaText(4, 4));
-        Assert.Equal(42d, copy.Sheets[0].CellAt(4, 4).GetValue<double>());
+        Assert.Equal(42d, copy.Sheets[0].Cell(4, 4).GetValue<double>());
         Assert.Empty(copy.ValidateOpenXml());
     }
 
@@ -86,12 +86,12 @@ public sealed class ExcelSpreadsheetXmlTests {
     public void Xml_text_keeps_carriage_returns_through_export_import_and_package_save() {
         const string text = "A\rB\r\nC\nD";
         using var document = ExcelDocument.Create();
-        document.AddSheet("Data").CellValue(1, 1, text);
+        document.AddSheet("Data").Cell(1, 1).SetValue(text);
         byte[] xml = document.ExportSpreadsheetXml().Value;
         using var imported = ExcelDocument.ImportSpreadsheetXml(xml).Value;
-        Assert.Equal(text, imported.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal(text, imported.Sheets[0].Cell(1, 1).GetValue<string>());
         using var reopened = ExcelDocument.Load(new MemoryStream(imported.ToBytes()));
-        Assert.Equal(text, reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal(text, reopened.Sheets[0].Cell(1, 1).GetValue<string>());
     }
 
     [Theory]
@@ -100,37 +100,37 @@ public sealed class ExcelSpreadsheetXmlTests {
     public void Xml_export_preserves_caches_and_never_invokes_save_calculation(bool evaluate) {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, 99d); sheet.CellFormula(1, 1, "EXPORTCALL()");
+        sheet.Cell(1, 1).SetValue(99d); sheet.Cell(1, 1).SetFormula("EXPORTCALL()");
         int calls = 0;
         document.Calculation.RegisterCustomFunction("EXPORTCALL", (_, _) => { calls++; return ExcelFormulaValue.FromNumber(5d); });
         document.Calculation.EvaluateFormulasBeforeSave = evaluate;
         document.Calculation.ClearCachedFormulaResultsBeforeSave = !evaluate;
         using var imported = ExcelDocument.ImportSpreadsheetXml(document.ExportSpreadsheetXml().Value).Value;
         Assert.Equal(0, calls);
-        Assert.Equal(99d, sheet.CellAt(1, 1).GetValue<double>());
-        Assert.Equal(99d, imported.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(99d, sheet.Cell(1, 1).GetValue<double>());
+        Assert.Equal(99d, imported.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Equal(evaluate, document.Calculation.EvaluateFormulasBeforeSave);
         Assert.Equal(!evaluate, document.Calculation.ClearCachedFormulaResultsBeforeSave);
         // These policies still apply to the ordinary save route.
         _ = document.ToBytes();
         Assert.Equal(evaluate, calls > 0);
-        if (evaluate) Assert.Equal(5d, sheet.CellAt(1, 1).GetValue<double>());
+        if (evaluate) Assert.Equal(5d, sheet.Cell(1, 1).GetValue<double>());
         else Assert.Null(document.OpenXmlDocument.WorkbookPart!.WorksheetParts.First().Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single().CellValue);
     }
 
     [Fact]
     public void Xml_export_accepts_read_only_workbooks_and_does_not_require_saving_the_source() {
-        using var source = ExcelDocument.Create(); source.AddSheet("Data").CellValue(1, 1, "Read only");
+        using var source = ExcelDocument.Create(); source.AddSheet("Data").Cell(1, 1).SetValue("Read only");
         using var document = ExcelDocument.Load(new MemoryStream(source.ToBytes()), new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
         byte[] output = document.ExportSpreadsheetXml().Value;
         using var imported = ExcelDocument.ImportSpreadsheetXml(output).Value;
-        Assert.Equal("Read only", imported.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Read only", imported.Sheets[0].Cell(1, 1).GetValue<string>());
     }
 
     [Fact]
     public void Xml_export_preserves_source_part_limit_for_unused_shared_strings() {
         using var source = ExcelDocument.Create();
-        source.AddSheet("Data").CellValue(1, 1, "safe");
+        source.AddSheet("Data").Cell(1, 1).SetValue("safe");
         using var package = new MemoryStream();
         byte[] sourceBytes = source.ToBytes();
         package.Write(sourceBytes, 0, sourceBytes.Length);
@@ -154,7 +154,7 @@ public sealed class ExcelSpreadsheetXmlTests {
     [Fact]
     public void Xml_export_checks_structure_before_materializing_package_parts() {
         using var document = ExcelDocument.Create();
-        document.AddSheet("Data").CellValue(1, 1, "safe");
+        document.AddSheet("Data").Cell(1, 1).SetValue("safe");
         InvalidDataException error = Assert.Throws<InvalidDataException>(() => document.ExportSpreadsheetXml(new() { MaxXmlElements = 2 }));
         Assert.Contains("MaxXmlElements", error.Message, StringComparison.Ordinal);
     }
@@ -167,9 +167,9 @@ public sealed class ExcelSpreadsheetXmlTests {
         byte[] input = Workbook((date1904 ? "<x:ExcelWorkbook xmlns:x=\"urn:schemas-microsoft-com:office:excel\"><x:Date1904/></x:ExcelWorkbook>" : "")
             + "<Worksheet ss:Name=\"Date\"><Table><Row><Cell><Data ss:Type=\"DateTime\">" + date + "</Data></Cell></Row></Table></Worksheet>");
         using var document = ExcelDocument.ImportSpreadsheetXml(input).Value;
-        Assert.Equal(expected, document.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(expected, document.Sheets[0].Cell(1, 1).GetValue<double>());
         using var copy = ExcelDocument.ImportSpreadsheetXml(document.ExportSpreadsheetXml().Value).Value;
-        Assert.Equal(expected, copy.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(expected, copy.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public sealed class ExcelSpreadsheetXmlTests {
         using var document = result.Value;
         Assert.True(result.HasLoss);
         Assert.Throws<OfficeConversionException>(() => result.ThrowIfLoss());
-        Assert.Equal("C", document.Sheets[0].CellAt(1, 3).GetValue<string>());
+        Assert.Equal("C", document.Sheets[0].Cell(1, 3).GetValue<string>());
         Assert.Contains(result.Report.Diagnostics, item => item.Message.Contains("Unsupported"));
         document.Sheets[0].AddTable("D1:F1", hasHeader: true, name: "DataTable", style: ExcelTableStyle.TableStyleMedium9);
         Assert.True(document.ExportSpreadsheetXml().HasLoss);

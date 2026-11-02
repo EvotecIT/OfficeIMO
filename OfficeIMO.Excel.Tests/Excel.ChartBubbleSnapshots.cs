@@ -15,7 +15,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
     public void BubbleSnapshot_ReopenedWorksheetRangesPreserveEachSeriesCoordinates() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Bubble data");
-        sheet.CellValues(new[] {
+        sheet.SetValues(new[] {
             (2, 1, (object)2d), (2, 2, 11d), (2, 3, 4d),
             (3, 1, 8d), (3, 2, 17d), (3, 3, 16d),
             (2, 5, -3d), (2, 6, 23d), (2, 7, 9d)

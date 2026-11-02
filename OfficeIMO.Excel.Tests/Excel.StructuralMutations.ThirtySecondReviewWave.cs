@@ -54,13 +54,13 @@ namespace OfficeIMO.Tests {
         public void Test_TableSchema_RewritesUnqualifiedStructuredReferencesOnlyInsideOwnerTable() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Amount");
-            sheet.CellValue(1, 2, "Tax");
-            sheet.CellFormula(2, 1, "=[@Amount]*2");
-            sheet.CellFormula(3, 1, "=[@Tax]+1");
-            sheet.CellValue(2, 2, 1);
-            sheet.CellValue(3, 2, 2);
-            sheet.CellFormula(1, 4, "=[@Amount]");
+            sheet.Cell(1, 1).SetValue("Amount");
+            sheet.Cell(1, 2).SetValue("Tax");
+            sheet.Cell(2, 1).SetFormula("=[@Amount]*2");
+            sheet.Cell(3, 1).SetFormula("=[@Tax]+1");
+            sheet.Cell(2, 2).SetValue(1);
+            sheet.Cell(3, 2).SetValue(2);
+            sheet.Cell(1, 4).SetFormula("=[@Amount]");
             sheet.AddTable("A1:B3", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             string? FormulaAt(string reference) => sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => string.Equals(cell.CellReference?.Value, reference, StringComparison.Ordinal))

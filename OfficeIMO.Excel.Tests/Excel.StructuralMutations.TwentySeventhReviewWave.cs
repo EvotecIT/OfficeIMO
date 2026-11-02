@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
                 SetCommentVmlAnchor(vmlPart, "16382, 15, 0, 2, 16383, 15, 3, 4");
 
                 InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
-                    () => sheet.InsertColumns(ExcelA1.MaxColumns - 1));
+                    () => sheet.InsertColumnsTransactional(ExcelA1.MaxColumns - 1));
 
                 Assert.Contains("comment note anchor", exception.Message, StringComparison.OrdinalIgnoreCase);
                 Assert.True(sheet.HasComment(1, 2));
@@ -42,14 +42,14 @@ namespace OfficeIMO.Tests {
         public void Test_NamedStyleApplication_CancellationRollsBackPartialRange() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Style source");
-            sheet.CellAt(1, 1).SetFillColor("C6EFCE");
+            sheet.Cell(1, 1).SetValue("Style source");
+            sheet.Cell(1, 1).SetFillColor("C6EFCE");
             sheet.DefineNamedStyle("Input", 1, 1);
-            sheet.CellValue(1, 26, "Probe");
+            sheet.Cell(1, 26).SetValue("Probe");
             sheet.ApplyNamedStyle("Input", "Z1:Z1");
             uint appliedStyle = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "Z1").StyleIndex!.Value;
-            sheet.CellValue(1, 2, "Keep");
+            sheet.Cell(1, 2).SetValue("Keep");
             Cell observed = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "B1");
             uint originalStyle = observed.StyleIndex?.Value ?? 0U;
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(originalRange.StartRow, chart.DataRange!.StartRow);
             Assert.Equal(1d, document[originalRange.SheetName]
-                .CellAt(originalRange.CategoryStartRow, originalRange.SeriesStartColumn).GetValue<double>());
+                .Cell(originalRange.CategoryStartRow, originalRange.SeriesStartColumn).GetValue<double>());
             Assert.Empty(document.ValidateOpenXml());
         }
 

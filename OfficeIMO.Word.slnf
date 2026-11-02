@@ -1,0 +1,31 @@
+{
+  "solution": {
+    "path": "OfficeIMO.slnx",
+    "projects": [
+      "OfficeIMO.Core\\OfficeIMO.Core.csproj",
+      "OfficeIMO.GoogleWorkspace.Drive\\OfficeIMO.GoogleWorkspace.Drive.csproj",
+      "OfficeIMO.GoogleWorkspace\\OfficeIMO.GoogleWorkspace.csproj",
+      "OfficeIMO.Html.AngleSharp\\OfficeIMO.Html.AngleSharp.csproj",
+      "OfficeIMO.Html.Core\\OfficeIMO.Html.Core.csproj",
+      "OfficeIMO.Html\\OfficeIMO.Html.csproj",
+      "OfficeIMO.IWork\\OfficeIMO.IWork.csproj",
+      "OfficeIMO.Markdown\\OfficeIMO.Markdown.csproj",
+      "OfficeIMO.OpenDocument\\OfficeIMO.OpenDocument.csproj",
+      "OfficeIMO.Pdf.Word\\OfficeIMO.Pdf.Word.csproj",
+      "OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj",
+      "OfficeIMO.PowerPoint\\OfficeIMO.PowerPoint.csproj",
+      "OfficeIMO.Rtf\\OfficeIMO.Rtf.csproj",
+      "OfficeIMO.Security\\OfficeIMO.Security.csproj",
+      "OfficeIMO.VerifyTests\\OfficeIMO.VerifyTests.csproj",
+      "OfficeIMO.Word.GoogleDocs\\OfficeIMO.Word.GoogleDocs.csproj",
+      "OfficeIMO.Word.Html\\OfficeIMO.Word.Html.csproj",
+      "OfficeIMO.Word.IWork\\OfficeIMO.Word.IWork.csproj",
+      "OfficeIMO.Word.Markdown\\OfficeIMO.Word.Markdown.csproj",
+      "OfficeIMO.Word.OpenDocument\\OfficeIMO.Word.OpenDocument.csproj",
+      "OfficeIMO.Word.Pdf\\OfficeIMO.Word.Pdf.csproj",
+      "OfficeIMO.Word.Rtf\\OfficeIMO.Word.Rtf.csproj",
+      "OfficeIMO.Word.Tests\\OfficeIMO.Word.Tests.csproj",
+      "OfficeIMO.Word\\OfficeIMO.Word.csproj"
+    ]
+  }
+}

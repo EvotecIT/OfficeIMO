@@ -18,11 +18,11 @@ public partial class Excel {
     public void SaveAsPdf_BoundsAggregateDenseWorksheetPositionsBeforePlanningTheNextSheet() {
         using var document = ExcelDocument.Create();
         ExcelSheet first = document.AddSheet("First");
-        first.CellValue(1, 1, "A");
-        first.CellValue(2, 2, "B");
+        first.Cell(1, 1).SetValue("A");
+        first.Cell(2, 2).SetValue("B");
         ExcelSheet second = document.AddSheet("Second");
-        second.CellValue(1, 1, "C");
-        second.CellValue(2, 2, "D");
+        second.Cell(1, 1).SetValue("C");
+        second.Cell(2, 2).SetValue("D");
 
         var options = new ExcelPdfExportOptions { MaxMaterializedWorksheetCells = 7 };
         InvalidDataException error = Assert.Throws<InvalidDataException>(() => document.ConvertToPdfWithEvidence(options));
@@ -40,12 +40,12 @@ public partial class Excel {
 
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Sales" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Product");
-            sheet.Cell(1, 2, "Amount");
-            sheet.Cell(2, 1, "Licenses");
-            sheet.Cell(2, 2, 1250.5);
-            sheet.Cell(3, 1, "Support");
-            sheet.Cell(3, 2, 250);
+            sheet.Cell(1, 1).SetValue("Product");
+            sheet.Cell(1, 2).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue("Licenses");
+            sheet.Cell(2, 2).SetValue(1250.5);
+            sheet.Cell(3, 1).SetValue("Support");
+            sheet.Cell(3, 2).SetValue(250);
             document.Save();
 
             document.SaveAsPdf(pdfPath);
@@ -67,10 +67,10 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Delivery" })) {
             ExcelSheet delivery = document.Sheets[0];
-            delivery.Cell(1, 1, "Workstream");
-            delivery.Cell(1, 2, "Status");
-            delivery.Cell(2, 1, "PDF workbench");
-            delivery.Cell(2, 2, "Ready");
+            delivery.Cell(1, 1).SetValue("Workstream");
+            delivery.Cell(1, 2).SetValue("Status");
+            delivery.Cell(2, 1).SetValue("PDF workbench");
+            delivery.Cell(2, 2).SetValue("Ready");
             delivery.AddTable("A1:B2", hasHeader: true, name: "DeliveryTable", style: ExcelTableStyle.TableStyleMedium2);
             document.AddSheet("Empty one");
             document.AddSheet("Empty two");
@@ -92,14 +92,14 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Delivery" })) {
             ExcelSheet delivery = document.Sheets[0];
-            delivery.Cell(1, 1, "Workstream");
-            delivery.Cell(2, 1, "PDF workbench");
+            delivery.Cell(1, 1).SetValue("Workstream");
+            delivery.Cell(2, 1).SetValue("PDF workbench");
 
             ExcelSheet excluded = document.AddSheet("Excluded");
-            excluded.Cell(10, 1, "Owner");
-            excluded.Cell(10, 2, "Status");
-            excluded.Cell(11, 1, "OfficeIMO");
-            excluded.Cell(11, 2, "Ready");
+            excluded.Cell(10, 1).SetValue("Owner");
+            excluded.Cell(10, 2).SetValue("Status");
+            excluded.Cell(11, 1).SetValue("OfficeIMO");
+            excluded.Cell(11, 2).SetValue("Ready");
             excluded.AddTable("A10:B11", hasHeader: true, name: "ExcludedTable", style: ExcelTableStyle.TableStyleMedium2);
             document.SetPrintArea(excluded, "A1:B2", save: false);
             document.Save();
@@ -120,7 +120,7 @@ public partial class Excel {
 
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Delivery" })) {
             ExcelSheet delivery = document.Sheets[0];
-            delivery.Cell(1, 1, "PDF workbench");
+            delivery.Cell(1, 1).SetValue("PDF workbench");
             document.AddSheet("Empty cell");
             document.Save();
         }
@@ -152,8 +152,8 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Serif" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Title");
-            sheet.Cell(2, 1, "Explicit serif default");
+            sheet.Cell(1, 1).SetValue("Title");
+            sheet.Cell(2, 1).SetValue("Explicit serif default");
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -185,10 +185,10 @@ public partial class Excel {
         PdfCore.PdfDocument pdfDocument;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Styled" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Product");
-            sheet.Cell(1, 2, "Amount");
-            sheet.Cell(2, 1, "Licenses");
-            sheet.Cell(2, 2, 1250.5);
+            sheet.Cell(1, 1).SetValue("Product");
+            sheet.Cell(1, 2).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue("Licenses");
+            sheet.Cell(2, 2).SetValue(1250.5);
             document.Save();
 
             pdfDocument = document.ToPdf(new ExcelPdfExportOptions {
@@ -230,8 +230,8 @@ public partial class Excel {
         PdfCore.PdfDocument pdfDocument;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Styled" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Product");
-            sheet.Cell(2, 1, "Licenses");
+            sheet.Cell(1, 1).SetValue("Product");
+            sheet.Cell(2, 1).SetValue("Licenses");
             document.Save();
 
             pdfDocument = document.ToPdf(new ExcelPdfExportOptions {
@@ -262,11 +262,11 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
             ExcelSheet summary = document.AddSheet("Summary");
-            summary.Cell(1, 1, "Metric");
-            summary.Cell(2, 1, "SelectedValue");
+            summary.Cell(1, 1).SetValue("Metric");
+            summary.Cell(2, 1).SetValue("SelectedValue");
             summary.SetHeaderFooter(headerCenter: "Selected Header &A");
             ExcelSheet internalSheet = document.AddSheet("Internal");
-            internalSheet.Cell(1, 1, "HiddenValue");
+            internalSheet.Cell(1, 1).SetValue("HiddenValue");
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -291,9 +291,9 @@ public partial class Excel {
         byte[] explicitHiddenBytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
             ExcelSheet visible = document.AddSheet("Visible");
-            visible.Cell(1, 1, "VisibleSheetValue");
+            visible.Cell(1, 1).SetValue("VisibleSheetValue");
             ExcelSheet hidden = document.AddSheet("Hidden");
-            hidden.Cell(1, 1, "HiddenSheetValue");
+            hidden.Cell(1, 1).SetValue("HiddenSheetValue");
             hidden.SetHidden(true);
             Assert.True(hidden.Hidden);
             document.Save();

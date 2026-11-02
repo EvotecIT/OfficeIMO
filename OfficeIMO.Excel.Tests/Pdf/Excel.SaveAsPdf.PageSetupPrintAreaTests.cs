@@ -22,10 +22,10 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "PageSetup" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(1, 2, "Value");
-            sheet.Cell(2, 1, "PageWidth");
-            sheet.Cell(2, 2, "Custom");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("PageWidth");
+            sheet.Cell(2, 2).SetValue("Custom");
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -48,10 +48,10 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "OutsideTop");
-            sheet.Cell(2, 2, "InsideHeader");
-            sheet.Cell(3, 2, "InsideValue");
-            sheet.Cell(4, 4, "OutsideRight");
+            sheet.Cell(1, 1).SetValue("OutsideTop");
+            sheet.Cell(2, 2).SetValue("InsideHeader");
+            sheet.Cell(3, 2).SetValue("InsideValue");
+            sheet.Cell(4, 4).SetValue("OutsideRight");
             document.SetPrintArea(sheet, "B2:C3");
             document.Save();
 
@@ -75,8 +75,8 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "OnlyCell");
-            sheet.Cell(2, 1, "OutsideCell");
+            sheet.Cell(1, 1).SetValue("OnlyCell");
+            sheet.Cell(2, 1).SetValue("OutsideCell");
             document.SetPrintArea(sheet, "A1");
             document.Save();
 
@@ -106,10 +106,10 @@ public partial class Excel {
         PdfCore.PdfDocumentConversionResult result;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "UsedRangeTop");
-            sheet.Cell(2, 2, "AreaOne");
-            sheet.Cell(2, 4, "AreaTwo");
-            sheet.Cell(5, 5, "UsedRangeBottom");
+            sheet.Cell(1, 1).SetValue("UsedRangeTop");
+            sheet.Cell(2, 2).SetValue("AreaOne");
+            sheet.Cell(2, 4).SetValue("AreaTwo");
+            sheet.Cell(5, 5).SetValue("UsedRangeBottom");
             document.Save();
         }
 
@@ -151,11 +151,11 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(2, 2, "Category");
-            sheet.Cell(2, 3, "Value");
-            sheet.Cell(3, 2, "Inside");
-            sheet.Cell(3, 3, 10);
-            sheet.Cell(10, 1, "OutsideData");
+            sheet.Cell(2, 2).SetValue("Category");
+            sheet.Cell(2, 3).SetValue("Value");
+            sheet.Cell(3, 2).SetValue("Inside");
+            sheet.Cell(3, 3).SetValue(10);
+            sheet.Cell(10, 1).SetValue("OutsideData");
             sheet.AddImage(3, 2, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
                 Width = OfficeIMO.OfficeLength.Pixels(12),
@@ -214,8 +214,8 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "PageSetup" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(2, 1, "WorksheetPageSetup");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 1).SetValue("WorksheetPageSetup");
             sheet.SetOrientation(OfficePageOrientation.Landscape);
             sheet.SetMargins(left: OfficeLength.Inches(0.25), right: OfficeLength.Inches(0.25), top: OfficeLength.Inches(0.5), bottom: OfficeLength.Inches(0.5));
             document.Save();
@@ -241,8 +241,8 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "PaperSize" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(2, 1, "WorksheetPaperSize");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 1).SetValue("WorksheetPaperSize");
             sheet.SetPageSetup(paperSize: ExcelPaperSize.A4);
             document.Save();
 
@@ -264,8 +264,8 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "PaperSize" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(2, 1, "PdfOptionsPageSize");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 1).SetValue("PdfOptionsPageSize");
             sheet.SetPageSetup(paperSize: ExcelPaperSize.A4);
             document.Save();
 
@@ -292,8 +292,8 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "PaperSize" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(2, 1, "ExplicitLetter");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 1).SetValue("ExplicitLetter");
             sheet.SetPageSetup(paperSize: ExcelPaperSize.A3);
             document.Save();
 
@@ -317,8 +317,8 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "PaperSize" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(2, 1, "DefaultPdfPageSize");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 1).SetValue("DefaultPdfPageSize");
             sheet.SetPageSetup(paperSize: ExcelPaperSize.A4);
             document.Save();
 
@@ -341,11 +341,11 @@ public partial class Excel {
         PdfCore.PdfDocument pdfDocument;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "PageSetup" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(1, 2, "Value");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Value");
             for (int row = 2; row <= 10; row++) {
-                sheet.Cell(row, 1, "Row " + row.ToString(CultureInfo.InvariantCulture));
-                sheet.Cell(row, 2, row);
+                sheet.Cell(row, 1).SetValue("Row " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 2).SetValue(row);
             }
 
             for (int row = 1; row <= 10; row++) {
@@ -389,11 +389,11 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "LongReport" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "RegionHeader");
-            sheet.Cell(1, 2, "AmountHeader");
+            sheet.Cell(1, 1).SetValue("RegionHeader");
+            sheet.Cell(1, 2).SetValue("AmountHeader");
             for (int row = 3; row <= 90; row++) {
-                sheet.Cell(row, 1, "Region " + row.ToString(CultureInfo.InvariantCulture));
-                sheet.Cell(row, 2, row);
+                sheet.Cell(row, 1).SetValue("Region " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 2).SetValue(row);
             }
 
             document.SetPrintArea(sheet, "A3:B90");
@@ -423,16 +423,16 @@ public partial class Excel {
         byte[] disabledBytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "ManualBreaks" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(1, 2, "Value");
-            sheet.Cell(2, 1, "BeforeBreak");
-            sheet.Cell(2, 2, "FirstPage");
-            sheet.Cell(3, 1, "BreakTail");
-            sheet.Cell(3, 2, "StillFirstPage");
-            sheet.Cell(4, 1, "AfterBreak");
-            sheet.Cell(4, 2, "SecondPage");
-            sheet.Cell(5, 1, "SecondTail");
-            sheet.Cell(5, 2, "SecondPageTail");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("BeforeBreak");
+            sheet.Cell(2, 2).SetValue("FirstPage");
+            sheet.Cell(3, 1).SetValue("BreakTail");
+            sheet.Cell(3, 2).SetValue("StillFirstPage");
+            sheet.Cell(4, 1).SetValue("AfterBreak");
+            sheet.Cell(4, 2).SetValue("SecondPage");
+            sheet.Cell(5, 1).SetValue("SecondTail");
+            sheet.Cell(5, 2).SetValue("SecondPageTail");
             sheet.AddManualRowPageBreak(3);
 
             Assert.Equal(new[] { 3 }, sheet.GetManualRowPageBreaks());
@@ -474,12 +474,12 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "ManualBreaks" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "TitleOne");
-            sheet.Cell(2, 1, "TitleTwo");
-            sheet.Cell(10, 1, "BodyHeader");
-            sheet.Cell(10, 2, "ValueHeader");
-            sheet.Cell(11, 1, "ExportedBody");
-            sheet.Cell(11, 2, "BodyValue");
+            sheet.Cell(1, 1).SetValue("TitleOne");
+            sheet.Cell(2, 1).SetValue("TitleTwo");
+            sheet.Cell(10, 1).SetValue("BodyHeader");
+            sheet.Cell(10, 2).SetValue("ValueHeader");
+            sheet.Cell(11, 1).SetValue("ExportedBody");
+            sheet.Cell(11, 2).SetValue("BodyValue");
             sheet.AddManualRowPageBreak(5);
             document.SetPrintArea(sheet, "A10:B11");
             document.SetPrintTitles(sheet, firstRow: 1, lastRow: 2, firstCol: null, lastCol: null);
@@ -508,14 +508,14 @@ public partial class Excel {
         byte[] disabledBytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "ManualColumnBreaks" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "LeftHeader");
-            sheet.Cell(1, 2, "LeftTail");
-            sheet.Cell(1, 3, "RightHeader");
-            sheet.Cell(1, 4, "RightTail");
-            sheet.Cell(2, 1, "LeftValueA");
-            sheet.Cell(2, 2, "LeftValueB");
-            sheet.Cell(2, 3, "RightValueC");
-            sheet.Cell(2, 4, "RightValueD");
+            sheet.Cell(1, 1).SetValue("LeftHeader");
+            sheet.Cell(1, 2).SetValue("LeftTail");
+            sheet.Cell(1, 3).SetValue("RightHeader");
+            sheet.Cell(1, 4).SetValue("RightTail");
+            sheet.Cell(2, 1).SetValue("LeftValueA");
+            sheet.Cell(2, 2).SetValue("LeftValueB");
+            sheet.Cell(2, 3).SetValue("RightValueC");
+            sheet.Cell(2, 4).SetValue("RightValueD");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(22));
             sheet.AddManualColumnPageBreak(2);
@@ -559,10 +559,10 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "PageOrder" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "TopLeftPage");
-            sheet.Cell(3, 1, "BottomLeftPage");
-            sheet.Cell(1, 3, "TopRightPage");
-            sheet.Cell(3, 3, "BottomRightPage");
+            sheet.Cell(1, 1).SetValue("TopLeftPage");
+            sheet.Cell(3, 1).SetValue("BottomLeftPage");
+            sheet.Cell(1, 3).SetValue("TopRightPage");
+            sheet.Cell(3, 3).SetValue("BottomRightPage");
             sheet.AddManualRowPageBreak(2);
             sheet.AddManualColumnPageBreak(2);
             document.Save();

@@ -20,18 +20,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Product");
-                sheet.CellValue(1, 3, "Sales");
-                sheet.CellValue(2, 1, "East");
-                sheet.CellValue(2, 2, "A");
-                sheet.CellValue(2, 3, 10);
-                sheet.CellValue(3, 1, "West");
-                sheet.CellValue(3, 2, "A");
-                sheet.CellValue(3, 3, 12);
-                sheet.CellValue(4, 1, "East");
-                sheet.CellValue(4, 2, "B");
-                sheet.CellValue(4, 3, 7);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Product");
+                sheet.Cell(1, 3).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("East");
+                sheet.Cell(2, 2).SetValue("A");
+                sheet.Cell(2, 3).SetValue(10);
+                sheet.Cell(3, 1).SetValue("West");
+                sheet.Cell(3, 2).SetValue("A");
+                sheet.Cell(3, 3).SetValue(12);
+                sheet.Cell(4, 1).SetValue("East");
+                sheet.Cell(4, 2).SetValue("B");
+                sheet.Cell(4, 3).SetValue(7);
                 sheet.AddPivotTable("A1:C4", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, ColumnFields = new[] { "Product" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") }, PivotStyleName = "PivotStyleMedium9" });
                 document.Save();
             }
@@ -69,18 +69,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Product");
-                sheet.CellValue(1, 3, "Sales");
-                sheet.CellValue(2, 1, "East");
-                sheet.CellValue(2, 2, "A");
-                sheet.CellValue(2, 3, 10);
-                sheet.CellValue(3, 1, "West");
-                sheet.CellValue(3, 2, "A");
-                sheet.CellValue(3, 3, 12);
-                sheet.CellValue(4, 1, "East");
-                sheet.CellValue(4, 2, "B");
-                sheet.CellValue(4, 3, 7);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Product");
+                sheet.Cell(1, 3).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("East");
+                sheet.Cell(2, 2).SetValue("A");
+                sheet.Cell(2, 3).SetValue(10);
+                sheet.Cell(3, 1).SetValue("West");
+                sheet.Cell(3, 2).SetValue("A");
+                sheet.Cell(3, 3).SetValue(12);
+                sheet.Cell(4, 1).SetValue("East");
+                sheet.Cell(4, 2).SetValue("B");
+                sheet.Cell(4, 3).SetValue(7);
                 sheet.AddPivotTable("A1:C4", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, ColumnFields = new[] { "Product" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") } });
                 Assert.Equal("F3:G3", sheet.GetPivotTableRange("SalesPivot", ExcelPivotRangeTarget.DataBody));
                 sheet.AddPivotConditionalRule("SalesPivot", ExcelConditionalFormattingOperator.GreaterThan, "0");
@@ -103,18 +103,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Product");
-                sheet.CellValue(1, 3, "Sales");
-                sheet.CellValue(2, 1, "East");
-                sheet.CellValue(2, 2, "A");
-                sheet.CellValue(2, 3, 10);
-                sheet.CellValue(3, 1, "West");
-                sheet.CellValue(3, 2, "A");
-                sheet.CellValue(3, 3, 12);
-                sheet.CellValue(4, 1, "East");
-                sheet.CellValue(4, 2, "B");
-                sheet.CellValue(4, 3, 7);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Product");
+                sheet.Cell(1, 3).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("East");
+                sheet.Cell(2, 2).SetValue("A");
+                sheet.Cell(2, 3).SetValue(10);
+                sheet.Cell(3, 1).SetValue("West");
+                sheet.Cell(3, 2).SetValue("A");
+                sheet.Cell(3, 3).SetValue(12);
+                sheet.Cell(4, 1).SetValue("East");
+                sheet.Cell(4, 2).SetValue("B");
+                sheet.Cell(4, 3).SetValue(7);
                 {
                     var pivotOptions1 = new ExcelPivotTableOptions();
                     pivotOptions1.RowFields.Add("Region");
@@ -168,12 +168,12 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Sales");
-                sheet.CellValue(2, 1, "East");
-                sheet.CellValue(2, 2, 10);
-                sheet.CellValue(3, 1, "West");
-                sheet.CellValue(3, 2, 12);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("East");
+                sheet.Cell(2, 2).SetValue(10);
+                sheet.Cell(3, 1).SetValue("West");
+                sheet.Cell(3, 2).SetValue(12);
                 {
                     var pivotOptions2 = new ExcelPivotTableOptions();
                     pivotOptions2.RowFields.Add("Region");
@@ -216,12 +216,12 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Sales");
-                sheet.CellValue(2, 1, "Confidential East");
-                sheet.CellValue(2, 2, 10);
-                sheet.CellValue(3, 1, "Confidential West");
-                sheet.CellValue(3, 2, 12);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("Confidential East");
+                sheet.Cell(2, 2).SetValue(10);
+                sheet.Cell(3, 1).SetValue("Confidential West");
+                sheet.Cell(3, 2).SetValue(12);
                 sheet.AddPivotTable("A1:B3", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") }, CalculatedFields = new[] { new ExcelPivotCalculatedField("DoubleSales", "'Sales' * 2") } });
                 document.Save();
             }
@@ -241,18 +241,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Product");
-                sheet.CellValue(1, 3, "Sales");
-                sheet.CellValue(2, 1, "East");
-                sheet.CellValue(2, 2, "A");
-                sheet.CellValue(2, 3, 10);
-                sheet.CellValue(3, 1, "West");
-                sheet.CellValue(3, 2, "A");
-                sheet.CellValue(3, 3, 12);
-                sheet.CellValue(4, 1, "North");
-                sheet.CellValue(4, 2, "B");
-                sheet.CellValue(4, 3, 7);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Product");
+                sheet.Cell(1, 3).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("East");
+                sheet.Cell(2, 2).SetValue("A");
+                sheet.Cell(2, 3).SetValue(10);
+                sheet.Cell(3, 1).SetValue("West");
+                sheet.Cell(3, 2).SetValue("A");
+                sheet.Cell(3, 3).SetValue(12);
+                sheet.Cell(4, 1).SetValue("North");
+                sheet.Cell(4, 2).SetValue("B");
+                sheet.Cell(4, 3).SetValue(7);
                 {
                     var pivotOptions3 = new ExcelPivotTableOptions();
                     pivotOptions3.RowFields.Add("Region");
@@ -337,12 +337,12 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Sales");
-                sheet.CellValue(2, 1, "East");
-                sheet.CellValue(2, 2, 10.25);
-                sheet.CellValue(3, 1, "West");
-                sheet.CellValue(3, 2, 12.5);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("East");
+                sheet.Cell(2, 2).SetValue(10.25);
+                sheet.Cell(3, 1).SetValue("West");
+                sheet.Cell(3, 2).SetValue(12.5);
                 {
                     var pivotOptions4 = new ExcelPivotTableOptions();
                     pivotOptions4.RowFields.Add("Region");
@@ -389,20 +389,20 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Product");
-                sheet.CellValue(1, 3, "Sales");
-                sheet.CellValue(2, 1, "East");
-                sheet.CellValue(2, 2, "A");
-                sheet.CellValue(2, 3, 10.25);
-                sheet.CellValue(3, 1, "West");
-                sheet.CellValue(3, 2, "A");
-                sheet.CellValue(3, 3, 12.5);
-                sheet.CellValue(4, 1, "East");
-                sheet.CellValue(4, 2, "B");
-                sheet.CellValue(4, 3, 7.75);
-                sheet.CellValue(5, 2, "C");
-                sheet.CellValue(5, 3, 3.5);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Product");
+                sheet.Cell(1, 3).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("East");
+                sheet.Cell(2, 2).SetValue("A");
+                sheet.Cell(2, 3).SetValue(10.25);
+                sheet.Cell(3, 1).SetValue("West");
+                sheet.Cell(3, 2).SetValue("A");
+                sheet.Cell(3, 3).SetValue(12.5);
+                sheet.Cell(4, 1).SetValue("East");
+                sheet.Cell(4, 2).SetValue("B");
+                sheet.Cell(4, 3).SetValue(7.75);
+                sheet.Cell(5, 2).SetValue("C");
+                sheet.Cell(5, 3).SetValue(3.5);
                 sheet.AddPivotTable("A1:C5", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, PageFields = new[] { "Product" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales", numberFormat: "$#,##0.00") }, FieldOptions = new[] { new ExcelPivotFieldOptions("Region", sortType: ExcelPivotFieldSort.Ascending, defaultSubtotal: false, subtotalTop: true, insertBlankRow: true, insertPageBreak: true, compact: false, outline: true, showDropDowns: true, multipleItemSelectionAllowed: true, includeNewItemsInFilter: true, subtotalCaption: "Region subtotal", hiddenItems: new[] { "West" }), new ExcelPivotFieldOptions("Product", selectedItem: "A") }, RowHeaderCaption = "Rows", ColumnHeaderCaption = "Columns", GrandTotalCaption = "Grand total", MissingCaption = "(missing)", ErrorCaption = "(error)", ShowDataDropDown = false, ShowDropZones = true, ShowDataTips = true, ShowMemberPropertyTips = true, FieldListSortAscending = true, CustomListSort = false });
                 document.Save();
             }
@@ -494,18 +494,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Product");
-                sheet.CellValue(1, 3, "Sales");
-                sheet.CellValue(2, 1, "East");
-                sheet.CellValue(2, 2, "A");
-                sheet.CellValue(2, 3, 10);
-                sheet.CellValue(3, 1, "West");
-                sheet.CellValue(3, 2, "A");
-                sheet.CellValue(3, 3, 20);
-                sheet.CellValue(4, 1, "East");
-                sheet.CellValue(4, 2, "B");
-                sheet.CellValue(4, 3, 30);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Product");
+                sheet.Cell(1, 3).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("East");
+                sheet.Cell(2, 2).SetValue("A");
+                sheet.Cell(2, 3).SetValue(10);
+                sheet.Cell(3, 1).SetValue("West");
+                sheet.Cell(3, 2).SetValue("A");
+                sheet.Cell(3, 3).SetValue(20);
+                sheet.Cell(4, 1).SetValue("East");
+                sheet.Cell(4, 2).SetValue("B");
+                sheet.Cell(4, 3).SetValue(30);
                 {
                     var pivotOptions5 = new ExcelPivotTableOptions();
                     pivotOptions5.RowFields.Add("Region");
@@ -547,18 +547,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Product");
-                sheet.CellValue(1, 3, "Sales");
-                sheet.CellValue(2, 1, "East");
-                sheet.CellValue(2, 2, "A");
-                sheet.CellValue(2, 3, 10);
-                sheet.CellValue(3, 1, "West");
-                sheet.CellValue(3, 2, "A");
-                sheet.CellValue(3, 3, 20);
-                sheet.CellValue(4, 1, "East");
-                sheet.CellValue(4, 2, "B");
-                sheet.CellValue(4, 3, 30);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Product");
+                sheet.Cell(1, 3).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("East");
+                sheet.Cell(2, 2).SetValue("A");
+                sheet.Cell(2, 3).SetValue(10);
+                sheet.Cell(3, 1).SetValue("West");
+                sheet.Cell(3, 2).SetValue("A");
+                sheet.Cell(3, 3).SetValue(20);
+                sheet.Cell(4, 1).SetValue("East");
+                sheet.Cell(4, 2).SetValue("B");
+                sheet.Cell(4, 3).SetValue(30);
                 {
                     var pivotOptions6 = new ExcelPivotTableOptions();
                     pivotOptions6.RowFields.Add("Region");
@@ -619,21 +619,21 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Product");
-                sheet.CellValue(1, 3, "Sales");
-                sheet.CellValue(2, 1, "East");
-                sheet.CellValue(2, 2, "A");
-                sheet.CellValue(2, 3, 10);
-                sheet.CellValue(3, 1, "West");
-                sheet.CellValue(3, 2, "A");
-                sheet.CellValue(3, 3, 20);
-                sheet.CellValue(4, 1, "North");
-                sheet.CellValue(4, 2, "B");
-                sheet.CellValue(4, 3, 30);
-                sheet.CellValue(5, 1, "South");
-                sheet.CellValue(5, 2, "B");
-                sheet.CellValue(5, 3, 40);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Product");
+                sheet.Cell(1, 3).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("East");
+                sheet.Cell(2, 2).SetValue("A");
+                sheet.Cell(2, 3).SetValue(10);
+                sheet.Cell(3, 1).SetValue("West");
+                sheet.Cell(3, 2).SetValue("A");
+                sheet.Cell(3, 3).SetValue(20);
+                sheet.Cell(4, 1).SetValue("North");
+                sheet.Cell(4, 2).SetValue("B");
+                sheet.Cell(4, 3).SetValue(30);
+                sheet.Cell(5, 1).SetValue("South");
+                sheet.Cell(5, 2).SetValue("B");
+                sheet.Cell(5, 3).SetValue(40);
                 {
                     var pivotOptions7 = new ExcelPivotTableOptions();
                     pivotOptions7.RowFields.Add("Region");
@@ -711,21 +711,21 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "OrderDate");
-                sheet.CellValue(1, 2, "Product");
-                sheet.CellValue(1, 3, "Sales");
-                sheet.CellValue(2, 1, new DateTime(2026, 1, 10));
-                sheet.CellValue(2, 2, "A");
-                sheet.CellValue(2, 3, 10);
-                sheet.CellValue(3, 1, new DateTime(2026, 2, 15));
-                sheet.CellValue(3, 2, "A");
-                sheet.CellValue(3, 3, 20);
-                sheet.CellValue(4, 1, new DateTime(2026, 3, 20));
-                sheet.CellValue(4, 2, "B");
-                sheet.CellValue(4, 3, 30);
-                sheet.CellValue(5, 1, new DateTime(2026, 4, 25));
-                sheet.CellValue(5, 2, "B");
-                sheet.CellValue(5, 3, 40);
+                sheet.Cell(1, 1).SetValue("OrderDate");
+                sheet.Cell(1, 2).SetValue("Product");
+                sheet.Cell(1, 3).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue(new DateTime(2026, 1, 10));
+                sheet.Cell(2, 2).SetValue("A");
+                sheet.Cell(2, 3).SetValue(10);
+                sheet.Cell(3, 1).SetValue(new DateTime(2026, 2, 15));
+                sheet.Cell(3, 2).SetValue("A");
+                sheet.Cell(3, 3).SetValue(20);
+                sheet.Cell(4, 1).SetValue(new DateTime(2026, 3, 20));
+                sheet.Cell(4, 2).SetValue("B");
+                sheet.Cell(4, 3).SetValue(30);
+                sheet.Cell(5, 1).SetValue(new DateTime(2026, 4, 25));
+                sheet.Cell(5, 2).SetValue("B");
+                sheet.Cell(5, 3).SetValue(40);
                 {
                     var pivotOptions8 = new ExcelPivotTableOptions();
                     pivotOptions8.RowFields.Add("OrderDate");
@@ -783,21 +783,21 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "OrderDate");
-                sheet.CellValue(1, 2, "Product");
-                sheet.CellValue(1, 3, "Sales");
-                sheet.CellValue(2, 1, new DateTime(2026, 1, 10));
-                sheet.CellValue(2, 2, "A");
-                sheet.CellValue(2, 3, 10);
-                sheet.CellValue(3, 1, new DateTime(2026, 2, 15));
-                sheet.CellValue(3, 2, "A");
-                sheet.CellValue(3, 3, 20);
-                sheet.CellValue(4, 1, new DateTime(2026, 3, 20));
-                sheet.CellValue(4, 2, "B");
-                sheet.CellValue(4, 3, 30);
-                sheet.CellValue(5, 1, new DateTime(2026, 4, 25));
-                sheet.CellValue(5, 2, "B");
-                sheet.CellValue(5, 3, 40);
+                sheet.Cell(1, 1).SetValue("OrderDate");
+                sheet.Cell(1, 2).SetValue("Product");
+                sheet.Cell(1, 3).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue(new DateTime(2026, 1, 10));
+                sheet.Cell(2, 2).SetValue("A");
+                sheet.Cell(2, 3).SetValue(10);
+                sheet.Cell(3, 1).SetValue(new DateTime(2026, 2, 15));
+                sheet.Cell(3, 2).SetValue("A");
+                sheet.Cell(3, 3).SetValue(20);
+                sheet.Cell(4, 1).SetValue(new DateTime(2026, 3, 20));
+                sheet.Cell(4, 2).SetValue("B");
+                sheet.Cell(4, 3).SetValue(30);
+                sheet.Cell(5, 1).SetValue(new DateTime(2026, 4, 25));
+                sheet.Cell(5, 2).SetValue("B");
+                sheet.Cell(5, 3).SetValue(40);
                 {
                     var pivotOptions9 = new ExcelPivotTableOptions();
                     pivotOptions9.RowFields.Add("OrderDate");
@@ -862,21 +862,21 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Product");
-                sheet.CellValue(1, 3, "Sales");
-                sheet.CellValue(2, 1, "East");
-                sheet.CellValue(2, 2, "A");
-                sheet.CellValue(2, 3, 10);
-                sheet.CellValue(3, 1, "West");
-                sheet.CellValue(3, 2, "A");
-                sheet.CellValue(3, 3, 20);
-                sheet.CellValue(4, 1, "North");
-                sheet.CellValue(4, 2, "B");
-                sheet.CellValue(4, 3, 30);
-                sheet.CellValue(5, 1, "South");
-                sheet.CellValue(5, 2, "B");
-                sheet.CellValue(5, 3, 40);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Product");
+                sheet.Cell(1, 3).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("East");
+                sheet.Cell(2, 2).SetValue("A");
+                sheet.Cell(2, 3).SetValue(10);
+                sheet.Cell(3, 1).SetValue("West");
+                sheet.Cell(3, 2).SetValue("A");
+                sheet.Cell(3, 3).SetValue(20);
+                sheet.Cell(4, 1).SetValue("North");
+                sheet.Cell(4, 2).SetValue("B");
+                sheet.Cell(4, 3).SetValue(30);
+                sheet.Cell(5, 1).SetValue("South");
+                sheet.Cell(5, 2).SetValue("B");
+                sheet.Cell(5, 3).SetValue(40);
                 {
                     var pivotOptions10 = new ExcelPivotTableOptions();
                     pivotOptions10.RowFields.Add("Region");
@@ -963,18 +963,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Revenue");
-                sheet.CellValue(1, 3, "Cost");
-                sheet.CellValue(2, 1, "East");
-                sheet.CellValue(2, 2, 100);
-                sheet.CellValue(2, 3, 60);
-                sheet.CellValue(3, 1, "West");
-                sheet.CellValue(3, 2, 120);
-                sheet.CellValue(3, 3, 90);
-                sheet.CellValue(4, 1, "East");
-                sheet.CellValue(4, 2, 80);
-                sheet.CellValue(4, 3, 45);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Revenue");
+                sheet.Cell(1, 3).SetValue("Cost");
+                sheet.Cell(2, 1).SetValue("East");
+                sheet.Cell(2, 2).SetValue(100);
+                sheet.Cell(2, 3).SetValue(60);
+                sheet.Cell(3, 1).SetValue("West");
+                sheet.Cell(3, 2).SetValue(120);
+                sheet.Cell(3, 3).SetValue(90);
+                sheet.Cell(4, 1).SetValue("East");
+                sheet.Cell(4, 2).SetValue(80);
+                sheet.Cell(4, 3).SetValue(45);
                 {
                     var pivotOptions11 = new ExcelPivotTableOptions();
                     pivotOptions11.RowFields.Add("Region");
@@ -1031,18 +1031,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "OrderDate");
-                sheet.CellValue(1, 2, "Quantity");
-                sheet.CellValue(1, 3, "Sales");
-                sheet.CellValue(2, 1, new DateTime(2026, 1, 3));
-                sheet.CellValue(2, 2, 4);
-                sheet.CellValue(2, 3, 40);
-                sheet.CellValue(3, 1, new DateTime(2026, 1, 18));
-                sheet.CellValue(3, 2, 12);
-                sheet.CellValue(3, 3, 120);
-                sheet.CellValue(4, 1, new DateTime(2026, 2, 8));
-                sheet.CellValue(4, 2, 18);
-                sheet.CellValue(4, 3, 180);
+                sheet.Cell(1, 1).SetValue("OrderDate");
+                sheet.Cell(1, 2).SetValue("Quantity");
+                sheet.Cell(1, 3).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue(new DateTime(2026, 1, 3));
+                sheet.Cell(2, 2).SetValue(4);
+                sheet.Cell(2, 3).SetValue(40);
+                sheet.Cell(3, 1).SetValue(new DateTime(2026, 1, 18));
+                sheet.Cell(3, 2).SetValue(12);
+                sheet.Cell(3, 3).SetValue(120);
+                sheet.Cell(4, 1).SetValue(new DateTime(2026, 2, 8));
+                sheet.Cell(4, 2).SetValue(18);
+                sheet.Cell(4, 3).SetValue(180);
                 {
                     var pivotOptions12 = new ExcelPivotTableOptions();
                     pivotOptions12.RowFields.Add("OrderDate");
@@ -1111,18 +1111,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "OrderDate");
-                sheet.CellValue(1, 2, "Region");
-                sheet.CellValue(1, 3, "Sales");
-                sheet.CellValue(2, 1, new DateTime(2025, 12, 30));
-                sheet.CellValue(2, 2, "West");
-                sheet.CellValue(2, 3, 75);
-                sheet.CellValue(3, 1, new DateTime(2026, 1, 3));
-                sheet.CellValue(3, 2, "East");
-                sheet.CellValue(3, 3, 40);
-                sheet.CellValue(4, 1, new DateTime(2026, 4, 8));
-                sheet.CellValue(4, 2, "East");
-                sheet.CellValue(4, 3, 180);
+                sheet.Cell(1, 1).SetValue("OrderDate");
+                sheet.Cell(1, 2).SetValue("Region");
+                sheet.Cell(1, 3).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue(new DateTime(2025, 12, 30));
+                sheet.Cell(2, 2).SetValue("West");
+                sheet.Cell(2, 3).SetValue(75);
+                sheet.Cell(3, 1).SetValue(new DateTime(2026, 1, 3));
+                sheet.Cell(3, 2).SetValue("East");
+                sheet.Cell(3, 3).SetValue(40);
+                sheet.Cell(4, 1).SetValue(new DateTime(2026, 4, 8));
+                sheet.Cell(4, 2).SetValue("East");
+                sheet.Cell(4, 3).SetValue(180);
                 {
                     var pivotOptions13 = new ExcelPivotTableOptions();
                     pivotOptions13.RowFields.Add("OrderDate");
@@ -1192,18 +1192,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "OrderDate");
-                sheet.CellValue(1, 2, "Region");
-                sheet.CellValue(1, 3, "Sales");
-                sheet.CellValue(2, 1, new DateTime(2025, 12, 30));
-                sheet.CellValue(2, 2, "West");
-                sheet.CellValue(2, 3, 75);
-                sheet.CellValue(3, 1, new DateTime(2026, 1, 3));
-                sheet.CellValue(3, 2, "East");
-                sheet.CellValue(3, 3, 40);
-                sheet.CellValue(4, 1, new DateTime(2026, 4, 8));
-                sheet.CellValue(4, 2, "East");
-                sheet.CellValue(4, 3, 180);
+                sheet.Cell(1, 1).SetValue("OrderDate");
+                sheet.Cell(1, 2).SetValue("Region");
+                sheet.Cell(1, 3).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue(new DateTime(2025, 12, 30));
+                sheet.Cell(2, 2).SetValue("West");
+                sheet.Cell(2, 3).SetValue(75);
+                sheet.Cell(3, 1).SetValue(new DateTime(2026, 1, 3));
+                sheet.Cell(3, 2).SetValue("East");
+                sheet.Cell(3, 3).SetValue(40);
+                sheet.Cell(4, 1).SetValue(new DateTime(2026, 4, 8));
+                sheet.Cell(4, 2).SetValue("East");
+                sheet.Cell(4, 3).SetValue(180);
                 {
                     var pivotOptions14 = new ExcelPivotTableOptions();
                     pivotOptions14.RowFields.Add("OrderDate");
@@ -1270,18 +1270,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Product");
-                sheet.CellValue(1, 3, "Sales");
-                sheet.CellValue(2, 1, "East");
-                sheet.CellValue(2, 2, "A");
-                sheet.CellValue(2, 3, 10);
-                sheet.CellValue(3, 1, "West");
-                sheet.CellValue(3, 2, "A");
-                sheet.CellValue(3, 3, 12);
-                sheet.CellValue(4, 1, "East");
-                sheet.CellValue(4, 2, "B");
-                sheet.CellValue(4, 3, 7);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Product");
+                sheet.Cell(1, 3).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("East");
+                sheet.Cell(2, 2).SetValue("A");
+                sheet.Cell(2, 3).SetValue(10);
+                sheet.Cell(3, 1).SetValue("West");
+                sheet.Cell(3, 2).SetValue("A");
+                sheet.Cell(3, 3).SetValue(12);
+                sheet.Cell(4, 1).SetValue("East");
+                sheet.Cell(4, 2).SetValue("B");
+                sheet.Cell(4, 3).SetValue(7);
                 sheet.AddPivotTable("A1:C4", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, ColumnFields = new[] { "Product" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") } });
                 var chart = sheet.AddPivotChartFromRange("SalesPivot", "A1:C4", row: 7, column: 1, title: "Sales Pivot");
                 Assert.True(chart.IsPivotChart);

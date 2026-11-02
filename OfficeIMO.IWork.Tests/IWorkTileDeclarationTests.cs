@@ -79,7 +79,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             partial.Value.Save(saved); saved.Position = 0;
             using ExcelDocument reopened = ExcelDocument.Load(saved);
-            Assert.Equal(42d, reopened.Sheets[0].CellAt(2, 1).GetValue<double>());
+            Assert.Equal(42d, reopened.Sheets[0].Cell(2, 1).GetValue<double>());
         } else {
             using var automatic = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);

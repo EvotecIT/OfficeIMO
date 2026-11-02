@@ -10,9 +10,9 @@ namespace OfficeIMO.Examples.Excel {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, 10d);
-                sheet.CellValue(2, 1, 20d);
-                sheet.CellValue(3, 1, 30d);
+                sheet.Cell(1, 1).SetValue(10d);
+                sheet.Cell(2, 1).SetValue(20d);
+                sheet.Cell(3, 1).SetValue(30d);
                 // Light status tints keep the values readable: a pure red-to-green scale passes through brown.
                 sheet.AddConditionalColorScale("A1:A3", Color.ParseHex("F8D7DA"), Color.ParseHex("C9ECD3"));
                 document.Save();

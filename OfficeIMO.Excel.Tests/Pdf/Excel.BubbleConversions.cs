@@ -120,8 +120,8 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         using var document = ExcelDocument.Create();
         ExcelChart chart = CreateLiteralChart(document, false);
         var sheet = document.Sheets[0];
-        sheet.CellValue(2, 2, "Source");
-        sheet.CellValue(3, 3, 1);
+        sheet.Cell(2, 2).SetValue("Source");
+        sheet.Cell(3, 3).SetValue(1);
         var marker = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().DrawingsPart!.WorksheetDrawing
             .Descendants<DocumentFormat.OpenXml.Drawing.Spreadsheet.FromMarker>().Single();
         marker.RowId!.Text = "0";
@@ -136,8 +136,8 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
     public void BubbleConversions_LeadingAnchorDoesNotMaterializeBlankFlowTableRows() {
         using var document = ExcelDocument.Create();
         CreateLiteralChart(document, false);
-        document.Sheets[0].CellValue(1000, 1, "Far source");
-        document.Sheets[0].CellValue(1001, 3, "Tail");
+        document.Sheets[0].Cell(1000, 1).SetValue("Far source");
+        document.Sheets[0].Cell(1001, 3).SetValue("Tail");
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions { WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Single(read.GetPages());
@@ -171,7 +171,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
 
     private static ExcelChart CreateConversionBubble(ExcelDocument document) {
         var chart = CreateLiteralChart(document, false);
-        document.Sheets[0].CellValue(1, 1, "Bubble conversion");
+        document.Sheets[0].Cell(1, 1).SetValue("Bubble conversion");
         var native = GetNativeBubble(document);
         native.RemoveAllChildren<C.BubbleScale>();
         native.RemoveAllChildren<C.SizeRepresents>();
