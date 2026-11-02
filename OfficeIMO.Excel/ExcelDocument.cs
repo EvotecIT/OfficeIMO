@@ -460,7 +460,7 @@ namespace OfficeIMO.Excel {
 
             _packageDirty = true;
             _unchangedPackageBytes = null;
-            ReleaseReadSnapshot();
+            ReleaseReadSnapshotOnEdit();
             bool preserveDirectCandidate = _preserveDirectDataSetSaveCandidateForNextDirtyMark
                 || _directDataSetSaveCandidatePreservationDepth > 0;
             try {

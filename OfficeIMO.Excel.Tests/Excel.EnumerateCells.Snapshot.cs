@@ -41,6 +41,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void EditedWorkbookReadsUntouchedSheetsFromThePackageWithoutLoadingThem() {
+            byte[] package = CreatePackage(
+                ("Edited", "<row r=\"1\"><c r=\"A1\" t=\"s\"><v>0</v></c></row>"),
+                ("Untouched", "<row r=\"1\"><c r=\"A1\" t=\"s\"><v>0</v></c><c r=\"B1\"><v>2</v></c></row>"));
+            using var document = ExcelDocument.Load(new MemoryStream(package));
+            ExcelSheet edited = document["Edited"];
+            ExcelSheet untouched = document["Untouched"];
+            edited.CellValue(1, 2, "added");
+
+            using (var cells = untouched.EnumerateCells().GetEnumerator()) {
+                Assert.True(cells.MoveNext());
+                Assert.Equal("shared", cells.Current.Value);
+                edited.CellValue(1, 3, "added later");
+                Assert.True(cells.MoveNext());
+                Assert.Equal(2d, cells.Current.Value);
+            }
+
+            Assert.Equal(new object[] { "shared", "added", "added later" }, edited.EnumerateCells().Select(cell => cell.Value!).ToArray());
+            Assert.Equal("shared", untouched.ToDataTable(headersInFirstRow: false).Rows[0][0]);
+
+            var parts = document.OpenXmlDocument.WorkbookPart!;
+            var loaded = parts.Workbook!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Sheet>()
+                .ToDictionary(sheet => sheet.Name!.Value!, sheet => parts.GetPartById(sheet.Id!.Value!).IsRootElementLoaded);
+            Assert.True(loaded["Edited"]);
+            Assert.False(loaded["Untouched"]);
+        }
+
+        [Fact]
         public void EnumerationSeesChangesMadeThroughTheExposedSdkDocument() {
             byte[] package = CreatePackage("<row r=\"1\"><c r=\"A1\"><v>1</v></c></row>");
             using var document = ExcelDocument.Load(new MemoryStream(package));

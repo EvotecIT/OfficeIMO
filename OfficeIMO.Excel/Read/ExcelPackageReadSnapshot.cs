@@ -17,6 +17,7 @@ namespace OfficeIMO.Excel {
         private readonly IDisposable? _ownedFile;
         private readonly object _gate = new();
         private SharedStringCache? _parkedSharedStrings;
+        private Dictionary<Uri, WorksheetPart>? _worksheetParts;
         private int _references = 1;
 
         private ExcelPackageReadSnapshot(
@@ -130,6 +131,15 @@ namespace OfficeIMO.Excel {
             _stream.Dispose();
             PartBufferReader.Dispose();
             _ownedFile?.Dispose();
+        }
+
+        /// <summary>Finds the part of this package an editable document knows by the same name.</summary>
+        internal WorksheetPart? FindWorksheetPart(Uri uri) {
+            lock (_gate) {
+                _worksheetParts ??= Document.WorkbookPart?.WorksheetParts.ToDictionary(static part => part.Uri)
+                    ?? new Dictionary<Uri, WorksheetPart>();
+                return _worksheetParts.TryGetValue(uri, out WorksheetPart? part) ? part : null;
+            }
         }
 
         /// <summary>

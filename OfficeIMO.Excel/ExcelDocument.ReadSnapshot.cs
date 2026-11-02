@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Packaging;
 using System.Threading;
 
 namespace OfficeIMO.Excel {
@@ -14,10 +15,13 @@ namespace OfficeIMO.Excel {
         /// </summary>
         internal ExcelDocumentReader CreateCellEnumerationReader(ExcelReaderOptions options) {
             MaterializeDeferredDataSetImport();
+            SpreadsheetDocument document = _spreadSheetDocument;
             ExcelPackageReadSnapshot? snapshot = AcquireReadSnapshot();
-            return snapshot != null
-                ? ExcelDocumentReader.Wrap(snapshot, options)
-                : ExcelDocumentReader.Wrap(_spreadSheetDocument, options);
+            if (snapshot != null) return ExcelDocumentReader.Wrap(snapshot, options);
+            ExcelPackageReadSnapshot? baseline = AcquireEditedPackageBaseline();
+            return baseline != null
+                ? ExcelDocumentReader.WrapEdited(document, baseline, options, tabular: false)
+                : ExcelDocumentReader.Wrap(document, options);
         }
 
         /// <summary>
@@ -36,10 +40,17 @@ namespace OfficeIMO.Excel {
         /// </summary>
         internal ExcelDocumentReader CreateTabularReader(ExcelReaderOptions options) {
             MaterializeDeferredDataSetImport();
-            ExcelPackageReadSnapshot? snapshot = options.CellValueConverter == null ? AcquireReadSnapshot() : null;
-            return snapshot != null
-                ? ExcelDocumentReader.WrapTabular(snapshot, options, () => ExcelDocumentReader.Wrap(_spreadSheetDocument, options))
-                : ExcelDocumentReader.Wrap(_spreadSheetDocument, options);
+            SpreadsheetDocument document = _spreadSheetDocument;
+            if (options.CellValueConverter != null) return ExcelDocumentReader.Wrap(document, options);
+            ExcelPackageReadSnapshot? snapshot = AcquireReadSnapshot();
+            if (snapshot != null) {
+                return ExcelDocumentReader.WrapTabular(snapshot, options, () => ExcelDocumentReader.Wrap(_spreadSheetDocument, options));
+            }
+
+            ExcelPackageReadSnapshot? baseline = AcquireEditedPackageBaseline();
+            return baseline != null
+                ? ExcelDocumentReader.WrapEdited(document, baseline, options, tabular: true)
+                : ExcelDocumentReader.Wrap(document, options);
         }
 
         /// <summary>
@@ -63,9 +74,24 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private ExcelPackageReadSnapshot? AcquireReadSnapshot() {
+        /// <summary>
+        /// The package an edited document last matched. The document only changes a worksheet through its
+        /// root, but exposed SDK access can feed a part directly, so then a part's state says nothing about these bytes.
+        /// </summary>
+        private byte[]? EditedPackageBaseline =>
+            _readSnapshotAllowed && !_openXmlDocumentExposed ? _packageBaselineBytes : null;
+
+        private ExcelPackageReadSnapshot? AcquireReadSnapshot() => AcquireSnapshot(ReadSnapshotIdentity);
+
+        private ExcelPackageReadSnapshot? AcquireEditedPackageBaseline() => AcquireSnapshot(EditedPackageBaseline);
+
+        /// <summary>Moves a snapshot off an unchanged document, unless it stays useful as the edited document's baseline.</summary>
+        private void ReleaseReadSnapshotOnEdit() {
+            if (!ReferenceEquals(_readSnapshot?.Identity, EditedPackageBaseline)) ReleaseReadSnapshot();
+        }
+
+        private ExcelPackageReadSnapshot? AcquireSnapshot(object? identity) {
             lock (_readSnapshotGate) {
-                object? identity = ReadSnapshotIdentity;
                 if (identity == null) {
                     ReleaseReadSnapshot();
                     return null;
