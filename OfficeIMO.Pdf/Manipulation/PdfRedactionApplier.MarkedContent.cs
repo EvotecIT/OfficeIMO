@@ -267,7 +267,7 @@ internal static partial class PdfRedactionApplier {
         var pages = new HashSet<int>(plan.Matches.Select(static match => match.PageNumber));
         if (pages.Count == 0) return issues;
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
-        var reviewed = new HashSet<string>(plan.ReviewedTextObjectScopes.SelectMany(static scopes => scopes).SelectMany(static scope => scope.Spans)
+        var reviewed = new HashSet<string>(plan.ReviewedTextObjectScopes.SelectMany(static scopes => scopes).SelectMany(static scope => scope.ReviewedSpans)
             .Select(static span => span.SourceActualText).OfType<string>(), StringComparer.Ordinal);
         foreach ((string content, PdfDictionary? resources, string owner) in EnumerateAlternateTextOwners(document, pages, cancellationToken)) {
             if (FindAlternateTextScopes(content, ReadPropertyAlternateText(document.Objects, resources), document.ReadOptions.Limits)
