@@ -127,8 +127,14 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         ref int unsupportedMeasurements,
         ref int approximatedFontFamilyLists,
         ref int unsupportedFontFamilies) {
+        OdpInlineLeaf[][] sourceInlineNodes = sourceParagraphs
+            .Select(paragraph => FlattenOdpInlineNodes(paragraph.InlineNodes).ToArray())
+            .ToArray();
+        // Inline nodes rebuild their paragraph's runs and breaks, so the seeded paragraph
+        // must not already hold that text: a multi-line seed writes runs and a:br of its own.
         IReadOnlyList<PowerPointParagraph> targetParagraphs =
-            setParagraphs(sourceParagraphs.Select(paragraph => paragraph.Text));
+            setParagraphs(sourceParagraphs.Select((paragraph, index) =>
+                sourceInlineNodes[index].Length > 0 ? string.Empty : paragraph.Text));
         int paragraphCount = Math.Min(sourceParagraphs.Count, targetParagraphs.Count);
         for (int index = 0; index < paragraphCount; index++) {
             OdpParagraph sourceParagraph = sourceParagraphs[index];
@@ -138,7 +144,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 targetParagraph,
                 ref unsupportedWritingModes,
                 ref approximatedParagraphAlignments);
-            OdpInlineLeaf[] inlineNodes = FlattenOdpInlineNodes(sourceParagraph.InlineNodes).ToArray();
+            OdpInlineLeaf[] inlineNodes = sourceInlineNodes[index];
             var convertedLinks = new HashSet<OdpHyperlink>();
             var linkedTargets = new HashSet<OdpHyperlink>();
             var unsupportedLinks = new HashSet<OdpHyperlink>();
@@ -218,12 +224,15 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             }
 
             if (inlineNodes.Length == 0) {
-                PowerPointTextRun run = useExistingRun
-                    ? existingRuns[0]
-                    : targetParagraph.AddRun(string.Empty);
-                unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, run, options,
-                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
-                QueueTextCaseRuns(new[] { run }, sourceParagraph.TextTransform, containsLineBreak: false);
+                // A multi-line seed is one run per line; each line carries the paragraph formatting.
+                IReadOnlyList<PowerPointTextRun> runs = useExistingRun
+                    ? existingRuns
+                    : new[] { targetParagraph.AddRun(string.Empty) };
+                foreach (PowerPointTextRun run in runs) {
+                    unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, run, options,
+                        ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                }
+                QueueTextCaseRuns(runs, sourceParagraph.TextTransform, containsLineBreak: runs.Count > 1);
             } else {
                 foreach (OdpInlineLeaf leaf in inlineNodes) {
                     OdpInlineNode node = leaf.Node;
