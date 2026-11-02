@@ -6899,7 +6899,7 @@
               "pipeline": "none"
             },
             {
-              "name": "SchemaSampleSize",
+              "name": "SchemaSampleRows",
               "type": "int",
               "mandatory": false,
               "pipeline": "none"
@@ -7112,7 +7112,7 @@
               "pipeline": "none"
             },
             {
-              "name": "SchemaSampleSize",
+              "name": "SchemaSampleRows",
               "type": "int",
               "mandatory": false,
               "pipeline": "none"
@@ -7331,7 +7331,7 @@
               "pipeline": "none"
             },
             {
-              "name": "SchemaSampleSize",
+              "name": "SchemaSampleRows",
               "type": "int",
               "mandatory": false,
               "pipeline": "none"
@@ -7548,7 +7548,7 @@
               "pipeline": "none"
             },
             {
-              "name": "SchemaSampleSize",
+              "name": "SchemaSampleRows",
               "type": "int",
               "mandatory": false,
               "pipeline": "none"
@@ -7764,7 +7764,7 @@
               "pipeline": "none"
             },
             {
-              "name": "SchemaSampleSize",
+              "name": "SchemaSampleRows",
               "type": "int",
               "mandatory": false,
               "pipeline": "none"
@@ -7986,7 +7986,7 @@
               "pipeline": "none"
             },
             {
-              "name": "SchemaSampleSize",
+              "name": "SchemaSampleRows",
               "type": "int",
               "mandatory": false,
               "pipeline": "none"
@@ -8198,7 +8198,7 @@
               "pipeline": "none"
             },
             {
-              "name": "SchemaSampleSize",
+              "name": "SchemaSampleRows",
               "type": "int",
               "mandatory": false,
               "pipeline": "none"
@@ -8391,7 +8391,7 @@
               "pipeline": "none"
             },
             {
-              "name": "SchemaSampleSize",
+              "name": "SchemaSampleRows",
               "type": "int",
               "mandatory": false,
               "pipeline": "none"
@@ -8590,7 +8590,7 @@
               "pipeline": "none"
             },
             {
-              "name": "SchemaSampleSize",
+              "name": "SchemaSampleRows",
               "type": "int",
               "mandatory": false,
               "pipeline": "none"
@@ -11470,7 +11470,8 @@
         "RecognizeW3CFieldsHeader": "NoW3CFieldsHeader",
         "AsHashtable": "As",
         "AsDataTable": "As",
-        "AsDataReader": "As"
+        "AsDataReader": "As",
+        "SchemaSampleSize": "SchemaSampleRows"
       },
       "hint": "Import-OfficeCsv -Path .\\data.csv -As DataTable -InferSchema",
       "reason": "Output switches became -As; -DelimiterText merged into a string -Delimiter; bool parameters became switches; path aliases removed (LiteralPath keeps PSPath/FullName)."
@@ -11488,7 +11489,8 @@
         "DelimiterText": "Delimiter",
         "TrimWhitespace": "TrimWhitespace",
         "SkipCommentRowsBeforeHeader": "NoSkipCommentRowsBeforeHeader",
-        "RecognizeW3CFieldsHeader": "NoW3CFieldsHeader"
+        "RecognizeW3CFieldsHeader": "NoW3CFieldsHeader",
+        "SchemaSampleSize": "SchemaSampleRows"
       },
       "hint": "$csv = Import-OfficeCsv -Path .\\data.csv -As Document",
       "reason": "Loading a CsvDocument is one output mode of reading CSV; the five CSV commands become Import/Export/ConvertTo-OfficeCsv."
@@ -11504,7 +11506,8 @@
         "TrimWhitespace": "TrimWhitespace",
         "SkipCommentRowsBeforeHeader": "NoSkipCommentRowsBeforeHeader",
         "RecognizeW3CFieldsHeader": "NoW3CFieldsHeader",
-        "AsHashtable": "As"
+        "AsHashtable": "As",
+        "SchemaSampleSize": "SchemaSampleRows"
       },
       "hint": "Import-OfficeCsv -Text $csvText",
       "reason": "Parsing CSV text is Import-OfficeCsv with -Text. -Text is no longer bound from the pipeline because piped strings bind to -Path; pass the text with -Text."
