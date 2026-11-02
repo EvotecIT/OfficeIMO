@@ -435,7 +435,7 @@ namespace OfficeIMO.Excel {
                 : (DbDataReader)sheet.ReadRangeAsDataReader(
                     options.A1Range!,
                     headersInFirstRow: options.HasHeaderRow,
-                    chunkRows: Math.Min(1024, options.MaxDataReaderChunkRows),
+                    chunkRows: Math.Min(ExcelSheetReader.DataReaderChunkRows, options.MaxDataReaderChunkRows),
                     schemaSampleRows: options.InferSchema ? options.SchemaSampleRows : 0,
                     ct: cancellationToken);
         }

@@ -16,6 +16,8 @@ internal static class XlBenchShapeData {
     internal const int InsertAt = 2;
     internal const int InsertCount = 2;
     internal const double InsertedValue = 10d;
+    internal const double EditedValue = 7d;
+    internal const string EditedText = "Edited";
     internal const int SheetCount = 20;
     internal const int RowsPerSheet = 500;
     internal const int SheetColumns = 12;
@@ -25,6 +27,8 @@ internal static class XlBenchShapeData {
     internal const int TemplateFirstRow = 6;
     internal const int PropertyRows = 1_000;
     internal const int PropertyColumns = 8;
+    internal const int WideRows = 10_000;
+    internal const int WideColumns = 150;
     internal const string ReportSheet = "Weekly Prices";
     internal const string ReportTitle = "Weekly closing price by symbol";
     internal const string DateFormat = "yyyy-mm-dd";
@@ -52,12 +56,14 @@ internal static class XlBenchShapeData {
     private static readonly Lazy<byte[]> LazyProperties = new(BuildProperties);
     private static readonly Lazy<byte[]> LazySheets = new(BuildSheets);
     private static readonly Lazy<byte[]> LazyTemplate = new(LoadTemplate);
+    private static readonly Lazy<byte[]> LazyWide = new(BuildWide);
 
     internal static byte[] ReadWorkbook => LazyRead.Value;
     internal static byte[] EditWorkbook => LazyEdit.Value;
     internal static byte[] PropertiesWorkbook => LazyProperties.Value;
     internal static byte[] SheetsWorkbook => LazySheets.Value;
     internal static byte[] TemplateWorkbook => LazyTemplate.Value;
+    internal static byte[] WideWorkbook => LazyWide.Value;
     internal static long SheetsCellCount => (long)SheetCount * (RowsPerSheet + 1) * SheetColumns;
     internal static int EditLastRowAfterDelete => 1 + SurvivingRows.Length;
 
@@ -217,6 +223,25 @@ internal static class XlBenchShapeData {
             sheet.Cell(row, 13).Value = $"Note for row {row} with seed {seed}";
             sheet.Cell(row, 14).Value = $"CODE-{seed:D5}";
             sheet.Cell(row, 15).FormulaA1 = $"SUM(D{row}:H{row})";
+        }
+        return Save(workbook);
+    }
+
+    private static byte[] BuildWide() {
+        using var workbook = new XLWorkbook();
+        var sheet = workbook.AddWorksheet("Wide");
+        for (int column = 1; column <= WideColumns; column++) {
+            sheet.Cell(1, column).Value = $"Column_{column}";
+        }
+        var random = new Random(42);
+        for (int row = 2; row <= WideRows; row++) {
+            for (int column = 1; column <= WideColumns; column++) {
+                if (column % 5 == 0) {
+                    sheet.Cell(row, column).Value = $"Text {random.Next(5000)}";
+                } else {
+                    sheet.Cell(row, column).Value = Math.Round(random.NextDouble() * 10000, 2);
+                }
+            }
         }
         return Save(workbook);
     }

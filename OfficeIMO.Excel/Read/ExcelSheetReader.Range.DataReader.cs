@@ -14,6 +14,8 @@ namespace OfficeIMO.Excel {
     /// Data-reader projections for <see cref="ExcelSheetReader"/> ranges.
     /// </summary>
     internal sealed partial class ExcelSheetReader {
+        internal const int DataReaderChunkRows = 1024;
+
         internal IDataReader ReadUsedRangeAsDataReader(
             bool headersInFirstRow = true,
             int schemaSampleRows = 0,
@@ -47,7 +49,7 @@ namespace OfficeIMO.Excel {
             return ReadRangeAsDataReaderCore(
                 usedRange,
                 headersInFirstRow: headersInFirstRow,
-                chunkRows: Math.Min(1024, _opt.MaxDataReaderChunkRows),
+                chunkRows: Math.Min(DataReaderChunkRows, _opt.MaxDataReaderChunkRows),
                 schemaSampleRows: schemaSampleRows,
                 mode: null,
                 ct: ct,

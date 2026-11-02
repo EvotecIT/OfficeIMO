@@ -189,6 +189,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SheetWiderThanOneMaximumChunkStaysOnTheReadOnlyRoute() {
+            byte[] package = CreatePackage(string.Concat(Enumerable.Range(1, 30).Select(row =>
+                $"<row r=\"{row}\">{string.Concat("ABCDE".Select(column => $"<c r=\"{column}{row}\"><v>{row}</v></c>"))}</row>")));
+            var options = new ExcelReaderOptions {
+                HasHeaderRow = false, MaxDataReaderBufferedCells = 50, MaxDataReaderChunkRows = 8, SchemaSampleRows = 1, MaxDataReaderSchemaSampleRows = 20
+            };
+            using var document = ExcelDocument.Load(new MemoryStream(package));
+
+            int cells = 0;
+            using (var reader = document.Sheets[0].CreateDataReader(options)) {
+                while (reader.Read()) cells += reader.FieldCount;
+            }
+
+            Assert.Equal(150, cells);
+            Assert.False(document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().IsRootElementLoaded);
+        }
+
+        [Fact]
         public void CultureAppliesToNumberText() {
             byte[] package = CreatePackage("<row r=\"1\"><c r=\"A1\"><v>1,25</v></c></row>");
             using var document = ExcelDocument.Load(new MemoryStream(package));

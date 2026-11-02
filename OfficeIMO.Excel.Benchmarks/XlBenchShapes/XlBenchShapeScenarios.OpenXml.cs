@@ -113,6 +113,95 @@ internal static partial class XlBenchShapeScenarios {
         return cells == SheetsCellCount ? text : throw new InvalidDataException($"Read {cells} cells.");
     }
 
+    internal static long OpenXmlReadWhileWriting() {
+        using var stream = new MemoryStream();
+        using var document = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook);
+        var workbookPart = document.AddWorkbookPart();
+        workbookPart.Workbook = new Workbook();
+        var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+        var sheetData = new SheetData();
+        worksheetPart.Worksheet = new Worksheet(sheetData);
+        workbookPart.Workbook.AppendChild(new Sheets()).AppendChild(new Sheet { Id = workbookPart.GetIdOfPart(worksheetPart), SheetId = 1, Name = "Data" });
+        int half = WriteRows / 2;
+        OpenXmlWriteRows(sheetData, 0, half);
+        long cells = OpenXmlCountCells(sheetData);
+        OpenXmlWriteRows(sheetData, half, WriteRows);
+        return cells + OpenXmlCountCells(sheetData);
+    }
+
+    private static void OpenXmlWriteRows(SheetData sheetData, int first, int end) {
+        for (int i = first; i < end; i++) {
+            var row = new Row { RowIndex = (uint)(i + 1) };
+            row.AppendChild(new Cell { CellReference = "A" + (i + 1), DataType = CellValues.InlineString, InlineString = new InlineString(new Text(WriteStrings[i])) });
+            row.AppendChild(new Cell { CellReference = "B" + (i + 1), CellValue = new CellValue(WriteNumbers[i]) });
+            row.AppendChild(new Cell { CellReference = "C" + (i + 1), CellValue = new CellValue(WriteDates[i].ToOADate()) });
+            sheetData.AppendChild(row);
+        }
+    }
+
+    private static long OpenXmlCountCells(SheetData sheetData) {
+        long cells = 0;
+        foreach (Row row in sheetData.Elements<Row>()) {
+            foreach (Cell cell in row.Elements<Cell>()) {
+                if ((cell.CellValue?.InnerText ?? cell.InnerText).Length > 0) {
+                    cells++;
+                }
+            }
+        }
+        return cells;
+    }
+
+    internal static long OpenXmlWideRead() {
+        using var document = SpreadsheetDocument.Open(new MemoryStream(WideWorkbook), false);
+        var workbookPart = document.WorkbookPart!;
+        string[] shared = SharedStrings(workbookPart);
+        long cells = 0;
+        using var reader = OpenXmlReader.Create(workbookPart.WorksheetParts.First());
+        while (reader.Read()) {
+            if (reader.ElementType == typeof(Cell) && reader.IsStartElement) {
+                var cell = (Cell)reader.LoadCurrentElement()!;
+                string raw = cell.CellValue?.InnerText ?? cell.InnerText;
+                if (cell.DataType?.Value == CellValues.SharedString) {
+                    raw = shared[int.Parse(raw, CultureInfo.InvariantCulture)];
+                }
+                cells += raw.Length > 0 ? 1 : 0;
+            }
+        }
+        return cells;
+    }
+
+    internal static long OpenXmlEditedRead() {
+        using var stream = new MemoryStream();
+        stream.Write(ReadWorkbook);
+        using var document = SpreadsheetDocument.Open(stream, true);
+        var sheetData = document.WorkbookPart!.WorksheetParts.First().Worksheet!.GetFirstChild<SheetData>()!;
+        Cell edited = sheetData.Elements<Row>().First().Elements<Cell>().ElementAt(3);
+        edited.DataType = null;
+        edited.CellValue = new CellValue(EditedValue);
+        return OpenXmlCountCells(sheetData);
+    }
+
+    internal static long OpenXmlEditedSheetsRead() {
+        using var stream = new MemoryStream();
+        stream.Write(SheetsWorkbook);
+        using var document = SpreadsheetDocument.Open(stream, true);
+        var workbookPart = document.WorkbookPart!;
+        long cells = 0;
+        bool edited = false;
+        foreach (var sheet in workbookPart.Workbook!.Sheets!.Elements<Sheet>()) {
+            var sheetData = ((WorksheetPart)workbookPart.GetPartById(sheet.Id!)).Worksheet!.GetFirstChild<SheetData>()!;
+            if (!edited) {
+                Cell cell = sheetData.Elements<Row>().ElementAt(1).Elements<Cell>().First();
+                cell.DataType = CellValues.InlineString;
+                cell.CellValue = null;
+                cell.InlineString = new InlineString(new Text(EditedText));
+                edited = true;
+            }
+            cells += OpenXmlCountCells(sheetData);
+        }
+        return cells;
+    }
+
     private static string[] SharedStrings(WorkbookPart workbookPart) =>
         workbookPart.SharedStringTablePart?.SharedStringTable?.Elements<SharedStringItem>().Select(static item => item.InnerText).ToArray() ?? [];
 

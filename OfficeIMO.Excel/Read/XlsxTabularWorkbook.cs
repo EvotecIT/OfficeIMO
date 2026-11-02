@@ -263,7 +263,7 @@ namespace OfficeIMO.Excel {
                 : (DbDataReader)reader.ReadRangeAsDataReader(
                     _options.A1Range!,
                     hasHeaderRow,
-                    chunkRows: Math.Min(1024, _options.MaxDataReaderChunkRows),
+                    chunkRows: Math.Min(ExcelSheetReader.DataReaderChunkRows, _options.MaxDataReaderChunkRows),
                     schemaSampleRows: 0,
                     ct: cancellationToken);
 

@@ -15,9 +15,10 @@ namespace OfficeIMO.Excel {
         private readonly Dictionary<Uri, WorksheetExtent?> _worksheetExtents = new();
 
         /// <summary>
-        /// Scans a worksheet on its first tabular read; a canceled scan is not kept. A chunk or schema
-        /// sample that would exceed the buffered cell limit stays on the SDK route, which reports that limit. Dense reads
-        /// check their own limit on either route, so sheet size alone does not disqualify a worksheet.
+        /// Scans a worksheet on its first tabular read; a canceled scan is not kept. Only the chunk or
+        /// schema sample the SDK route would actually buffer can stay there, where it reports the buffered
+        /// cell limit. Dense reads check their own limit on either route, so sheet size alone does not
+        /// disqualify a worksheet.
         /// </summary>
         internal bool QualifiesForTabularReaders(WorksheetPart worksheet, ExcelReaderOptions options) {
             WorksheetExtent? extent;
@@ -28,9 +29,11 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            int bufferedRows = Math.Max(
+                Math.Min(ExcelSheetReader.DataReaderChunkRows, options.MaxDataReaderChunkRows),
+                options.SchemaSampleRows);
             return extent is WorksheetExtent known
-                && known.Columns * Math.Min(known.Rows, Math.Max(options.MaxDataReaderChunkRows, options.MaxDataReaderSchemaSampleRows))
-                    <= options.MaxDataReaderBufferedCells;
+                && known.Columns * Math.Min(known.Rows, bufferedRows) <= options.MaxDataReaderBufferedCells;
         }
 
         private static WorksheetExtent? ScanWorksheet(WorksheetPart worksheet, CancellationToken cancellationToken) {

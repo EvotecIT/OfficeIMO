@@ -50,6 +50,65 @@ internal static partial class XlBenchShapeScenarios {
         static long checksumCheck(long cells, long text) => cells == SheetsCellCount ? text : throw new InvalidDataException($"Read {cells} cells.");
     }
 
+    internal static long OfficeImoReadWhileWriting() {
+        using var document = ExcelDocument.Create();
+        var sheet = document.AddSheet("Data");
+        int half = WriteRows / 2;
+        OfficeImoWriteRows(sheet, 0, half);
+        long cells = OfficeImoCountCells(sheet);
+        OfficeImoWriteRows(sheet, half, WriteRows);
+        return cells + OfficeImoCountCells(sheet);
+    }
+
+    private static void OfficeImoWriteRows(ExcelSheet sheet, int first, int end) {
+        for (int i = first; i < end; i++) {
+            sheet.CellValue(i + 1, 1, WriteStrings[i]);
+            sheet.CellValue(i + 1, 2, WriteNumbers[i]);
+            sheet.CellValue(i + 1, 3, WriteDates[i]);
+        }
+    }
+
+    private static long OfficeImoCountCells(ExcelSheet sheet) {
+        long cells = 0;
+        foreach (var cell in sheet.EnumerateCells()) {
+            if (cell.Value != null) {
+                cells++;
+            }
+        }
+        return cells;
+    }
+
+    internal static long OfficeImoWideRead() {
+        using var document = ExcelDocument.Load(new MemoryStream(WideWorkbook));
+        using var reader = document.CreateDataReader();
+        long cells = 0;
+        while (reader.Read()) {
+            for (int column = 0; column < reader.FieldCount; column++) {
+                if (!reader.IsDBNull(column)) {
+                    cells++;
+                }
+            }
+        }
+        return cells;
+    }
+
+    internal static long OfficeImoEditedRead() {
+        using var document = ExcelDocument.Load(new MemoryStream(ReadWorkbook));
+        var sheet = document.Sheets[0];
+        sheet.CellValue(1, 4, EditedValue);
+        return OfficeImoCountCells(sheet);
+    }
+
+    internal static long OfficeImoEditedSheetsRead() {
+        using var document = ExcelDocument.Load(new MemoryStream(SheetsWorkbook));
+        document.Sheets[0].CellValue(2, 1, EditedText);
+        long cells = 0;
+        foreach (var sheet in document.Sheets) {
+            cells += OfficeImoCountCells(sheet);
+        }
+        return cells == SheetsCellCount ? cells : throw new InvalidDataException($"Read {cells} cells.");
+    }
+
     internal static byte[] OfficeImoReport() {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet(ReportSheet);
