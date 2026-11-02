@@ -10,16 +10,16 @@ namespace OfficeIMO.Examples.Visio {
             string filePath = Path.Combine(folderPath, "Protection Editing.vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Protected Diagram", 11, 8.5);
+            VisioPage page = document.AddPage("Protected Diagram", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
 
-            VisioShape background = page.AddRectangle(5.5, 4.25, 9.5, 6.5, "Generated architecture zone");
+            VisioShape background = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.25, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(9.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6.5, page.DefaultUnit)), "Generated architecture zone");
             background.FillColor = Color.LightCyan;
             background.LineColor = Color.SteelBlue;
             background.Protect(protection => protection.Size().Position().Selection().Formatting());
 
-            VisioShape api = page.AddRectangle(3.5, 5.1, 2.2, 1, "API");
-            VisioShape worker = page.AddRectangle(7.5, 5.1, 2.2, 1, "Worker");
-            VisioShape database = page.AddRectangle(5.5, 2.8, 2.2, 1, "Database");
+            VisioShape api = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "API");
+            VisioShape worker = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Worker");
+            VisioShape database = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Database");
 
             page.AddConnector(api, worker, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left).Label = "queue";
             page.AddConnector(worker, database, ConnectorKind.Dynamic, VisioSide.Bottom, VisioSide.Top).Label = "write";

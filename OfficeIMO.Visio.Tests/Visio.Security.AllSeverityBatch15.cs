@@ -71,8 +71,8 @@ public sealed class VisioAllSeverityBatch15SecurityTests {
     private static string CreateSample() {
         string path = Path.Combine(Path.GetTempPath(), "officeimo-visio-b15-" + Guid.NewGuid().ToString("N") + ".vsdx");
         VisioDocument document = VisioDocument.Create(path);
-        VisioPage page = document.AddPage("Page-1", 8.5, 11);
-        page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Sample"));
+        VisioPage page = document.AddPage("Page-1", OfficeLength.Inches(8.5), OfficeLength.Inches(11));
+        page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Sample"));
         document.Save();
         return path;
     }

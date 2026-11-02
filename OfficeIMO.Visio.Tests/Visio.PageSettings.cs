@@ -15,12 +15,12 @@ namespace OfficeIMO.Tests {
             string roundTripPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Settings", 11, 8.5);
-            page.SetMargins(0.4, 0.5, 0.6, 0.7);
+            VisioPage page = document.AddPage("Settings", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+            page.SetMargins(OfficeLength.Inches(0.4), OfficeLength.Inches(0.5), OfficeLength.Inches(0.6), OfficeLength.Inches(0.7));
             page.PrintOrientation = VisioPagePrintOrientation.Landscape;
             page.PageLockReplace = true;
             page.PageLockDuplicate = true;
-            page.AddRectangle(5.5, 4.25, 2, 1, "Configured");
+            page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.25, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Configured");
 
             document.Save();
 
@@ -29,15 +29,15 @@ namespace OfficeIMO.Tests {
 
             VisioDocument loaded = VisioDocument.Load(filePath);
             VisioPage loadedPage = loaded.Pages.Single(current => current.Name == "Settings");
-            Assert.Equal(0.4, loadedPage.LeftMargin, 6);
-            Assert.Equal(0.5, loadedPage.RightMargin, 6);
-            Assert.Equal(0.6, loadedPage.TopMargin, 6);
-            Assert.Equal(0.7, loadedPage.BottomMargin, 6);
+            Assert.Equal(0.4, loadedPage.LeftMargin.ToInches(), 6);
+            Assert.Equal(0.5, loadedPage.RightMargin.ToInches(), 6);
+            Assert.Equal(0.6, loadedPage.TopMargin.ToInches(), 6);
+            Assert.Equal(0.7, loadedPage.BottomMargin.ToInches(), 6);
             Assert.Equal(VisioPagePrintOrientation.Landscape, loadedPage.PrintOrientation);
             Assert.True(loadedPage.PageLockReplace);
             Assert.True(loadedPage.PageLockDuplicate);
 
-            loadedPage.SetMargins(1, VisioMeasurementUnit.Centimeters);
+            loadedPage.SetMargins(OfficeLength.Centimeters(1));
             loadedPage.PrintOrientation = VisioPagePrintOrientation.Portrait;
             loadedPage.PageLockDuplicate = false;
             loaded.Save(roundTripPath);
@@ -48,10 +48,10 @@ namespace OfficeIMO.Tests {
 
             VisioDocument reloadedRoundTrip = VisioDocument.Load(roundTripPath);
             VisioPage reloadedSettings = reloadedRoundTrip.Pages.Single(current => current.Name == "Settings");
-            Assert.Equal(1D.ToInches(VisioMeasurementUnit.Centimeters), reloadedSettings.LeftMargin, 6);
-            Assert.Equal(1D.ToInches(VisioMeasurementUnit.Centimeters), reloadedSettings.RightMargin, 6);
-            Assert.Equal(1D.ToInches(VisioMeasurementUnit.Centimeters), reloadedSettings.TopMargin, 6);
-            Assert.Equal(1D.ToInches(VisioMeasurementUnit.Centimeters), reloadedSettings.BottomMargin, 6);
+            Assert.Equal(1D.ToInches(VisioMeasurementUnit.Centimeters), reloadedSettings.LeftMargin.ToInches(), 6);
+            Assert.Equal(1D.ToInches(VisioMeasurementUnit.Centimeters), reloadedSettings.RightMargin.ToInches(), 6);
+            Assert.Equal(1D.ToInches(VisioMeasurementUnit.Centimeters), reloadedSettings.TopMargin.ToInches(), 6);
+            Assert.Equal(1D.ToInches(VisioMeasurementUnit.Centimeters), reloadedSettings.BottomMargin.ToInches(), 6);
         }
 
         [Fact]
@@ -59,8 +59,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Metric", 21, 29.7, VisioMeasurementUnit.Centimeters);
-            page.AddRectangle(10.5, 14.85, 4, 2, "Metric", VisioMeasurementUnit.Centimeters);
+            VisioPage page = document.AddPage("Metric", OfficeLength.Centimeters(21), OfficeLength.Centimeters(29.7), scaleUnit: VisioMeasurementUnit.Centimeters);
+            page.AddRectangle(OfficeLength.Centimeters(10.5), OfficeLength.Centimeters(14.85), OfficeLength.Centimeters(4), OfficeLength.Centimeters(2), "Metric");
             document.Save();
 
             Assert.Empty(VisioValidator.Validate(filePath));
@@ -73,12 +73,12 @@ namespace OfficeIMO.Tests {
             string roundTripPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Setup", 8.5, 11);
+            VisioPage page = document.AddPage("Setup", OfficeLength.Inches(8.5), OfficeLength.Inches(11));
             page.DrawingSizeType = VisioDrawingSizeType.Custom;
             page.AutoResizeDrawing = false;
             page.AllowShapeSplitting = false;
             page.UiVisibility = VisioPageUiVisibility.Hidden;
-            page.AddRectangle(4.25, 5.5, 2, 1, "Setup");
+            page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.25, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Setup");
 
             document.Save();
 
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
             string clearedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Routing", 11, 8.5);
+            VisioPage page = document.AddPage("Routing", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             page.ConnectorRouteStyle = VisioPageRouteStyle.FlowchartTopToBottom;
             page.ConnectorRouteAppearance = VisioLineRouteExtension.Curved;
             page.LineJumpStyle = VisioLineJumpStyle.Gap;
@@ -117,8 +117,8 @@ namespace OfficeIMO.Tests {
             page.HorizontalLineJumpDirection = VisioHorizontalLineJumpDirection.Up;
             page.VerticalLineJumpDirection = VisioVerticalLineJumpDirection.Right;
             page.SetConnectorSpacing(0.4, 0.5, 0.6, 0.7);
-            page.AddRectangle(3, 4, 1.5, 0.8, "Start");
-            page.AddRectangle(8, 4, 1.5, 0.8, "End");
+            page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "Start");
+            page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "End");
 
             document.Save();
 
@@ -170,14 +170,14 @@ namespace OfficeIMO.Tests {
             string clearedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Placement", 11, 8.5);
+            VisioPage page = document.AddPage("Placement", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             page.PlacementStyle = VisioPlacementStyle.HierarchyTopToBottomCenter;
             page.PlacementDepth = VisioPlacementDepth.Deep;
             page.PlacementFlip = VisioPlacementFlip.Horizontal | VisioPlacementFlip.Rotate90;
             page.MoveShapesAwayOnDrop = true;
             page.ResizePageToFitLayout = false;
-            page.AddRectangle(3, 5, 1.5, 0.8, "Parent");
-            page.AddRectangle(7, 5, 1.5, 0.8, "Child");
+            page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "Parent");
+            page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "Child");
 
             document.Save();
 
@@ -215,7 +215,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Mixed Routing", 11, 8.5);
+            VisioPage page = document.AddPage("Mixed Routing", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             page.SetConnectorSpacing(1, 1, 1, 1);
             document.Save();
 
@@ -240,11 +240,11 @@ namespace OfficeIMO.Tests {
             string clearedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Grid", 11, 8.5);
+            VisioPage page = document.AddPage("Grid", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             page.EnableLayoutGrid = true;
             page.SetLayoutGridSizing(1.2, 1.1, 0.35, 0.4);
-            page.AddRectangle(3, 5, 1.5, 0.8, "One");
-            page.AddRectangle(7, 5, 1.5, 0.8, "Two");
+            page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "One");
+            page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "Two");
 
             document.Save();
 
@@ -279,7 +279,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Mixed Grid", 11, 8.5);
+            VisioPage page = document.AddPage("Mixed Grid", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             page.EnableLayoutGrid = true;
             page.SetLayoutGridSizing(1, 1, 1, 1);
             document.Save();

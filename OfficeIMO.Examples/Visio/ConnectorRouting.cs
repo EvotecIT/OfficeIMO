@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Visio {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioStyleTheme theme = VisioStyleTheme.Technical();
-            VisioPage page = document.AddPage("Routing", 11, 8.5);
+            VisioPage page = document.AddPage("Routing", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             page.PlacementStyle = VisioPlacementStyle.HierarchyLeftToRightMiddle;
             page.PlacementDepth = VisioPlacementDepth.Medium;
             page.PlacementFlip = VisioPlacementFlip.Horizontal | VisioPlacementFlip.Rotate90;
@@ -27,11 +27,11 @@ namespace OfficeIMO.Examples.Visio {
             page.VerticalLineJumpDirection = VisioVerticalLineJumpDirection.Right;
             page.SetConnectorSpacing(0.25, 0.45);
 
-            VisioShape intake = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "intake", 2, 6.2, "Intake");
-            VisioShape review = page.AddStencilShape(VisioStencils.Flowchart.Get("decision"), "review", 5.5, 6.2, "Needs review?");
-            VisioShape approve = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "approve", 9, 6.2, "Approve");
-            VisioShape rework = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "rework", 5.5, 3.1, "Rework");
-            VisioShape archive = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "archive", 9, 3.1, "Archive");
+            VisioShape intake = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "intake", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6.2, page.DefaultUnit)), "Intake");
+            VisioShape review = page.AddStencilShape(VisioStencils.Flowchart.Get("decision"), "review", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6.2, page.DefaultUnit)), "Needs review?");
+            VisioShape approve = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "approve", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(9, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6.2, page.DefaultUnit)), "Approve");
+            VisioShape rework = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "rework", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.1, page.DefaultUnit)), "Rework");
+            VisioShape archive = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "archive", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(9, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.1, page.DefaultUnit)), "Archive");
             review.PlacementStyle = VisioPlacementStyle.HierarchyLeftToRightMiddle;
             review.PlacementFlip = VisioPlacementFlip.Horizontal | VisioPlacementFlip.Rotate90;
             review.PlowCode = VisioShapePlowCode.Always;

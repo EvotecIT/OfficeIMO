@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
 
-            VisioShape blueprint = new("1", 0, 0, 2, 1, string.Empty) { NameU = "CustomProcess" };
+            VisioShape blueprint = new("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty);
             VisioMaster registered = document.RegisterMaster("CustomProcess", blueprint, "42");
 
             Assert.True(document.TryGetMaster("CustomProcess", out VisioMaster? found));
@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(document.Masters, master => ReferenceEquals(master, registered));
 
             VisioPage page = document.AddPage("Page-1");
-            VisioShape shape = page.AddShape("shape-1", "CustomProcess", 1, 1, 2, 1, "Hello");
+            VisioShape shape = page.AddShape("shape-1", "CustomProcess", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Hello");
             document.Save();
 
             Assert.Same(registered, shape.Master);
@@ -36,8 +36,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void RegisterMasterPreservesDistinctMastersWithDuplicateNameU() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioMaster first = new("1", "DuplicateName", new VisioShape("1", 0, 0, 1, 1, string.Empty) { NameU = "DuplicateName" });
-            VisioMaster second = new("2", "DuplicateName", new VisioShape("1", 0, 0, 2, 1, string.Empty) { NameU = "DuplicateName" });
+            VisioMaster first = new("1", "DuplicateName", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty));
+            VisioMaster second = new("2", "DuplicateName", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty));
 
             document.RegisterMaster(first);
             document.RegisterMaster(second);
@@ -50,8 +50,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void RegisterMasterPreservesDistinctMastersWithDuplicatePackageIds() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioMaster first = new("1", "PackageA", new VisioShape("1", 0, 0, 1, 1, string.Empty) { NameU = "PackageA" });
-            VisioMaster second = new("1", "PackageB", new VisioShape("1", 0, 0, 2, 1, string.Empty) { NameU = "PackageB" });
+            VisioMaster first = new("1", "PackageA", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty));
+            VisioMaster second = new("1", "PackageB", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty));
 
             document.RegisterMaster(first);
             document.RegisterMaster(second);
@@ -76,8 +76,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Circle", circleMaster?.NameU);
 
             VisioPage page = document.AddPage("Page-1");
-            page.AddShape("rectangle-1", "Rectangle", 2, 2, 2, 1, "Rectangle");
-            page.AddShape("circle-1", "Circle", 5, 2, 2, 2, "Circle");
+            page.AddShape("rectangle-1", "Rectangle", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Rectangle");
+            page.AddShape("circle-1", "Circle", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), "Circle");
             document.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
@@ -88,13 +88,13 @@ namespace OfficeIMO.Tests {
         public void AddShapeByMasterNameUsesPageDefaultUnit() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            document.RegisterMaster("MetricRect", new VisioShape("1", 0, 0, 1, 1, string.Empty) { NameU = "MetricRect" });
+            document.RegisterMaster("MetricRect", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty));
 
-            VisioPage page = document.AddPage("Metric", 21, 29.7, VisioMeasurementUnit.Centimeters);
-            VisioShape shape = page.AddShape("metric-1", "MetricRect", 2.54, 2.54, 5.08, 2.54, "Metric");
+            VisioPage page = document.AddPage("Metric", OfficeLength.Centimeters(21), OfficeLength.Centimeters(29.7), scaleUnit: VisioMeasurementUnit.Centimeters);
+            VisioShape shape = page.AddShape("metric-1", "MetricRect", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.54, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.54, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.08, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.54, page.DefaultUnit)), "Metric");
 
-            Assert.Equal(5.08, shape.Width.FromInches(VisioMeasurementUnit.Centimeters), 5);
-            Assert.Equal(2.54, shape.Height.FromInches(VisioMeasurementUnit.Centimeters), 5);
+            Assert.Equal(5.08, shape.Width.ToInches().FromInches(VisioMeasurementUnit.Centimeters), 5);
+            Assert.Equal(2.54, shape.Height.ToInches().FromInches(VisioMeasurementUnit.Centimeters), 5);
         }
 
         [Fact]
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
             VisioPage page = new("Detached");
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                page.AddShape("shape", "Rectangle", 1, 1, 2, 1, "Detached"));
+                page.AddShape("shape", "Rectangle", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Detached"));
 
             Assert.Contains("not attached", exception.Message, StringComparison.OrdinalIgnoreCase);
         }

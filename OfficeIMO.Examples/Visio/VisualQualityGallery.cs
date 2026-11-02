@@ -26,9 +26,9 @@ namespace OfficeIMO.Examples.Visio {
 
             string gatePath = Path.Combine(galleryPath, "Quality Gate Example.vsdx");
             VisioDocument gateDocument = VisioDocument.Create(gatePath);
-            VisioPage gatePage = gateDocument.AddPage("Quality Gate", 6, 4);
-            VisioShape source = gatePage.AddRectangle(1, 2, 0.8, 0.5, "Source");
-            VisioShape target = gatePage.AddRectangle(5, 2, 0.8, 0.5, "Target");
+            VisioPage gatePage = gateDocument.AddPage("Quality Gate", OfficeLength.Inches(6), OfficeLength.Inches(4));
+            VisioShape source = gatePage.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, gatePage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, gatePage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, gatePage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, gatePage.DefaultUnit)), "Source");
+            VisioShape target = gatePage.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, gatePage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, gatePage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, gatePage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, gatePage.DefaultUnit)), "Target");
             gatePage.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left).Label = "Flow";
             gateDocument.EnsureVisualQuality();
             gateDocument.Save();

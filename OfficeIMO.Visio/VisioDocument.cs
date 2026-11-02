@@ -341,7 +341,7 @@ namespace OfficeIMO.Visio {
         /// <param name="height">Page height.</param>
         /// <param name="unit">Measurement unit for width and height.</param>
         /// <param name="id">Optional page identifier. If not specified, uses zero-based index.</param>
-        public VisioPage AddPage(string name, double width = 8.26771653543307, double height = 11.69291338582677, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, int? id = null) {
+        internal VisioPage AddPageInches(string name, double width = 8.26771653543307, double height = 11.69291338582677, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, int? id = null) {
             if (id.HasValue && id.Value < 0) {
                 throw new ArgumentOutOfRangeException(nameof(id), "Page id must be zero or greater.");
             }
@@ -364,8 +364,8 @@ namespace OfficeIMO.Visio {
         /// <param name="height">Page height.</param>
         /// <param name="unit">Measurement unit for width and height.</param>
         /// <param name="id">Optional page identifier.</param>
-        public VisioPage AddBackgroundPage(string name, double width = 8.26771653543307, double height = 11.69291338582677, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, int? id = null) {
-            VisioPage page = AddPage(name, width, height, unit, id);
+        internal VisioPage AddBackgroundPageInches(string name, double width = 8.26771653543307, double height = 11.69291338582677, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, int? id = null) {
+            VisioPage page = AddPageInches(name, width, height, unit, id);
             page.IsBackground = true;
             return page;
         }

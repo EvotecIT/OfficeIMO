@@ -19,9 +19,9 @@ public class VisioTextSizeTests {
     [Fact]
     public void LargeShapeAndConnectorTextSizesSurvivePackageRoundTrip() {
         var document = VisioDocument.Create(); var page = document.AddPage("Page");
-        var first = page.AddRectangle(1, 1, 1, 1, "large");
+        var first = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "large");
         first.TextStyle = new VisioTextStyle { Size = 288 };
-        page.AddConnector(first, page.AddRectangle(3, 1, 1, 1)).TextStyle = new VisioTextStyle { Size = 360 };
+        page.AddConnector(first, page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)))).TextStyle = new VisioTextStyle { Size = 360 };
         var loaded = VisioDocument.Load(new MemoryStream(document.ToBytes())).Pages[0];
         Assert.Equal(288, loaded.Shapes[0].TextStyle!.Size);
         Assert.Equal(360, loaded.Connectors[0].TextStyle!.Size);

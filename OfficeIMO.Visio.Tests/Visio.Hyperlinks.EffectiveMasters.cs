@@ -23,17 +23,17 @@ public sealed class VisioHyperlinkEffectiveMasterTests {
                 document.ImportStencilMasters(path);
             } finally { File.Delete(path); }
         } else {
-            var rectangle = new VisioShape("1", 1, 1, 2, 1, "") { NameU = "Rectangle" };
+            var rectangle = new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "");
             rectangle.AddHyperlink("https://example.org/master-shape");
-            rectangle.Children.Add(new VisioShape("2", 1, 1, 1, 1, "Child"));
+            rectangle.Children.Add(new VisioShape("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Child"));
             document.RegisterMaster("Rectangle", rectangle);
-            var dynamic = new VisioShape("1", 0, 0, 2, 0, "");
+            var dynamic = new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(0), "");
             dynamic.AddHyperlink("https://example.org/master-connector");
             document.RegisterMaster("Dynamic connector", dynamic);
         }
         VisioPage page = document.AddPage("Source");
-        VisioShape first = page.AddRectangle(2, 2, 2, 1, "First");
-        VisioShape second = page.AddRectangle(6, 2, 2, 1, "Second");
+        VisioShape first = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "First");
+        VisioShape second = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Second");
         VisioConnector connector = page.AddConnector(first, second);
         first.AddHyperlink("https://example.org/local-shape");
         connector.AddHyperlink("https://example.org/local-connector");
@@ -110,17 +110,17 @@ public sealed class VisioHyperlinkEffectiveMasterTests {
     public void NewMasterInstancesAndNestedCopiesKeepTheirCorrespondingMasterRowIdentities() {
         VisioDocument document = VisioDocument.Create();
         document.UseMastersByDefault = true;
-        var blueprint = new VisioShape("1", 1, 1, 2, 1, "") { NameU = "Links" };
+        var blueprint = new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "");
         blueprint.AddHyperlink("https://example.org/master-root");
-        var childBlueprint = new VisioShape("2", 1, 1, 1, 1, "") { NameU = "Rectangle" };
+        var childBlueprint = new VisioShape("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "");
         childBlueprint.AddHyperlink("https://example.org/master-child").RowName = "Row_2";
         blueprint.Children.Add(childBlueprint);
         VisioMaster master = document.RegisterMaster("Links", blueprint);
-        var unrelated = new VisioShape("1", 1, 1, 2, 1, "");
+        var unrelated = new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "");
         unrelated.AddHyperlink("https://example.org/other-master");
         document.RegisterMaster("Rectangle", unrelated);
         VisioPage page = document.AddPage("Instances");
-        VisioShape root = page.AddShape("10", master, 3, 3, 2, 1);
+        VisioShape root = page.AddShape("10", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)));
         VisioShape child = root.Children.Single();
         Assert.Equal("Row_1", Assert.Single(root.Hyperlinks).RowName);
         Assert.Equal("Row_2", Assert.Single(child.Hyperlinks).RowName);

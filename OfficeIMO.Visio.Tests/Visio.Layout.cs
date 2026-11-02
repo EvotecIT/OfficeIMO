@@ -12,30 +12,30 @@ namespace OfficeIMO.Tests {
         public void ContentBoundsAndFitToContentMoveShapesAndResizePage() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Fit", 20, 20);
-            VisioShape first = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "first", 4, 5, "First");
-            first.Width = 2;
-            first.Height = 1;
-            VisioShape second = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "second", 9, 2, "Second");
-            second.Width = 1;
-            second.Height = 2;
+            VisioPage page = document.AddPage("Fit", OfficeLength.Inches(20), OfficeLength.Inches(20));
+            VisioShape first = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "first", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), "First");
+            first.Width = OfficeLength.Inches(2);
+            first.Height = OfficeLength.Inches(1);
+            VisioShape second = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "second", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(9, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), "Second");
+            second.Width = OfficeLength.Inches(1);
+            second.Height = OfficeLength.Inches(2);
 
             OfficeIMO.Visio.VisioShapeBounds before = page.GetContentBounds();
 
-            Assert.Equal(3, before.Left);
-            Assert.Equal(1.5, before.Bottom);
-            Assert.Equal(9, before.Right);
-            Assert.Equal(5.5, before.Top);
+            Assert.Equal(3, before.Left.ToInches());
+            Assert.Equal(1.5, before.Bottom.ToInches());
+            Assert.Equal(9, before.Right.ToInches());
+            Assert.Equal(5.5, before.Top.ToInches());
 
             page.FitToContent(horizontalMargin: 0.5, verticalMargin: 0.25);
 
             OfficeIMO.Visio.VisioShapeBounds after = page.GetContentBounds();
-            Assert.Equal(0.5, after.Left, 6);
-            Assert.Equal(0.25, after.Bottom, 6);
-            Assert.Equal(6.5, after.Right, 6);
-            Assert.Equal(4.25, after.Top, 6);
-            Assert.Equal(7.0, page.Width, 6);
-            Assert.Equal(4.5, page.Height, 6);
+            Assert.Equal(0.5, after.Left.ToInches(), 6);
+            Assert.Equal(0.25, after.Bottom.ToInches(), 6);
+            Assert.Equal(6.5, after.Right.ToInches(), 6);
+            Assert.Equal(4.25, after.Top.ToInches(), 6);
+            Assert.Equal(7.0, page.Width.ToInches(), 6);
+            Assert.Equal(4.5, page.Height.ToInches(), 6);
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
@@ -44,27 +44,27 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ShapeBoundsUseLocPinAndRotation() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("Transformed", 10, 10);
-            VisioShape shape = page.AddRectangle(4, 4, 2, 1, "Rotated");
-            shape.LocPinX = 0;
-            shape.LocPinY = 0;
+            VisioPage page = document.AddPage("Transformed", OfficeLength.Inches(10), OfficeLength.Inches(10));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Rotated");
+            shape.LocPinX = OfficeLength.Inches(0);
+            shape.LocPinY = OfficeLength.Inches(0);
             shape.Angle = Math.PI / 2D;
 
             OfficeIMO.Visio.VisioShapeBounds bounds = shape.GetShapeBounds();
 
-            Assert.Equal(3, bounds.Left, 6);
-            Assert.Equal(4, bounds.Bottom, 6);
-            Assert.Equal(4, bounds.Right, 6);
-            Assert.Equal(6, bounds.Top, 6);
+            Assert.Equal(3, bounds.Left.ToInches(), 6);
+            Assert.Equal(4, bounds.Bottom.ToInches(), 6);
+            Assert.Equal(4, bounds.Right.ToInches(), 6);
+            Assert.Equal(6, bounds.Top.ToInches(), 6);
         }
 
         [Fact]
         public void FitToContentIncludesConnectorWaypointsAndLabels() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("FitConnectors", 20, 20);
-            VisioShape source = page.AddRectangle(4, 4, 1, 1, "Source");
-            VisioShape target = page.AddRectangle(8, 4, 1, 1, "Target");
+            VisioPage page = document.AddPage("FitConnectors", OfficeLength.Inches(20), OfficeLength.Inches(20));
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Source");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Target");
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left)
                 .RouteThrough(
                     VisioConnectorWaypoint.At(2, 6),
@@ -75,19 +75,19 @@ namespace OfficeIMO.Tests {
             OfficeIMO.Visio.VisioShapeBounds shapeOnlyBounds = page.GetContentBounds(includeConnectors: false);
             OfficeIMO.Visio.VisioShapeBounds fullBounds = page.GetContentBounds();
 
-            Assert.Equal(3.5, shapeOnlyBounds.Left);
-            Assert.Equal(8.5, shapeOnlyBounds.Right);
-            Assert.Equal(2, fullBounds.Left);
-            Assert.Equal(13, fullBounds.Right);
-            Assert.Equal(6.75, fullBounds.Top);
+            Assert.Equal(3.5, shapeOnlyBounds.Left.ToInches());
+            Assert.Equal(8.5, shapeOnlyBounds.Right.ToInches());
+            Assert.Equal(2, fullBounds.Left.ToInches());
+            Assert.Equal(13, fullBounds.Right.ToInches());
+            Assert.Equal(6.75, fullBounds.Top.ToInches());
 
             page.FitToContent(horizontalMargin: 0.5, verticalMargin: 0.25);
 
             OfficeIMO.Visio.VisioShapeBounds fittedBounds = page.GetContentBounds();
-            Assert.Equal(0.5, fittedBounds.Left, 6);
-            Assert.Equal(0.25, fittedBounds.Bottom, 6);
-            Assert.Equal(12.0, page.Width, 6);
-            Assert.Equal(3.75, page.Height, 6);
+            Assert.Equal(0.5, fittedBounds.Left.ToInches(), 6);
+            Assert.Equal(0.25, fittedBounds.Bottom.ToInches(), 6);
+            Assert.Equal(12.0, page.Width.ToInches(), 6);
+            Assert.Equal(3.75, page.Height.ToInches(), 6);
             Assert.Equal(0.5, connector.Waypoints[0].X, 6);
             Assert.Equal(2.75, connector.Waypoints[0].Y, 6);
             Assert.Equal(10.5, connector.LabelPlacement!.AbsolutePinX!.Value, 6);
@@ -100,9 +100,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void CenterContentMovesConnectorPageCoordinatesWithShapes() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("CenterConnectors", 14, 10);
-            VisioShape source = page.AddRectangle(2, 2, 1, 1, "Source");
-            VisioShape target = page.AddRectangle(4, 2, 1, 1, "Target");
+            VisioPage page = document.AddPage("CenterConnectors", OfficeLength.Inches(14), OfficeLength.Inches(10));
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Source");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Target");
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left)
                 .RouteThrough(VisioConnectorWaypoint.At(3, 5))
                 .PlaceLabelAt(3, 5.4, width: 1.4, height: 0.4);
@@ -111,8 +111,8 @@ namespace OfficeIMO.Tests {
             page.CenterContent();
 
             OfficeIMO.Visio.VisioShapeBounds bounds = page.GetContentBounds();
-            Assert.Equal(7, bounds.CenterX, 6);
-            Assert.Equal(5, bounds.CenterY, 6);
+            Assert.Equal(7, bounds.CenterX.ToInches(), 6);
+            Assert.Equal(5, bounds.CenterY.ToInches(), 6);
             Assert.Equal(7, connector.Waypoints[0].X, 6);
             Assert.Equal(6.45, connector.Waypoints[0].Y, 6);
             Assert.Equal(7, connector.LabelPlacement!.AbsolutePinX!.Value, 6);
@@ -123,9 +123,9 @@ namespace OfficeIMO.Tests {
         public void SelectionCanAlignAndDistributeShapes() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Align");
-            VisioShape one = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "one", 2, 2, "One");
-            VisioShape two = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "two", 8, 6, "Two");
-            VisioShape three = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "three", 14, 4, "Three");
+            VisioShape one = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "one", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), "One");
+            VisioShape two = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "two", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), "Two");
+            VisioShape three = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "three", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(14, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), "Three");
             one.Data["Row"] = "A";
             two.Data["Row"] = "A";
             three.Data["Row"] = "A";
@@ -133,33 +133,33 @@ namespace OfficeIMO.Tests {
             VisioShapeSelection selection = page.SelectWithData("Row", "A");
             selection.Align(VisioHorizontalAlignment.Left);
 
-            double left = one.GetShapeBounds().Left;
-            Assert.Equal(left, two.GetShapeBounds().Left, 6);
-            Assert.Equal(left, three.GetShapeBounds().Left, 6);
+            double left = one.GetShapeBounds().Left.ToInches();
+            Assert.Equal(left, two.GetShapeBounds().Left.ToInches(), 6);
+            Assert.Equal(left, three.GetShapeBounds().Left.ToInches(), 6);
 
-            one.PinX = 2;
-            two.PinX = 11;
-            three.PinX = 14;
+            one.PinX = OfficeLength.Inches(2);
+            two.PinX = OfficeLength.Inches(11);
+            three.PinX = OfficeLength.Inches(14);
             selection.DistributeHorizontally();
 
-            Assert.Equal(8, two.PinX, 6);
+            Assert.Equal(8, two.PinX.ToInches(), 6);
 
             selection.Align(VisioVerticalAlignment.Top);
-            double top = one.GetShapeBounds().Top;
-            Assert.Equal(top, two.GetShapeBounds().Top, 6);
-            Assert.Equal(top, three.GetShapeBounds().Top, 6);
+            double top = one.GetShapeBounds().Top.ToInches();
+            Assert.Equal(top, two.GetShapeBounds().Top.ToInches(), 6);
+            Assert.Equal(top, three.GetShapeBounds().Top.ToInches(), 6);
         }
 
         [Fact]
         public void SelectionCanRelayoutAsGridAndRerouteInternalConnectors() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Relayout", 11, 8.5);
-            VisioShape one = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "one", 7, 2, 2, 1, "One");
-            VisioShape two = page.AddStencilShape(VisioStencils.Flowchart.Get("decision"), "two", 2, 6, 1.4, 1.4, "Two");
-            VisioShape three = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "three", 9, 6, 1.6, 1.0, "Three");
-            VisioShape four = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "four", 4, 3, 2.2, 0.8, "Four");
-            VisioShape outside = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "outside", 9, 1, "Outside");
+            VisioPage page = document.AddPage("Relayout", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+            VisioShape one = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "one", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "One");
+            VisioShape two = page.AddStencilShape(VisioStencils.Flowchart.Get("decision"), "two", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.4, page.DefaultUnit)), "Two");
+            VisioShape three = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "three", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(9, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.0, page.DefaultUnit)), "Three");
+            VisioShape four = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "four", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "Four");
+            VisioShape outside = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "outside", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(9, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Outside");
             foreach (VisioShape shape in new[] { one, two, three, four }) {
                 shape.Data["Group"] = "A";
             }
@@ -176,16 +176,16 @@ namespace OfficeIMO.Tests {
                 Order = VisioSelectionLayoutOrder.TopLeftToBottomRight
             });
 
-            Assert.Equal(2.4, two.PinX, 6);
-            Assert.Equal(6.0, two.PinY, 6);
-            Assert.Equal(4.9, three.PinX, 6);
-            Assert.Equal(6.0, three.PinY, 6);
-            Assert.Equal(2.4, four.PinX, 6);
-            Assert.Equal(4.5, four.PinY, 6);
-            Assert.Equal(4.9, one.PinX, 6);
-            Assert.Equal(4.5, one.PinY, 6);
-            Assert.Equal(9, outside.PinX, 6);
-            Assert.Equal(1, outside.PinY, 6);
+            Assert.Equal(2.4, two.PinX.ToInches(), 6);
+            Assert.Equal(6.0, two.PinY.ToInches(), 6);
+            Assert.Equal(4.9, three.PinX.ToInches(), 6);
+            Assert.Equal(6.0, three.PinY.ToInches(), 6);
+            Assert.Equal(2.4, four.PinX.ToInches(), 6);
+            Assert.Equal(4.5, four.PinY.ToInches(), 6);
+            Assert.Equal(4.9, one.PinX.ToInches(), 6);
+            Assert.Equal(4.5, one.PinY.ToInches(), 6);
+            Assert.Equal(9, outside.PinX.ToInches(), 6);
+            Assert.Equal(1, outside.PinY.ToInches(), 6);
             Assert.Equal(2, first.Waypoints.Count);
             Assert.Equal(2, second.Waypoints.Count);
             Assert.Empty(external.Waypoints);
@@ -202,20 +202,20 @@ namespace OfficeIMO.Tests {
         public void SelectionCanRelayoutAsVerticalStackWithoutReroutingConnectors() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Stack");
-            VisioShape one = page.AddRectangle(2, 6, 1, 0.5, "One");
-            VisioShape two = page.AddRectangle(5, 5, 2, 1, "Two");
-            VisioShape three = page.AddRectangle(7, 3, 1.5, 0.75, "Three");
+            VisioShape one = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "One");
+            VisioShape two = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Two");
+            VisioShape three = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.75, page.DefaultUnit)), "Three");
             VisioConnector connector = page.AddConnector(one, two, ConnectorKind.Dynamic);
 
             new VisioShapeSelection(new[] { one, two, three })
                 .RelayoutAsVerticalStack(0.25, routeInternalConnectors: false);
 
-            Assert.Equal(2.5, one.PinX, 6);
-            Assert.Equal(6.0, one.PinY, 6);
-            Assert.Equal(2.5, two.PinX, 6);
-            Assert.Equal(5.0, two.PinY, 6);
-            Assert.Equal(2.5, three.PinX, 6);
-            Assert.Equal(3.875, three.PinY, 6);
+            Assert.Equal(2.5, one.PinX.ToInches(), 6);
+            Assert.Equal(6.0, one.PinY.ToInches(), 6);
+            Assert.Equal(2.5, two.PinX.ToInches(), 6);
+            Assert.Equal(5.0, two.PinY.ToInches(), 6);
+            Assert.Equal(2.5, three.PinX.ToInches(), 6);
+            Assert.Equal(3.875, three.PinY.ToInches(), 6);
             Assert.Empty(connector.Waypoints);
         }
 
@@ -223,8 +223,8 @@ namespace OfficeIMO.Tests {
         public void SelectionRelayoutRejectsNonFiniteSpacing() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("InvalidSpacing");
-            VisioShape one = page.AddRectangle(2, 3, 1, 0.5, "One");
-            VisioShape two = page.AddRectangle(4, 3, 1, 0.5, "Two");
+            VisioShape one = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "One");
+            VisioShape two = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Two");
             VisioShapeSelection selection = new(new[] { one, two }, page);
 
             ArgumentOutOfRangeException horizontal = Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -242,21 +242,21 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ResizeToTextUsesDeterministicDrawingMeasurement() {
-            VisioShape shortShape = new("short", 2, 2, 0.2, 0.2, string.Empty);
+            VisioShape shortShape = new("short", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(0.2), OfficeLength.Inches(0.2), string.Empty);
             shortShape.ResizeToText(minimumWidth: 0.75, minimumHeight: 0.4);
 
-            Assert.Equal(0.75, shortShape.Width);
-            Assert.True(shortShape.Height >= 0.4);
-            Assert.Equal(shortShape.Width / 2, shortShape.LocPinX);
-            Assert.Equal(shortShape.Height / 2, shortShape.LocPinY);
+            Assert.Equal(0.75, shortShape.Width.ToInches());
+            Assert.True(shortShape.Height.ToInches() >= 0.4);
+            Assert.Equal(shortShape.Width.ToInches() / 2, shortShape.LocPinX.ToInches());
+            Assert.Equal(shortShape.Height.ToInches() / 2, shortShape.LocPinY.ToInches());
 
-            VisioShape longShape = new("long", 2, 2, 0.2, 0.2, "Very long process label\nwith two lines");
+            VisioShape longShape = new("long", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(0.2), OfficeLength.Inches(0.2), "Very long process label\nwith two lines");
             longShape.ResizeToText(new OfficeFontInfo("Calibri", 12), horizontalPadding: 0.2, verticalPadding: 0.1);
 
-            Assert.True(longShape.Width > 2.0);
-            Assert.True(longShape.Height > 0.55);
-            Assert.Equal(longShape.Width / 2, longShape.LocPinX);
-            Assert.Equal(longShape.Height / 2, longShape.LocPinY);
+            Assert.True(longShape.Width.ToInches() > 2.0);
+            Assert.True(longShape.Height.ToInches() > 0.55);
+            Assert.Equal(longShape.Width.ToInches() / 2, longShape.LocPinX.ToInches());
+            Assert.Equal(longShape.Height.ToInches() / 2, longShape.LocPinY.ToInches());
         }
 
         [Fact]
@@ -264,8 +264,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("LabelSize");
-            VisioShape source = page.AddRectangle(1, 4, 1.4, 0.7, "Source");
-            VisioShape target = page.AddRectangle(5, 4, 1.4, 0.7, "Target");
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), "Source");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), "Target");
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
             connector.Label = "Review, approve,\nor return";
             connector
@@ -291,8 +291,8 @@ namespace OfficeIMO.Tests {
         public void ConnectorLabelResizeBreaksLongWordsWithinMaximumWidth() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("LongLabel");
-            VisioShape source = page.AddRectangle(1, 4, 1.4, 0.7, "Source");
-            VisioShape target = page.AddRectangle(5, 4, 1.4, 0.7, "Target");
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), "Source");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), "Target");
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
             connector.Label = "Supercalifragilisticexpialidocious";
 
@@ -309,9 +309,9 @@ namespace OfficeIMO.Tests {
         public void ConnectorSelectionCanResizeLabelsToTextUsingConnectorTextStyle() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("SelectionLabels");
-            VisioShape one = page.AddRectangle(1, 4, 1.4, 0.7, "One");
-            VisioShape two = page.AddRectangle(3, 4, 1.4, 0.7, "Two");
-            VisioShape three = page.AddRectangle(5, 4, 1.4, 0.7, "Three");
+            VisioShape one = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), "One");
+            VisioShape two = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), "Two");
+            VisioShape three = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), "Three");
             VisioConnector first = page.AddConnector(one, two, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
             VisioConnector second = page.AddConnector(two, three, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
             first.Label = "Short";
@@ -333,10 +333,10 @@ namespace OfficeIMO.Tests {
         public void ResolveConnectorLabelOverlapsMovesLabelsAwayFromUnrelatedShapes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("LabelShapeCleanup", 7, 5);
-            VisioShape source = page.AddRectangle(1, 2, 0.8, 0.5, "Source");
-            VisioShape obstacle = page.AddRectangle(3, 2, 1, 1, "Obstacle");
-            VisioShape target = page.AddRectangle(5, 2, 0.8, 0.5, "Target");
+            VisioPage page = document.AddPage("LabelShapeCleanup", OfficeLength.Inches(7), OfficeLength.Inches(5));
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Source");
+            VisioShape obstacle = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Obstacle");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Target");
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
                 .PlaceLabelAt(3, 2, width: 1.2, height: 0.4);
             connector.Label = "covers node";
@@ -361,10 +361,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ResolveConnectorLabelOverlapsSeparatesOverlappingConnectorLabels() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("LabelLabelCleanup", 7, 5);
-            VisioShape left = page.AddRectangle(1, 2, 0.8, 0.5, "Left");
-            VisioShape middle = page.AddRectangle(3, 2, 0.8, 0.5, "Middle");
-            VisioShape right = page.AddRectangle(5, 2, 0.8, 0.5, "Right");
+            VisioPage page = document.AddPage("LabelLabelCleanup", OfficeLength.Inches(7), OfficeLength.Inches(5));
+            VisioShape left = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Left");
+            VisioShape middle = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Middle");
+            VisioShape right = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Right");
             VisioConnector first = page.AddConnector(left, middle, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
                 .PlaceLabelAt(3, 3.4, width: 1.2, height: 0.4);
             first.Label = "first";
@@ -392,12 +392,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ResolveConnectorLabelOverlapsCanRunWholePageOptimizationPasses() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("DenseLabelCleanup", 8, 6);
-            VisioShape left = page.AddRectangle(1, 3, 0.8, 0.5, "Left");
-            VisioShape center = page.AddRectangle(4, 3, 0.8, 0.5, "Center");
-            VisioShape right = page.AddRectangle(7, 3, 0.8, 0.5, "Right");
-            VisioShape top = page.AddRectangle(4, 5.2, 0.8, 0.5, "Top");
-            VisioShape bottom = page.AddRectangle(4, 0.8, 0.8, 0.5, "Bottom");
+            VisioPage page = document.AddPage("DenseLabelCleanup", OfficeLength.Inches(8), OfficeLength.Inches(6));
+            VisioShape left = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Left");
+            VisioShape center = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Center");
+            VisioShape right = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Right");
+            VisioShape top = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Top");
+            VisioShape bottom = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Bottom");
             VisioConnector first = page.AddConnector(left, center, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
                 .PlaceLabelAt(4, 3.7, width: 1.2, height: 0.35);
             first.Label = "left-center";
@@ -447,9 +447,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ResolveConnectorLabelOverlapsCanSlideLabelsAlongConnectorPaths() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("LabelPathCleanup", 8, 5);
-            VisioShape left = page.AddRectangle(1, 2.5, 0.8, 0.5, "Left");
-            VisioShape right = page.AddRectangle(7, 2.5, 0.8, 0.5, "Right");
+            VisioPage page = document.AddPage("LabelPathCleanup", OfficeLength.Inches(8), OfficeLength.Inches(5));
+            VisioShape left = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Left");
+            VisioShape right = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Right");
             VisioConnector first = page.AddConnector(left, right, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
                 .PlaceLabel(0.5, width: 1.0, height: 0.3);
             first.Label = "first";
@@ -487,9 +487,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PolishDiagramCanSlideConnectorLabelsAlongPaths() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("PolishLabelPathCleanup", 8, 5);
-            VisioShape left = page.AddRectangle(1, 2.5, 0.8, 0.5, "Left");
-            VisioShape right = page.AddRectangle(7, 2.5, 0.8, 0.5, "Right");
+            VisioPage page = document.AddPage("PolishLabelPathCleanup", OfficeLength.Inches(8), OfficeLength.Inches(5));
+            VisioShape left = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Left");
+            VisioShape right = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Right");
             VisioConnector first = page.AddConnector(left, right, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
                 .PlaceLabel(0.5, width: 1.0, height: 0.3);
             first.Label = "first";
@@ -518,11 +518,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ResolveConnectorLabelOverlapsMovesLabelsAwayFromUnrelatedConnectorPaths() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("LabelConnectorCleanup", 7, 5);
-            VisioShape left = page.AddRectangle(1, 2, 0.8, 0.5, "Left");
-            VisioShape right = page.AddRectangle(5, 2, 0.8, 0.5, "Right");
-            VisioShape top = page.AddRectangle(3, 4.5, 0.8, 0.5, "Top");
-            VisioShape bottom = page.AddRectangle(3, 0.5, 0.8, 0.5, "Bottom");
+            VisioPage page = document.AddPage("LabelConnectorCleanup", OfficeLength.Inches(7), OfficeLength.Inches(5));
+            VisioShape left = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Left");
+            VisioShape right = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Right");
+            VisioShape top = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Top");
+            VisioShape bottom = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Bottom");
             VisioConnector labeled = page.AddConnector(left, right, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
                 .PlaceLabelAt(3, 2, width: 1.2, height: 0.4);
             labeled.Label = "approval";
@@ -555,11 +555,11 @@ namespace OfficeIMO.Tests {
         public void ConnectorLabelPathAnalysisIgnoresUnroutedDynamicConnectors() {
             VisioDocument document = VisioDocument.Create(Path.Combine(
                 Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("DynamicRoute", 7, 5);
-            VisioShape left = page.AddRectangle(1, 2, 0.8, 0.5, "Left");
-            VisioShape right = page.AddRectangle(5, 2, 0.8, 0.5, "Right");
-            VisioShape top = page.AddRectangle(3, 4.5, 0.8, 0.5, "Top");
-            VisioShape bottom = page.AddRectangle(3, 0.5, 0.8, 0.5, "Bottom");
+            VisioPage page = document.AddPage("DynamicRoute", OfficeLength.Inches(7), OfficeLength.Inches(5));
+            VisioShape left = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Left");
+            VisioShape right = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Right");
+            VisioShape top = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Top");
+            VisioShape bottom = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Bottom");
             VisioConnector labeled = page.AddConnector(left, right,
                     ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
                 .PlaceLabelAt(3, 2, width: 1.2, height: 0.4);
@@ -582,11 +582,11 @@ namespace OfficeIMO.Tests {
         public void ConnectorLabelPathAnalysisRequiresStableLabeledConnectorPlacement() {
             VisioDocument document = VisioDocument.Create(Path.Combine(
                 Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("DynamicLabel", 7, 5);
-            VisioShape left = page.AddRectangle(1, 2, 0.8, 0.5, "Left");
-            VisioShape right = page.AddRectangle(5, 2, 0.8, 0.5, "Right");
-            VisioShape top = page.AddRectangle(3, 4.5, 0.8, 0.5, "Top");
-            VisioShape bottom = page.AddRectangle(3, 0.5, 0.8, 0.5, "Bottom");
+            VisioPage page = document.AddPage("DynamicLabel", OfficeLength.Inches(7), OfficeLength.Inches(5));
+            VisioShape left = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Left");
+            VisioShape right = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Right");
+            VisioShape top = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Top");
+            VisioShape bottom = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Bottom");
             VisioConnector dynamicLabel = page.AddConnector(left, right,
                     ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left)
                 .PlaceLabel(0.5, width: 1.2, height: 0.4);
@@ -615,11 +615,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PolishDiagramMovesConnectorLabelsAwayFromConnectorPaths() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("PolishLabelConnectors", 7, 5);
-            VisioShape left = page.AddRectangle(1, 2, 0.8, 0.5, "Left");
-            VisioShape right = page.AddRectangle(5, 2, 0.8, 0.5, "Right");
-            VisioShape top = page.AddRectangle(3, 4.5, 0.8, 0.5, "Top");
-            VisioShape bottom = page.AddRectangle(3, 0.5, 0.8, 0.5, "Bottom");
+            VisioPage page = document.AddPage("PolishLabelConnectors", OfficeLength.Inches(7), OfficeLength.Inches(5));
+            VisioShape left = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Left");
+            VisioShape right = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Right");
+            VisioShape top = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Top");
+            VisioShape bottom = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Bottom");
             VisioConnector labeled = page.AddConnector(left, right, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
                 .PlaceLabelAt(3, 2, width: 1.2, height: 0.4);
             labeled.Label = "polished";
@@ -637,11 +637,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ResolveConnectorLabelOverlapsIgnoresGeneratedAdornmentShapes() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("LabelAdornmentCleanup", 7, 5);
-            VisioShape adornment = page.AddTextBox("zone-caption", 3, 2, 2, 0.35, "Zone caption");
+            VisioPage page = document.AddPage("LabelAdornmentCleanup", OfficeLength.Inches(7), OfficeLength.Inches(5));
+            VisioShape adornment = page.AddTextBox("zone-caption", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.35, page.DefaultUnit)), "Zone caption");
             VisioSemanticUserCells.MarkGeneratedAdornment(adornment);
-            VisioShape source = page.AddRectangle(1, 2, 0.8, 0.5, "Source");
-            VisioShape target = page.AddRectangle(5, 2, 0.8, 0.5, "Target");
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Source");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Target");
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
                 .PlaceLabelAt(3, 2, width: 1.2, height: 0.35);
             connector.Label = "inside zone";
@@ -657,10 +657,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ResolveConnectorLabelOverlapsMovesLabelsAwayFromUserTextBoxes() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("LabelUserTextCleanup", 7, 5);
-            VisioShape note = page.AddTextBox("user-caption", 3, 2, 1.0, 0.3, "User note");
-            VisioShape source = page.AddRectangle(1, 2, 0.8, 0.5, "Source");
-            VisioShape target = page.AddRectangle(5, 2, 0.8, 0.5, "Target");
+            VisioPage page = document.AddPage("LabelUserTextCleanup", OfficeLength.Inches(7), OfficeLength.Inches(5));
+            VisioShape note = page.AddTextBox("user-caption", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.0, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.3, page.DefaultUnit)), "User note");
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Source");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Target");
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
                 .PlaceLabelAt(3, 2, width: 1.3, height: 0.4);
             connector.Label = "approval";
@@ -683,13 +683,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ResolveConnectorLabelOverlapsCanPreferCommonEndpointZones() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("LabelZoneCleanup", 8, 5);
-            VisioShape zone = page.AddRectangle(3, 2, 4, 2, "Shared zone");
+            VisioPage page = document.AddPage("LabelZoneCleanup", OfficeLength.Inches(8), OfficeLength.Inches(5));
+            VisioShape zone = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), "Shared zone");
             zone.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR");
-            VisioShape unrelatedZone = page.AddRectangle(3, 3.55, 4, 0.8, "Unrelated zone");
+            VisioShape unrelatedZone = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.55, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "Unrelated zone");
             unrelatedZone.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR");
-            VisioShape source = page.AddRectangle(2, 2, 0.8, 0.5, "Source");
-            VisioShape target = page.AddRectangle(4, 2, 0.8, 0.5, "Target");
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Source");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Target");
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
                 .PlaceLabel(0.5, offsetY: 1.45, width: 1.2, height: 0.3);
             connector.Label = "zone label";
@@ -705,13 +705,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PolishDiagramCanPreferConnectorLabelsInsideEndpointZones() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("PolishLabelZones", 8, 5);
-            VisioShape zone = page.AddRectangle(3, 2, 4, 2, "Shared zone");
+            VisioPage page = document.AddPage("PolishLabelZones", OfficeLength.Inches(8), OfficeLength.Inches(5));
+            VisioShape zone = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), "Shared zone");
             zone.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR");
-            page.AddRectangle(3, 3.55, 4, 0.8, "Unrelated zone")
+            page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.55, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "Unrelated zone")
                 .SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR");
-            VisioShape source = page.AddRectangle(2, 2, 0.8, 0.5, "Source");
-            VisioShape target = page.AddRectangle(4, 2, 0.8, 0.5, "Target");
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Source");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Target");
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
                 .PlaceLabel(0.5, offsetY: 1.45, width: 1.2, height: 0.3);
             connector.Label = "polished zone label";
@@ -730,10 +730,10 @@ namespace OfficeIMO.Tests {
         public void ResolveShapeOverlapsMovesTopLevelShapesApart() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("ShapeCleanup", 8, 6);
-            VisioShape first = page.AddRectangle(2, 3, 1.2, 0.8, "First");
-            VisioShape second = page.AddRectangle(2.25, 3, 1.2, 0.8, "Second");
-            VisioShape third = page.AddRectangle(2.1, 3.05, 1.2, 0.8, "Third");
+            VisioPage page = document.AddPage("ShapeCleanup", OfficeLength.Inches(8), OfficeLength.Inches(6));
+            VisioShape first = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "First");
+            VisioShape second = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.25, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "Second");
+            VisioShape third = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.05, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "Third");
 
             Assert.Contains(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
                 CheckPageBounds = false,
@@ -743,12 +743,12 @@ namespace OfficeIMO.Tests {
 
             page.ResolveShapeOverlaps(step: 0.25, maxAttempts: 12);
 
-            Assert.Equal(2, first.PinX);
+            Assert.Equal(2, first.PinX.ToInches());
             Assert.True(
-                second.PinX != 2.25 ||
-                second.PinY != 3 ||
-                third.PinX != 2.1 ||
-                third.PinY != 3.05);
+                second.PinX.ToInches() != 2.25 ||
+                second.PinY.ToInches() != 3 ||
+                third.PinX.ToInches() != 2.1 ||
+                third.PinY.ToInches() != 3.05);
             Assert.DoesNotContain(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
                 CheckPageBounds = false,
                 CheckConnectorShapeIntersections = false,
@@ -763,10 +763,10 @@ namespace OfficeIMO.Tests {
         public void PolishDiagramSizesLabelsResolvesCollisionsAndFitsPage() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Polish", 12, 8);
-            VisioShape source = page.AddRectangle(5, 4, 0.8, 0.5, "Source");
-            VisioShape obstacle = page.AddRectangle(7, 4, 1, 1, "Obstacle");
-            VisioShape target = page.AddRectangle(9, 4, 0.8, 0.5, "Target");
+            VisioPage page = document.AddPage("Polish", OfficeLength.Inches(12), OfficeLength.Inches(8));
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Source");
+            VisioShape obstacle = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Obstacle");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(9, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Target");
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
                 .PlaceLabelAt(7, 4, width: 0.2, height: 0.1);
             connector.Label = "review and approve";
@@ -785,9 +785,9 @@ namespace OfficeIMO.Tests {
             }), issue => issue.Kind == "ConnectorLabelOverlapsShape" && issue.ShapeId == obstacle.Id);
 
             OfficeIMO.Visio.VisioShapeBounds bounds = page.GetContentBounds();
-            Assert.Equal(0.5, bounds.Left, 6);
-            Assert.Equal(0.25, bounds.Bottom, 6);
-            Assert.True(page.Width < 12);
+            Assert.Equal(0.5, bounds.Left.ToInches(), 6);
+            Assert.Equal(0.25, bounds.Bottom.ToInches(), 6);
+            Assert.True(page.Width.ToInches() < 12);
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
@@ -796,10 +796,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PolishDiagramCanRouteConnectorsAroundShapesBeforeLabelCleanup() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("Route polish", 8, 5);
-            VisioShape source = page.AddRectangle(1, 2.5, 0.8, 0.5, "Source");
-            VisioShape obstacle = page.AddRectangle(4, 2.5, 1.2, 1.0, "Obstacle");
-            VisioShape target = page.AddRectangle(7, 2.5, 0.8, 0.5, "Target");
+            VisioPage page = document.AddPage("Route polish", OfficeLength.Inches(8), OfficeLength.Inches(5));
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Source");
+            VisioShape obstacle = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.0, page.DefaultUnit)), "Obstacle");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Target");
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
                 .PlaceLabel(0.5, width: 1.0, height: 0.3);
             connector.Label = "approved";
@@ -821,10 +821,10 @@ namespace OfficeIMO.Tests {
         public void PolishDiagramCanResolveShapeOverlapsBeforeFittingPage() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("PolishShapes", 12, 8);
-            VisioShape first = page.AddRectangle(5, 4, 1.4, 0.8, "First");
-            VisioShape second = page.AddRectangle(5.2, 4, 1.4, 0.8, "Second");
-            VisioShape third = page.AddRectangle(5.4, 4, 1.4, 0.8, "Third");
+            VisioPage page = document.AddPage("PolishShapes", OfficeLength.Inches(12), OfficeLength.Inches(8));
+            VisioShape first = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "First");
+            VisioShape second = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "Second");
+            VisioShape third = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "Third");
 
             page.PolishDiagram(new VisioDiagramPolishOptions {
                 ResolveShapeOverlaps = true,
@@ -834,15 +834,15 @@ namespace OfficeIMO.Tests {
                 FitVerticalMargin = 0.25
             });
 
-            Assert.Equal(0.5, page.GetContentBounds().Left, 6);
+            Assert.Equal(0.5, page.GetContentBounds().Left.ToInches(), 6);
             Assert.DoesNotContain(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
                 CheckPageBounds = false,
                 CheckConnectorShapeIntersections = false,
                 CheckConnectorLabels = false
             }), issue => issue.Kind == "ShapeOverlap");
-            Assert.True(page.Width < 12);
-            Assert.Equal(0.5 + first.Width / 2D, first.PinX, 6);
-            Assert.True(second.PinX > first.PinX || third.PinX > first.PinX);
+            Assert.True(page.Width.ToInches() < 12);
+            Assert.Equal(0.5 + first.Width.ToInches() / 2D, first.PinX.ToInches(), 6);
+            Assert.True(second.PinX.ToInches() > first.PinX.ToInches() || third.PinX.ToInches() > first.PinX.ToInches());
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
@@ -851,40 +851,40 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PolishDiagramsSkipsBackgroundPagesByDefault() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage background = document.AddBackgroundPage("Background", 10, 8);
-            VisioShape backgroundShape = background.AddRectangle(8, 6, 1, 1, "Background");
-            VisioPage foreground = document.AddPage("Foreground", 10, 8);
+            VisioPage background = document.AddBackgroundPage("Background", OfficeLength.Inches(10), OfficeLength.Inches(8));
+            VisioShape backgroundShape = background.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, background.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, background.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, background.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, background.DefaultUnit)), "Background");
+            VisioPage foreground = document.AddPage("Foreground", OfficeLength.Inches(10), OfficeLength.Inches(8));
             foreground.SetBackgroundPage(background);
-            VisioShape source = foreground.AddRectangle(6, 4, 0.8, 0.5, "Source");
-            VisioShape target = foreground.AddRectangle(8, 4, 0.8, 0.5, "Target");
+            VisioShape source = foreground.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, foreground.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, foreground.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, foreground.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, foreground.DefaultUnit)), "Source");
+            VisioShape target = foreground.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, foreground.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, foreground.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, foreground.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, foreground.DefaultUnit)), "Target");
             VisioConnector connector = foreground.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
             connector.Label = "foreground";
             connector.PlaceLabel(0.5, width: 0.2, height: 0.1);
 
             document.PolishDiagrams();
 
-            Assert.Equal(8, backgroundShape.PinX);
-            Assert.NotEqual(6, source.PinX);
+            Assert.Equal(8, backgroundShape.PinX.ToInches());
+            Assert.NotEqual(6, source.PinX.ToInches());
             Assert.True(connector.LabelPlacement!.Width > 0.2);
         }
 
         [Fact]
         public void CenterContentKeepsPageSizeAndMovesTopLevelShapes() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("Center", 10, 8);
-            VisioShape first = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "first", 1, 1, "First");
-            VisioShape second = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "second", 3, 2, "Second");
+            VisioPage page = document.AddPage("Center", OfficeLength.Inches(10), OfficeLength.Inches(8));
+            VisioShape first = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "first", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "First");
+            VisioShape second = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "second", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), "Second");
 
             page.CenterContent();
 
             OfficeIMO.Visio.VisioShapeBounds bounds = page.GetContentBounds();
-            Assert.Equal(5, bounds.CenterX, 6);
-            Assert.Equal(4, bounds.CenterY, 6);
-            Assert.Equal(10, page.Width);
-            Assert.Equal(8, page.Height);
+            Assert.Equal(5, bounds.CenterX.ToInches(), 6);
+            Assert.Equal(4, bounds.CenterY.ToInches(), 6);
+            Assert.Equal(10, page.Width.ToInches());
+            Assert.Equal(8, page.Height.ToInches());
             Assert.Equal(new[] { "first", "second" }, page.Shapes.Select(shape => shape.Id).ToArray());
-            Assert.NotEqual(1, first.PinX);
-            Assert.NotEqual(2, second.PinY);
+            Assert.NotEqual(1, first.PinX.ToInches());
+            Assert.NotEqual(2, second.PinY.ToInches());
         }
 
         private static OfficeIMO.Visio.VisioShapeBounds GetConnectorLabelBounds(VisioConnector connector) {
@@ -905,10 +905,10 @@ namespace OfficeIMO.Tests {
             double width = placement.Width;
             double height = placement.Height;
             return new OfficeIMO.Visio.VisioShapeBounds(
-                pinX - (width / 2D),
-                pinY - (height / 2D),
-                pinX + (width / 2D),
-                pinY + (height / 2D));
+                OfficeLength.Inches(pinX - (width / 2D)),
+                OfficeLength.Inches(pinY - (height / 2D)),
+                OfficeLength.Inches(pinX + (width / 2D)),
+                OfficeLength.Inches(pinY + (height / 2D)));
         }
 
         private static (double X, double Y) ResolveEndpoint(VisioShape shape, VisioShape other, VisioConnectionPoint? connectionPoint) {
@@ -918,11 +918,11 @@ namespace OfficeIMO.Tests {
 
             OfficeIMO.Visio.VisioShapeBounds shapeBounds = shape.GetShapeBounds();
             OfficeIMO.Visio.VisioShapeBounds otherBounds = other.GetShapeBounds();
-            double dx = otherBounds.CenterX - shapeBounds.CenterX;
-            double dy = otherBounds.CenterY - shapeBounds.CenterY;
+            double dx = otherBounds.CenterX.ToInches() - shapeBounds.CenterX.ToInches();
+            double dy = otherBounds.CenterY.ToInches() - shapeBounds.CenterY.ToInches();
             return Math.Abs(dx) >= Math.Abs(dy)
-                ? (dx >= 0 ? shapeBounds.Right : shapeBounds.Left, shapeBounds.CenterY)
-                : (shapeBounds.CenterX, dy >= 0 ? shapeBounds.Top : shapeBounds.Bottom);
+                ? (dx >= 0 ? shapeBounds.Right.ToInches() : shapeBounds.Left.ToInches(), shapeBounds.CenterY.ToInches())
+                : (shapeBounds.CenterX.ToInches(), dy >= 0 ? shapeBounds.Top.ToInches() : shapeBounds.Bottom.ToInches());
         }
 
         private static bool ConnectorPathIntersectsBounds(VisioConnector connector, OfficeIMO.Visio.VisioShapeBounds bounds) {
@@ -950,23 +950,23 @@ namespace OfficeIMO.Tests {
             return OfficeGeometry.SegmentIntersectsRectangle(
                 (startX, startY),
                 (endX, endY),
-                bounds.Left,
-                bounds.Bottom,
-                bounds.Right,
-                bounds.Top);
+                bounds.Left.ToInches(),
+                bounds.Bottom.ToInches(),
+                bounds.Right.ToInches(),
+                bounds.Top.ToInches());
         }
 
         private static bool Contains(OfficeIMO.Visio.VisioShapeBounds outer, OfficeIMO.Visio.VisioShapeBounds inner) {
             const double tolerance = 1e-6;
-            return outer.Left <= inner.Left + tolerance &&
-                   outer.Bottom <= inner.Bottom + tolerance &&
-                   outer.Right + tolerance >= inner.Right &&
-                   outer.Top + tolerance >= inner.Top;
+            return outer.Left.ToInches() <= inner.Left.ToInches() + tolerance &&
+                   outer.Bottom.ToInches() <= inner.Bottom.ToInches() + tolerance &&
+                   outer.Right.ToInches() + tolerance >= inner.Right.ToInches() &&
+                   outer.Top.ToInches() + tolerance >= inner.Top.ToInches();
         }
 
         private static double OverlapArea(OfficeIMO.Visio.VisioShapeBounds first, OfficeIMO.Visio.VisioShapeBounds second) {
-            double width = Math.Max(0D, Math.Min(first.Right, second.Right) - Math.Max(first.Left, second.Left));
-            double height = Math.Max(0D, Math.Min(first.Top, second.Top) - Math.Max(first.Bottom, second.Bottom));
+            double width = Math.Max(0D, Math.Min(first.Right.ToInches(), second.Right.ToInches()) - Math.Max(first.Left.ToInches(), second.Left.ToInches()));
+            double height = Math.Max(0D, Math.Min(first.Top.ToInches(), second.Top.ToInches()) - Math.Max(first.Bottom.ToInches(), second.Bottom.ToInches()));
             return width * height;
         }
     }

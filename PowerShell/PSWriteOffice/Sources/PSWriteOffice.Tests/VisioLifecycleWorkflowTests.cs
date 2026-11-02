@@ -34,8 +34,8 @@ public sealed class VisioLifecycleWorkflowTests {
         Assert.Same(shape, Assert.Single(page.Shapes));
         Assert.Equal(2, shape.PinX, 6);
         Assert.Equal(1, shape.PinY, 6);
-        Assert.Equal(width, shape.Width, 6);
-        Assert.Equal(height, shape.Height, 6);
+        Assert.Equal(width, shape.Width.ToInches(), 6);
+        Assert.Equal(height, shape.Height.ToInches(), 6);
         Assert.Equal(2D / 72D, shape.LineWeight, 6);
         Assert.Equal(Math.PI / 2D, shape.Angle, 6);
         Assert.Equal("service", shape.NameU);
@@ -63,16 +63,16 @@ public sealed class VisioLifecycleWorkflowTests {
             Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
             Assert.False(File.Exists(path));
             VisioPage page = Assert.Single(document.Pages);
-            Assert.Equal(11, page.Width, 6);
-            Assert.Equal(216 / 25.4, page.Height, 6);
+            Assert.Equal(11, page.Width.ToInches(), 6);
+            Assert.Equal(216 / 25.4, page.Height.ToInches(), 6);
             Assert.Equal(VisioMeasurementUnit.Centimeters, page.DefaultUnit);
             Assert.Equal(VisioMeasurementUnit.Centimeters, page.ScaleMeasurementUnit);
             shell.Commands.Clear();
             shell.AddCommand("Save-OfficeVisio").AddParameter("Document", document).Invoke();
             Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
             VisioPage saved = Assert.Single(VisioDocument.Load(path).Pages);
-            Assert.Equal(11, saved.Width, 6);
-            Assert.Equal(216 / 25.4, saved.Height, 6);
+            Assert.Equal(11, saved.Width.ToInches(), 6);
+            Assert.Equal(216 / 25.4, saved.Height.ToInches(), 6);
             Assert.Equal(VisioMeasurementUnit.Centimeters, saved.ScaleMeasurementUnit);
         } finally {
             Directory.Delete(root, true);

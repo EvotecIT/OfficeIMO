@@ -14,18 +14,18 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("Legacy Kubernetes", page => page
-                    .Rect("cluster", 5, 6.5, 5.0, 1.1, "AKS Cluster")
-                    .Rect("namespace", 2, 5.2, 1.8, 0.8, "Tenant Namespace")
-                    .Rect("node", 4, 5.2, 1.8, 0.8, "Worker Node")
-                    .Rect("cluster-node", 6, 6.5, 1.8, 0.8, "Cluster Node")
-                    .Hexagon("pod", 6, 5.2, 1.4, 0.8, "Workload Pod")
-                    .Rect("container", 8, 5.2, 1.6, 0.8, "Container Image")
-                    .Rect("service", 2, 4.0, 1.8, 0.8, "Kubernetes Service")
-                    .Diamond("ingress", 4, 4.0, 1.3, 0.9, "Ingress Route")
-                    .Data("config", 6, 4.0, 1.6, 0.7, "Config Map")
-                    .Data("secret", 8, 4.0, 1.6, 0.7, "Secret Credential")
-                    .Stencil("already", VisioStencils.ContainersKubernetes.Get("pod"), 5, 2.8, "Already stenciled"))
+                .AddPage("Legacy Kubernetes", page => page
+                    .AddRectangle("cluster", OfficeLength.Inches(5), OfficeLength.Inches(6.5), OfficeLength.Inches(5.0), OfficeLength.Inches(1.1), "AKS Cluster")
+                    .AddRectangle("namespace", OfficeLength.Inches(2), OfficeLength.Inches(5.2), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "Tenant Namespace")
+                    .AddRectangle("node", OfficeLength.Inches(4), OfficeLength.Inches(5.2), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "Worker Node")
+                    .AddRectangle("cluster-node", OfficeLength.Inches(6), OfficeLength.Inches(6.5), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "Cluster Node")
+                    .AddHexagon("pod", OfficeLength.Inches(6), OfficeLength.Inches(5.2), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Workload Pod")
+                    .AddRectangle("container", OfficeLength.Inches(8), OfficeLength.Inches(5.2), OfficeLength.Inches(1.6), OfficeLength.Inches(0.8), "Container Image")
+                    .AddRectangle("service", OfficeLength.Inches(2), OfficeLength.Inches(4.0), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "Kubernetes Service")
+                    .AddDiamond("ingress", OfficeLength.Inches(4), OfficeLength.Inches(4.0), OfficeLength.Inches(1.3), OfficeLength.Inches(0.9), "Ingress Route")
+                    .AddData("config", OfficeLength.Inches(6), OfficeLength.Inches(4.0), OfficeLength.Inches(1.6), OfficeLength.Inches(0.7), "Config Map")
+                    .AddData("secret", OfficeLength.Inches(8), OfficeLength.Inches(4.0), OfficeLength.Inches(1.6), OfficeLength.Inches(0.7), "Secret Credential")
+                    .AddStencilShape(id: "already", stencil: VisioStencils.ContainersKubernetes.Get("pod"), x: OfficeLength.Inches(5), y: OfficeLength.Inches(2.8), text: "Already stenciled"))
                 .End()
                 .Save();
 
@@ -63,16 +63,16 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("Legacy Data Platform", page => page
-                    .Data("lake", 2, 6, 1.8, 0.8, "Lake Storage")
-                    .Data("warehouse", 4, 6, 1.8, 0.8, "Data Warehouse")
-                    .Data("stream", 6, 6, 1.7, 0.75, "Event Stream")
-                    .Rect("pipeline", 8, 6, 1.7, 0.75, "ETL Pipeline")
-                    .Rect("catalog", 2, 4.6, 1.8, 0.8, "Metadata Catalog")
-                    .Rect("api", 4, 4.6, 1.6, 0.8, "Query API")
-                    .Diamond("quality", 6, 4.6, 1.3, 0.9, "Quality Gate")
-                    .Data("database", 8, 4.6, 1.7, 0.8, "SQL Database")
-                    .Stencil("already", VisioStencils.DataPlatform.Get("database"), 5, 3.2, "Already stenciled"))
+                .AddPage("Legacy Data Platform", page => page
+                    .AddData("lake", OfficeLength.Inches(2), OfficeLength.Inches(6), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "Lake Storage")
+                    .AddData("warehouse", OfficeLength.Inches(4), OfficeLength.Inches(6), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "Data Warehouse")
+                    .AddData("stream", OfficeLength.Inches(6), OfficeLength.Inches(6), OfficeLength.Inches(1.7), OfficeLength.Inches(0.75), "Event Stream")
+                    .AddRectangle("pipeline", OfficeLength.Inches(8), OfficeLength.Inches(6), OfficeLength.Inches(1.7), OfficeLength.Inches(0.75), "ETL Pipeline")
+                    .AddRectangle("catalog", OfficeLength.Inches(2), OfficeLength.Inches(4.6), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "Metadata Catalog")
+                    .AddRectangle("api", OfficeLength.Inches(4), OfficeLength.Inches(4.6), OfficeLength.Inches(1.6), OfficeLength.Inches(0.8), "Query API")
+                    .AddDiamond("quality", OfficeLength.Inches(6), OfficeLength.Inches(4.6), OfficeLength.Inches(1.3), OfficeLength.Inches(0.9), "Quality Gate")
+                    .AddData("database", OfficeLength.Inches(8), OfficeLength.Inches(4.6), OfficeLength.Inches(1.7), OfficeLength.Inches(0.8), "SQL Database")
+                    .AddStencilShape(id: "already", stencil: VisioStencils.DataPlatform.Get("database"), x: OfficeLength.Inches(5), y: OfficeLength.Inches(3.2), text: "Already stenciled"))
                 .End()
                 .Save();
 
@@ -108,16 +108,16 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("Legacy Business Process", page => page
-                    .Rect("lane", 4.5, 6.4, 6.0, 1.1, "Responsibility Lane")
-                    .Diamond("approval", 2, 5, 1.3, 0.9, "Approval Review")
-                    .Data("document", 4, 5, 1.6, 0.8, "Policy Document")
-                    .Data("message", 6, 5, 1.6, 0.8, "Email Notification")
-                    .Rect("meeting", 8, 5, 1.7, 0.8, "Planning Workshop")
-                    .Rect("system", 2, 3.8, 1.9, 0.85, "Business Application")
-                    .Rect("team", 4, 3.8, 1.7, 0.8, "Finance Team")
-                    .Ellipse("person", 6, 3.8, 0.9, 0.9, "Requester Person")
-                    .Stencil("already", VisioStencils.CollaborationBusiness.Get("team"), 8, 3.8, "Already stenciled"))
+                .AddPage("Legacy Business Process", page => page
+                    .AddRectangle("lane", OfficeLength.Inches(4.5), OfficeLength.Inches(6.4), OfficeLength.Inches(6.0), OfficeLength.Inches(1.1), "Responsibility Lane")
+                    .AddDiamond("approval", OfficeLength.Inches(2), OfficeLength.Inches(5), OfficeLength.Inches(1.3), OfficeLength.Inches(0.9), "Approval Review")
+                    .AddData("document", OfficeLength.Inches(4), OfficeLength.Inches(5), OfficeLength.Inches(1.6), OfficeLength.Inches(0.8), "Policy Document")
+                    .AddData("message", OfficeLength.Inches(6), OfficeLength.Inches(5), OfficeLength.Inches(1.6), OfficeLength.Inches(0.8), "Email Notification")
+                    .AddRectangle("meeting", OfficeLength.Inches(8), OfficeLength.Inches(5), OfficeLength.Inches(1.7), OfficeLength.Inches(0.8), "Planning Workshop")
+                    .AddRectangle("system", OfficeLength.Inches(2), OfficeLength.Inches(3.8), OfficeLength.Inches(1.9), OfficeLength.Inches(0.85), "Business Application")
+                    .AddRectangle("team", OfficeLength.Inches(4), OfficeLength.Inches(3.8), OfficeLength.Inches(1.7), OfficeLength.Inches(0.8), "Finance Team")
+                    .AddEllipse("person", OfficeLength.Inches(6), OfficeLength.Inches(3.8), OfficeLength.Inches(0.9), OfficeLength.Inches(0.9), "Requester Person")
+                    .AddStencilShape(id: "already", stencil: VisioStencils.CollaborationBusiness.Get("team"), x: OfficeLength.Inches(8), y: OfficeLength.Inches(3.8), text: "Already stenciled"))
                 .End()
                 .Save();
 

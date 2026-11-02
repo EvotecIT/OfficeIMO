@@ -19,34 +19,34 @@ public class VisioShapeResizeTests {
     public void ResizingAnEditedProducerGroupPreservesIdentitiesAndAttachedEndpoints(string route) {
         var document = VisioDocument.LoadLegacyXml(Path.Combine(AppContext.BaseDirectory, "Fixtures/LegacyXml/nxbre-ie3.vsx")).Value;
         var master = document.GetMaster("Atom");
-        var page = document.AddPage("Resize", 12, 12);
-        var instance = page.AddShape("group", master, 4, 4, master.Shape.Width, master.Shape.Height);
+        var page = document.AddPage("Resize", OfficeLength.Inches(12), OfficeLength.Inches(12));
+        var instance = page.AddShape("group", master, OfficeLength.Inches(4), OfficeLength.Inches(4), master.Shape.Width, master.Shape.Height);
         instance.Angle = .4;
         var child = instance.Children[0];
         child.Text = "Edited relation"; child.SetUserCell("Review", "approved");
         child.TextStyle ??= new VisioTextStyle();
-        child.TextStyle.TextWidth = child.Width * .75; child.TextStyle.TextHeight = child.Height * .8;
-        child.TextStyle.TextPinX = child.Width * .6; child.TextStyle.TextPinY = child.Height * .4;
-        child.TextStyle.TextLocPinX = child.Width * .2; child.TextStyle.TextLocPinY = child.Height * .3;
+        child.TextStyle.TextWidth = child.Width.ToInches() * .75; child.TextStyle.TextHeight = child.Height.ToInches() * .8;
+        child.TextStyle.TextPinX = child.Width.ToInches() * .6; child.TextStyle.TextPinY = child.Height.ToInches() * .4;
+        child.TextStyle.TextLocPinX = child.Width.ToInches() * .2; child.TextStyle.TextLocPinY = child.Height.ToInches() * .3;
         child.TextStyle.Size = 12; child.TextStyle.LeftMargin = .04;
-        var other = page.AddRectangle(9, 4, 1, 1);
+        var other = page.AddRectangle(OfficeLength.Inches(9), OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(1));
         var connector = page.AddConnector(child, other, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
         connector.EndPoint = new OfficePoint(11, 4);
         connector.Waypoints.Add(new VisioConnectorWaypoint(8, 7));
         document = Reopen(document, route); page = document.Pages.Single(p => p.Name == "Resize");
         instance = page.FindShapeById("group")!; child = instance.Children[0]; connector = Assert.Single(page.Connectors);
         VisioConnectionPoint point = connector.FromConnectionPoint!; VisioTextStyle style = child.TextStyle!;
-        double originalWidth = instance.Width, originalHeight = instance.Height, childWidth = child.Width, childPin = child.PinX;
+        double originalWidth = instance.Width.ToInches(), originalHeight = instance.Height.ToInches(), childWidth = child.Width.ToInches(), childPin = child.PinX.ToInches();
         double textWidth = style.TextWidth!.Value, textHeight = style.TextHeight!.Value;
         OfficePoint before = connector.StartPoint;
         XElement sourceMaster = MasterPart(document);
 
-        Assert.Same(instance, page.ResizeShape(instance, originalWidth * 2, originalHeight * .5));
+        Assert.Same(instance, page.ResizeShape(instance, OfficeLength.Inches(originalWidth * 2), OfficeLength.Inches(originalHeight * .5)));
         Assert.Same(child, instance.Children[0]); Assert.Same(style, child.TextStyle); Assert.Same(point, connector.FromConnectionPoint);
-        Assert.Equal(childWidth * 2, child.Width, 8); Assert.Equal(childPin * 2, child.PinX, 8);
+        Assert.Equal(childWidth * 2, child.Width.ToInches(), 8); Assert.Equal(childPin * 2, child.PinX.ToInches(), 8);
         Assert.Equal(textWidth * 2, style.TextWidth!.Value, 8); Assert.Equal(textHeight * .5, style.TextHeight!.Value, 8);
         Assert.Equal(12, style.Size); Assert.Equal(.04, style.LeftMargin);
-        Assert.Equal(4, instance.PinX); Assert.Equal(4, instance.PinY); Assert.Equal(.4, instance.Angle);
+        Assert.Equal(4, instance.PinX.ToInches()); Assert.Equal(4, instance.PinY.ToInches()); Assert.Equal(.4, instance.Angle);
         double cosine = Math.Cos(instance.Angle), sine = Math.Sin(instance.Angle);
         double localX = (before.X - 4) * cosine + (before.Y - 4) * sine;
         double localY = -(before.X - 4) * sine + (before.Y - 4) * cosine;
@@ -59,7 +59,7 @@ public class VisioShapeResizeTests {
             var savedPage = saved.Pages.Single(p => p.Name == "Resize");
             var savedChild = savedPage.FindShapeById(child.Id)!;
             Assert.Equal("Edited relation", savedChild.Text); Assert.Equal("approved", savedChild.GetUserCellValue("Review"));
-            Assert.Equal(child.Width, savedChild.Width, 8); Assert.Equal(child.PinX, savedChild.PinX, 8);
+            Assert.Equal(child.Width.ToInches(), savedChild.Width.ToInches(), 8); Assert.Equal(child.PinX.ToInches(), savedChild.PinX.ToInches(), 8);
             Assert.Equal(style.TextWidth!.Value, savedChild.TextStyle!.TextWidth!.Value, 8);
             Assert.Equal(connector.StartPoint.X, savedPage.Connectors[0].StartPoint.X, 8);
             Assert.Equal(connector.StartPoint.Y, savedPage.Connectors[0].StartPoint.Y, 8);
@@ -73,20 +73,19 @@ public class VisioShapeResizeTests {
     [Fact]
     public void QuarterTurnChildAndTextFramesUseTheirOwnSwappedAxes() {
         var document = VisioDocument.Create(); var page = document.AddPage("Page");
-        var group = new VisioShape("group", 4, 4, 4, 4, "") { Type = "Group" };
-        var child = new VisioShape("child", 1, 2, 2, 1, "text") { Angle = Math.PI / 2,
-            TextStyle = new VisioTextStyle { TextAngle = Math.PI / 2, TextPinX = .3, TextPinY = .4, TextLocPinX = .2, TextLocPinY = .1 } };
+        var group = new VisioShape("group", OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(4), "");
+        var child = new VisioShape("child", OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "text");
         group.Children.Add(child); page.Shapes.Add(group);
-        page.ResizeShape(group, 8, 2);
-        Assert.Equal(2, child.PinX); Assert.Equal(1, child.PinY);
-        Assert.Equal(1, child.Width); Assert.Equal(2, child.Height);
-        Assert.Equal(.5, child.LocPinX); Assert.Equal(1, child.LocPinY);
+        page.ResizeShape(group, OfficeLength.Inches(8), OfficeLength.Inches(2));
+        Assert.Equal(2, child.PinX.ToInches()); Assert.Equal(1, child.PinY.ToInches());
+        Assert.Equal(1, child.Width.ToInches()); Assert.Equal(2, child.Height.ToInches());
+        Assert.Equal(.5, child.LocPinX.ToInches()); Assert.Equal(1, child.LocPinY.ToInches());
         Assert.Equal(.15, child.TextStyle!.TextPinX!.Value, 8); Assert.Equal(.8, child.TextStyle.TextPinY!.Value, 8);
         Assert.Equal(4, child.TextStyle.TextWidth!.Value); Assert.Equal(.5, child.TextStyle.TextHeight!.Value);
         Assert.Equal(.4, child.TextStyle.TextLocPinX!.Value, 8); Assert.Equal(.05, child.TextStyle.TextLocPinY!.Value, 8);
         foreach (var reopened in new[] { Reopen(document, "xml"), Reopen(document, "openxml") }) {
             var saved = reopened.Pages[0].Shapes[0].Children[0];
-            Assert.Equal(1, saved.Width); Assert.Equal(2, saved.Height);
+            Assert.Equal(1, saved.Width.ToInches()); Assert.Equal(2, saved.Height.ToInches());
             Assert.Equal(4, saved.TextStyle!.TextWidth); Assert.Equal(.5, saved.TextStyle.TextHeight);
         }
     }
@@ -97,8 +96,8 @@ public class VisioShapeResizeTests {
     public void InheritedArcGeometryIsMaterializedThroughNativeResizeAndReopening(bool relative) {
         VisioDocument document = ArcDocument(relative);
         var page = document.Pages.Single(p => p.Name == "Page"); var shape = page.Shapes[0];
-        var expected = document.AddPage("Expected", 12, 12).AddShape("expected", document.GetMaster("Arc"), shape.PinX, shape.PinY, 4, 8);
-        page.ResizeShape(shape, 4, 8);
+        var expected = document.AddPage("Expected", OfficeLength.Inches(12), OfficeLength.Inches(12)).AddShape("expected", document.GetMaster("Arc"), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(shape.PinX.ToInches(), VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(shape.PinY.ToInches(), VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, VisioMeasurementUnit.Inches)));
+        page.ResizeShape(shape, OfficeLength.Inches(4), OfficeLength.Inches(8));
         Assert.Equal(PathData(expected.OwnerPage!), PathData(page));
         foreach (var reopened in relative ? new[] { Reopen(document, "openxml") } : new[] { Reopen(document, "xml"), Reopen(document, "openxml") }) {
             var resized = reopened.Pages.Single(p => p.Name == "Page");
@@ -114,17 +113,16 @@ public class VisioShapeResizeTests {
     [InlineData(true)]
     public void UnsupportedRotatedFramesLeaveTheEntireTreeUnchanged(bool textFrame) {
         var document = VisioDocument.Create(); var page = document.AddPage("Page");
-        var root = new VisioShape("group", 4, 4, 4, 4, "") { Type = "Group" };
-        root.Children.Add(new VisioShape("first", 1, 1, 1, 1, "valid"));
-        var child = new VisioShape("second", 2, 2, 1, 1, "unsupported") { Angle = textFrame ? 0 : .3,
-            TextStyle = new VisioTextStyle { TextAngle = textFrame ? .3 : 0, TextWidth = .7 } };
+        var root = new VisioShape("group", OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(4), "");
+        root.Children.Add(new VisioShape("first", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "valid"));
+        var child = new VisioShape("second", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(1), "unsupported");
         root.Children.Add(child); page.Shapes.Add(root);
         byte[] before = document.ToLegacyXmlResult().Value;
-        Assert.Throws<NotSupportedException>(() => page.ResizeShape(root, 8, 2));
+        Assert.Throws<NotSupportedException>(() => page.ResizeShape(root, OfficeLength.Inches(8), OfficeLength.Inches(2)));
         Assert.Equal(before, document.ToLegacyXmlResult().Value);
         Assert.Same(child, root.Children[1]); Assert.Equal(.7, child.TextStyle!.TextWidth);
         // Uniform scaling supports arbitrary rotations.
-        page.ResizeShape(root, 8, 8); Assert.Equal(2, child.Width); Assert.Equal(1.4, child.TextStyle.TextWidth);
+        page.ResizeShape(root, OfficeLength.Inches(8), OfficeLength.Inches(8)); Assert.Equal(2, child.Width.ToInches()); Assert.Equal(1.4, child.TextStyle.TextWidth);
     }
 
     [Fact]
@@ -137,20 +135,20 @@ public class VisioShapeResizeTests {
         var page = document.Pages[0]; var root = page.Shapes[0];
         Assert.Same(root.Children[0], Assert.Single(page.Connectors).From);
         byte[] before = document.ToLegacyXmlResult().Value;
-        Assert.Throws<NotSupportedException>(() => page.ResizeShape(root, 8, 4));
+        Assert.Throws<NotSupportedException>(() => page.ResizeShape(root, OfficeLength.Inches(8), OfficeLength.Inches(4)));
         Assert.Equal(before, document.ToLegacyXmlResult().Value);
     }
 
     [Fact]
     public void ResizeUsesRequestedUnitsAndRejectsInvalidSizesWithoutChangingTheShape() {
-        var document = VisioDocument.Create(); var page = document.AddPage("Page"); var shape = page.AddRectangle(4, 4, 1, 1);
-        page.ResizeShape(shape, 5.08, 2.54, VisioMeasurementUnit.Centimeters);
-        Assert.Equal(2, shape.Width, 8); Assert.Equal(1, shape.Height, 8);
+        var document = VisioDocument.Create(); var page = document.AddPage("Page"); var shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)));
+        page.ResizeShape(shape, OfficeLength.Centimeters(5.08), OfficeLength.Centimeters(2.54));
+        Assert.Equal(2, shape.Width.ToInches(), 8); Assert.Equal(1, shape.Height.ToInches(), 8);
         foreach (double size in new[] { 0, -1, double.NaN, double.PositiveInfinity }) {
-            Assert.Throws<ArgumentOutOfRangeException>(() => page.ResizeShape(shape, size, 1));
-            Assert.Equal(2, shape.Width, 8); Assert.Equal(1, shape.Height, 8);
+            Assert.Throws<ArgumentOutOfRangeException>(() => page.ResizeShape(shape, OfficeLength.Inches(size), OfficeLength.Inches(1)));
+            Assert.Equal(2, shape.Width.ToInches(), 8); Assert.Equal(1, shape.Height.ToInches(), 8);
         }
-        Assert.Throws<InvalidOperationException>(() => page.ResizeShape(new VisioShape("detached"), 1, 1));
+        Assert.Throws<InvalidOperationException>(() => page.ResizeShape(new VisioShape("detached"), OfficeLength.Inches(1), OfficeLength.Inches(1)));
     }
 
     private static string PathData(VisioPage page) => XDocument.Parse(page.ToSvg(new VisioSvgSaveOptions { RenderText = false, RenderStencilArtwork = false })).Descendants()

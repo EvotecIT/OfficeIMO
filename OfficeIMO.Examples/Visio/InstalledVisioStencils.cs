@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Visio {
 
             string filePath = Path.Combine(folderPath, "Installed Visio Stencils - Hybrid Network.vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Installed Visio Stencils", 14, 8.5);
+            VisioPage page = document.AddPage("Installed Visio Stencils", OfficeLength.Inches(14), OfficeLength.Inches(8.5));
             page.Grid(visible: false, snap: true);
 
             AddHeader(page);
@@ -40,17 +40,17 @@ namespace OfficeIMO.Examples.Visio {
             VisioStencilShape worker = Pick(catalog, "Virtual Machine", "Virtual Machines", "Server");
             VisioStencilShape data = Pick(catalog, "Azure SQL Database", "SQL databases", "Database server");
 
-            VisioShape client = page.AddStencilShape(userDevice, "client", 1.75, 4.9, string.Empty);
+            VisioShape client = page.AddStencilShape(userDevice, "client", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.75, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.9, page.DefaultUnit)), string.Empty);
             Label(page, "client-label", 1.75, 4.05, "Client");
-            VisioShape vpn = page.AddStencilShape(gateway, "gateway", 4.25, 5.25, string.Empty);
+            VisioShape vpn = page.AddStencilShape(gateway, "gateway", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.25, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.25, page.DefaultUnit)), string.Empty);
             Label(page, "gateway-label", 4.25, 4.42, gateway.Name);
-            VisioShape nsg = page.AddStencilShape(networkSecurity, "security", 5.8, 3.8, string.Empty);
+            VisioShape nsg = page.AddStencilShape(networkSecurity, "security", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.8, page.DefaultUnit)), string.Empty);
             Label(page, "security-label", 5.8, 2.95, networkSecurity.Name);
-            VisioShape function = page.AddStencilShape(app, "app", 8.0, 5.25, string.Empty);
+            VisioShape function = page.AddStencilShape(app, "app", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8.0, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.25, page.DefaultUnit)), string.Empty);
             Label(page, "app-label", 8.0, 4.42, app.Name);
-            VisioShape vm = page.AddStencilShape(worker, "worker", 9.55, 3.8, string.Empty);
+            VisioShape vm = page.AddStencilShape(worker, "worker", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(9.55, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.8, page.DefaultUnit)), string.Empty);
             Label(page, "worker-label", 9.55, 2.95, worker.Name);
-            VisioShape database = page.AddStencilShape(data, "database", 12.05, 4.6, string.Empty);
+            VisioShape database = page.AddStencilShape(data, "database", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(12.05, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.6, page.DefaultUnit)), string.Empty);
             Label(page, "database-label", 12.05, 3.75, data.Name);
 
             Connect(page, client, vpn, "HTTPS");
@@ -69,8 +69,7 @@ namespace OfficeIMO.Examples.Visio {
                 ConnectorLabelOptimizationPasses = 2
             });
 
-            VisioShape note = page.AddTextBox("source-note", 7, 0.75, 11.5, 0.42,
-                "Catalog composed from installed Microsoft Visio stencil packages: " + string.Join(", ", selectedPackages.Select(Path.GetFileName)));
+            VisioShape note = page.AddTextBox("source-note", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.75, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(11.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.42, page.DefaultUnit)), "Catalog composed from installed Microsoft Visio stencil packages: " + string.Join(", ", selectedPackages.Select(Path.GetFileName)));
             note.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos",
                 Size = 9.5,
@@ -96,7 +95,7 @@ namespace OfficeIMO.Examples.Visio {
         }
 
         private static void AddHeader(VisioPage page) {
-            page.AddTextBox("title", 7, 8.0, 12.5, 0.48, "Installed Visio stencil packages: hybrid network graph").TextStyle = new VisioTextStyle {
+            page.AddTextBox("title", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8.0, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(12.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.48, page.DefaultUnit)), "Installed Visio stencil packages: hybrid network graph").TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos Display",
                 Size = 21,
                 Bold = true,
@@ -104,7 +103,7 @@ namespace OfficeIMO.Examples.Visio {
                 HorizontalAlignment = VisioTextHorizontalAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
-            page.AddTextBox("subtitle", 7, 7.48, 10.8, 0.34, "Dependency-free .vssx/.vstx catalog discovery, source-aware auto-import, and graph-style placement").TextStyle = new VisioTextStyle {
+            page.AddTextBox("subtitle", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7.48, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(10.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.34, page.DefaultUnit)), "Dependency-free .vssx/.vstx catalog discovery, source-aware auto-import, and graph-style placement").TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos",
                 Size = 10.5,
                 Color = Color.FromRgb(85, 99, 113),
@@ -114,12 +113,12 @@ namespace OfficeIMO.Examples.Visio {
         }
 
         private static void AddZone(VisioPage page, string title, double x, double y, double width, double height, Color fill, Color stroke) {
-            VisioShape zone = page.AddRectangle(x, y, width, height, string.Empty);
+            VisioShape zone = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(x, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(y, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(width, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(height, page.DefaultUnit)), string.Empty);
             zone.FillColor = fill;
             zone.LineColor = stroke;
             zone.LineWeight = 0.012;
             zone.MarkAsBackgroundSurface();
-            VisioShape label = page.AddTextBox("zone-" + title.Replace(" ", "-", StringComparison.OrdinalIgnoreCase), x, y + (height / 2) - 0.25, width - 0.25, 0.3, title);
+            VisioShape label = page.AddTextBox("zone-" + title.Replace(" ", "-", StringComparison.OrdinalIgnoreCase), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(x, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(y + (height / 2) - 0.25, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(width - 0.25, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.3, page.DefaultUnit)), title);
             label.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos",
                 Size = 10,
@@ -132,7 +131,7 @@ namespace OfficeIMO.Examples.Visio {
         }
 
         private static void Label(VisioPage page, string id, double x, double y, string text) {
-            VisioShape label = page.AddTextBox(id, x, y, 1.7, 0.36, text);
+            VisioShape label = page.AddTextBox(id, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(x, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(y, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.36, page.DefaultUnit)), text);
             label.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos",
                 Size = 9.5,

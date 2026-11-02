@@ -18,8 +18,8 @@ public sealed class VisioGeneratedChildPrimitivesTests {
         var document = VisioDocument.Create();
         document.WriteMasterDeltasOnly = deltasOnly;
         var master = document.RegisterMaster("Composite", Blueprint());
-        VisioPage page = document.AddPage("Page", 8, 4);
-        VisioShape instance = page.AddShape("instance", master, 4, 2, 6, 2);
+        VisioPage page = document.AddPage("Page", OfficeLength.Inches(8), OfficeLength.Inches(4));
+        VisioShape instance = page.AddShape("instance", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)));
         // Instance labels cannot replace the geometry identity of their linked blueprints.
         instance.Children[0].NameU = "Custom oval label";
         instance.Children[1].NameU = "Custom decision label";
@@ -38,13 +38,10 @@ public sealed class VisioGeneratedChildPrimitivesTests {
     [Fact]
     public void RootMasterKeepsItsRegisteredPrimitiveIdentity() {
         var document = VisioDocument.Create();
-        var blueprint = new VisioShape("root", 1, .5, 2, 1, "") {
-            NameU = "Triangle", FillColor = OfficeColor.Blue, LinePattern = 0,
-            TextStyle = new VisioTextStyle { Size = 12 }
-        };
+        var blueprint = new VisioShape("root", OfficeLength.Inches(1), OfficeLength.Inches(.5), OfficeLength.Inches(2), OfficeLength.Inches(1), "");
         var master = document.RegisterMaster("Ellipse", blueprint);
-        VisioPage page = document.AddPage("Page", 4, 4);
-        VisioShape instance = page.AddShape("instance", master, 2, 2, 2, 1);
+        VisioPage page = document.AddPage("Page", OfficeLength.Inches(4), OfficeLength.Inches(4));
+        VisioShape instance = page.AddShape("instance", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)));
         Assert.Same(blueprint, instance.MasterShape);
         Assert.Single(ShapeGroup(page, "instance").Elements(Svg + "ellipse"));
         foreach (VisioDocument saved in new[] { document, Reopen(document, "vsdx"), Reopen(document, "vdx") }) {
@@ -61,13 +58,13 @@ public sealed class VisioGeneratedChildPrimitivesTests {
         var groupDocument = VisioDocument.Create();
         var groupMaster = groupDocument.RegisterMaster("Ellipse", Blueprint());
         groupMaster.StencilTags = new[] { "Terminator" };
-        VisioPage groupPage = groupDocument.AddPage("Group", 8, 4);
-        groupPage.AddShape("instance", groupMaster, 4, 2, 6, 2);
+        VisioPage groupPage = groupDocument.AddPage("Group", OfficeLength.Inches(8), OfficeLength.Inches(4));
+        groupPage.AddShape("instance", groupMaster, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, groupPage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, groupPage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, groupPage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, groupPage.DefaultUnit)));
         AssertSilhouettes(groupPage);
 
         var rootDocument = VisioDocument.Create();
-        VisioPage rootPage = rootDocument.AddPage("Root", 8, 4);
-        rootPage.AddStencilShape(stencil, "root", 4, 2);
+        VisioPage rootPage = rootDocument.AddPage("Root", OfficeLength.Inches(8), OfficeLength.Inches(4));
+        rootPage.AddStencilShape(stencil, "root", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, rootPage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, rootPage.DefaultUnit)));
         XElement root = ShapeGroup(rootPage, "root");
         Assert.Empty(root.Elements(Svg + "ellipse"));
         string outline = Assert.Single(root.Elements(Svg + "path")).Attribute("d")!.Value;
@@ -76,17 +73,17 @@ public sealed class VisioGeneratedChildPrimitivesTests {
     }
 
     private static VisioShape Blueprint() {
-        var root = new VisioShape("root", 3, 1, 6, 2, "") { FillPattern = 0, LinePattern = 0 };
+        var root = new VisioShape("root", OfficeLength.Inches(3), OfficeLength.Inches(1), OfficeLength.Inches(6), OfficeLength.Inches(2), "");
         root.Children.Add(Primitive("ellipse", "Ellipse", 1));
         root.Children.Add(Primitive("diamond", "Diamond", 3));
-        var nested = new VisioShape("nested", 5, 1, 2, 2, "") { FillPattern = 0, LinePattern = 0 };
+        var nested = new VisioShape("nested", OfficeLength.Inches(5), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "");
         nested.Children.Add(Primitive("triangle", "Triangle", 1));
         root.Children.Add(nested);
         return root;
     }
 
     private static VisioShape Primitive(string id, string kind, double x) =>
-        new(id, x, 1, 1.5, 1, "") { NameU = kind, FillColor = OfficeColor.Blue, LinePattern = 0 };
+        new(id, OfficeLength.Inches(x), OfficeLength.Inches(1), OfficeLength.Inches(1.5), OfficeLength.Inches(1), "");
 
     private static void AssertSilhouettes(VisioPage page) {
         XElement ellipse = ShapeGroup(page, "instance:ellipse");

@@ -19,11 +19,8 @@ namespace OfficeIMO.Tests {
             DateTimeOffset edited = new(2026, 1, 3, 4, 5, 6, TimeSpan.Zero);
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Review", 11, 8.5);
-            VisioShape api = new("api", 3, 5, 2, 1, "API") {
-                Name = "Process",
-                NameU = "Process"
-            };
+            VisioPage page = document.AddPage("Review", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+            VisioShape api = new("api", OfficeLength.Inches(3), OfficeLength.Inches(5), OfficeLength.Inches(2), OfficeLength.Inches(1), "API");
             page.Shapes.Add(api);
 
             VisioComment comment = page.AddComment(api, "Review security controls", "Przemyslaw", "PK", new VisioCommentOptions {
@@ -62,14 +59,14 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             document.AsFluent()
-                .Page("Existing", page => page
-                    .Rect("api", 3, 5, 2, 1, "API"))
+                .AddPage("Existing", page => page
+                    .AddRectangle("api", OfficeLength.Inches(3), OfficeLength.Inches(5), OfficeLength.Inches(2), OfficeLength.Inches(1), "API"))
                 .End()
                 .Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
             loaded.AsFluent()
-                .FirstPage(page => page
+                .GetPage(0, page => page
                     .CommentShape("api", "Needs owner", "Operations", "OP")
                     .Comment("Page review complete", "Operations", "OP"))
                 .End()
@@ -88,7 +85,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Manual Comments", 11, 8.5);
+            VisioPage page = document.AddPage("Manual Comments", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             VisioComment manual = new("Manual list append") {
                 AuthorName = "Operations",
                 AuthorInitials = "OP"
@@ -123,8 +120,8 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             document.AsFluent()
-                .Page("Review", page => page
-                    .Rect("api", 3, 5, 2, 1, "API"))
+                .AddPage("Review", page => page
+                    .AddRectangle("api", OfficeLength.Inches(3), OfficeLength.Inches(5), OfficeLength.Inches(2), OfficeLength.Inches(1), "API"))
                 .End();
             VisioPage page = document.Pages.Single();
             VisioComment owner = page.AddCommentToShape("api", "Who owns this?", "Operations", "OP", new VisioCommentOptions { CreatedAt = created });
@@ -155,7 +152,7 @@ namespace OfficeIMO.Tests {
             AssertCommentTextAbsent(reviewedPath, "Remove after review");
 
             reviewed.AsFluent()
-                .FirstPage(pageBuilder => pageBuilder
+                .GetPage(0, pageBuilder => pageBuilder
                     .ShapeComments("api", comments => Assert.Equal(2, comments.Count))
                     .RemoveComment(owner.Id)
                     .UpdateComment(followUp.Id, "Follow-up resolved", finalResolvedAt)
@@ -205,7 +202,7 @@ namespace OfficeIMO.Tests {
         public void SaveRejectsTooManyNativeComments() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Review", 11, 8.5);
+            VisioPage page = document.AddPage("Review", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             for (int index = 0; index <= VisioDocument.MaxLoadedComments; index++) {
                 page.Comments.Add(new VisioComment("Comment " + index.ToString()) {
                     AuthorName = "Operations",
@@ -221,7 +218,7 @@ namespace OfficeIMO.Tests {
         public void SaveRejectsOversizedNativeCommentText() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Review", 11, 8.5);
+            VisioPage page = document.AddPage("Review", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             page.AddComment(new string('x', VisioDocument.MaxCommentTextCharacters + 1), "Operations", "OP");
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() => document.Save());
@@ -232,12 +229,12 @@ namespace OfficeIMO.Tests {
         public void SaveRejectsOversizedNativeCommentTextWithoutTruncatingExistingTarget() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument valid = VisioDocument.Create(filePath);
-            valid.AddPage("Original", 11, 8.5).AddComment("Keep this file", "Operations", "OP");
+            valid.AddPage("Original", OfficeLength.Inches(11), OfficeLength.Inches(8.5)).AddComment("Keep this file", "Operations", "OP");
             valid.Save();
             byte[] originalBytes = File.ReadAllBytes(filePath);
 
             VisioDocument invalid = VisioDocument.Create(filePath);
-            invalid.AddPage("Review", 11, 8.5)
+            invalid.AddPage("Review", OfficeLength.Inches(11), OfficeLength.Inches(8.5))
                 .AddComment(new string('x', VisioDocument.MaxCommentTextCharacters + 1), "Operations", "OP");
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() => invalid.Save());
@@ -250,14 +247,14 @@ namespace OfficeIMO.Tests {
         public void SaveRejectsDuplicatePageIdsWithoutTruncatingExistingTarget() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument valid = VisioDocument.Create(filePath);
-            valid.AddPage("Original", 11, 8.5).Shapes.Add(new VisioShape("original", 1, 1, 1, 1, "Original"));
+            valid.AddPage("Original", OfficeLength.Inches(11), OfficeLength.Inches(8.5)).Shapes.Add(new VisioShape("original", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Original"));
             valid.Save();
             byte[] originalBytes = File.ReadAllBytes(filePath);
 
             VisioDocument invalid = VisioDocument.Create(filePath);
-            VisioPage page = invalid.AddPage("Broken", 11, 8.5);
-            page.Shapes.Add(new VisioShape("duplicate", 1, 1, 1, 1, "One"));
-            AddRawShape(page, new VisioShape("duplicate", 3, 1, 1, 1, "Two"));
+            VisioPage page = invalid.AddPage("Broken", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+            page.Shapes.Add(new VisioShape("duplicate", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "One"));
+            AddRawShape(page, new VisioShape("duplicate", OfficeLength.Inches(3), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Two"));
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => invalid.Save());
 
@@ -269,7 +266,7 @@ namespace OfficeIMO.Tests {
         public void SaveRejectsCommentsPartThatExceedsUtf8ByteLimit() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Review", 11, 8.5);
+            VisioPage page = document.AddPage("Review", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             VisioComment comment = page.AddComment("Byte budget", "Operations", "OP");
             comment.AuthorName = new string('\u20ac', checked((int)(VisioDocument.MaxCommentsPartBytes / 3L + 1024L)));
 
@@ -354,7 +351,7 @@ namespace OfficeIMO.Tests {
         private static string CreateDocumentWithComment() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Review", 11, 8.5);
+            VisioPage page = document.AddPage("Review", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             page.AddComment("Initial comment", "Operations", "OP");
             document.Save();
             return filePath;

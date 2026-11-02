@@ -15,16 +15,15 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
-            VisioShape start = new("1", 2, 2, 2, 1, "Start") {
-                Angle = Math.PI / 2,
-            };
-            VisioShape end = new("2", 5, 2, 2, 1, "End");
+            VisioShape start = new("1", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start");
+            VisioShape end = new("2", OfficeLength.Inches(5), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "End");
             page.Shapes.Add(start);
             page.Shapes.Add(end);
             VisioConnector connector = new(start, end);
             page.Connectors.Add(connector);
 
-            (double left, double bottom, double right, double top) = start.GetBounds();
+            var bounds = start.GetBounds();
+            double left = bounds.Left.ToInches(), bottom = bounds.Bottom.ToInches(), right = bounds.Right.ToInches(), top = bounds.Top.ToInches();
             Assert.Equal(1.5, left, 5);
             Assert.Equal(1, bottom, 5);
             Assert.Equal(2.5, right, 5);

@@ -41,9 +41,9 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         var result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 100 });
         void Check(VisioPage page) {
             var caption = page.Shapes.Single(shape => shape.Text == "Top boundary");
-            Assert.InRange(caption.PinY + caption.Height / 2, 0, page.Height);
-            Assert.InRange(caption.PinX - caption.Width / 2, 0, 4);
-            Assert.InRange(caption.PinX + caption.Width / 2, 0, 4);
+            Assert.InRange(caption.PinY.ToInches() + caption.Height.ToInches() / 2, 0, page.Height.ToInches());
+            Assert.InRange(caption.PinX.ToInches() - caption.Width.ToInches() / 2, 0, 4);
+            Assert.InRange(caption.PinX.ToInches() + caption.Width.ToInches() / 2, 0, 4);
         }
         Check(result.Page);
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");

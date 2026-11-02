@@ -247,10 +247,10 @@ public sealed class VisioPdfWorkflowTests {
 
     private static void WriteSource(string path, bool hyperlink = false) {
         VisioDocument source = VisioDocument.Create(Path.GetExtension(path) == ".vtx" ? VisioPackageType.Template : VisioPackageType.Drawing);
-        VisioPage first = source.AddPage("First"); first.Width = 5; first.Height = 3;
-        VisioShape shape = first.AddRectangle(1, 1, 2, 1, "WorkflowCaption");
+        VisioPage first = source.AddPage("First"); first.Width = OfficeLength.Inches(5); first.Height = OfficeLength.Inches(3);
+        VisioShape shape = first.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, first.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, first.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, first.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, first.DefaultUnit)), "WorkflowCaption");
         if (hyperlink) shape.AddHyperlink("https://example.com");
-        VisioPage second = source.AddPage("Blank"); second.Width = 2; second.Height = 1.5;
+        VisioPage second = source.AddPage("Blank"); second.Width = OfficeLength.Inches(2); second.Height = OfficeLength.Inches(1.5);
         if (Path.GetExtension(path) == ".vsdx") source.Save(path);
         else {
             // Generated modern PageSheet/theme cells have no legacy XML mapping.

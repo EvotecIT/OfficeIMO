@@ -15,7 +15,7 @@ namespace OfficeIMO.Visio {
             Dictionary<VisioConnectionPoint, VisioConnectionPoint> connectionPointMap,
             VisioShapeDuplicationOptions? options = null,
             VisioDocument? sourceDocument = null) {
-            VisioShape clone = new(ResolveShapeCloneId(source, ids, options), source.PinX + (applyOffset ? offsetX : 0D), source.PinY + (applyOffset ? offsetY : 0D), source.Width, source.Height, source.Text ?? string.Empty) {
+            VisioShape clone = new(ResolveShapeCloneId(source, ids, options), source.PinXInches + (applyOffset ? offsetX : 0D), source.PinYInches + (applyOffset ? offsetY : 0D), source.WidthInches, source.HeightInches, source.Text ?? string.Empty) {
                 Name = source.Name,
                 NameU = source.NameU,
                 Type = source.Type,
@@ -23,8 +23,8 @@ namespace OfficeIMO.Visio {
                 MasterShapeId = source.MasterShapeId,
                 MasterShape = source.MasterShape,
                 LineWeight = source.LineWeight,
-                LocPinX = source.LocPinX,
-                LocPinY = source.LocPinY,
+                LocPinXInches = source.LocPinXInches,
+                LocPinYInches = source.LocPinYInches,
                 HasExplicitLocPinX = source.HasExplicitLocPinX,
                 HasExplicitLocPinY = source.HasExplicitLocPinY,
                 Angle = source.Angle,
