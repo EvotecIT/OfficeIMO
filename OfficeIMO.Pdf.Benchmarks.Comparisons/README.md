@@ -1,6 +1,6 @@
 # OfficeIMO PDF library comparisons
 
-This opt-in project measures complete, validated PDF workflows. It is deliberately outside `OfficeIMO.sln`: QuestPDF, PeachPDF, PdfPecker, PDFsharp/MigraDoc, PdfPig, iText, pdfHTML, HtmlTinkerX, and Chromium are benchmark tools, not OfficeIMO runtime dependencies. Public QuestPDF evidence is pinned to **QuestPDF 2026.5.0**, the last release with the embedded Community MIT License; that exact version is recorded in every result and displayed beside QuestPDF on the benchmark page.
+This opt-in project measures complete, validated PDF workflows. It is deliberately outside `OfficeIMO.slnx`: QuestPDF, PeachPDF, PdfPecker, PDFsharp/MigraDoc, PdfPig, iText, pdfHTML, HtmlTinkerX, and Chromium are benchmark tools, not OfficeIMO runtime dependencies. Public QuestPDF evidence is pinned to **QuestPDF 2026.5.0**, the last release with the embedded Community MIT License; that exact version is recorded in every result and displayed beside QuestPDF on the benchmark page.
 
 ## Workload matrix
 

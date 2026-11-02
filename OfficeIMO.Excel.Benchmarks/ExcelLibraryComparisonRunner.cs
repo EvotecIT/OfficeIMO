@@ -1545,7 +1545,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static string FindRepositoryRoot() {
         DirectoryInfo? current = new(AppContext.BaseDirectory);
         while (current != null) {
-            if (File.Exists(Path.Combine(current.FullName, "OfficeIMO.sln"))) {
+            if (File.Exists(Path.Combine(current.FullName, "OfficeIMO.slnx"))) {
                 return current.FullName;
             }
 
@@ -1554,7 +1554,7 @@ internal static partial class ExcelLibraryComparisonRunner {
 
         current = new DirectoryInfo(Directory.GetCurrentDirectory());
         while (current != null) {
-            if (File.Exists(Path.Combine(current.FullName, "OfficeIMO.sln"))) {
+            if (File.Exists(Path.Combine(current.FullName, "OfficeIMO.slnx"))) {
                 return current.FullName;
             }
 

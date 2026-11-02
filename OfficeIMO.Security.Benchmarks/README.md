@@ -32,6 +32,6 @@ workflow collects and enforces these budgets on Windows, Linux, and macOS when
 manually dispatched, and uploads each JSON report. Ordinary pull-request runs
 execute the deterministic `validate` preflight.
 
-The project stays outside `OfficeIMO.sln`. BenchmarkDotNet and the platform
+The project stays outside `OfficeIMO.slnx`. BenchmarkDotNet and the platform
 PKCS package remain benchmark-only dependencies and do not enter OfficeIMO
 runtime projects or packages.

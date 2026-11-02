@@ -223,7 +223,7 @@ Electronic invoices are no longer part of PSWriteOffice; use the [OfficeIMO.Invo
 ## Build and test
 
 ```powershell
-dotnet build .\Sources\PSWriteOffice.sln -c Debug
+dotnet build .\Sources\PSWriteOffice.slnx -c Debug
 pwsh -NoLogo -NoProfile -File .\PSWriteOffice.Tests.ps1
 pwsh -NoLogo -NoProfile -File .\Build\Build-Module.ps1 -RunMode Build
 ```

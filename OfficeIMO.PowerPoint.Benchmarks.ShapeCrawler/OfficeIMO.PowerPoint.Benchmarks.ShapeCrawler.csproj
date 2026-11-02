@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <!--
-    Intentionally isolated from OfficeIMO.sln. This optional comparison must not
+    Intentionally isolated from OfficeIMO.slnx. This optional comparison must not
     add ShapeCrawler or its rendering dependencies to normal OfficeIMO restores.
   -->
   <ItemGroup>
