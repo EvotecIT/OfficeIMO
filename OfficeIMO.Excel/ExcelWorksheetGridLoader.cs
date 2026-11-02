@@ -170,17 +170,22 @@ namespace OfficeIMO.Excel {
             private bool TryReadCell(Row row) {
                 var cell = new Cell();
                 bool hasContent;
+                // Duplicates are tracked locally: each SDK attribute getter walks the element's attribute list.
+                bool reference = false, style = false, type = false;
                 while (true) {
                     if (!TryReadAttribute(out ReadOnlySpan<byte> name, out ReadOnlySpan<byte> value, out hasContent, out bool done)) return false;
                     if (done) break;
                     if (Is(name, "r")) {
-                        if (cell.CellReference != null) return false;
+                        if (reference) return false;
+                        reference = true;
                         cell.CellReference = Text(value);
                     } else if (Is(name, "s")) {
-                        if (cell.StyleIndex != null) return false;
+                        if (style) return false;
+                        style = true;
                         cell.StyleIndex = new UInt32Value { InnerText = Text(value) };
                     } else if (Is(name, "t")) {
-                        if (cell.DataType != null || !IsAnyOf(value, CellTypes)) return false;
+                        if (type || !IsAnyOf(value, CellTypes)) return false;
+                        type = true;
                         cell.DataType = new EnumValue<CellValues> { InnerText = Text(value) };
                     } else {
                         return false;
@@ -202,20 +207,25 @@ namespace OfficeIMO.Excel {
             private bool TryReadFormula(Cell cell) {
                 var formula = new CellFormula();
                 bool hasContent;
+                bool type = false, reference = false, sharedIndex = false, calculate = false;
                 while (true) {
                     if (!TryReadAttribute(out ReadOnlySpan<byte> name, out ReadOnlySpan<byte> value, out hasContent, out bool done)) return false;
                     if (done) break;
                     if (Is(name, "t")) {
-                        if (formula.FormulaType != null || !IsAnyOf(value, FormulaTypes)) return false;
+                        if (type || !IsAnyOf(value, FormulaTypes)) return false;
+                        type = true;
                         formula.FormulaType = new EnumValue<CellFormulaValues> { InnerText = Text(value) };
                     } else if (Is(name, "ref")) {
-                        if (formula.Reference != null) return false;
+                        if (reference) return false;
+                        reference = true;
                         formula.Reference = Text(value);
                     } else if (Is(name, "si")) {
-                        if (formula.SharedIndex != null) return false;
+                        if (sharedIndex) return false;
+                        sharedIndex = true;
                         formula.SharedIndex = new UInt32Value { InnerText = Text(value) };
                     } else if (Is(name, "ca")) {
-                        if (formula.CalculateCell != null) return false;
+                        if (calculate) return false;
+                        calculate = true;
                         formula.CalculateCell = new BooleanValue { InnerText = Text(value) };
                     } else {
                         return false;
