@@ -16,7 +16,7 @@ public class CsvLoadFeatureParityTests
     {
         var parsed = CsvDocument.Parse(
             "Name,Value\nAlpha,1\nBeta,2\n",
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 StaticColumns = new Dictionary<string, object?> {
                     ["SourceFile"] = "input.csv",
                     ["BatchId"] = 42
@@ -34,7 +34,7 @@ public class CsvLoadFeatureParityTests
     {
         var parsed = CsvDocument.Parse(
             "Name,Value\nAlpha,1\n",
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 Mode = CsvLoadMode.Stream,
                 StaticColumns = new Dictionary<string, object?> {
                     ["SourceFile"] = "stream.csv"
@@ -52,7 +52,7 @@ public class CsvLoadFeatureParityTests
     {
         var parsed = CsvDocument.Parse(
             "Name,Value\nAlpha,<null>\n",
-            new CsvLoadOptions { NullValue = "<null>" });
+            new CsvReaderOptions { NullValue = "<null>" });
 
         var row = Assert.Single(parsed.AsEnumerable());
 
@@ -64,7 +64,7 @@ public class CsvLoadFeatureParityTests
     {
         var parsed = CsvDocument.Parse(
             "Created\n07-Jul-2026\n",
-            new CsvLoadOptions { DateTimeFormats = new[] { "dd-MMM-yyyy" } });
+            new CsvReaderOptions { DateTimeFormats = new[] { "dd-MMM-yyyy" } });
 
         var row = Assert.Single(parsed.AsEnumerable());
 
@@ -87,7 +87,7 @@ public class CsvLoadFeatureParityTests
         var ex = Assert.Throws<CsvParseException>(() =>
             CsvDocument.Parse(
                 "Name,Value\nAlpha,\"one\"two\n",
-                new CsvLoadOptions { QuoteParsingMode = CsvQuoteParsingMode.Strict }));
+                new CsvReaderOptions { QuoteParsingMode = CsvQuoteParsingMode.Strict }));
 
         Assert.Contains("Invalid quoted field", ex.Message);
     }
@@ -97,7 +97,7 @@ public class CsvLoadFeatureParityTests
     {
         var parsed = CsvDocument.Parse(
             "Created\n07-Jul-2026\n",
-            new CsvLoadOptions { DateTimeFormats = new[] { "dd-MMM-yyyy" } })
+            new CsvReaderOptions { DateTimeFormats = new[] { "dd-MMM-yyyy" } })
             .EnsureSchema(schema => schema.Column("Created").AsDateTime().Required());
 
         parsed.Validate(out var errors);
@@ -113,7 +113,7 @@ public class CsvLoadFeatureParityTests
         CsvDocument.ReadRows(
             new StringReader("Name,Value\nAlpha,1\n"),
             (header, values) => seen.Add($"{string.Join("|", header)}={string.Join("|", values)}"),
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 StaticColumns = new Dictionary<string, object?> {
                     ["SourceFile"] = "read.csv"
                 }
@@ -186,7 +186,7 @@ public class CsvLoadFeatureParityTests
         Assert.Throws<OperationCanceledException>(() =>
             CsvDocument.Parse(
                 "Name\nAlpha\n",
-                new CsvLoadOptions { CancellationToken = cancellation.Token }));
+                new CsvReaderOptions { CancellationToken = cancellation.Token }));
     }
 
     [Fact]
@@ -196,7 +196,7 @@ public class CsvLoadFeatureParityTests
 
         CsvDocument.Parse(
             "Name\nAlpha\nBeta\nGamma\n",
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 ProgressReportInterval = 2,
                 ProgressCallback = progress => reports.Add(progress.RecordsRead)
             });
@@ -214,7 +214,7 @@ public class CsvLoadFeatureParityTests
         CsvDocument.ReadFieldSpansFromText(
             "Name\nAlpha\nBeta\nGamma\n",
             (_, _, value) => fields.Add(value.ToString()),
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 ProgressReportInterval = 2,
                 ProgressCallback = progress => reports.Add(progress.RecordsRead)
             });
@@ -230,7 +230,7 @@ public class CsvLoadFeatureParityTests
         var errors = new List<CsvParseError>();
         var parsed = CsvDocument.Parse(
             "Name,Value\nAlpha,1\nBroken,\"one\"two\nBeta,2\n",
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 QuoteParsingMode = CsvQuoteParsingMode.Strict,
                 ParseErrorAction = CsvParseErrorAction.SkipRow,
                 CollectParseErrors = true,
@@ -248,7 +248,7 @@ public class CsvLoadFeatureParityTests
         var errors = new List<CsvParseError>();
         var parsed = CsvDocument.Parse(
             "Name\nOk\nTooLong\nFine\n",
-            new CsvLoadOptions
+            new CsvReaderOptions
             {
                 MaxFieldLength = 4,
                 ParseErrorAction = CsvParseErrorAction.SkipRow,
@@ -267,7 +267,7 @@ public class CsvLoadFeatureParityTests
         var ex = Assert.Throws<CsvParseException>(() =>
             CsvDocument.Parse(
                 "Name\nTooLong\n",
-                new CsvLoadOptions { MaxFieldLength = 3 }));
+                new CsvReaderOptions { MaxFieldLength = 3 }));
 
         Assert.Contains("exceeds the configured maximum", ex.Message);
     }
@@ -277,7 +277,7 @@ public class CsvLoadFeatureParityTests
     {
         var parsed = CsvDocument.Parse(
             "Name,Value\nAlpha,\u201CHello\u201D\n",
-            new CsvLoadOptions { NormalizeQuotes = true });
+            new CsvReaderOptions { NormalizeQuotes = true });
 
         Assert.Equal("\"Hello\"", Assert.Single(parsed.AsEnumerable()).AsString("Value"));
     }
@@ -287,7 +287,7 @@ public class CsvLoadFeatureParityTests
     {
         var parsed = CsvDocument.Parse(
             "Name\nAlpha\nAlpha\n",
-            new CsvLoadOptions { InternStrings = true });
+            new CsvReaderOptions { InternStrings = true });
 
         var rows = parsed.AsEnumerable().ToArray();
         Assert.Same(rows[0]["Name"], rows[1]["Name"]);
@@ -298,7 +298,7 @@ public class CsvLoadFeatureParityTests
     {
         var parsed = CsvDocument.Parse(
             "Name||Value\nAlpha||\"one||two\"\nBeta||2\n",
-            new CsvLoadOptions { DelimiterText = "||" });
+            new CsvReaderOptions { DelimiterText = "||" });
 
         var rows = parsed.AsEnumerable().ToArray();
 
@@ -312,7 +312,7 @@ public class CsvLoadFeatureParityTests
     {
         var parsed = CsvDocument.Parse(
             "#||\"note\ncontinued\"\nName||Value\nAlpha||1\n",
-            new CsvLoadOptions { DelimiterText = "||" });
+            new CsvReaderOptions { DelimiterText = "||" });
 
         var row = Assert.Single(parsed.AsEnumerable());
         Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
@@ -324,7 +324,7 @@ public class CsvLoadFeatureParityTests
     {
         var parsed = CsvDocument.Parse(
             "Name\tValue\nAlpha\t1\n",
-            new CsvLoadOptions { DelimiterText = "\t" });
+            new CsvReaderOptions { DelimiterText = "\t" });
 
         var row = Assert.Single(parsed.AsEnumerable());
         Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
@@ -340,7 +340,7 @@ public class CsvLoadFeatureParityTests
         CsvDocument.ReadRowsReusable(
             new StringReader("Name||Value\nAlpha||1\n"),
             (header, values) => rows.Add($"{string.Join(",", header)}={string.Join(",", values)}"),
-            new CsvLoadOptions { DelimiterText = "||" });
+            new CsvReaderOptions { DelimiterText = "||" });
 
         Assert.Equal("Name,Value=Alpha,1", Assert.Single(rows));
     }
@@ -353,7 +353,7 @@ public class CsvLoadFeatureParityTests
         CsvDocument.ReadRowsReusable(
             new StringReader("Name;Value\nAlpha;1\n"),
             (header, values) => rows.Add($"{string.Join(",", header)}={string.Join(",", values)}"),
-            new CsvLoadOptions { DelimiterText = ";" });
+            new CsvReaderOptions { DelimiterText = ";" });
 
         Assert.Equal("Name,Value=Alpha,1", Assert.Single(rows));
     }
@@ -367,7 +367,7 @@ public class CsvLoadFeatureParityTests
         CsvDocument.ReadFieldSpansFromText(
             "Name||Value\nAlpha||\"one||two\"\n",
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions { DelimiterText = "||" });
+            new CsvReaderOptions { DelimiterText = "||" });
 
         Assert.Equal(new[] { "0:0:Name", "0:1:Value", "1:0:Alpha", "1:1:one||two" }, fields);
     }
@@ -380,7 +380,7 @@ public class CsvLoadFeatureParityTests
         CsvDocument.ReadFieldSpansFromText(
             "Name\tValue\nAlpha\t1\n",
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions { DelimiterText = "\t" });
+            new CsvReaderOptions { DelimiterText = "\t" });
 
         Assert.Equal(new[] { "0:0:Name", "0:1:Value", "1:0:Alpha", "1:1:1" }, fields);
     }
@@ -394,7 +394,7 @@ public class CsvLoadFeatureParityTests
         CsvDocument.ReadFieldSpansFromText(
             "Name,Value\nAlpha,1\nBroken,\"one\"two\nBeta,2\n",
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions
+            new CsvReaderOptions
             {
                 QuoteParsingMode = CsvQuoteParsingMode.Strict,
                 ParseErrorAction = CsvParseErrorAction.SkipRow,
@@ -415,7 +415,7 @@ public class CsvLoadFeatureParityTests
         CsvDocument.ReadFieldSpansFromText(
             "#||\"note\ncontinued\"\nName||Value\nAlpha||1\n",
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions { DelimiterText = "||", SkipCommentRows = true });
+            new CsvReaderOptions { DelimiterText = "||", SkipCommentRows = true });
 
         Assert.Equal(new[] { "0:0:Name", "0:1:Value", "1:0:Alpha", "1:1:1" }, fields);
     }
@@ -430,7 +430,7 @@ public class CsvLoadFeatureParityTests
             CsvDocument.ReadFieldSpansFromText(
                 "Name,Value\nAlpha,1\n",
                 static (_, _, _) => { },
-                new CsvLoadOptions { CancellationToken = cancellation.Token }));
+                new CsvReaderOptions { CancellationToken = cancellation.Token }));
     }
 
     [Fact]
@@ -440,7 +440,7 @@ public class CsvLoadFeatureParityTests
             CsvDocument.ReadFieldSpansFromText(
                 "Name\nTooLong\n",
                 static (_, _, _) => { },
-                new CsvLoadOptions { MaxFieldLength = 3 }));
+                new CsvReaderOptions { MaxFieldLength = 3 }));
 
         Assert.Contains("exceeds the configured maximum", ex.Message);
     }
@@ -454,7 +454,7 @@ public class CsvLoadFeatureParityTests
         CsvDocument.ReadFieldSpansFromText(
             "Name\nOk\nTooLong\nFine\n",
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions
+            new CsvReaderOptions
             {
                 MaxFieldLength = 4,
                 ParseErrorAction = CsvParseErrorAction.SkipRow,

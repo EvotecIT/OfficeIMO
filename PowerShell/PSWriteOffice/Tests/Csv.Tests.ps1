@@ -393,7 +393,7 @@ Describe 'CSV cmdlets' {
         $path = Join-Path $TestDrive 'reader-import.csv'
         Set-Content -LiteralPath $path -Value "Name,Value`nAlpha,1`nBeta,2" -Encoding UTF8
 
-        $reader = Import-OfficeCsv -Path $path -AsDataReader -InferSchema -SchemaSampleSize 2
+        $reader = Import-OfficeCsv -Path $path -AsDataReader -InferSchema -SchemaSampleRows 2
         try {
             $reader.GetType().Name | Should -Be 'CsvDataReader'
             $reader.GetFieldType($reader.GetOrdinal('Value')) | Should -Be ([int])

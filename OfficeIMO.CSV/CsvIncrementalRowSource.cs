@@ -9,7 +9,7 @@ internal sealed class CsvIncrementalRowSource : ICsvAsyncDataReaderRowSource, IC
 {
     internal readonly record struct BufferedRecord(IReadOnlyList<string> Values, int Start, int End);
     private readonly CsvParser.IncrementalRecords _records;
-    private readonly CsvLoadOptions _options;
+    private readonly CsvReaderOptions _options;
     private readonly CancellationTokenSource _lifetime;
     private readonly CancellationToken _openingToken, _loadToken;
     private readonly int _headerCount;
@@ -20,7 +20,7 @@ internal sealed class CsvIncrementalRowSource : ICsvAsyncDataReaderRowSource, IC
     private int _sourceValueCount;
     private readonly object?[] _staticValues;
 
-    internal CsvIncrementalRowSource(CsvParser.IncrementalRecords records, CsvLoadOptions options,
+    internal CsvIncrementalRowSource(CsvParser.IncrementalRecords records, CsvReaderOptions options,
         CancellationTokenSource lifetime, CancellationToken openingToken, CancellationToken loadToken,
         int headerCount, Queue<BufferedRecord> buffered)
     {

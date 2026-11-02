@@ -10,7 +10,7 @@ internal static class DataTablesComparisonVerifier {
     internal static object Verify(string path, string format, int rows, int columns, bool unique, bool fullWidthScan = false, string textProfile = "unicode") {
         long cells = 0;
         if (format == "csv") {
-            using var reader = CsvDocument.OpenDataReader(path, new CsvLoadOptions { MaxInputBytes = 2L * 1024 * 1024 * 1024, MaxDecompressedBytes = 2L * 1024 * 1024 * 1024 });
+            using var reader = CsvDocument.OpenReader(path, options: new CsvReaderOptions { MaxInputBytes = 2L * 1024 * 1024 * 1024, MaxDecompressedBytes = 2L * 1024 * 1024 * 1024 });
             Require(reader.FieldCount == columns, "CSV header width differs.");
             for (int column = 0; column < columns; column++) Require(reader.GetName(column) == "Column " + (column + 1), "CSV header differs.");
             cells += columns;

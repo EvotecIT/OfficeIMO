@@ -168,7 +168,7 @@ public sealed class ConvertFromOfficeCsvCommand : PSCmdlet
         _rowWriter.Reset();
         if (Mode == CsvReadMode.Stream)
         {
-            using var reader = CsvDocument.OpenTextDataReader(csvText, options);
+            using var reader = CsvDocument.OpenReader(new System.IO.StringReader(csvText), options: options);
             _rowWriter.WriteDataReaderRows(reader, _asHashtable, this);
             return;
         }
@@ -192,9 +192,9 @@ public sealed class ConvertFromOfficeCsvCommand : PSCmdlet
         Delimiter = separator[0];
     }
 
-    private CsvLoadOptions CreateLoadOptions()
+    private CsvReaderOptions CreateLoadOptions()
     {
-        var options = new CsvLoadOptions
+        var options = new CsvReaderOptions
         {
             HasHeaderRow = Header is null && !NoHeader.IsPresent,
             Header = Header,

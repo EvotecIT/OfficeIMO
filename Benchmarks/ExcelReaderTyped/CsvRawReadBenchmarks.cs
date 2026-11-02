@@ -2,6 +2,7 @@ using BenchmarkDotNet.Attributes;
 using ExcelReader.Core.Reader;
 using ExcelReader.Core.Reader.Csv;
 using OfficeIMO.CSV;
+using CsvReaderOptions = OfficeIMO.CSV.CsvReaderOptions;
 using OfficeIMO.Data;
 using System.Buffers.Text;
 using System.Data.Common;
@@ -23,7 +24,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             _expected = TypedWorkbookFixture.ExpectedChecksum(RowCount);
             CsvBenchmarkFixture.Describe(Data, RowCount, "raw original headerless");
             using (MemoryStream stream = new MemoryStream(Data, false))
-            using (DbDataReader reader = CsvDocument.OpenDataReader(stream, new CsvLoadOptions { HasHeaderRow = false }))
+            using (DbDataReader reader = CsvDocument.OpenReader(stream, options: new CsvReaderOptions { HasHeaderRow = false }))
                 CsvBenchmarkFixture.Validate(reader, RowCount, headers: false);
             using (MemoryStream stream = new MemoryStream(Data, false))
             using (StreamReader text = new StreamReader(stream))
@@ -42,7 +43,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 #if OFFICEIMO_BENCHMARK_NEW_APIS
         public long OfficeIMOBorrowedUtf8() {
             using MemoryStream stream = new MemoryStream(Data, false);
-            using DbDataReader reader = CsvDocument.OpenDataReader(stream, new CsvLoadOptions { HasHeaderRow = false });
+            using DbDataReader reader = CsvDocument.OpenReader(stream, options: new CsvReaderOptions { HasHeaderRow = false });
             int count = 0;
             long sum = 0;
             while (reader.Read()) {
@@ -63,7 +64,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         internal long ReadOfficeIMOMaterialized() {
             using MemoryStream stream = new MemoryStream(Data, false);
-            using DbDataReader reader = CsvDocument.OpenDataReader(stream, new CsvLoadOptions { HasHeaderRow = false });
+            using DbDataReader reader = CsvDocument.OpenReader(stream, options: new CsvReaderOptions { HasHeaderRow = false });
             int count = 0;
             long sum = 0;
             while (reader.Read()) {
@@ -110,7 +111,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             CsvBenchmarkFixture.Describe(Data, RowCount, "raw materialized name");
             ValidateExcelReader();
             using (MemoryStream stream = new MemoryStream(Data, false))
-            using (DbDataReader reader = CsvDocument.OpenDataReader(stream, new CsvLoadOptions { HasHeaderRow = false }))
+            using (DbDataReader reader = CsvDocument.OpenReader(stream, options: new CsvReaderOptions { HasHeaderRow = false }))
                 CsvBenchmarkFixture.Validate(reader, RowCount, headers: false);
             using (MemoryStream stream = new MemoryStream(Data, false))
             using (StreamReader text = new StreamReader(stream))

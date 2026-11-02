@@ -11,7 +11,7 @@ public sealed partial class CsvDocument
     private const int IncrementalDelimiterDetectionCharacterLimit = 64 * 1024;
 
     private static async Task<TextReader> DetectIncrementalDelimiterAsync(TextReader reader,
-        CsvLoadOptions options, CancellationToken token)
+        CsvReaderOptions options, CancellationToken token)
     {
         var text = new StringBuilder();
         var buffer = new char[4096];
@@ -62,7 +62,7 @@ public sealed partial class CsvDocument
     private static int GetCompleteDetectionPrefixLength(string prefix) =>
         Math.Max(prefix.LastIndexOf('\n'), prefix.LastIndexOf('\r')) + 1;
 
-    private static string[] ReadIncrementalDelimiterSamples(string prefix, int length, CsvLoadOptions options)
+    private static string[] ReadIncrementalDelimiterSamples(string prefix, int length, CsvReaderOptions options)
     {
         using var reader = new StringReader(prefix.Substring(0, length));
         return ReadDelimiterDetectionSamples(reader, options, useHeaderDiscovery: true).ToArray();

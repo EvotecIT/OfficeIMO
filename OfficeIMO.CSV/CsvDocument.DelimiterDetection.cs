@@ -8,7 +8,7 @@ public sealed partial class CsvDocument
 
     private static readonly char[] DefaultDelimiterCandidates = { ',', ';', '|', '\t' };
 
-    private static CsvLoadOptions ResolveLoadOptions(Func<TextReader> readerFactory, CsvLoadOptions options, bool useHeaderDiscoveryForDelimiterDetection = true)
+    private static CsvReaderOptions ResolveLoadOptions(Func<TextReader> readerFactory, CsvReaderOptions options, bool useHeaderDiscoveryForDelimiterDetection = true)
     {
         if (!options.DetectDelimiter)
         {
@@ -21,14 +21,14 @@ public sealed partial class CsvDocument
         return resolved;
     }
 
-    private static char DetectDelimiter(Func<TextReader> readerFactory, CsvLoadOptions options, bool useHeaderDiscovery)
+    private static char DetectDelimiter(Func<TextReader> readerFactory, CsvReaderOptions options, bool useHeaderDiscovery)
     {
         using var reader = readerFactory();
         var samples = ReadDelimiterDetectionSamples(reader, options, useHeaderDiscovery).ToArray();
         return SelectDetectedDelimiter(samples, options);
     }
 
-    private static char SelectDetectedDelimiter(IReadOnlyList<string> samples, CsvLoadOptions options)
+    private static char SelectDetectedDelimiter(IReadOnlyList<string> samples, CsvReaderOptions options)
     {
         var candidates = options.DelimiterCandidates is { Length: > 0 }
             ? options.DelimiterCandidates
@@ -54,7 +54,7 @@ public sealed partial class CsvDocument
         return bestScore.FirstLineFieldCount > 1 ? bestDelimiter : options.Delimiter;
     }
 
-    private static IEnumerable<string> ReadDelimiterDetectionSamples(TextReader reader, CsvLoadOptions options, bool useHeaderDiscovery)
+    private static IEnumerable<string> ReadDelimiterDetectionSamples(TextReader reader, CsvReaderOptions options, bool useHeaderDiscovery)
     {
         var candidates = options.DelimiterCandidates is { Length: > 0 }
             ? options.DelimiterCandidates
@@ -122,7 +122,7 @@ public sealed partial class CsvDocument
         }
     }
 
-    private static bool IsBlankDelimiterDetectionRecord(string record, CsvLoadOptions options) =>
+    private static bool IsBlankDelimiterDetectionRecord(string record, CsvReaderOptions options) =>
         record.Length == 0 || (options.TrimWhitespace && record.Trim().Length == 0);
 
     private static IEnumerable<string> ReadLogicalDelimiterDetectionRecords(
@@ -256,7 +256,7 @@ public sealed partial class CsvDocument
         }
     }
 
-    private static bool ShouldSkipCommentDuringDelimiterDetection(string line, CsvLoadOptions options, bool useHeaderDiscovery, bool allowPreHeaderCommentSkip)
+    private static bool ShouldSkipCommentDuringDelimiterDetection(string line, CsvReaderOptions options, bool useHeaderDiscovery, bool allowPreHeaderCommentSkip)
     {
         if (line.Length == 0 || line[0] != options.CommentCharacter)
         {
@@ -283,10 +283,10 @@ public sealed partial class CsvDocument
         return !canReadW3CFieldsHeader || !IsW3CFieldsLine(line, options);
     }
 
-    private static bool IsW3CFieldsLine(string line, CsvLoadOptions options) =>
+    private static bool IsW3CFieldsLine(string line, CsvReaderOptions options) =>
         options.RecognizeW3CFieldsHeader && line.StartsWith("#Fields:", StringComparison.OrdinalIgnoreCase);
 
-    private static bool IsDelimiterDetectionHeaderCandidate(string line, CsvLoadOptions options, IReadOnlyList<char> candidates) =>
+    private static bool IsDelimiterDetectionHeaderCandidate(string line, CsvReaderOptions options, IReadOnlyList<char> candidates) =>
         IsW3CFieldsLine(line, options) || candidates.Any(line.Contains);
 
     private static DelimiterScore ScoreDelimiter(IReadOnlyList<string> samples, char delimiter)

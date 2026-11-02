@@ -242,7 +242,7 @@ public sealed class GetOfficeCsvCommand : PSCmdlet
             Delimiter = separator[0];
         }
 
-        var options = new CsvLoadOptions
+        var options = new CsvReaderOptions
         {
             HasHeaderRow = Header is null && !NoHeader.IsPresent,
             Header = Header,

@@ -104,7 +104,7 @@ public sealed partial class CsvDocument
 
     private static CsvMappedRecordBatch<T> MapTextPartition<T>(
         string text,
-        CsvLoadOptions options,
+        CsvReaderOptions options,
         int sourceColumnCount,
         CsvTextPartition partition,
         CsvRecordFactory<T> factory,
@@ -172,7 +172,7 @@ public sealed partial class CsvDocument
         int dataStart,
         int degreeOfParallelism,
         int batchSize,
-        CsvLoadOptions options,
+        CsvReaderOptions options,
         CancellationToken cancellationToken,
         out CsvTextPartition[]? partitions)
     {
@@ -394,7 +394,7 @@ public sealed partial class CsvDocument
     private static bool TryProcessTextPartitionSpecial(
         string text,
         int index,
-        CsvLoadOptions options,
+        CsvReaderOptions options,
         ref CsvTextPartitionScanState state,
         ref int skipThrough)
     {
@@ -474,7 +474,7 @@ public sealed partial class CsvDocument
     private static bool StartsWithSpecialComment(
         string text,
         int recordStart,
-        CsvLoadOptions options) =>
+        CsvReaderOptions options) =>
         recordStart < text.Length &&
         text[recordStart] == options.CommentCharacter &&
         (options.SkipCommentRowsBeforeHeader || options.RecognizeW3CFieldsHeader);

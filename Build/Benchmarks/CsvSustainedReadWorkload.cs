@@ -72,9 +72,9 @@ public sealed class CsvSustainedReadWorkload
 
     private async Task<long> RunAsync(bool incremental, string operation, bool validate)
     {
-        var options = new CsvLoadOptions { Culture = CultureInfo.InvariantCulture };
+        var options = new CsvReaderOptions { Culture = CultureInfo.InvariantCulture };
         using (DbDataReader reader = incremental
-            ? await CsvDocument.OpenDataReaderAsync(_path, options).ConfigureAwait(false)
+            ? await CsvDocument.OpenReaderAsync(_path, options: options).ConfigureAwait(false)
             : (await CsvDocument.LoadAsync(_path, options).ConfigureAwait(false)).CreateDataReader())
         {
             if (operation == "FirstRow")

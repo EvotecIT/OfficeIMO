@@ -18,7 +18,7 @@ internal static class QualificationVerifier {
     }
     internal static object Verify(string path, ExportQualification.Case spec) {
         if (spec.Format == "csv") {
-            using var reader = CsvDocument.OpenDataReader(path, new CsvLoadOptions { MaxInputBytes = 2L * 1024 * 1024 * 1024, MaxDecompressedBytes = 2L * 1024 * 1024 * 1024 });
+            using var reader = CsvDocument.OpenReader(path, options: new CsvReaderOptions { MaxInputBytes = 2L * 1024 * 1024 * 1024, MaxDecompressedBytes = 2L * 1024 * 1024 * 1024 });
             if (reader.FieldCount != spec.Columns) throw new InvalidDataException("CSV field count differs.");
             for (int c = 0; c < spec.Columns; c++) Require(reader.GetName(c) == "Column " + c, "CSV header differs.");
             int count = 0;

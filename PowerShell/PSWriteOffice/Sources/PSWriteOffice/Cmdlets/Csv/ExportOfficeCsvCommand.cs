@@ -746,7 +746,7 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
 
     private string[] ReadAppendHeader(string path)
     {
-        var options = new CsvLoadOptions
+        var options = new CsvReaderOptions
         {
             Delimiter = Delimiter,
             DelimiterText = DelimiterText,

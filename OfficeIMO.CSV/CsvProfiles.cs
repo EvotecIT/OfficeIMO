@@ -23,11 +23,11 @@ public static class CsvProfiles
     /// failures. Spreadsheet detects delimiters and BOM encodings, keeps strict quoting and
     /// counts, and repairs missing or duplicate headers. Compatibility retains existing defaults.
     /// </summary>
-    public static CsvLoadOptions CreateLoadOptions(CsvProfile profile)
+    public static CsvReaderOptions CreateLoadOptions(CsvProfile profile)
     {
         Validate(profile);
-        if (profile == CsvProfile.Compatibility) return new CsvLoadOptions();
-        return new CsvLoadOptions
+        if (profile == CsvProfile.Compatibility) return new CsvReaderOptions();
+        return new CsvReaderOptions
         {
             QuoteParsingMode = CsvQuoteParsingMode.Strict,
             ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict,

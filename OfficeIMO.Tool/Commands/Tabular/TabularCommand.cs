@@ -244,16 +244,16 @@ Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uX
         bool inferSchema,
         CancellationToken cancellationToken) {
         if (IsCsvPath(options.InputPath)) {
-            var loadOptions = new CsvLoadOptions {
+            var loadOptions = new CsvReaderOptions {
+                InferSchema = inferSchema,
                 HasHeaderRow = options.HasHeaderRow,
                 DetectDelimiter = ShouldDetectDelimiter(options),
                 Delimiter = ResolveDelimiter(options.InputPath, options.InputDelimiter),
                 CancellationToken = cancellationToken
             };
-            return CsvDocument.OpenDataReader(
+            return CsvDocument.OpenReader(
                 options.InputPath,
-                loadOptions,
-                new CsvDataReaderOptions { InferSchema = inferSchema });
+                loadOptions);
         }
 
         EnsureExcelPath(options.InputPath, "read");

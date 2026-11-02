@@ -90,7 +90,7 @@ public class CsvSchemaTests
     {
         var doc = CsvDocument.Parse(
             "Created\n07-Jul-2026\n",
-            new CsvLoadOptions { DateTimeFormats = new[] { "dd-MMM-yyyy" } });
+            new CsvReaderOptions { DateTimeFormats = new[] { "dd-MMM-yyyy" } });
 
         var schema = doc.InferSchema();
 
@@ -106,9 +106,8 @@ public class CsvSchemaTests
             .Column("Time").AsTimeOnly().Required()
             .Done()
             .Build();
-        using var reader = CsvDocument.OpenTextDataReader(
-            "Date,Time\n2026-08-06,14:35:12\n",
-            readerOptions: new CsvDataReaderOptions { Schema = schema });
+        using var reader = CsvDocument.OpenReader(new System.IO.StringReader("Date,Time\n2026-08-06,14:35:12\n"),
+            options: new CsvReaderOptions { Schema = schema });
 
         Assert.True(reader.Read());
         Assert.Equal(typeof(DateOnly), reader.GetFieldType(0));
@@ -124,7 +123,7 @@ public class CsvSchemaTests
         const string secret = "customer-secret-value";
         CsvDocument document = CsvDocument.Parse(
                 $"Value\n{secret}\n",
-                new CsvLoadOptions { MappingErrorValuePolicy = DataMappingErrorValuePolicy.Redact })
+                new CsvReaderOptions { MappingErrorValuePolicy = DataMappingErrorValuePolicy.Redact })
             .EnsureSchema(schema => schema
                 .Column("Value").AsInt32().ConvertUsing(_ =>
                     throw new InvalidOperationException($"failed for {secret}")));
@@ -165,7 +164,7 @@ public class CsvSchemaTests
         const string converterDetail = "converter-secret-detail";
         CsvDocument document = CsvDocument.Parse(
                 $"Number,Converted\n{sourceValue},input\n",
-                new CsvLoadOptions { MappingErrorValuePolicy = DataMappingErrorValuePolicy.Redact })
+                new CsvReaderOptions { MappingErrorValuePolicy = DataMappingErrorValuePolicy.Redact })
             .EnsureSchema(schema => schema
                 .Column("Number").AsInt32()
                 .Column("Converted").AsInt32().ConvertUsing(_ =>
@@ -232,7 +231,7 @@ public class CsvSchemaTests
     {
         var doc = CsvDocument.Parse(
             "Id,Amount,Active,Created,Note\n1,12.5,true,2026-07-07,Alpha\n2,13.7,false,2026-07-08,\n",
-            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+            new CsvReaderOptions { Mode = CsvLoadMode.Stream });
 
         var table = doc.ToDataTable(new CsvDataTableOptions
         {
@@ -390,7 +389,7 @@ public class CsvSchemaTests
     {
         var doc = CsvDocument.Parse(
             "Id,Note\n1,<null>\n",
-            new CsvLoadOptions
+            new CsvReaderOptions
             {
                 Mode = CsvLoadMode.Stream,
                 NullValue = "<null>",
@@ -412,7 +411,7 @@ public class CsvSchemaTests
     {
         var doc = CsvDocument.Parse(
             "First,Second\n1\n",
-            new CsvLoadOptions
+            new CsvReaderOptions
             {
                 Mode = CsvLoadMode.Stream,
                 ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict

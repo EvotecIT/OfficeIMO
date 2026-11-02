@@ -42,14 +42,14 @@ public class CsvColumnMappingOptionsTests {
     [InlineData(2)]
     [InlineData(3)]
     public void OptionalAliasesCultureAndFormatsApplyAcrossMappingPaths(int path) {
-        var document = CsvDocument.Parse(Text, new CsvLoadOptions { Delimiter = ';' });
+        var document = CsvDocument.Parse(Text, new CsvReaderOptions { Delimiter = ';' });
         Item[] items;
         if (path == 0) items = document.RowsAs<Item>(Configure).ToArray();
         else if (path == 1) {
             using var reader = document.CreateDataReader();
             items = reader.RowsAs<Item>(Configure).ToArray();
         } else if (path == 2) {
-            using var reader = CsvDocument.OpenTextDataReader(Text, new CsvLoadOptions { Delimiter = ';' });
+            using var reader = CsvDocument.OpenReader(new System.IO.StringReader(Text), options: new CsvReaderOptions { Delimiter = ';' });
             items = reader.RowsAsParallel<Item>(Configure, new ParallelRowMappingOptions { MaxDegreeOfParallelism = 2, BatchSize = 1 }).ToArray();
         } else {
             var table = new DataTable();
@@ -165,7 +165,7 @@ public class CsvColumnMappingOptionsTests {
 
     [Fact]
     public async Task AsyncMappingUsesSamePerColumnControls() {
-        using var reader = CsvDocument.OpenTextDataReader(Text, new CsvLoadOptions { Delimiter = ';' });
+        using var reader = CsvDocument.OpenReader(new System.IO.StringReader(Text), options: new CsvReaderOptions { Delimiter = ';' });
         var rows = new System.Collections.Generic.List<Item>();
         await foreach (Item item in reader.RowsAsAsync<Item>(Configure)) rows.Add(item);
         Assert.Equal(new[] { 12.50m, 14.75m }, rows.Select(row => row.Price));

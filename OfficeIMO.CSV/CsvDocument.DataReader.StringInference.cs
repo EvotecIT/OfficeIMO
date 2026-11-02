@@ -6,7 +6,7 @@ namespace OfficeIMO.CSV;
 public sealed partial class CsvDocument
 {
     private CsvDataReader CreateStreamingStringInferredDataReader(
-        int sampleSize, CsvLoadOptions options, CancellationToken cancellationToken)
+        int sampleSize, CsvReaderOptions options, CancellationToken cancellationToken)
     {
         var rows = _streamingSource!.ReadReusableStringRows(options).GetEnumerator();
         try

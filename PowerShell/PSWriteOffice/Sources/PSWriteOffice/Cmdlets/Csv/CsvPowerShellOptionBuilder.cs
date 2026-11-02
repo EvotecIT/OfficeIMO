@@ -9,7 +9,7 @@ namespace PSWriteOffice.Cmdlets.Csv;
 internal static class CsvPowerShellOptionBuilder
 {
     public static void ApplyLoadOptions(
-        CsvLoadOptions options,
+        CsvReaderOptions options,
         CsvDuplicateHeaderBehavior duplicateHeaderBehavior,
         string? nullValue,
         string[]? dateTimeFormats,
@@ -28,7 +28,7 @@ internal static class CsvPowerShellOptionBuilder
     }
 
     public static void ApplyTextLoadOptions(
-        CsvLoadOptions options,
+        CsvReaderOptions options,
         CsvDuplicateHeaderBehavior duplicateHeaderBehavior,
         string? nullValue,
         string[]? dateTimeFormats,

@@ -46,9 +46,8 @@ public class MarkPflug65KCsvBenchmarks {
 
     [Benchmark]
     public CsvReadObservation OfficeIMO() {
-        using DbDataReader reader = CsvDocument.OpenDataReader(
-            MarkPflug65KFixture.CsvPath,
-            new CsvLoadOptions { DetectDelimiter = false });
+        using DbDataReader reader = CsvDocument.OpenReader(MarkPflug65KFixture.CsvPath,
+            options: new CsvReaderOptions { DetectDelimiter = false });
         return Observe(reader);
     }
 

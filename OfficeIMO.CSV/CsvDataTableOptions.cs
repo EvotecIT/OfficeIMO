@@ -25,5 +25,5 @@ public sealed class CsvDataTableOptions
     /// <summary>
     /// Gets or sets the maximum row count inspected when <see cref="InferSchema"/> is enabled.
     /// </summary>
-    public int SchemaSampleSize { get; set; } = 1000;
+    public int SchemaSampleRows { get; set; } = 1000;
 }

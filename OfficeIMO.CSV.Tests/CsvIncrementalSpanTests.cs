@@ -38,11 +38,11 @@ public class CsvIncrementalSpanTests
         }
         // A final record without a separator takes the canonical EOF path.
         text.Append(9007199254741130L).Append(string.Concat(System.Linq.Enumerable.Repeat(",last", columns - 1)));
-        var options = new CsvLoadOptions { TrimWhitespace = true, QuoteParsingMode = CsvQuoteParsingMode.Strict };
+        var options = new CsvReaderOptions { TrimWhitespace = true, QuoteParsingMode = CsvQuoteParsingMode.Strict };
         using var expectedInput = new MemoryStream(Encoding.UTF8.GetBytes(text.ToString()));
-        using var expected = CsvDocument.OpenDataReader(expectedInput, options);
+        using var expected = CsvDocument.OpenReader(expectedInput, options: options);
         using var input = new AsyncInput(Encoding.UTF8.GetBytes(text.ToString()), chunk);
-        using var actual = await CsvDocument.OpenDataReaderAsync(input, options);
+        using var actual = await CsvDocument.OpenReaderAsync(input, options: options);
         var retained = new List<(string Value, string Expected)>();
         int rows = 0;
         while (expected.Read())
@@ -81,7 +81,7 @@ public class CsvIncrementalSpanTests
         string value = new string('a', chunk - 4);
         string csv = "V\n" + value + "x\r" + (lineFeed ? "\n" : "") + "next\r\nlast";
         using var input = new AsyncInput(Encoding.UTF8.GetBytes(csv), chunk);
-        using var reader = await CsvDocument.OpenDataReaderAsync(input);
+        using var reader = await CsvDocument.OpenReaderAsync(input);
         Assert.True(await reader.ReadAsync());
         Assert.Equal(value + "x", reader.GetString(0));
         Assert.True(await reader.ReadAsync());
@@ -98,9 +98,9 @@ public class CsvIncrementalSpanTests
     public async Task NormalizationAndInterningKeepTheirExistingFieldContracts(bool normalize)
     {
         const string csv = "V\n‘same’\n‘same’\n\"‘same’\"\n";
-        var options = new CsvLoadOptions { NormalizeQuotes = normalize, InternStrings = !normalize };
+        var options = new CsvReaderOptions { NormalizeQuotes = normalize, InternStrings = !normalize };
         using var input = new AsyncInput(Encoding.UTF8.GetBytes(csv), 4096);
-        using var reader = await CsvDocument.OpenDataReaderAsync(input, options);
+        using var reader = await CsvDocument.OpenReaderAsync(input, options: options);
         string expected = normalize ? "'same'" : "‘same’";
         Assert.True(await reader.ReadAsync());
         string first = reader.GetString(0);
@@ -124,8 +124,9 @@ public class CsvIncrementalSpanTests
         using var load = new CancellationTokenSource();
         using var operation = new CancellationTokenSource();
         using var input = new AsyncInput(Encoding.UTF8.GetBytes("V\nfirst\n"), 4096, blockAtEnd: true);
-        using var reader = await CsvDocument.OpenDataReaderAsync(input,
-            new CsvLoadOptions { CancellationToken = load.Token }, cancellationToken: opening.Token);
+        using var reader = await CsvDocument.OpenReaderAsync(input,
+            options: new CsvReaderOptions { CancellationToken = load.Token },
+            cancellationToken: opening.Token);
         Assert.True(await reader.ReadAsync());
         Assert.Equal("first", reader.GetString(0));
         CancellationToken readToken = mode == 0 ? opening.Token : mode == 1 ? load.Token : operation.Token;

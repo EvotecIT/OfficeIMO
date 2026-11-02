@@ -35,7 +35,7 @@ internal static partial class CsvParser
         public bool StartsWithCommentCharacter { get; }
     }
 
-    public static IEnumerable<string[]> Parse(TextReader reader, CsvLoadOptions options)
+    public static IEnumerable<string[]> Parse(TextReader reader, CsvReaderOptions options)
     {
         if (UsesTextDelimiter(options))
         {
@@ -45,7 +45,7 @@ internal static partial class CsvParser
         return ParseLineOrQuoted(reader, options);
     }
 
-    public static void ReadRecords(TextReader reader, CsvLoadOptions options, Action<string[]> recordAction)
+    public static void ReadRecords(TextReader reader, CsvReaderOptions options, Action<string[]> recordAction)
     {
         if (recordAction == null)
         {
@@ -61,7 +61,7 @@ internal static partial class CsvParser
         ReadLineOrQuoted(reader, options, recordAction);
     }
 
-    internal static IEnumerable<CsvParsedRecord> ParseWithMetadata(TextReader reader, CsvLoadOptions options)
+    internal static IEnumerable<CsvParsedRecord> ParseWithMetadata(TextReader reader, CsvReaderOptions options)
     {
         if (UsesTextDelimiter(options))
         {
@@ -71,7 +71,7 @@ internal static partial class CsvParser
         return ParseLineOrQuotedWithMetadata(reader, options);
     }
 
-    internal static void ReadRecordsWithMetadata(TextReader reader, CsvLoadOptions options, Action<CsvParsedRecord> recordAction)
+    internal static void ReadRecordsWithMetadata(TextReader reader, CsvReaderOptions options, Action<CsvParsedRecord> recordAction)
     {
         if (recordAction == null)
         {
@@ -88,7 +88,7 @@ internal static partial class CsvParser
         }
     }
 
-    public static void ReadRecordsReusable(TextReader reader, CsvLoadOptions options, Action<IReadOnlyList<string>> recordAction)
+    public static void ReadRecordsReusable(TextReader reader, CsvReaderOptions options, Action<IReadOnlyList<string>> recordAction)
     {
         if (recordAction == null)
         {
@@ -104,7 +104,7 @@ internal static partial class CsvParser
         ReadLineOrQuotedReusable(reader, options, recordAction);
     }
 
-    internal static void ReadRecordsReusableWithMetadata(TextReader reader, CsvLoadOptions options, Action<CsvParsedRecord> recordAction)
+    internal static void ReadRecordsReusableWithMetadata(TextReader reader, CsvReaderOptions options, Action<CsvParsedRecord> recordAction)
     {
         if (recordAction == null)
         {
@@ -121,7 +121,7 @@ internal static partial class CsvParser
     }
 
 #if NET8_0_OR_GREATER
-    internal static void ReadFieldSpans(TextReader reader, CsvLoadOptions options, int recordsToSkip, CsvFieldSpanAction fieldAction)
+    internal static void ReadFieldSpans(TextReader reader, CsvReaderOptions options, int recordsToSkip, CsvFieldSpanAction fieldAction)
     {
         if (fieldAction == null)
         {
@@ -132,7 +132,7 @@ internal static partial class CsvParser
         ReadFieldSpans(reader, options, recordsToSkip, ref visitor);
     }
 
-    internal static void ReadFieldSpans<TVisitor>(TextReader reader, CsvLoadOptions options, int recordsToSkip, ref TVisitor fieldVisitor)
+    internal static void ReadFieldSpans<TVisitor>(TextReader reader, CsvReaderOptions options, int recordsToSkip, ref TVisitor fieldVisitor)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         if (recordsToSkip < 0)
@@ -155,16 +155,16 @@ internal static partial class CsvParser
         ReadFieldSpansLineOrQuoted(reader, options, recordsToSkip, ref fieldVisitor);
     }
 
-    private static bool HasFieldLengthLimits(CsvLoadOptions options) =>
+    private static bool HasFieldLengthLimits(CsvReaderOptions options) =>
         options.MaxFieldLength.HasValue || options.MaxQuotedFieldLength.HasValue;
 
-    private static bool NeedsLogicalCommentSkipping(CsvLoadOptions options) =>
+    private static bool NeedsLogicalCommentSkipping(CsvReaderOptions options) =>
         options.SkipCommentRows ||
         (options.HasHeaderRow &&
             options.Header is null &&
             options.SkipCommentRowsBeforeHeader);
 
-    private static void ReadFieldSpansMaterialized<TVisitor>(TextReader reader, CsvLoadOptions options, int recordsToSkip, ref TVisitor fieldVisitor)
+    private static void ReadFieldSpansMaterialized<TVisitor>(TextReader reader, CsvReaderOptions options, int recordsToSkip, ref TVisitor fieldVisitor)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         var recordIndex = 0;
@@ -183,7 +183,7 @@ internal static partial class CsvParser
     }
 #endif
 
-    private static void ReadLineOrQuoted(TextReader reader, CsvLoadOptions options, Action<string[]> recordAction)
+    private static void ReadLineOrQuoted(TextReader reader, CsvReaderOptions options, Action<string[]> recordAction)
     {
         var delimiter = GetDelimiterChar(options);
         var trim = options.TrimWhitespace;
@@ -259,7 +259,7 @@ internal static partial class CsvParser
         }
     }
 
-    private static IEnumerable<string[]> ParseLineOrQuoted(TextReader reader, CsvLoadOptions options)
+    private static IEnumerable<string[]> ParseLineOrQuoted(TextReader reader, CsvReaderOptions options)
     {
         foreach (var record in ParseLineOrQuotedWithMetadata(reader, options))
         {
@@ -270,7 +270,7 @@ internal static partial class CsvParser
         }
     }
 
-    private static IEnumerable<CsvParsedRecord> ParseLineOrQuotedWithMetadata(TextReader reader, CsvLoadOptions options)
+    private static IEnumerable<CsvParsedRecord> ParseLineOrQuotedWithMetadata(TextReader reader, CsvReaderOptions options)
     {
         var delimiter = GetDelimiterChar(options);
         var trim = options.TrimWhitespace;
@@ -346,7 +346,7 @@ internal static partial class CsvParser
         }
     }
 
-    private static void ReadLineOrQuotedReusable(TextReader reader, CsvLoadOptions options, Action<IReadOnlyList<string>> recordAction)
+    private static void ReadLineOrQuotedReusable(TextReader reader, CsvReaderOptions options, Action<IReadOnlyList<string>> recordAction)
     {
         var delimiter = GetDelimiterChar(options);
         var trim = options.TrimWhitespace;
@@ -468,7 +468,7 @@ internal static partial class CsvParser
         }
     }
 
-    private static void ReadLineOrQuotedReusableWithMetadata(TextReader reader, CsvLoadOptions options, Action<CsvParsedRecord> recordAction)
+    private static void ReadLineOrQuotedReusableWithMetadata(TextReader reader, CsvReaderOptions options, Action<CsvParsedRecord> recordAction)
     {
         var delimiter = GetDelimiterChar(options);
         var trim = options.TrimWhitespace;
@@ -591,7 +591,7 @@ internal static partial class CsvParser
     }
 
 #if NET8_0_OR_GREATER
-    private static void ReadFieldSpansLineOrQuoted<TVisitor>(TextReader reader, CsvLoadOptions options, int recordsToSkip, ref TVisitor fieldVisitor)
+    private static void ReadFieldSpansLineOrQuoted<TVisitor>(TextReader reader, CsvReaderOptions options, int recordsToSkip, ref TVisitor fieldVisitor)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         var delimiter = GetDelimiterChar(options);
@@ -855,7 +855,7 @@ internal static partial class CsvParser
         return line.Substring(start, end - start + 1);
     }
 
-    private static bool ShouldSkipCommentRecord(bool startsWithCommentCharacter, string firstLine, CsvLoadOptions options, int emittedRecordCount)
+    private static bool ShouldSkipCommentRecord(bool startsWithCommentCharacter, string firstLine, CsvReaderOptions options, int emittedRecordCount)
     {
         if (!options.SkipCommentRows || !startsWithCommentCharacter)
         {
@@ -865,7 +865,7 @@ internal static partial class CsvParser
         return !CanReadW3CFieldsHeader(options, emittedRecordCount) || !IsW3CFieldsLine(firstLine, options);
     }
 
-    private static bool TrySkipCommentRecordBeforeParsing(CsvLineReader reader, Queue<CsvLine> pendingLines, bool startsWithCommentCharacter, string firstLine, string firstLineSeparator, CsvLoadOptions options, int emittedRecordCount, ref int lineNumber)
+    private static bool TrySkipCommentRecordBeforeParsing(CsvLineReader reader, Queue<CsvLine> pendingLines, bool startsWithCommentCharacter, string firstLine, string firstLineSeparator, CsvReaderOptions options, int emittedRecordCount, ref int lineNumber)
     {
         if (!ShouldSkipCommentRecordBeforeParsing(startsWithCommentCharacter, firstLine, options, emittedRecordCount))
         {
@@ -933,7 +933,7 @@ internal static partial class CsvParser
         line.IndexOf('|') >= 0 ||
         line.IndexOf('\t') >= 0;
 
-    private static bool ShouldSkipCommentRecordBeforeParsing(bool startsWithCommentCharacter, string firstLine, CsvLoadOptions options, int emittedRecordCount)
+    private static bool ShouldSkipCommentRecordBeforeParsing(bool startsWithCommentCharacter, string firstLine, CsvReaderOptions options, int emittedRecordCount)
     {
         if (!startsWithCommentCharacter)
         {
@@ -953,16 +953,16 @@ internal static partial class CsvParser
                 emittedRecordCount <= GetParserInitialRecordsToSkip(options));
     }
 
-    private static bool IsRawCommentLine(string line, CsvLoadOptions options) =>
+    private static bool IsRawCommentLine(string line, CsvReaderOptions options) =>
         line.Length > 0 && line[0] == options.CommentCharacter;
 
-    private static bool CanReadW3CFieldsHeader(CsvLoadOptions options, int emittedRecordCount) =>
+    private static bool CanReadW3CFieldsHeader(CsvReaderOptions options, int emittedRecordCount) =>
         emittedRecordCount <= GetParserInitialRecordsToSkip(options) &&
         options.HasHeaderRow &&
         options.Header is null &&
         options.RecognizeW3CFieldsHeader;
 
-    private static int GetParserInitialRecordsToSkip(CsvLoadOptions options)
+    private static int GetParserInitialRecordsToSkip(CsvReaderOptions options)
     {
         if (options.SkipInitialRecords < 0)
         {
@@ -972,7 +972,7 @@ internal static partial class CsvParser
         return options.SkipInitialRecords;
     }
 
-    private static bool IsW3CFieldsLine(string line, CsvLoadOptions options) =>
+    private static bool IsW3CFieldsLine(string line, CsvReaderOptions options) =>
         options.RecognizeW3CFieldsHeader && line.StartsWith("#Fields:", StringComparison.OrdinalIgnoreCase);
 
     private static string? ReadLineWithSeparator(CsvLineReader reader, Queue<CsvLine> pendingLines, out string separator)
@@ -993,10 +993,10 @@ internal static partial class CsvParser
             (allowEmpty || fields.Count != 1 || fields[0].Length != 0);
     }
 
-    private static Dictionary<string, string>? CreateStringCache(CsvLoadOptions options) =>
+    private static Dictionary<string, string>? CreateStringCache(CsvReaderOptions options) =>
         options.InternStrings ? new Dictionary<string, string>(StringComparer.Ordinal) : null;
 
-    private static void ThrowIfCancellationRequested(CsvLoadOptions options)
+    private static void ThrowIfCancellationRequested(CsvReaderOptions options)
     {
         if (options.CancellationToken.CanBeCanceled)
         {
@@ -1004,7 +1004,7 @@ internal static partial class CsvParser
         }
     }
 
-    private static void ReportProgress(CsvLoadOptions options, long emittedRecordCount, int lineNumber)
+    private static void ReportProgress(CsvReaderOptions options, long emittedRecordCount, int lineNumber)
     {
         if (options.ProgressCallback is null || options.ProgressReportInterval <= 0)
         {
@@ -1017,7 +1017,7 @@ internal static partial class CsvParser
         }
     }
 
-    private static bool HandleParseError(CsvLoadOptions options, CsvParseException exception, int lineNumber)
+    private static bool HandleParseError(CsvReaderOptions options, CsvParseException exception, int lineNumber)
     {
         if (options.CollectParseErrors)
         {
@@ -1037,7 +1037,7 @@ internal static partial class CsvParser
         throw exception;
     }
 
-    private static void PrepareParsedRecord(string[] fields, CsvLoadOptions options, int lineNumber, bool quotedRecord, Dictionary<string, string>? stringCache)
+    private static void PrepareParsedRecord(string[] fields, CsvReaderOptions options, int lineNumber, bool quotedRecord, Dictionary<string, string>? stringCache)
     {
         for (var i = 0; i < fields.Length; i++)
         {
@@ -1045,7 +1045,7 @@ internal static partial class CsvParser
         }
     }
 
-    private static void PrepareParsedRecord(List<string> fields, CsvLoadOptions options, int lineNumber, bool quotedRecord, Dictionary<string, string>? stringCache)
+    private static void PrepareParsedRecord(List<string> fields, CsvReaderOptions options, int lineNumber, bool quotedRecord, Dictionary<string, string>? stringCache)
     {
         for (var i = 0; i < fields.Count; i++)
         {
@@ -1053,7 +1053,7 @@ internal static partial class CsvParser
         }
     }
 
-    private static bool TryPrepareParsedRecord(string[] fields, CsvLoadOptions options, int lineNumber, bool quotedRecord, Dictionary<string, string>? stringCache)
+    private static bool TryPrepareParsedRecord(string[] fields, CsvReaderOptions options, int lineNumber, bool quotedRecord, Dictionary<string, string>? stringCache)
     {
         try
         {
@@ -1066,7 +1066,7 @@ internal static partial class CsvParser
         }
     }
 
-    private static bool TryPrepareParsedRecord(List<string> fields, CsvLoadOptions options, int lineNumber, bool quotedRecord, Dictionary<string, string>? stringCache)
+    private static bool TryPrepareParsedRecord(List<string> fields, CsvReaderOptions options, int lineNumber, bool quotedRecord, Dictionary<string, string>? stringCache)
     {
         try
         {
@@ -1079,7 +1079,7 @@ internal static partial class CsvParser
         }
     }
 
-    private static string PrepareParsedField(string value, CsvLoadOptions options, int lineNumber, bool quotedField, Dictionary<string, string>? stringCache)
+    private static string PrepareParsedField(string value, CsvReaderOptions options, int lineNumber, bool quotedField, Dictionary<string, string>? stringCache)
     {
         if (options.MaxFieldLength is { } maxFieldLength && value.Length > maxFieldLength)
         {

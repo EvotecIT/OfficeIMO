@@ -98,7 +98,7 @@ try
         throw new InvalidOperationException("Typed worksheet dimensions did not survive NativeAOT saving.");
     }
 
-    AotSalesRow mappedRow = reopened.Sheets[0].RowsAs<AotSalesRow>(map => map.FromColumn<string>("Region", static (row, value) =>
+    AotSalesRow mappedRow = reopened.RowsAs<AotSalesRow>(map => map.FromColumn<string>("Region", static (row, value) =>
     {
         row.Region = value;
         return row;

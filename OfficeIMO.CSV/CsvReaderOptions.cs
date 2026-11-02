@@ -7,10 +7,38 @@ using System.Threading;
 namespace OfficeIMO.CSV;
 
 /// <summary>
-/// Options controlling how CSV content is parsed and loaded.
+/// Options controlling CSV parsing, loading and forward-only reader projection.
 /// </summary>
-public sealed class CsvLoadOptions
+public sealed class CsvReaderOptions
 {
+    /// <summary>
+    /// Gets or sets an explicit schema used for typed reader columns.
+    /// </summary>
+    public CsvSchema? Schema { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether schema should be inferred before creating reader columns.
+    /// </summary>
+    public bool InferSchema { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum row count inspected when <see cref="InferSchema"/> is enabled.
+    /// </summary>
+    public int SchemaSampleRows { get; set; } = 1000;
+
+    /// <summary>
+    /// Gets or sets bounded, ordered parallel processing for typed reader values.
+    /// When omitted, the reader remains fully sequential.
+    /// </summary>
+    /// <remarks>
+    /// CSV records are parsed by one source owner and typed values are projected by bounded
+    /// worker batches. Row order and the single-consumer <see cref="System.Data.Common.DbDataReader"/>
+    /// contract are preserved, making the reader suitable for provider bulk-copy APIs. Schema
+    /// converters can be invoked concurrently and must be thread-safe; use sequential processing
+    /// when a converter depends on mutable single-threaded state.
+    /// </remarks>
+    public CsvDataReaderParallelOptions? ParallelProcessing { get; set; }
+
     private const char DefaultDelimiter = ',';
 
     /// <summary>Default maximum complete stream input size (256 MiB).</summary>
@@ -239,10 +267,14 @@ public sealed class CsvLoadOptions
     /// <summary>
     /// Creates an options copy with mutable collections snapshotted for deferred reads.
     /// </summary>
-    public CsvLoadOptions Clone()
+    public CsvReaderOptions Clone()
     {
-        var clone = (CsvLoadOptions)MemberwiseClone();
+        var clone = (CsvReaderOptions)MemberwiseClone();
         clone.OperationCancellationToken = default;
+        clone.ParallelProcessing = ParallelProcessing is null ? null : new CsvDataReaderParallelOptions {
+            MaxDegreeOfParallelism = ParallelProcessing.MaxDegreeOfParallelism,
+            BatchSize = ParallelProcessing.BatchSize
+        };
         clone.Header = Header is null ? null : (string[])Header.Clone();
         clone.DateTimeFormats = DateTimeFormats is null ? null : (string[])DateTimeFormats.Clone();
         clone.DelimiterCandidates = DelimiterCandidates is null ? null : (char[])DelimiterCandidates.Clone();

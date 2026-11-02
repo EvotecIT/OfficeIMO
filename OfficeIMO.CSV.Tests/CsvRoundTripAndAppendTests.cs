@@ -124,14 +124,14 @@ public class CsvRoundTripAndAppendTests
     {
         string effectiveDelimiter = delimiter.Length == 0 ? "," : delimiter;
         string text = "A" + effectiveDelimiter + "B" + Environment.NewLine + "東京" + effectiveDelimiter + "4" + Environment.NewLine;
-        CsvDocument document = CsvDocument.Parse(text, new CsvLoadOptions { DelimiterText = delimiter });
+        CsvDocument document = CsvDocument.Parse(text, new CsvReaderOptions { DelimiterText = delimiter });
         Assert.Equal(effectiveDelimiter, document.DelimiterText);
         Assert.Equal(effectiveDelimiter[0], document.Delimiter);
         Assert.Equal(text, document.ToString());
         Assert.Equal(text, Encoding.UTF8.GetString(document.ToBytes()));
         using var reader = document.CreateDataReader();
         Assert.Equal(effectiveDelimiter, Assert.IsAssignableFrom<ICsvDataReaderDialectMetadata>(reader).DelimiterText);
-        using var textReader = CsvDocument.OpenTextDataReader(text, new CsvLoadOptions { DelimiterText = delimiter });
+        using var textReader = CsvDocument.OpenReader(new System.IO.StringReader(text), options: new CsvReaderOptions { DelimiterText = delimiter });
         Assert.Equal(effectiveDelimiter, Assert.IsAssignableFrom<ICsvDataReaderDialectMetadata>(textReader).DelimiterText);
         Assert.True(reader.Read());
         Assert.Equal("4", reader.GetString(1));

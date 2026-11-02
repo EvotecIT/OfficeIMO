@@ -70,15 +70,13 @@ if (!string.Equals(value, "token-marker", StringComparison.Ordinal)) {
 }
 
 using var tabularStream = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes("Id,Name\n1,Ada\n"));
-using var csvReader = CsvDocument.OpenDataReader(
-    tabularStream,
-    new CsvLoadOptions(),
-    new CsvDataReaderOptions { InferSchema = true });
+using var csvReader = CsvDocument.OpenReader(tabularStream,
+            options: new CsvReaderOptions { InferSchema = true });
 if (!csvReader.Read() || csvReader.GetInt32(0) != 1 || csvReader.GetString(1) != "Ada") {
     throw new InvalidOperationException("The canonical tabular reader did not read its NativeAOT CSV fixture.");
 }
 
-using var parallelReader = CsvDocument.OpenTextDataReader("Id,Name\n1,Ada\n2,Grace\n");
+using var parallelReader = CsvDocument.OpenReader(new System.IO.StringReader("Id,Name\n1,Ada\n2,Grace\n"));
 AotCsvRow[] parallelRows = parallelReader.RowsAsParallel<AotCsvRow>(map => map
     .FromColumn<int>("Id", static (row, id) => { row.Id = id; return row; })
     .FromColumn<string>("Name", static (row, name) => { row.Name = name; return row; }),
@@ -94,7 +92,7 @@ if (parallelRows.Length != 2
     throw new InvalidOperationException("The explicit ordered-parallel CSV mapping did not survive NativeAOT.");
 }
 
-using var generatedReader = CsvDocument.OpenTextDataReader("Id,Name\n3,Katherine\n");
+using var generatedReader = CsvDocument.OpenReader(new System.IO.StringReader("Id,Name\n3,Katherine\n"));
 AotGeneratedRow generatedRow = generatedReader
     .RowsAs<AotGeneratedRow>(AotGeneratedRowRowMapping.Configure)
     .Single();
@@ -102,9 +100,8 @@ if (generatedRow.Id != 3 || generatedRow.Name != "Katherine") {
     throw new InvalidOperationException("The source-generated row mapping did not survive NativeAOT.");
 }
 
-using var arrowReader = CsvDocument.OpenTextDataReader(
-    "Id,Name\n4,Dorothy\n",
-    readerOptions: new CsvDataReaderOptions { InferSchema = true });
+using var arrowReader = CsvDocument.OpenReader(new System.IO.StringReader("Id,Name\n4,Dorothy\n"),
+            options: new CsvReaderOptions { InferSchema = true });
 using RecordBatch arrowBatch = arrowReader
     .ReadArrowBatches(new ArrowReadOptions { BatchSize = 1 })
     .Single();

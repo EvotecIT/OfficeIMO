@@ -14,8 +14,7 @@ public sealed partial class CsvDocument
     /// <param name="createAccumulator">Creates an independent neutral state for the result and each batch. May run concurrently.</param>
     /// <param name="accumulatorBuilder">Called once after resolving the header to build the record callback.</param>
     /// <param name="merge">Associatively combines completed states in source-batch order.</param>
-    /// <param name="loadOptions">Optional parsing, encoding, compression, cancellation and input-limit settings.</param>
-    /// <param name="readerOptions">Optional schema settings. ParallelProcessing must be omitted.</param>
+    /// <param name="options">Optional parsing, encoding, compression, cancellation and input-limit settings.</param>
     /// <param name="parallelOptions">Optional degree and maximum records per batch.</param>
     /// <param name="cancellationToken">Cancels input, processing between records, and merging between batches.</param>
     /// <returns>The accumulated result. Empty input returns the neutral state.</returns>
@@ -36,13 +35,13 @@ public sealed partial class CsvDocument
         string path, Func<TAccumulator> createAccumulator,
         CsvRecordAccumulatorBuilder<TAccumulator> accumulatorBuilder,
         Func<TAccumulator, TAccumulator, TAccumulator> merge,
-        CsvLoadOptions? loadOptions = null, CsvDataReaderOptions? readerOptions = null,
+        CsvReaderOptions? options = null,
         ParallelRowMappingOptions? parallelOptions = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         return AggregateRowsAsParallelAsyncCore(
-            (options, token) => OpenDataReaderAsync(path, options, readerOptions, token),
-            createAccumulator, accumulatorBuilder, merge, loadOptions, readerOptions, parallelOptions, cancellationToken);
+            (parsing, token) => OpenReaderAsync(path, parsing, token),
+            createAccumulator, accumulatorBuilder, merge, options, parallelOptions, cancellationToken);
     }
 
     /// <summary>Aggregates CSV records from the stream's current position using incremental asynchronous I/O.</summary>
@@ -51,8 +50,7 @@ public sealed partial class CsvDocument
     /// <param name="createAccumulator">Creates independent neutral result and batch states. May run concurrently.</param>
     /// <param name="accumulatorBuilder">Called once after resolving the header to build the record callback.</param>
     /// <param name="merge">Associatively combines completed states in source-batch order.</param>
-    /// <param name="loadOptions">Optional parsing, encoding, compression, cancellation and input-limit settings.</param>
-    /// <param name="readerOptions">Optional schema settings. ParallelProcessing must be omitted.</param>
+    /// <param name="options">Optional parsing, encoding, compression, cancellation and input-limit settings.</param>
     /// <param name="parallelOptions">Optional degree and maximum records per batch.</param>
     /// <param name="cancellationToken">Cancels input, processing between records, and merging between batches.</param>
     /// <returns>The accumulated result. Empty input returns the neutral state.</returns>
@@ -66,30 +64,29 @@ public sealed partial class CsvDocument
         Stream stream, Func<TAccumulator> createAccumulator,
         CsvRecordAccumulatorBuilder<TAccumulator> accumulatorBuilder,
         Func<TAccumulator, TAccumulator, TAccumulator> merge,
-        CsvLoadOptions? loadOptions = null, CsvDataReaderOptions? readerOptions = null,
+        CsvReaderOptions? options = null,
         ParallelRowMappingOptions? parallelOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         return AggregateRowsAsParallelAsyncCore(
-            (options, token) => OpenDataReaderAsync(stream, options, readerOptions, token),
-            createAccumulator, accumulatorBuilder, merge, loadOptions, readerOptions, parallelOptions, cancellationToken);
+            (parsing, token) => OpenReaderAsync(stream, parsing, token),
+            createAccumulator, accumulatorBuilder, merge, options, parallelOptions, cancellationToken);
     }
 
     private static async Task<TAccumulator> AggregateRowsAsParallelAsyncCore<TAccumulator>(
-        Func<CsvLoadOptions, CancellationToken, Task<DbDataReader>> openReader,
+        Func<CsvReaderOptions, CancellationToken, Task<CsvDataReader>> openReader,
         Func<TAccumulator> createAccumulator, CsvRecordAccumulatorBuilder<TAccumulator> accumulatorBuilder,
-        Func<TAccumulator, TAccumulator, TAccumulator> merge, CsvLoadOptions? loadOptions,
-        CsvDataReaderOptions? readerOptions, ParallelRowMappingOptions? parallelOptions, CancellationToken token)
+        Func<TAccumulator, TAccumulator, TAccumulator> merge, CsvReaderOptions? options, ParallelRowMappingOptions? parallelOptions, CancellationToken token)
     {
         ArgumentNullException.ThrowIfNull(createAccumulator);
         ArgumentNullException.ThrowIfNull(accumulatorBuilder);
         ArgumentNullException.ThrowIfNull(merge);
-        if (readerOptions?.ParallelProcessing is not null)
-            throw new ArgumentException("AggregateRowsAsParallelAsync uses parallelOptions; CsvDataReaderOptions.ParallelProcessing must be omitted.", nameof(readerOptions));
+        if (options?.ParallelProcessing is not null)
+            throw new ArgumentException("AggregateRowsAsParallelAsync uses parallelOptions; CsvReaderOptions.ParallelProcessing must be omitted.", nameof(options));
         var parallel = parallelOptions ?? new ParallelRowMappingOptions();
         int degree = parallel.GetDegreeOfParallelism(), batchSize = parallel.GetBatchSize(1024);
-        var parsing = loadOptions?.Clone() ?? new CsvLoadOptions();
+        var parsing = options?.Clone() ?? new CsvReaderOptions();
         CancellationToken loadToken = parsing.CancellationToken;
         token.ThrowIfCancellationRequested();
         loadToken.ThrowIfCancellationRequested();
@@ -102,7 +99,7 @@ public sealed partial class CsvDocument
                 ?? throw new InvalidOperationException("The CSV accumulator builder returned null.");
             stop.Token.ThrowIfCancellationRequested();
             TAccumulator result = createAccumulator();
-            if (degree > 1 && readerOptions?.Schema is null && readerOptions?.InferSchema != true)
+            if (degree > 1 && options?.Schema is null && options?.InferSchema != true)
                 result = await AggregateReaderTextBatchesAsync(reader, degree, batchSize,
                     createAccumulator, accumulate, merge, result, stop).ConfigureAwait(false);
             else
