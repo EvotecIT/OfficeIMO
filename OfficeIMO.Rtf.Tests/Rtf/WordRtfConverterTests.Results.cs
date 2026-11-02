@@ -68,7 +68,7 @@ public partial class WordRtfConverterTests {
         const string rtf = @"{\rtf1{\object\objemb{\*\objdata 0102}}Visible}";
 
         RtfConversionResult<WordDocument> result = RtfDocument
-            .Read(rtf, RtfReadOptions.CreateUntrustedProfile())
+            .ParseResult(rtf, RtfReadOptions.CreateUntrustedProfile())
             .ToWordDocumentResult("string");
         using (result.Value) {
             RtfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "RTF105");
