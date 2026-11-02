@@ -55,13 +55,13 @@ jobs:
       - uses: ./.github/actions/nuget-cache
 
       - name: Restore dependencies
-        run: dotnet restore PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln
+        run: dotnet restore PowerShell/PSWriteOffice/Sources/PSWriteOffice.slnx
 
       - name: Build solution
-        run: dotnet build PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+        run: dotnet build PowerShell/PSWriteOffice/Sources/PSWriteOffice.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
-        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx
+        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
@@ -89,13 +89,13 @@ jobs:
       - uses: ./.github/actions/nuget-cache
 
       - name: Restore dependencies
-        run: dotnet restore PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln
+        run: dotnet restore PowerShell/PSWriteOffice/Sources/PSWriteOffice.slnx
 
       - name: Build solution
-        run: dotnet build PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+        run: dotnet build PowerShell/PSWriteOffice/Sources/PSWriteOffice.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
-        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx
+        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
@@ -122,13 +122,13 @@ jobs:
       - uses: ./.github/actions/nuget-cache
 
       - name: Restore dependencies
-        run: dotnet restore PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln
+        run: dotnet restore PowerShell/PSWriteOffice/Sources/PSWriteOffice.slnx
 
       - name: Build solution
-        run: dotnet build PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+        run: dotnet build PowerShell/PSWriteOffice/Sources/PSWriteOffice.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
-        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx
+        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx
 
       - name: Upload test results
         uses: actions/upload-artifact@v7

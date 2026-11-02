@@ -883,7 +883,7 @@ The generated command pages are built from XML comments in the cmdlet source. Pr
 ## Build and Test 🧪
 
 ```powershell
-dotnet build .\Sources\PSWriteOffice.sln -c Debug
+dotnet build .\Sources\PSWriteOffice.slnx -c Debug
 pwsh -NoLogo -NoProfile -File .\PSWriteOffice.Tests.ps1
 pwsh -NoLogo -NoProfile -File .\Build\Build-Module.ps1 -RunMode Build
 ```

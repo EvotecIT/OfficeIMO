@@ -177,7 +177,7 @@ internal static class EditableEvidenceRunner {
     private static string FindRepoRoot() {
         DirectoryInfo? directory = new(AppContext.BaseDirectory);
         while (directory != null) {
-            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln"))) return directory.FullName;
+            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.slnx"))) return directory.FullName;
             directory = directory.Parent;
         }
         throw new InvalidOperationException("OfficeIMO repository root was not found.");

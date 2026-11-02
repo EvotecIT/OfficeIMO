@@ -22,5 +22,5 @@ retained managed heap, sampled managed-heap growth, absolute process peak,
 input and output bytes, decoded resource bytes, source commit, dirty-tree state,
 runtime, and operating system.
 
-The project stays outside `OfficeIMO.sln`, keeping MimeKit and benchmark-only
+The project stays outside `OfficeIMO.slnx`, keeping MimeKit and benchmark-only
 comparison dependencies out of normal restore, runtime, and package graphs.

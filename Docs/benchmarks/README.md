@@ -154,7 +154,7 @@ dotnet run -c Release -f net8.0 --project .\OfficeIMO.Markdown.Benchmarks -- --v
 The benchmark classes do not pin a runtime job. `-f net8.0` or `-f net10.0`
 selects the runtime, and `--job Dry` remains an execution check instead of
 silently adding a full second job. The project is intentionally outside
-`OfficeIMO.sln`, so Markdig and ReverseMarkdown remain opt-in comparison
+`OfficeIMO.slnx`, so Markdig and ReverseMarkdown remain opt-in comparison
 dependencies rather than normal solution restore inputs.
 
 The full Windows HTML-to-Markdown run is recorded in
@@ -299,7 +299,7 @@ dotnet run -c Release -f net8.0 --project .\OfficeIMO.Rtf.Benchmarks.Comparisons
 .\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload rtfhtml -RunMode full -Framework net8.0
 ```
 
-The comparison project is outside `OfficeIMO.sln`; RtfPipe remains an opt-in
+The comparison project is outside `OfficeIMO.slnx`; RtfPipe remains an opt-in
 benchmark dependency and does not enter normal restore, build, or packages.
 The shared runner captures the validated input/output-size sidecar with the
 same source commit, framework, platform, and environment provenance as timing
@@ -330,7 +330,7 @@ The full Windows run is recorded in
 [`officeimo.email-mime-2026-08-24.md`](officeimo.email-mime-2026-08-24.md).
 All read and write lanes are within 2x for both mean time and managed allocation;
 validated OfficeIMO output is 1.07-1.08x the MimeKit byte size. The comparison
-project stays outside `OfficeIMO.sln`, so MimeKit remains benchmark-only. The
+project stays outside `OfficeIMO.slnx`, so MimeKit remains benchmark-only. The
 same evidence note records the separate 16.9x PST scale-test improvement from
 removing disk-journal setup for single-block data trees. The isolated runner
 also places retained heap, managed-heap peak, and absolute process peak within
@@ -375,7 +375,7 @@ dotnet run -c Release -f net8.0 --project .\OfficeIMO.OpenDocument.Benchmarks.Co
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.OpenDocument.Benchmarks.Comparisons -- evidence --repeat 3 --json .benchmark-artifacts\opendocument\ods-comparison-evidence.json
 ```
 
-The comparison project is outside `OfficeIMO.sln`; OpenStandardLibrary remains
+The comparison project is outside `OfficeIMO.slnx`; OpenStandardLibrary remains
 an opt-in benchmark dependency. It is not used as an ODT or ODP comparator
 because it does not expose equivalent document models for those formats.
 The clean Windows time, allocation, peak-memory, and size record is documented
@@ -456,7 +456,7 @@ dotnet run -c Release -f net8.0 --project .\OfficeIMO.Epub.Benchmarks.Comparison
 dotnet run -c Release -f net8.0 --project .\OfficeIMO.Epub.Benchmarks.Comparisons -- --evidence --repeat 3 --json .benchmark-artifacts\epub\comparison-evidence.json
 ```
 
-The comparison project is outside `OfficeIMO.sln`; VersOne.Epub and
+The comparison project is outside `OfficeIMO.slnx`; VersOne.Epub and
 HtmlAgilityPack remain opt-in benchmark dependencies. The validated sidecar
 records shared input size. There is no creation-size comparison because
 OfficeIMO.Epub currently exposes a read/extraction API rather than an EPUB
@@ -497,7 +497,7 @@ PDF workflows at easy, medium, high, and real-document scale:
   500-page OfficeIMO documents, government publications, and pinned CC0 PDF/A,
   Type0, and Type3 fixtures.
 
-The comparison project is deliberately outside `OfficeIMO.sln`, so its
+The comparison project is deliberately outside `OfficeIMO.slnx`, so its
 third-party packages remain benchmark-only dependencies. See its README for the
 equivalence checks, corpus provenance, Word COM workflow, mutation-blocker
 interpretation, memory limits, and PowerForge runner commands. QuestPDF performance

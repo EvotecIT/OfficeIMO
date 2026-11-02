@@ -241,7 +241,7 @@ internal static class HtmlStaticBudgetRunner {
     private static string GetOsFamily() => OperatingSystem.IsWindows() ? "Windows" : OperatingSystem.IsLinux() ? "Linux" : OperatingSystem.IsMacOS() ? "macOS" : "Unknown";
     private static string FindRepositoryRoot() {
         for (string? current = Path.GetFullPath(Directory.GetCurrentDirectory()); !string.IsNullOrWhiteSpace(current); current = Directory.GetParent(current)?.FullName) {
-            if (File.Exists(Path.Combine(current, "OfficeIMO.sln"))) return current;
+            if (File.Exists(Path.Combine(current, "OfficeIMO.slnx"))) return current;
         }
         throw new DirectoryNotFoundException("Could not locate the OfficeIMO repository root.");
     }

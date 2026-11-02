@@ -41,17 +41,17 @@ jobs:
         include:
           - profile: linux
             runner: ubuntu-latest
-            projects: '["OfficeIMO.sln", "Website/Apps/OfficeIMO.Web.Converter/OfficeIMO.Web.Converter.csproj"]'
+            projects: '["OfficeIMO.slnx", "Website/Apps/OfficeIMO.Web.Converter/OfficeIMO.Web.Converter.csproj"]'
             workloads: wasm-tools
             workload-version: ''
           - profile: windows
             runner: windows-latest
-            projects: '["OfficeIMO.sln"]'
+            projects: '["OfficeIMO.slnx"]'
             workloads: ''
             workload-version: ''
           - profile: apple
             runner: macos-latest
-            projects: '["OfficeIMO.sln", "OfficeIMO.Studio.iOS/OfficeIMO.Studio.iOS.csproj"]'
+            projects: '["OfficeIMO.slnx", "OfficeIMO.Studio.iOS/OfficeIMO.Studio.iOS.csproj"]'
             workloads: 'wasm-tools ios'
             workload-version: '10.0.112'
     runs-on: ${{ matrix.runner }}

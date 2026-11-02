@@ -8,7 +8,7 @@ internal static class EmailTestRepository {
         foreach (string? candidate in new[] { AppContext.BaseDirectory, Path.GetDirectoryName(sourceFile), Directory.GetCurrentDirectory() }) {
             DirectoryInfo? directory = candidate == null ? null : new DirectoryInfo(candidate);
             while (directory != null) {
-                if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln"))) return directory.FullName;
+                if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.slnx"))) return directory.FullName;
                 directory = directory.Parent;
             }
         }

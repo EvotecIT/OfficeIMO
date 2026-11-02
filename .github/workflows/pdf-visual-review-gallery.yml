@@ -177,7 +177,7 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Restore dependencies
-        run: dotnet restore OfficeIMO.sln
+        run: dotnet restore OfficeIMO.slnx
 
       - name: Generate PDF visual review gallery
         shell: pwsh
