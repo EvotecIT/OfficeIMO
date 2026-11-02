@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.WriterProbe;
 
-/// <summary>Projects the existing single-master specimen from its final authoring model into codec inputs.</summary>
+/// <summary>Projects the single-master content and mixed-page specimens from their final authoring models into codec inputs.</summary>
 internal static class CandidateModelProjection {
     internal static CandidatePublicationSpec SingleMasterContent(PublisherDocument document) {
         if (document.HasNativeSource || document.MasterPages.Count != 1

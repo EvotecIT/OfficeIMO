@@ -30021,19 +30021,22 @@
     "allNativeNoopControls": 16
   },
   "canonicalMasterModelProjection": {
-    "scope": "Opt-in single-master writer specimen derives codec inputs from the final source-free public authoring model; no public native-creation admission.",
+    "scope": "Opt-in master-content and mixed-object-pages specimens derive codec inputs from the final source-free public authoring model; no public native-creation admission.",
     "existingCandidateSha256": "e955c5eeb8862cefa0113831f95e7f783eac1155ccc446437f7d4654b96bef2f",
     "unchangedNativeBytes": true,
     "editedCandidateSha256": "72c00131cb675de8958a73bebad58a8e8b298f7193bbd7aacc049d3607c45130",
-    "publisherSha256": "30e0f353f2cc6020caa8724dbc52baceb3ea8c4da722ddbe179a884ac44a4e29",
+    "publisherSha256": "8affb8f4affcd96e409d8e11132e68c3b7d9afc4c47e3d8a1e12e0a889ca455c",
     "proof": [
       "PreservesExistingMasterContentNativeBytes",
       "EncodesFinalModelEditsOrderOwnershipAndSharedAssets",
       "RefusesImportedPublicationsAsSourceFreeCreation",
       "RefusesUnqualifiedFrameLayoutInsteadOfDroppingIt",
-      "RefusesNonRectangleArtworkInsteadOfEncodingARectangle"
+      "RefusesNonRectangleArtworkInsteadOfEncodingARectangle",
+      "PreservesExistingMixedPageNativeBytes",
+      "EncodesLateMixedPageEditsAndOrderWithoutDuplicatingSharedAssets"
     ],
-    "comparison": "Current master-content CLI output is byte-exact with pre-change output. Edited-model proof reloads actual encoded bytes and asserts final order, ownership, geometry, paint, text/font and shared asset bytes/identity.",
+    "comparison": "Current master-content and mixed-object-pages CLI outputs are byte-exact with their pre-change outputs. Edited-model proof reloads actual encoded bytes and asserts final order, ownership, geometry, paint, text/font and shared asset bytes/identity, including an empty middle page and empty master in the mixed profile.",
+    "mixedCandidateSha256": "86e117bd19d3f4c4545670ae56988e68962279a2306bc9275d7a7ea270c4573e",
     "nativeAcceptance": "No new native observation; existing exact candidate retains its prior qualification limits.",
     "limits": [
       "One centered master, Letter pages and explicit assignment to every physical page.",
