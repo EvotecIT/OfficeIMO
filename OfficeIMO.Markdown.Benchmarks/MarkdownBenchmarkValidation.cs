@@ -11,7 +11,7 @@ internal static class MarkdownBenchmarkValidation {
         string markdown,
         MarkdownLoadOptions officeOptions,
         MarkdownHtmlExportOptions officeHtmlOptions) {
-        string officeHtml = NormalizeHtml(MarkdownReader.ParseSemantic(markdown, officeOptions).ToHtml(officeHtmlOptions));
+        string officeHtml = NormalizeHtml(MarkdownBenchmarkParsing.ParseSemantic(markdown, officeOptions).ToHtml(officeHtmlOptions));
         string markdigHtml = NormalizeHtml(Markdig.Markdown.ToHtml(markdown, MarkdigCommonMarkPipeline));
         if (string.Equals(officeHtml, markdigHtml, StringComparison.Ordinal)) {
             return;
