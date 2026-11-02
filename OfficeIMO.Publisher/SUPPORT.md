@@ -110,9 +110,9 @@ still consume the image-processing byte budget.
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
 | Editable vector artwork | `PublisherPage.Shapes` records owner, stable ID, point bounds and placement availability; bounds and solid-paint edits for supported basic geometry; shared text-frame placement and current wrap obstacles | Grouped, transformed, hidden, custom-path, gradient, effected and unresolved artwork is inspection-only; detached editable descriptors do not establish native writable support |
 | Primitive creation | Rectangle, rounded rectangle, ellipse and nondegenerate line descriptors append to qualified document/master pages; shared publication allocator and current SVG/PDF scenes | No native records; unsupported geometry/effects are rejected; new shapes have no story or wrap references |
-| In-memory edits | Document-owned replacement of complete non-table story paragraphs and mapped table-cell paragraphs, bounds changes for qualified frames/tables, and image replacement/bounds changes for supported rectangular PNG/JPEG picture placements; stable IDs and ownership, explicit object order, fresh scenes, text ranges and overflow | Picture and table bounds edits reject unsupported graphic placement. Cell edits reject conflicting grids, unsafe partitions and stories also used by ordinary frames; no table topology/styling changes or arbitrary relinking. Native saving accepts only the separate source-edit profile; old references remain snapshots |
+| In-memory edits | Document-owned replacement of complete non-table story paragraphs and mapped table-cell paragraphs, bounds changes for qualified frames/tables, and image replacement/bounds changes for supported rectangular PNG/JPEG picture placements; stable IDs and ownership, explicit object order, fresh scenes, text ranges and overflow | Picture and table bounds edits reject unsupported graphic placement. Cell edits reject conflicting grids, unsafe partitions and stories also used by ordinary frames; no imported table topology/styling changes or arbitrary relinking. Native saving accepts only the separate source-edit profile; old references remain snapshots |
 | Object stacking | `PublisherPage.ObjectIds` exposes the mixed back-to-front order; `SetPageObjectOrder` changes an exact permutation on a document/master page, with fresh SVG/PDF scenes and qualified existing-source native saving | Existing IDs, ownership and story links remain fixed. Qualified rectangular wrap relationships regenerate during ordering and bounds edits. Groups, unqualified side/outline/master wrapping and split native sibling scopes remain unsupported; source-free native output remains unavailable |
-| Table creation | Empty unmerged borderless grids on qualified document/master pages; copied positive finite tracks, one new complete story, shared table/story identifier allocation and current SVG/PDF/Reader projection | No merged-cell authoring, cell decoration or native PUB records; text/model/projection limits and transactional failure behavior apply |
+| Table creation | Empty borderless grids on qualified document/master pages; `MergeTableCells` joins complete authored cells into rectangular spans while retaining styled paragraphs and tracks; one complete story, shared table/story identifier allocation and current SVG/PDF/Reader projection | Imported native topology, cell decoration and public native PUB creation remain unsupported; partial span overlaps are refused; text/model/projection limits and transactional failure behavior apply |
 | Page/master authoring | Source-free `Create` with one empty physical page; appended same-size physical pages, centered single masters and atomic left/right master pairs; typed master-side metadata; explicit qualified direct assignment or clearing; existing-source assignment/clearing can save natively | No page resizing, deletion/reordering, cross-page object moves, automatic parity selection or master inheritance; unqualified background/registration/reference/display records reject assignment; new topology cannot save natively |
 | Ordinary text creation | `AddTextFrame` creates a complete independent styled story and resolved one-frame chain on a qualified document/master page; one column, zero gap/insets, top alignment, no paint/transform/wrap; existing continuation API handles document-page chains | Authored ordinary stories have no implicit final terminator; full overflow is retained. Frame/story IDs reserve atomically; master-owned stories cannot continue across physical pages; no native text records are authored |
 | Text-frame layout edits | `SetTextFrameLayout` replaces equal-width columns/full intercolumn gap, Core padding and Top/Center/Bottom alignment on qualified resolved document/master frames, including mixed text artwork. Imported frames can use the bounded native source-save profile; snapshots expose operation-specific eligibility | No table stories/aliases, grouped/transformed/unresolved placement, native balancing, distributed alignment or vertical writing. Unqualified native layout overrides remain read-only for this operation; bounds/read behavior stays separate. Native saving requires exact distances and safely editable local properties/chunk-directory records; fidelity remains Unassessed |
@@ -995,9 +995,29 @@ third paragraph in the final cell while retaining the other cells and geometry;
 native inspection and PDF export confirm the result. The 12×8 creation and edit
 use multiple character and paragraph formatting pages. The specimen range is
 not a format maximum; creation retains a single Quill descriptor-directory
-limit. These operations do not qualify native editing or resave/reopen. Merged
-and styled table authoring, dynamic row sizing, generic public native creation
-and repair-free opening remain unqualified.
+limit. Those read-only operations do not qualify native editing or resave/reopen.
+Styled table authoring, dynamic row sizing, generic public native creation and
+repair-free opening remain unqualified.
+
+### Authored table merges
+
+`MergeTableCells` joins a rectangle of complete cells in an authored table,
+retaining their styled paragraphs in existing definition order in the new
+anchor. Grid tracks, other cells and old snapshots remain intact. Repeating a
+range already occupied by one complete cell makes no semantic change; ranges
+that split a span and changes to imported native topology are refused.
+
+The `mergedTableCreation` qualification record covers a source-free three-row,
+four-column borderless table with horizontal, vertical and 2×2 merged owners,
+unequal tracks and seven logical cells. The independent native control stores
+its block cell after another row's cell, qualifying ownership independently of
+row-major ordering. Initial native opening/PDF export, SaveAs and reopen retain
+all spans, cell text and tracks. Public source saves clear the horizontal cell
+and grow the vertical and block cells without changing their ownership. Initial
+and resaved native PDFs match independent native controls exactly at 100 dpi.
+The OfficeIMO PDF retains the content but has a baseline offset; native/managed
+pixel parity is not qualified. These specimens do not qualify table fills,
+borders, dynamic row sizing, repair-free opening or public native creation.
 
 The internal `frame-layout` and `frame-layout-edited` creation specimens carry
 six frames on two pages from public `SetTextFrameLayout` snapshots into the

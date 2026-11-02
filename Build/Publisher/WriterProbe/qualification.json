@@ -32724,5 +32724,338 @@
     ],
     "canClosePUB00": false,
     "canPromotePublicNativeCreation": false
+  },
+  "currentRepairPathBoundary": {
+    "scope": "Current-build static repair-path boundary; no repair-positive or new runtime repair trace.",
+    "nativeBinary": {
+      "version": "16.0.20527.20112",
+      "sha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a"
+    },
+    "method": "REA6.5.0/Ghidra12.1.4 target binding; bounded5-minute query timed out without completed analysis; current immutable image compared by mapped PE sections and selected unwind bodies, followed by four bounded existing GNU objdump disassemblies.",
+    "providerResult": "No completed current-build Ghidra decompilation. REA closed; owned process and temporary project absent.",
+    "comparison": {
+      "oldSha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed",
+      "identicalSections": [
+        ".text",
+        ".data",
+        ".pdata",
+        ".didat",
+        "sdmprc",
+        ".c2r",
+        ".reloc"
+      ],
+      "differentSections": {
+        ".rdata": 22,
+        ".rsrc": 8
+      },
+      "uniqueExactSelectedBodies": [
+        {
+          "name": "load",
+          "rva": "0x93544",
+          "spanBytes": 3488
+        },
+        {
+          "name": "validator",
+          "rva": "0x82ff4",
+          "spanBytes": 71
+        },
+        {
+          "name": "consent",
+          "rva": "0x191266",
+          "spanBytes": 183
+        },
+        {
+          "name": "diagnostic",
+          "rva": "0x85379c",
+          "spanBytes": 69
+        },
+        {
+          "name": "message",
+          "rva": "0x23f840",
+          "spanBytes": 176
+        },
+        {
+          "name": "storage",
+          "rva": "0x94b64",
+          "spanBytes": 7044
+        },
+        {
+          "name": "current-validator",
+          "rva": "0x83040",
+          "spanBytes": 384
+        }
+      ]
+    },
+    "additionalConsentSites": [
+      {
+        "rva": "0x1804e3",
+        "observation": "Requests66C2 after a saved context flag check; nonaccepted result maps to80040052."
+      },
+      {
+        "rva": "0x198d4c",
+        "observation": "Requests66C2 when saved EDI is nonzero; acceptance returns to47E1F, otherwise80040052."
+      },
+      {
+        "rva": "0x344ef6",
+        "observation": "After status80040043 and globalB45FF8<=0, request66C2; acceptance sets context+1A88=1 and returns40053, otherwise80040052."
+      },
+      {
+        "rva": "0x779316",
+        "observation": "GlobalB45FF8<=0 permits request66C2; context+10 records whether result equals1."
+      }
+    ],
+    "instructionEvidence": [
+      {
+        "name": "alternate-consent-a",
+        "startRva": "0x1804b0",
+        "endRvaExclusive": "0x180505",
+        "sha256": "f97c551ce2b75562d9b39d38cbde9dd911562ac24e806981c379e05e175114ad"
+      },
+      {
+        "name": "alternate-consent-b",
+        "startRva": "0x198d44",
+        "endRvaExclusive": "0x198d70",
+        "sha256": "28885d1e38ced119334dde704b78e99d86b7a8fd1073350cea18e27870964e9b"
+      },
+      {
+        "name": "alternate-consent-c",
+        "startRva": "0x344ed8",
+        "endRvaExclusive": "0x344f21",
+        "sha256": "4c64ba4d1caca2e5a4914426e2f8d80cb2e1ca34c6e3217d21f7ec4992a4461d"
+      },
+      {
+        "name": "alternate-consent-d",
+        "startRva": "0x779300",
+        "endRvaExclusive": "0x77933a",
+        "sha256": "cade198f60f28372ad36941d093e509d40153e102d4848c09bac5c6040e00971"
+      }
+    ],
+    "conclusion": "Additional exact callers require feature/loader and observed-interval attribution before generic-message observations can establish repair-path coverage. No missed event in the earlier trace is established. Successful repair semantics remain unresolved; consent is not a universal repair receipt.",
+    "cancelledControl": "Not rerun; no trust/security consent, instrumentation or target execution in this static batch.",
+    "limits": [
+      "No successful repair-positive control.",
+      "No complete companion-module/alternate-loader or silent-normalization coverage.",
+      "Identical executable code does not establish identical runtime/module behaviour."
+    ],
+    "canClosePUB00": false
+  },
+  "mergedTableCreation": {
+    "sourceBaseCommit": "e2fad38acdb48647ba4bc0d43fe699280945c746",
+    "scope": "Authored model rectangular merges and internal source-free native table specimen; existing fixed-partition source text saving.",
+    "nativeBinary": {
+      "version": "16.0.20527.20112",
+      "sha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+      "macroSecurity": 3
+    },
+    "publicModel": {
+      "api": "MergeTableCells(tableId, firstRow, firstColumn, rowCount, columnCount)",
+      "contract": "Only authored tables; complete intersecting cells, positive bounded counts, styled paragraphs retained in existing definition order, stable tracks/other cells and atomic projection.",
+      "importedNativeTopology": "Refused; existing merged anchor text edits retain fixed topology."
+    },
+    "creation": {
+      "kind": "table-merged",
+      "sourcePublication": null,
+      "bytes": 8704,
+      "sha256": "21343f85132455613677402a7739d449fe7e854f8a8ff9eecaba0fe232ba9c1e",
+      "grid": [
+        3,
+        4
+      ],
+      "logicalCells": 7,
+      "columnWidthsPoints": [
+        90,
+        110,
+        130,
+        150
+      ],
+      "rowHeightsPoints": [
+        42,
+        54,
+        66
+      ],
+      "spans": [
+        {
+          "anchor": [
+            0,
+            0
+          ],
+          "rows": 1,
+          "columns": 2
+        },
+        {
+          "anchor": [
+            1,
+            0
+          ],
+          "rows": 2,
+          "columns": 1
+        },
+        {
+          "anchor": [
+            1,
+            2
+          ],
+          "rows": 2,
+          "columns": 2
+        }
+      ]
+    },
+    "sourceEdit": {
+      "sha256": "3110dde96d4a3ec221484ed1bf0f338557feea3036ec0dfab21ffcf4c068f6ea",
+      "operations": [
+        "Clear horizontal anchor",
+        "Grow vertical owner to2 paragraphs",
+        "Grow rectangular block to3 paragraphs"
+      ],
+      "nativeTopology": "Unchanged"
+    },
+    "controls": [
+      {
+        "case": "TableCreationMerged",
+        "files": [
+          {
+            "name": "native-tablecreationmerged.pub",
+            "sha256": "9d985ad5ff85339ab686e7d58cbff18ad637d2ebed2c872a2c43220bdd729060",
+            "bytes": 93696
+          },
+          {
+            "name": "native-tablecreationmerged.pdf",
+            "sha256": "d0fc3e3996a5b8d518c93a175178b7cd690b59abcb1caf7388b241202da8c184",
+            "bytes": 120494
+          },
+          {
+            "name": "native-tablecreationmerged.json",
+            "sha256": "eb03d8ae8de1ad1b95c54bcd33e387962ba36f3039c08bd562ad6b5da9e95717",
+            "bytes": 6317
+          }
+        ]
+      },
+      {
+        "case": "TableCreationMergedEdited",
+        "files": [
+          {
+            "name": "native-tablecreationmergededited.pub",
+            "sha256": "86cfb5bd02ae2fe887b72f6d70ecfe186d4c690617e81ecbcff9478001b18615",
+            "bytes": 93696
+          },
+          {
+            "name": "native-tablecreationmergededited.pdf",
+            "sha256": "23f74a579a722e537d54244bbecb3b921dfee2e2dd0d6f3afa7789a3db2dee25",
+            "bytes": 115870
+          },
+          {
+            "name": "native-tablecreationmergededited.json",
+            "sha256": "4f51eef7618fccda0398bd4e25309bb8d89690134a9bf224153b8b74b0eb0ec0",
+            "bytes": 6329
+          }
+        ]
+      }
+    ],
+    "nativeOperations": [
+      "Independent corpus authoring and native save/export for initial/edited controls",
+      "Read-only opening and pre-resave inventory/PDF",
+      "Writable copied-snapshot SaveAs",
+      "Read-only native-resave reopen/inventory/PDF"
+    ],
+    "nativeInventory": {
+      "comparisons": 4,
+      "coordinateObservations": 48,
+      "independentControlCoordinateObservations": 24,
+      "allEqual": true,
+      "fields": [
+        "frame bounds",
+        "column/row tracks",
+        "coordinate raw cell text",
+        "columnSpan and rowSpan"
+      ]
+    },
+    "managedReadback": {
+      "files": 6,
+      "logicalCellStates": 42,
+      "tracksSpansTextAndStylesRecovered": true,
+      "order": "Compared by anchor; independent native control has a non-row-major definition order."
+    },
+    "nativeAppearance": {
+      "dpi": 100,
+      "size": [
+        850,
+        1100
+      ],
+      "exactPagePairs": 4,
+      "comparisons": [
+        {
+          "left": "control",
+          "right": "initial",
+          "width": 850,
+          "height": 1100,
+          "changedPixels": 0,
+          "changedRatio": 0.0,
+          "bounds": null,
+          "exact": true
+        },
+        {
+          "left": "initial",
+          "right": "resaved",
+          "width": 850,
+          "height": 1100,
+          "changedPixels": 0,
+          "changedRatio": 0.0,
+          "bounds": null,
+          "exact": true
+        },
+        {
+          "left": "edited-control",
+          "right": "edited-initial",
+          "width": 850,
+          "height": 1100,
+          "changedPixels": 0,
+          "changedRatio": 0.0,
+          "bounds": null,
+          "exact": true
+        },
+        {
+          "left": "edited-initial",
+          "right": "edited-resaved",
+          "width": 850,
+          "height": 1100,
+          "changedPixels": 0,
+          "changedRatio": 0.0,
+          "bounds": null,
+          "exact": true
+        }
+      ]
+    },
+    "managedAppearance": {
+      "dpi": 100,
+      "exact": false,
+      "changedPixels": [
+        6378,
+        6294
+      ],
+      "observation": "All expected content retained; visible baseline offset against native Publisher."
+    },
+    "verification": {
+      "net10PublisherTests": 1100,
+      "net8TableTests": 83,
+      "net472TableTests": 83,
+      "netstandard20Build": "Passed unsigned",
+      "integratedPSWriteOfficeNet8Build": "Passed unsigned",
+      "powerShellWorkflows": 2,
+      "newApiFocusedTests": 9
+    },
+    "reproduction": [
+      "dotnet run --project Build/Publisher/WriterProbe/WriterProbe.csproj -- create table-merged ./merged.pub",
+      "pwsh ./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath ./merged.pub -OutputDirectory ./native-merged"
+    ],
+    "limits": [
+      "Repair-positive/recovery and repair-free acceptance remain unqualified.",
+      "Public source-free native creation remains refused.",
+      "Merged topology editing of imported native tables remains refused.",
+      "Cell decorations, dynamic rows, broader layout, native cell editing and earlier generations remain separate.",
+      "Managed/native pixel parity is not established.",
+      "PowerShell uses the integrated engine and existing conversion workflow; a dedicated merge cmdlet is not provided."
+    ],
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false
   }
 }

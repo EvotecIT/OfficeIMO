@@ -7,7 +7,7 @@ function Get-NativeTableCellInventory {
     .PARAMETER Objects
     Retains observed COM wrappers for the isolated worker's lifetime.
     .OUTPUTS
-    One-based row/column coordinates and raw native text, including paragraph CRs.
+    One-based grid coordinates, raw native text including paragraph CRs, and row/column spans.
     #>
     param($Shape, [Collections.Generic.List[object]] $Objects)
 
@@ -29,6 +29,8 @@ function Get-NativeTableCellInventory {
                 row = $row
                 column = $column
                 text = [string] $text.Text
+                columnSpan = [int] $cell.Width
+                rowSpan = [int] $cell.Height
             }
         }
     }

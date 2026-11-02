@@ -195,9 +195,9 @@ internal static class CandidateModelProjection {
 
     private static void CompleteTable(PublisherTable table) {
         if (table.RowCount < 1 || table.ColumnCount < 1 || table.Cells.Count > ushort.MaxValue
-            || table.Cells.Count != (long)table.RowCount * table.ColumnCount || !table.HasTextMapping
-            || !table.HasPlacement || !table.StoryId.HasValue || table.Cells.Any(cell => cell.RowSpan != 1 || cell.ColumnSpan != 1))
-            throw new NotSupportedException("The table specimen requires a complete unmerged grid within the native 16-bit cell count.");
+            || table.Cells.Sum(cell => (long)cell.RowSpan * cell.ColumnSpan) != (long)table.RowCount * table.ColumnCount || !table.HasTextMapping
+            || !table.HasPlacement || !table.StoryId.HasValue)
+            throw new NotSupportedException("The table specimen requires a complete grid within the native 16-bit cell count.");
     }
 
     private static IReadOnlyList<PublisherTextFrame> FramePage(PublisherPage page) {

@@ -600,6 +600,7 @@ if (table.CanEditBounds)
 
 var addedTable = publication.AddTable(publication.Pages[0].Id, 36, 324,
     new[] { 120D, 120D }, new[] { 30D, 30D });
+publication.MergeTableCells(addedTable.Id, 0, 0, rowCount: 1, columnCount: 2);
 publication.ReplaceTableCellParagraphs(addedTable.Id, 0, 0, new[] {
     new OfficeRichTextParagraph(new[] {
         new OfficeRichTextRun("Item", 10, OfficeColor.Black, fontFamily: "Arial")
@@ -614,6 +615,12 @@ preserves every other cell, the complete styled story and each cell's paragraph
 terminator convention, including when clearing and refilling a cell. Compatible
 tables sharing a story update together. Conflicting cell grids, unresolved
 boundaries and stories also referenced by ordinary text frames reject cell edits.
+`MergeTableCells` joins complete cells in an authored table. It retains their
+styled paragraphs in existing cell-definition order and preserves the grid
+tracks. The requested rectangle must contain every intersecting cell completely;
+partial overlaps and imported native topology are refused. Read and export the
+new table snapshot from `Pages` after editing. The public native save path does
+not serialize newly authored tables.
 Complete text remains inspectable when a cell overflows its rendered frame.
 Clearing through an empty paragraph collection retains the final paragraph's
 formatting and leaves typing unspecified. Native saving retains that cell's CR

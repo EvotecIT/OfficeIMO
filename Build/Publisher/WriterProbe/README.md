@@ -619,7 +619,7 @@ Both creation variants and public source edits on generated, native-normalized
 and independently authored files match native controls across ten stage/page
 comparisons. The compact source profile admits validated table descriptors;
 the existing table writer remaps cell boundaries while preserving opaque layout
-data. Merged cells, table fills/borders, dynamic row sizing, generic public native
+data. Table fills/borders, dynamic row sizing, generic public native
 creation and repair-free opening remain unqualified.
 
 The `rectangularTableCreation` record extends the separate table profile to
@@ -633,6 +633,18 @@ page links and indexes. The two original 2×2 outputs and four newsletter source
 saves remain byte-identical. Creation still requires one Quill descriptor
 directory and refuses formatting that exceeds it. These read-only native
 operations do not qualify native editing, resave/reopen or repair-free opening.
+
+The `table-merged` specimen uses public `MergeTableCells` before filling a
+three-by-four grid. It carries horizontal, vertical and rectangular spans in
+seven logical cells through the existing cell-record and Quill story encoders.
+The `mergedTableCreation` record compares initial native export and native
+save/reopen with independent `TableCreationMerged` controls. Public source edits
+clear and grow the merged owners and match `TableCreationMergedEdited` before
+and after native resave. Span/track/text readback and four native PDF page pairs
+are exact at 100 dpi. The public model retains styled paragraphs during merging;
+imported topology changes remain refused. Native/managed PDF parity, decorated
+tables, dynamic row sizing and the public source-free native writer remain
+unqualified.
 
 The generated file and a public `SetPictureBounds` edit each match independently
 authored `ImagePages` and `ImagePagesEdited` controls before and after native

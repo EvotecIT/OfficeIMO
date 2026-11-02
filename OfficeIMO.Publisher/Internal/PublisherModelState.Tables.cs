@@ -3,6 +3,9 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Publisher.Internal;
 
 internal sealed partial class PublisherModelState {
+    internal PublisherModelState MergeTableCells(uint id, int row, int column, int rowCount, int columnCount, CancellationToken token) =>
+        WithPublication(_publication.MergeTableCells(id, row, column, rowCount, columnCount, _decoded.Options, token));
+
     internal PublisherModelState ReplaceTableCell(uint tableId, int row, int column,
         IReadOnlyList<OfficeRichTextParagraph> paragraphs, CancellationToken token) =>
         WithPublication(_publication.ReplaceTableCell(tableId, row, column, paragraphs, _decoded.Options, token));

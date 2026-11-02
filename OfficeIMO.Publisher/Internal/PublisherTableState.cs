@@ -34,6 +34,10 @@ internal sealed class PublisherTableState {
     internal bool IsAuthored { get; }
     internal OfficeShape? CreatePaint() => _paint?.Clone();
 
+    internal PublisherTableState WithCells(IReadOnlyList<PublisherTableCellSlot> cells) =>
+        new(Id, StoryId, PageId, X, Y, Width, Height, PageTransform, HasPlacement, Hidden,
+            Columns, Rows, cells, Padding, _paint, BoundsEditLimitation, IsAuthored);
+
     internal bool HasTextMapping(PublisherTextState text) => StoryId.HasValue && text.Stories.ContainsKey(StoryId.Value)
         && text.TableStories.TryGetValue(StoryId.Value, out PublisherTableStory? partition) && partition.Segments.Count == Cells.Count;
 

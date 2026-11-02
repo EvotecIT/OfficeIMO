@@ -1,0 +1,40 @@
+{
+  "schema": "officeimo.publisher.native-merged-table-fixture.v1",
+  "license": "MIT",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableCreationMergedEdited",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20112",
+    "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "observed": "Borderless3x4 grid; columns90/110/130/150pt, rows42/54/66pt; horizontal1x2, vertical2x1 and block2x2 owners, seven logical cells; Arial12/18pt leading, independent label.",
+  "profile": "Clear horizontal cell and grow vertical/block paragraphs",
+  "files": [
+    {
+      "name": "native-tablecreationmergededited.pub",
+      "sha256": "86cfb5bd02ae2fe887b72f6d70ecfe186d4c690617e81ecbcff9478001b18615",
+      "bytes": 93696
+    },
+    {
+      "name": "native-tablecreationmergededited.pdf",
+      "sha256": "23f74a579a722e537d54244bbecb3b921dfee2e2dd0d6f3afa7789a3db2dee25",
+      "bytes": 115870
+    },
+    {
+      "name": "native-tablecreationmergededited.json",
+      "sha256": "4f51eef7618fccda0398bd4e25309bb8d89690134a9bf224153b8b74b0eb0ec0",
+      "bytes": 6329
+    }
+  ],
+  "limits": "Native-produced comparison reference; does not qualify repair-free opening, decorated/dynamic tables or the public source-free native writer."
+}
