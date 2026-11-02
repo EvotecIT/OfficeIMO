@@ -130,7 +130,7 @@ namespace OfficeIMO.Tests {
             first.Strikethrough = true;
             first.Capitalization = PowerPointCapitalization.SmallCaps;
             first.SetSuperscript();
-            PowerPointTextRun second = textBox.Paragraphs[0].AddRun(" caps");
+            PowerPointTextRun second = textBox.Paragraphs[0].AddText(" caps");
             second.Capitalization = PowerPointCapitalization.AllCaps;
             second.SetSubscript();
 
@@ -245,7 +245,7 @@ namespace OfficeIMO.Tests {
             PowerPointTextRun eastAsian = paragraph.Runs[0];
             eastAsian.Run.RunProperties = new A.RunProperties { Language = "ja-JP" };
             eastAsian.RunProperties.Append(new A.EastAsianFont { Typeface = "+mj-ea" });
-            PowerPointTextRun complexScript = paragraph.AddRun(" العربية");
+            PowerPointTextRun complexScript = paragraph.AddText(" العربية");
             complexScript.Run.RunProperties = new A.RunProperties { Language = "ar-SA" };
             complexScript.RunProperties.Append(new A.ComplexScriptFont { Typeface = "+mn-cs" });
 
@@ -289,7 +289,7 @@ namespace OfficeIMO.Tests {
                     Underline = A.TextUnderlineValues.Single,
                     Strike = A.TextStrikeValues.SingleStrike
                 });
-            PowerPointTextRun explicitOff = textBox.Paragraphs[0].AddRun(" off");
+            PowerPointTextRun explicitOff = textBox.Paragraphs[0].AddText(" off");
             explicitOff.Run.RunProperties = new A.RunProperties {
                 Bold = false,
                 Italic = false,
@@ -395,7 +395,7 @@ namespace OfficeIMO.Tests {
                 run.Color = "336699";
             });
             paragraph.AddLineBreak();
-            paragraph.AddRun("After").Italic = true;
+            paragraph.AddText("After").Italic = true;
 
             PowerPointParagraphInline field = Assert.Single(paragraph.InlineNodes,
                 node => node.Kind == PowerPointParagraphInlineKind.Field);
@@ -563,12 +563,13 @@ namespace OfficeIMO.Tests {
             authoredSlide.Hidden = true;
             authoredSlide.BackgroundColor = "112233";
             PowerPointTextBox mixedText = authoredSlide.AddTextBox("Hello ",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(80));
-            mixedText.Paragraphs[0].AddRun("Slides", run => {
+            {
+                PowerPointTextRun run = mixedText.Paragraphs[0].AddText("Slides");
                 run.Bold = true;
                 run.Strikethrough = true;
                 run.Capitalization = PowerPointCapitalization.SmallCaps;
                 run.SetSuperscript();
-            });
+            }
             authoredSlide.AddTextShape(OfficePresetShapeType.RightArrow, "Next step", OfficeIMO.OfficeLength.Points(340), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(160), OfficeIMO.OfficeLength.Points(80));
             PowerPointTableCell styledCell = authoredSlide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(130),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60)).GetCell(0, 0);
             styledCell.Text = "Styled cell";
@@ -1417,7 +1418,7 @@ namespace OfficeIMO.Tests {
             PowerPointParagraph paragraph = presentation.AddSlide()
                 .AddTextBox("First")
                 .Paragraphs.Single();
-            PowerPointTextRun second = paragraph.AddRun("Second");
+            PowerPointTextRun second = paragraph.AddText("Second");
             string baseline = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
 
             second.Capitalization = PowerPointCapitalization.SmallCaps;

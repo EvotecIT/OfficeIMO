@@ -488,7 +488,7 @@ public sealed class OpenDocumentConversionContracts {
             .GetCell(0, 0);
         IReadOnlyList<PowerPointParagraph> sourceParagraphs = sourceCell.SetParagraphs(new[] { "Bold", "Second" });
         sourceParagraphs[0].Runs[0].Bold = true;
-        PowerPointTextRun linkedRun = sourceParagraphs[0].AddRun(" link");
+        PowerPointTextRun linkedRun = sourceParagraphs[0].AddText(" link");
         linkedRun.Italic = true;
         linkedRun.SetHyperlink("https://example.com/table");
         sourceParagraphs[1].Runs[0].Underline = true;

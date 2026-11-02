@@ -313,7 +313,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         paragraph.Text = slices[0].Text;
         ApplySemanticRun(paragraph.Runs[0], slices[0].Run, hyperlinkPolicy, preserveTargetText: true);
         for (int index = 1; index < slices.Count; index++) {
-            PptCore.PowerPointTextRun target = paragraph.AddRun(slices[index].Text);
+            PptCore.PowerPointTextRun target = paragraph.AddText(slices[index].Text);
             ApplySemanticRun(target, slices[index].Run, hyperlinkPolicy, preserveTargetText: true);
         }
         return true;

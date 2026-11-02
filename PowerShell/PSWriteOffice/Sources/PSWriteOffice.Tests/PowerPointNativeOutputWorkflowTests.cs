@@ -19,14 +19,14 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
         Invoke(runspace, """
             $script:physical = PowerPointSlide -Document $deck -Title 'Status' -PassThru {
                 $script:first = PowerPointParagraph 'Repeated' -PassThru
-                $script:firstRun = $first.AddRun(' linked')
+                $script:firstRun = $first.AddText(' linked')
                 $firstRun.Bold = $true
                 $firstRun.SetHyperlink('https://contoso.com/before')
                 $script:second = PowerPointParagraph 'Repeated' -PassThru
                 $script:noteSlide = PowerPointNotes 'Original notes' -PassThru
                 $noteSlide.Notes.Text = 'Edited during collection'
                 $first.Text = 'First edited during collection'
-                $script:richRun = $first.AddRun(' linked')
+                $script:richRun = $first.AddText(' linked')
                 $richRun.Italic = $true
                 $richRun.SetHyperlink('https://contoso.com/live')
             }

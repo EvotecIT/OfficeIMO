@@ -30,7 +30,7 @@ public sealed class PowerPointNativeTextLayoutTests {
         PowerPointTextBox wrapped = slide.AddTextBox("ALPHA",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(68),global::OfficeIMO.OfficeLength.Points(175),global::OfficeIMO.OfficeLength.Points(90));
         wrapped.FontName = "NativeFixture";
         wrapped.FontSize = global::OfficeIMO.OfficeLength.Points(13);
-        wrapped.Paragraphs[0].AddRun(" beta gamma delta epsilon zeta eta theta", run => run.Italic = true);
+        wrapped.Paragraphs[0].AddText(" beta gamma delta epsilon zeta eta theta").Italic = true;
 
         PowerPointTextBox linked = slide.AddTextBox("LINKONE LINKTWO LINKTHREE ",global::OfficeIMO.OfficeLength.Points(230),global::OfficeIMO.OfficeLength.Points(15),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(90));
         linked.FontName = "NativeFixture";
@@ -38,7 +38,7 @@ public sealed class PowerPointNativeTextLayoutTests {
         linked.Paragraphs[0].Runs[0].SetHyperlink("https://officeimo.net/native-layout");
         linked.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
         linked.Paragraphs[0].Alignment = PowerPointTextAlignment.Center;
-        linked.Paragraphs[0].AddRun("TAIL", run => run.Bold = true);
+        linked.Paragraphs[0].AddText("TAIL").Bold = true;
 
         PowerPointTextBox spaced = slide.AddTextBox("FIRST",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(175),global::OfficeIMO.OfficeLength.Points(375),global::OfficeIMO.OfficeLength.Points(75));
         spaced.FontName = "NativeFixture";
@@ -95,7 +95,7 @@ public sealed class PowerPointNativeTextLayoutTests {
             paragraph.AddField(" beta gamma", "slidenum", "{44444444-4444-4444-4444-444444444444}",
                 run => run.Italic = true);
         } else {
-            paragraph.AddRun(" beta gamma", run => run.Italic = true);
+            paragraph.AddText(" beta gamma").Italic = true;
         }
 
         var options = new PowerPointPdfExportOptions {

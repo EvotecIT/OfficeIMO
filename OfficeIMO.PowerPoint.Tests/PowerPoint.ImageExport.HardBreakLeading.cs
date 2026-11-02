@@ -34,8 +34,8 @@ namespace OfficeIMO.Tests {
                 paragraph = box.Paragraphs[0];
             }
             paragraph.Runs[0].FontSize = OfficeLength.Points(15);
-            paragraph.AddLineBreak().AddText("Leading middle", run => run.FontSize = OfficeLength.Points(middleSize));
-            paragraph.AddLineBreak().AddText("Leading last", run => run.FontSize = OfficeLength.Points(15));
+            paragraph.AddLineBreak().AddText("Leading middle").FontSize = OfficeLength.Points(middleSize);
+            paragraph.AddLineBreak().AddText("Leading last").FontSize = OfficeLength.Points(15);
             paragraph.SetLineSpacing(OfficeLength.Points(20.25));
 
             using var saved = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes()));
@@ -57,8 +57,8 @@ namespace OfficeIMO.Tests {
             box.SetTextMargins(OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(0));
             var paragraph = box.AddParagraph("Leading first");
             paragraph.Runs[0].FontSize = OfficeLength.Points(15);
-            paragraph.AddLineBreak().AddText("Leading middle", run => run.FontSize = OfficeLength.Points(15));
-            paragraph.AddLineBreak().AddText("Leading last", run => run.FontSize = OfficeLength.Points(15));
+            paragraph.AddLineBreak().AddText("Leading middle").FontSize = OfficeLength.Points(15);
+            paragraph.AddLineBreak().AddText("Leading last").FontSize = OfficeLength.Points(15);
             paragraph.SetLineSpacing(OfficeLength.Points(20.25));
 
             PowerPointSlideVisualInfo snapshot = presentation.Slides[0].CreateVisualSnapshot();

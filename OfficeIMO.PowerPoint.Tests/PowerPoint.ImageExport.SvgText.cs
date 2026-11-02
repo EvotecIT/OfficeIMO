@@ -28,7 +28,7 @@ public partial class PowerPointImageExportTests {
         A.RunProperties properties = run.RunProperties ??= new A.RunProperties();
         properties.RemoveAllChildren<A.SolidFill>();
         properties.InsertAt(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Accent2 }), 0);
-        title.Paragraphs[0].AddRun(" bold", run => { run.Bold = true; run.FontSize = global::OfficeIMO.OfficeLength.Points(18); });
+        title.Paragraphs[0].AddText(" bold").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(18));
 
         PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(64),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(64));
         table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(110),global::OfficeIMO.OfficeLength.Points(110));

@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
                     IReadOnlyList<PowerPointParagraph> paragraphs = cell.SetParagraphs(new[] { "First", "Second" }, paragraph => {
                         paragraph.SetLineSpacing(global::OfficeIMO.OfficeLength.Points(18));
                     });
-                    paragraphs[0].AddRun(" bold", run => run.Bold = true);
+                    paragraphs[0].AddText(" bold").Bold = true;
                     presentation.Save();
                 }
 

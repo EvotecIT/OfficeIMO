@@ -156,8 +156,8 @@ namespace OfficeIMO.PowerPoint {
                 paragraph.SetItalic(Italic.Value);
             }
             if (UnderlineStyle.HasValue) {
-                paragraph.SetUnderline(UnderlineStyle.Value != PowerPointUnderlineStyle.None);
-                paragraph.GetDefaultRun().UnderlineStyle = UnderlineStyle;
+                PowerPointUnderlineStyle underlineStyle = UnderlineStyle.Value;
+                paragraph.FormatRuns(run => run.UnderlineStyle = underlineStyle);
             } else if (Underline != null) paragraph.SetUnderline(Underline.Value);
             if (Strikethrough != null) {
                 paragraph.SetStrikethrough(Strikethrough.Value);

@@ -66,7 +66,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointTextBox textBox = source.AddSlide().AddTextBox("Heavy",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         textBox.Paragraphs[0].Runs[0].UnderlineStyle = PowerPointUnderlineStyle.WavyHeavy;
-        textBox.Paragraphs[0].AddRun(" Words").UnderlineStyle = PowerPointUnderlineStyle.Words;
+        textBox.Paragraphs[0].AddText(" Words").UnderlineStyle = PowerPointUnderlineStyle.Words;
 
         OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
 
@@ -405,7 +405,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
                 run.UnderlineStyle = PowerPointUnderlineStyle.Wavy;
                 run.SetSuperscript();
                 run.Color = "336699";
-            }).AddRun("After");
+            }).AddText("After");
             Assert.Equal(new[] {
                 PowerPointParagraphInlineKind.Run,
                 PowerPointParagraphInlineKind.LineBreak,

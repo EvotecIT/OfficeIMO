@@ -177,7 +177,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         PowerPointTextBox box = first.AddTextBox("FIRST ",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(160));
         box.FontName = "Arial"; box.FontSize = global::OfficeIMO.OfficeLength.Points(16);
         box.Paragraphs[0].Runs[0].SetHyperlink(second);
-        box.Paragraphs[0].AddRun("SECOND THIRD FOURTH FIFTH SIXTH").SetHyperlink(third);
+        box.Paragraphs[0].AddText("SECOND THIRD FOURTH FIFTH SIXTH").SetHyperlink(third);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
         using var reopened = PowerPointDocument.Load(saved);
         PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence();

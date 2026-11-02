@@ -202,7 +202,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             PowerPointTextRun AddInlineRun(string text) {
                 PowerPointTextRun result = useExistingRun
                     ? existingRuns[0]
-                    : targetParagraph.AddRun(string.Empty);
+                    : targetParagraph.AddText(string.Empty);
                 useExistingRun = false;
                 result.Text = text;
                 return result;
@@ -227,7 +227,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 // A multi-line seed is one run per line; each line carries the paragraph formatting.
                 IReadOnlyList<PowerPointTextRun> runs = useExistingRun
                     ? existingRuns
-                    : new[] { targetParagraph.AddRun(string.Empty) };
+                    : new[] { targetParagraph.AddText(string.Empty) };
                 foreach (PowerPointTextRun run in runs) {
                     unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, run, options,
                         ref approximatedFontFamilyLists, ref unsupportedFontFamilies);

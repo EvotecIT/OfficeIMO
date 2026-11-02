@@ -20,7 +20,9 @@ public sealed class PowerPointTextFittingRegressionTests {
         var box = CreateBox(presentation, "FIRST\nSECOND", 220, 140);
         box.Paragraphs[0].Runs[0].FontSize = global::OfficeIMO.OfficeLength.Points(24);
         box.Paragraphs[0].Runs[0].SetHyperlink("https://officeimo.com/text-fitting");
-        box.Paragraphs[0].AddRun("TAIL", run => { run.FontSize = global::OfficeIMO.OfficeLength.Points(16); run.Bold = true; });
+        {
+            PowerPointTextRun run = box.Paragraphs[0].AddText("TAIL"); run.FontSize = global::OfficeIMO.OfficeLength.Points(16); run.Bold = true;
+        }
         if (absoluteLeading) box.Paragraphs[0].LineSpacing = global::OfficeIMO.OfficeLength.Points(30);
         else box.Paragraphs[0].LineSpacingMultiplier = 1.2D;
         box.SetTextAutoFit(PowerPointTextAutoFit.Normal, new PowerPointTextAutoFitOptions(50, 20));

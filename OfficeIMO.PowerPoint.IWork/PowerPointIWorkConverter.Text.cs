@@ -307,7 +307,7 @@ public static partial class PowerPointIWorkConverter {
             run.Text = text;
             canReuseInitialRun = false;
         } else {
-            run = paragraph.AddRun(text);
+            run = paragraph.AddText(text);
         }
         if (defaultStyle != null) ApplyTextStyle(run, defaultStyle);
         ApplyTextStyle(run, style);

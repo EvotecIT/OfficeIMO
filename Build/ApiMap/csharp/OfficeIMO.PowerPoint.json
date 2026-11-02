@@ -12222,6 +12222,48 @@
       "files": [
         "OfficeIMO.PowerPoint/PowerPointDocument.UnifiedLifecycle.cs"
       ]
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointParagraph.AddText(string text, Action<PowerPointTextRun>? configure = null) : PowerPointParagraph",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.PowerPoint.PowerPointParagraph.AddText(string text) : PowerPointTextRun",
+      "replacement": "Format the returned run: paragraph.AddText(\"x\").SetBold(). Replace the configure callback with statements on the returned run; chain further text from the paragraph.",
+      "reason": "AddText returns the created run in Word, PowerPoint and PDF, so formatting after AddText formats that text.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointParagraph.AddRun(string text, Action<PowerPointTextRun>? configure = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.PowerPoint.PowerPointParagraph.AddText(string text) : PowerPointTextRun",
+      "reason": "AddRun and AddText appended the same run; AddText is the shared name.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointTableCell.AddRun(string text, Action<PowerPointTextRun>? configure = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.AddText(string text) : PowerPointTextRun",
+      "reason": "AddText is the shared name for appending a run.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointParagraph.AddFormattedText(string text, bool bold = false, bool italic = false, PowerPointUnderlineStyle? underline = null, bool strikethrough = false) : PowerPointParagraph",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.PowerPoint.PowerPointParagraph.AddFormattedText(...) : PowerPointTextRun",
+      "reason": "Returns the created run, like Word's AddFormattedText.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointParagraph.SetBold/SetItalic/SetUnderline/SetStrikethrough/SetFontSize/SetFontName/SetColor/SetHighlightColor",
+      "kind": "method",
+      "action": "change",
+      "new": "Same methods, applied to every run in the paragraph; PowerPointTextRun.SetBold/SetItalic/SetUnderline/SetStrikethrough/SetFontSize/SetColor/... format one run",
+      "replacement": "To format only the text you just added, call the setter on the run returned by AddText.",
+      "reason": "The paragraph setters used to format a hidden 'current run' (the last run written through that paragraph object). There is no current-run cursor any more.",
+      "category": "authoring"
     }
   ],
   "packageMoves": [

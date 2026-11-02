@@ -344,7 +344,7 @@ public partial class PowerPointSaveAsPdfTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(38));
         textBox.SetParagraphs(new[] { string.Empty });
-        PowerPointTextRun run = textBox.Paragraphs[0].AddRun("OfficeIMO");
+        PowerPointTextRun run = textBox.Paragraphs[0].AddText("OfficeIMO");
         run.SetHyperlink("https://officeimo.net/");
 
         PdfCore.PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence();

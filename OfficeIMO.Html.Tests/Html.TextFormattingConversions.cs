@@ -546,7 +546,7 @@ public class HtmlTextFormattingConversionTests {
         first.UnderlineStyle = PowerPointUnderlineStyle.WavyDouble;
         first.Capitalization = PowerPointCapitalization.SmallCaps;
         first.Language = "pl-PL";
-        PowerPointTextRun second = paragraph.AddRun("Second");
+        PowerPointTextRun second = paragraph.AddText("Second");
         second.Italic = true;
         second.StrikeStyle = PowerPointStrikeStyle.Double;
         second.BaselinePercent = -25D;
@@ -668,7 +668,7 @@ public class HtmlTextFormattingConversionTests {
         using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointParagraph paragraph = source.AddSlide().AddTextBox("Before ").Paragraphs.Single();
         paragraph.AddField("1", "slidenum", "{11111111-1111-1111-1111-111111111111}");
-        paragraph.AddRun(" after");
+        paragraph.AddText(" after");
 
         string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
         Assert.Contains("data-officeimo-powerpoint-field=\"true\"", html, StringComparison.Ordinal);

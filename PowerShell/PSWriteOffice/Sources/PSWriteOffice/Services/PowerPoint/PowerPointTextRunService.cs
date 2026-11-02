@@ -20,7 +20,7 @@ internal static class PowerPointTextRunService
         {
             var run = first && cell.Runs.Count > 0 && string.IsNullOrEmpty(cell.Runs[0].Text)
                 ? cell.Runs[0]
-                : cell.AddRun(ToPowerPointText(spec));
+                : cell.AddText(ToPowerPointText(spec));
             if (first && string.IsNullOrEmpty(run.Text))
             {
                 run.Text = ToPowerPointText(spec);

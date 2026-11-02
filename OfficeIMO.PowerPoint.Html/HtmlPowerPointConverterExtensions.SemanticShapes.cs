@@ -256,7 +256,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                         span.GetAttribute("data-officeimo-powerpoint-field-id"),
                         run => ApplyTargetSemanticRun(run, span, hyperlinkPolicy));
                 } else {
-                    PptCore.PowerPointTextRun target = paragraph.AddRun(span.TextContent);
+                    PptCore.PowerPointTextRun target = paragraph.AddText(span.TextContent);
                     ApplyTargetSemanticRun(target, span, hyperlinkPolicy);
                 }
             }
@@ -428,7 +428,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         ApplySemanticRun(first, runs[0], hyperlinkPolicy);
         for (int index = 1; index < runs.Count; index++) {
             HtmlSemanticRun source = runs[index];
-            PptCore.PowerPointTextRun target = paragraph.AddRun(source.Text);
+            PptCore.PowerPointTextRun target = paragraph.AddText(source.Text);
             ApplySemanticRun(target, source, hyperlinkPolicy);
         }
     }

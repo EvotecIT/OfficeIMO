@@ -116,7 +116,7 @@ public sealed class PowerPointPdfTableFidelityTests {
         cell.Bold = true;
         cell.FontSize = global::OfficeIMO.OfficeLength.Points(28);
         cell.Color = "FF0000";
-        cell.AddRun(" regular");
+        cell.AddText(" regular");
         // AddRun copies the template for editing convenience; unspecify the
         // second run to reproduce genuine imported runs with no local style.
         cell.Cell.TextBody!.Elements<A.Paragraph>().Single().Elements<A.Run>().Last().RunProperties = new A.RunProperties();

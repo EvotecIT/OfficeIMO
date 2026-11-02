@@ -622,7 +622,7 @@ public static partial class PdfPowerPointConverterExtensions {
         for (int runIndex = 1; runIndex < sourceRuns.Count; runIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfCore.PdfLogicalTextRun sourceRun = sourceRuns[runIndex];
-            PptCore.PowerPointTextRun targetRun = paragraph.AddRun(sourceRun.Text);
+            PptCore.PowerPointTextRun targetRun = paragraph.AddText(sourceRun.Text);
             ApplyEditableTextRunStyle(targetRun, sourceRun, block.FontSize, scale);
         }
     }

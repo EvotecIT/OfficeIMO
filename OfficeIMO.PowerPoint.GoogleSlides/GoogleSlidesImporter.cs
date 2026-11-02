@@ -206,13 +206,13 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 IReadOnlyList<ImportedTextRun> sourceRuns = sourceParagraphs[paragraphIndex].Runs;
                 if (sourceRuns.Count == 0) continue;
 
-                PowerPointTextRun targetRun = targetParagraph.Runs.FirstOrDefault() ?? targetParagraph.AddRun(string.Empty);
+                PowerPointTextRun targetRun = targetParagraph.Runs.FirstOrDefault() ?? targetParagraph.AddText(string.Empty);
                 for (int runIndex = 0; runIndex < sourceRuns.Count; runIndex++) {
                     ImportedTextRun sourceRun = sourceRuns[runIndex];
                     if (runIndex == 0) {
                         targetRun.Text = sourceRun.Text;
                     } else {
-                        targetRun = targetParagraph.AddRun(sourceRun.Text);
+                        targetRun = targetParagraph.AddText(sourceRun.Text);
                     }
                     ApplyTextRunStyle(targetRun, sourceRun.Style);
                 }

@@ -100,10 +100,11 @@ namespace OfficeIMO.Tests {
             PowerPointTextBox link = presentation.AddSlide().AddTextBox("Open",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(28));
             PowerPointParagraph paragraph = link.Paragraphs.Single();
             paragraph.Runs.Single().SetHyperlink("https://openai.com");
-            paragraph.AddRun("AI", run => {
+            {
+                PowerPointTextRun run = paragraph.AddText("AI");
                 run.Bold = true;
                 run.SetHyperlink("https://openai.com");
-            });
+            }
 
             PowerPointAccessibilityReport report = presentation.InspectAccessibility();
 

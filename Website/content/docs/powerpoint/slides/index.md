@@ -69,6 +69,8 @@ text.AddNumberedItem("Prepare next milestone");
 text.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfter: global::OfficeIMO.OfficeLength.Points(2));
 ```
 
+`AddText` and `AddFormattedText` return the run they create, so `SetBold`, `SetColor` and the other run setters format only that text. The same setters on a paragraph format every run already in it.
+
 ## Build tables and charts from data
 
 ```csharp

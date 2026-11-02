@@ -172,13 +172,10 @@ namespace OfficeIMO.PowerPoint {
                 .ToList() ?? new List<PowerPointTextRun>();
 
         /// <summary>
-        ///     Adds a formatted run to the first cell paragraph.
+        ///     Appends text as a new run in the first cell paragraph and returns that run.
         /// </summary>
-        public PowerPointTextRun AddRun(string text, Action<PowerPointTextRun>? configure = null) {
-            PowerPointTextRun wrapper = new PowerPointParagraph(EnsureParagraph(), _slidePart, _ownerPart).InsertRun(text);
-            configure?.Invoke(wrapper);
-            return wrapper;
-        }
+        public PowerPointTextRun AddText(string text) =>
+            new PowerPointParagraph(EnsureParagraph(), _slidePart, _ownerPart).InsertRun(text);
 
         /// <summary>
         ///     Gets or sets whether the cell text is bold. Setting applies to every run and line break in the cell.

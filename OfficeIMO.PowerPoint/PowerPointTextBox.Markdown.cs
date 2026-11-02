@@ -147,7 +147,7 @@ namespace OfficeIMO.PowerPoint {
                     run = paragraph.Runs[0];
                     first = false;
                 } else {
-                    run = paragraph.AddRun(inlineRun.Text);
+                    run = paragraph.AddText(inlineRun.Text);
                 }
 
                 ApplyMarkdownInlineStyle(run, inlineRun);

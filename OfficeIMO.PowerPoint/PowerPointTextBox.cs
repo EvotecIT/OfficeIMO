@@ -69,10 +69,9 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointParagraph AddParagraph(string text = "", Action<PowerPointParagraph>? configure = null,
             Action<PowerPointTextRun>? run = null) {
             TextBody textBody = EnsureTextBody();
-            var wrapper = AppendParagraph(textBody, text ?? string.Empty, textBody.Elements<A.Paragraph>().FirstOrDefault());
-            PowerPointTextRun authoredRun = wrapper.GetDefaultRun();
+            var wrapper = AppendParagraph(textBody, text ?? string.Empty, textBody.Elements<A.Paragraph>().FirstOrDefault(), out PowerPointTextRun authoredRun);
             configure?.Invoke(wrapper);
-            run?.Invoke(authoredRun.Run.Parent != null ? authoredRun : wrapper.AddRun(text ?? string.Empty));
+            if (run != null) run(authoredRun.Run.Parent != null ? authoredRun : wrapper.AddText(text ?? string.Empty));
 
             return wrapper;
         }
@@ -121,7 +120,7 @@ namespace OfficeIMO.PowerPoint {
                 if (applyToRuns) {
                     IReadOnlyList<PowerPointTextRun> runs = paragraph.Runs;
                     if (runs.Count == 0) {
-                        runs = new List<PowerPointTextRun> { paragraph.AddRun(string.Empty) };
+                        runs = new List<PowerPointTextRun> { paragraph.AddText(string.Empty) };
                     }
                     foreach (PowerPointTextRun run in runs) {
                         style.Apply(run);
@@ -571,7 +570,10 @@ namespace OfficeIMO.PowerPoint {
             return results;
         }
 
-        private PowerPointParagraph AppendParagraph(TextBody textBody, string text, A.Paragraph? templateParagraph) {
+        private PowerPointParagraph AppendParagraph(TextBody textBody, string text, A.Paragraph? templateParagraph) =>
+            AppendParagraph(textBody, text, templateParagraph, out _);
+
+        private PowerPointParagraph AppendParagraph(TextBody textBody, string text, A.Paragraph? templateParagraph, out PowerPointTextRun authoredRun) {
             A.Paragraph paragraph = new();
             if (templateParagraph?.ParagraphProperties != null) {
                 paragraph.ParagraphProperties = (A.ParagraphProperties)templateParagraph.ParagraphProperties.CloneNode(true);
@@ -590,7 +592,7 @@ namespace OfficeIMO.PowerPoint {
 
             textBody.Append(paragraph);
             var wrapper = new PowerPointParagraph(paragraph, _slidePart ?? OwnerSlide?.SlidePart, _ownerPart);
-            wrapper.InsertRun(text, templateRunProps != null
+            authoredRun = wrapper.InsertRun(text, templateRunProps != null
                 ? CloneRunPropertiesForReplacement(templateRunProps)
                 : null);
             return wrapper;
